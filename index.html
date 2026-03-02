@@ -2232,8 +2232,6 @@
                         <span class="filter-label">Tipo:</span>
                         <select class="filter-select" id="filter-type" onchange="applyFilters()">
                             <option value="">Todos</option>
-                            <option value="arquitectura">🏛️ Arquitectura</option>
-                            <option value="ingenieria">⚙️ Ingeniería</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -2383,8 +2381,6 @@
                     <div class="form-group">
                         <label class="form-label">Tipo *</label>
                         <select class="form-select" id="manual-type">
-                            <option value="arquitectura">Estudio de Arquitectura</option>
-                            <option value="ingenieria">Estudio de Ingeniería</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -3330,6 +3326,38 @@
             'Jaén', 'Las Palmas', 'Málaga', 'Murcia',
             'Santa Cruz de Tenerife', 'Sevilla', 'Toledo'
         ];
+
+        // ============================================
+        // TIPOS DE ESTUDIO - Fuente única de verdad
+        // ============================================
+        const TIPOS_ESTUDIO = {
+            'arquitectura':   { icon: '🏛️', label: 'Arquitectura',          labelLargo: 'Estudio de Arquitectura' },
+            'ingenieria':     { icon: '⚙️', label: 'Ingeniería',            labelLargo: 'Estudio de Ingeniería' },
+            'promotora':      { icon: '🏗️', label: 'Promotora',             labelLargo: 'Promotora' },
+            'constructora':   { icon: '🔨', label: 'Constructora',          labelLargo: 'Constructora' },
+            'aapp':           { icon: '🏛️', label: 'AAPP',                  labelLargo: 'Administración Pública' },
+            'aguas':          { icon: '💧', label: 'Empresa de Aguas',      labelLargo: 'Empresa de Aguas' },
+            'regantes':       { icon: '🌾', label: 'Comunidad de Regantes', labelLargo: 'Comunidad de Regantes' },
+            'otros':          { icon: '📋', label: 'Otros',                 labelLargo: 'Otros' }
+        };
+
+        function populateTypeSelect(selectId, defaultLabel) {
+            const sel = document.getElementById(selectId);
+            if (!sel) return;
+            sel.innerHTML = '';
+            if (defaultLabel) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = defaultLabel;
+                sel.appendChild(opt);
+            }
+            Object.entries(TIPOS_ESTUDIO).forEach(([key, t]) => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = t.icon + ' ' + t.label;
+                sel.appendChild(opt);
+            });
+        }
 
         const PROVINCIAS_POR_COMUNIDAD = {
             'Andalucía': ['Almería', 'Córdoba', 'Granada', 'Huelva', 'Jaén', 'Málaga', 'Sevilla'],
@@ -4693,6 +4721,9 @@
         // Llamar al cargar la página
         document.addEventListener('DOMContentLoaded', function() {
             restoreDropdownStates();
+            // Poblar selects de tipos desde la constante TIPOS_ESTUDIO
+            populateTypeSelect('filter-type', 'Todos');
+            populateTypeSelect('manual-type', null);
             // Poblar todos los selects de provincias desde la constante PROVINCIAS
             populateProvinceSelect('filter-province', 'Todas');
             populateProvinceSelect('new-studio-province', null);
@@ -5010,7 +5041,7 @@
         function sortStudios(studios, column, direction) {
             const priorityOrder = { 'Alta': 1, 'Media': 2, 'Baja': 3 };
             const statusOrder = { 'nuevo': 1, 'contactado': 2, 'standby': 3, 'reunion': 4, 'negociacion': 5, 'ganado': 6, 'perdido': 7 };
-            const typeOrder = { 'arquitectura': 1, 'ingenieria': 2 };
+            const typeOrder = Object.fromEntries(Object.keys(TIPOS_ESTUDIO).map((k, i) => [k, i + 1]));
             
             return [...studios].sort((a, b) => {
                 let valA, valB;
@@ -5059,15 +5090,13 @@
         }
 
         function getTypeLabel(type) {
-            const types = {
-                'arquitectura': '🏛️ Arquitectura',
-                'ingenieria': '⚙️ Ingeniería'
-            };
-            return types[type] || '🏛️ Arquitectura';
+            const t = TIPOS_ESTUDIO[type];
+            return t ? t.icon + ' ' + t.label : '🏛️ Arquitectura';
         }
 
         function getTypeIcon(type) {
-            return type === 'ingenieria' ? '⚙️' : '🏛️';
+            const t = TIPOS_ESTUDIO[type];
+            return t ? t.icon : '🏛️';
         }
 
         function renderStudiosTable(studios) {
@@ -5586,8 +5615,6 @@
                 <div class="form-group">
                     <label class="form-label">Tipo de Estudio *</label>
                     <select class="form-select" id="new-studio-type">
-                        <option value="arquitectura">🏛️ Arquitectura</option>
-                        <option value="ingenieria">⚙️ Ingeniería</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -5599,6 +5626,7 @@
                     Se generará automáticamente un informe completo con datos de contacto, equipo, proyectos y estrategia de venta.
                 </p>
             `;
+            populateTypeSelect('new-studio-type', null);
             populateProvinceSelect('new-studio-province', null);
             document.getElementById('btn-generate-text').textContent = 'Generar Análisis';
             document.getElementById('btn-generate-icon').textContent = '🚀';
@@ -5627,8 +5655,8 @@
             closeModal('modal-new-studio');
             openModal('modal-progress');
             
-            const tipoTexto = studioType === 'ingenieria' ? 'ingeniería' : 'arquitectura';
-            const tipoPlural = studioType === 'ingenieria' ? 'estudios de ingeniería' : 'estudios de arquitectura';
+            const tipoTexto = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).label.toLowerCase();
+            const tipoPlural = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).labelLargo.toLowerCase() + 's';
             
             document.getElementById('progress-text').textContent = `🔍 Buscando ${tipoPlural} en ${province}...`;
             
@@ -5773,8 +5801,8 @@
         }
         
         function showFoundStudiosModal(province, studioType) {
-            const tipoTexto = studioType === 'ingenieria' ? 'ingeniería' : 'arquitectura';
-            
+            const tipoTexto = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).label.toLowerCase();
+
             let html = `
                 <div style="margin-bottom:16px;">
                     <p style="color:var(--muted);margin-bottom:8px;">
@@ -5920,7 +5948,7 @@
                 
                 // Búsquedas básicas
                 const searches = [
-                    `"${name}" ${studioType === 'ingenieria' ? 'ingeniería' : 'arquitectura'} ${province}`,
+                    `"${name}" ${(TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).label} ${province}`,
                     `"${name}" teléfono email contacto ${province}`,
                     `"${name}" proyectos obras`
                 ];
@@ -6016,8 +6044,8 @@
         
         // Función auxiliar para construir el prompt de análisis
         function buildAnalysisPrompt(name, province, studioType, webData, directWebContent) {
-            const tipoTexto = studioType === 'ingenieria' ? 'ingeniería' : 'arquitectura';
-            
+            const tipoTexto = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).label.toLowerCase();
+
             return `Analiza la siguiente información sobre el estudio de ${tipoTexto} "${name}" ubicado en ${province}, España.
 
 INFORMACIÓN RECOPILADA DE LA WEB:
@@ -9114,7 +9142,7 @@ ${domainContactSearch.map(r => `• ${r.title}\n  URL: ${r.url}\n  ${r.snippet}`
             // PASO 2: Análisis con IA usando los datos reales encontrados
             document.getElementById('progress-text').textContent = '🤖 Analizando toda la información encontrada...';
 
-            const studioTypeLabel = studioType === 'ingenieria' ? 'estudio de ingeniería' : 'estudio de arquitectura';
+            const studioTypeLabel = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).labelLargo.toLowerCase();
             const prompt = `Analiza los siguientes RESULTADOS DE BÚSQUEDA WEB REALES sobre el ${studioTypeLabel} "${name}" en ${province}, España.
 
 ${webData}
