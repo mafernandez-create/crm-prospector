@@ -4558,47 +4558,79 @@
         }
 
         // ============================================
-        // UI HELPERS
+        // UI HELPERS & SANITIZACIÓN
         // ============================================
-        function s(v, d = '') { return v ?? d; }
-        
+
+        // Escapar HTML para prevenir XSS
+        function escapeHtml(text) {
+            if (text == null) return '';
+            const div = document.createElement('div');
+            div.textContent = String(text);
+            return div.innerHTML;
+        }
+
+        // Helper seguro: escapa HTML automáticamente
+        function s(v, d = '') { return escapeHtml(v ?? d); }
+
+        // Helper sin escapar (solo para HTML intencionalmente construido)
+        function raw(v, d = '') { return v ?? d; }
+
+        // Validar que una URL sea segura (http/https)
+        function safeUrl(url, fallback = '#') {
+            if (!url || url === 'No encontrado' || url === '-') return fallback;
+            try {
+                const parsed = new URL(url.startsWith('http') ? url : 'https://' + url);
+                if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.href;
+                return fallback;
+            } catch { return fallback; }
+        }
+
+        // Escapar valor para uso seguro dentro de atributos onclick
+        function jsAttr(val) {
+            return escapeHtml(JSON.stringify(String(val ?? '')));
+        }
+
+        // Manejar error de carga de logo de forma segura
+        function handleLogoError(el, name, cssClass) {
+            el.onerror = null;
+            el.parentElement.innerHTML = '<div class="' + cssClass + '">' + escapeHtml(initials(name)) + '</div>';
+        }
+
         // Generar enlace de navegación para direcciones
         function navigationLink(address, fallback = '-') {
             if (!address || address === 'No encontrado' || address === '-') {
                 return fallback;
             }
-            // Codificar la dirección para URL
             const encodedAddress = encodeURIComponent(address);
-            // Usar Google Maps que funciona en todos los dispositivos
             const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
             return `<a href="${mapsUrl}" target="_blank" class="nav-link" onclick="event.stopPropagation();">
                 <span class="nav-link-icon">📍</span>
-                <span class="nav-link-text">${address}</span>
+                <span class="nav-link-text">${escapeHtml(address)}</span>
                 <span class="nav-link-arrow">→</span>
             </a>`;
         }
-        
+
         // Generar enlace de teléfono
         function phoneLink(phone, fallback = '-') {
             if (!phone || phone === 'No encontrado' || phone === '-') {
                 return fallback;
             }
-            // Limpiar el teléfono para el href
-            const cleanPhone = phone.replace(/\s+/g, '');
+            const cleanPhone = phone.replace(/[^\d+\-\s()]/g, '').replace(/\s+/g, '');
             return `<a href="tel:${cleanPhone}" class="phone-link" onclick="event.stopPropagation();">
                 <span class="phone-link-icon">📞</span>
-                <span class="phone-link-text">${phone}</span>
+                <span class="phone-link-text">${escapeHtml(phone)}</span>
             </a>`;
         }
-        
+
         // Generar enlace de email
         function emailLink(email, fallback = '-') {
             if (!email || email === 'No encontrado' || email === '-') {
                 return fallback;
             }
-            return `<a href="mailto:${email}" class="email-link" onclick="event.stopPropagation();">
+            const safeEmail = email.replace(/["<>]/g, '');
+            return `<a href="mailto:${encodeURIComponent(safeEmail)}" class="email-link" onclick="event.stopPropagation();">
                 <span class="email-link-icon">✉️</span>
-                <span class="email-link-text">${email}</span>
+                <span class="email-link-text">${escapeHtml(email)}</span>
             </a>`;
         }
         function a(v) { return Array.isArray(v) ? v : []; }
@@ -4609,7 +4641,7 @@
             const panel = document.getElementById('debug-panel');
             if (panel) {
                 panel.style.display = 'block';
-                panel.innerHTML += new Date().toLocaleTimeString() + ': ' + msg + '<br>';
+                panel.innerHTML += escapeHtml(new Date().toLocaleTimeString() + ': ' + msg) + '<br>';
                 panel.scrollTop = panel.scrollHeight;
             }
         }
@@ -4757,8 +4789,8 @@
                                 <div class="timeline-dot ${act.type}"></div>
                                 <div class="timeline-date">${formatDateTime(act.createdAt)}</div>
                                 <div class="timeline-content">
-                                    <div class="timeline-type">${act.type.toUpperCase()} - ${studio?.name || 'Estudio eliminado'}</div>
-                                    <div class="timeline-text">${act.text}</div>
+                                    <div class="timeline-type">${escapeHtml(act.type.toUpperCase())} - ${escapeHtml(studio?.name || 'Estudio eliminado')}</div>
+                                    <div class="timeline-text">${escapeHtml(act.text)}</div>
                                 </div>
                             </div>
                         `;
@@ -4780,8 +4812,8 @@
                                 <div class="timeline-dot ${act.type}"></div>
                                 <div class="timeline-date">📅 ${formatDate(act.followupDate)}</div>
                                 <div class="timeline-content" style="cursor:pointer;" onclick="showStudioDetail(${act.studioId})">
-                                    <div class="timeline-type">${studio?.name || 'Estudio'}</div>
-                                    <div class="timeline-text">${act.text}</div>
+                                    <div class="timeline-type">${escapeHtml(studio?.name || 'Estudio')}</div>
+                                    <div class="timeline-text">${escapeHtml(act.text)}</div>
                                 </div>
                             </div>
                         `;
@@ -5063,18 +5095,19 @@
             empty.style.display = 'none';
             tbody.innerHTML = studios.map(studio => {
                 // Generar HTML para logo o avatar en la tabla
-                const logoHtml = studio.logo 
-                    ? `<img src="${studio.logo}" alt="${studio.name}" class="table-logo" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'table-avatar\\'>${initials(studio.shortName || studio.name)}</div>';">`
-                    : `<div class="table-avatar">${initials(studio.shortName || studio.name)}</div>`;
-                
+                const logoName = studio.shortName || studio.name;
+                const logoHtml = studio.logo
+                    ? `<img src="${safeUrl(studio.logo)}" alt="${escapeHtml(studio.name)}" class="table-logo" onerror="handleLogoError(this, ${jsAttr(logoName)}, 'table-avatar')">`
+                    : `<div class="table-avatar">${escapeHtml(initials(logoName))}</div>`;
+
                 return `
                 <tr onclick="showStudioDetail(${studio.id})" style="cursor:pointer;">
                     <td>
                         <div class="table-studio">
                             <div class="table-logo-container">${logoHtml}</div>
                             <div>
-                                <div class="table-studio-name">${studio.name}</div>
-                                <div class="table-studio-city">📍 ${studio.city ? studio.city + ', ' : ''}${studio.province}</div>
+                                <div class="table-studio-name">${escapeHtml(studio.name)}</div>
+                                <div class="table-studio-city">📍 ${studio.city ? escapeHtml(studio.city) + ', ' : ''}${escapeHtml(studio.province)}</div>
                             </div>
                         </div>
                     </td>
@@ -5116,19 +5149,20 @@
             const data = studio.data || {};
             
             // Generar HTML para el logo o avatar
-            const logoHtml = studio.logo 
-                ? `<img src="${studio.logo}" alt="${studio.name}" class="detail-logo" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'detail-avatar\\'>${initials(studio.shortName || studio.name)}</div>';">`
-                : `<div class="detail-avatar">${initials(studio.shortName || studio.name)}</div>`;
-            
+            const detailLogoName = studio.shortName || studio.name;
+            const logoHtml = studio.logo
+                ? `<img src="${safeUrl(studio.logo)}" alt="${escapeHtml(studio.name)}" class="detail-logo" onerror="handleLogoError(this, ${jsAttr(detailLogoName)}, 'detail-avatar')">`
+                : `<div class="detail-avatar">${escapeHtml(initials(detailLogoName))}</div>`;
+
             document.getElementById('detail-content').innerHTML = `
                 ${renderActionBanner(studio)}
                 <div class="detail-header">
                     <div class="detail-logo-container">${logoHtml}</div>
                     <div class="detail-info">
-                        <div class="detail-name">${studio.name}</div>
+                        <div class="detail-name">${escapeHtml(studio.name)}</div>
                         <div class="detail-meta">
                             <span>${getTypeIcon(studio.type)} ${getTypeLabel(studio.type || 'arquitectura')}</span>
-                            <span>📍 ${studio.city ? studio.city + ', ' : ''}${studio.province}</span>
+                            <span>📍 ${studio.city ? escapeHtml(studio.city) + ', ' : ''}${escapeHtml(studio.province)}</span>
                             <span>📅 Creado: ${formatDate(studio.createdAt)}</span>
                             <span class="status status-${studio.status}">${getStatusLabel(studio.status)}</span>
                             <span class="priority priority-${(studio.priority || 'media').toLowerCase()}">${studio.priority || 'Media'}</span>
@@ -5170,7 +5204,7 @@
                                         <div class="info-item"><div class="info-label">Provincia</div><div class="info-value">${s(studio.province, '-')}</div></div>
                                         <div class="info-item"><div class="info-label">Teléfono</div><div class="info-value">${phoneLink(data.contact?.phone, '-')}</div></div>
                                         <div class="info-item"><div class="info-label">Email</div><div class="info-value">${emailLink(data.contact?.email, '-')}</div></div>
-                                        <div class="info-item"><div class="info-label">Web</div><div class="info-value"><a href="${s(data.contact?.web, '#')}" target="_blank" class="nav-link" style="background:var(--info-light);color:var(--info);" onclick="event.stopPropagation();"><span class="nav-link-icon">🌐</span><span class="nav-link-text">${s(data.contact?.web, '-')}</span><span class="nav-link-arrow">→</span></a></div></div>
+                                        <div class="info-item"><div class="info-label">Web</div><div class="info-value"><a href="${safeUrl(data.contact?.web)}" target="_blank" class="nav-link" style="background:var(--info-light);color:var(--info);" onclick="event.stopPropagation();"><span class="nav-link-icon">🌐</span><span class="nav-link-text">${s(data.contact?.web, '-')}</span><span class="nav-link-arrow">→</span></a></div></div>
                                         <div class="info-item"><div class="info-label">Fundación</div><div class="info-value">${s(data.studio?.founded, '-')}</div></div>
                                     </div>
                                 </div>
@@ -5214,13 +5248,13 @@
                                             <button onclick="deleteTeamMember(${idx})" style="position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;color:var(--danger);font-size:1rem;" title="Eliminar">🗑️</button>
                                             <div class="info-value" style="font-size:1rem;">${s(m.name)} ${m.isDecisionMaker ? '⭐' : ''}</div>
                                             <div style="color:var(--accent);font-size:0.85rem;">${s(m.role)}</div>
-                                            ${m.email ? `<div style="margin-top:8px;font-size:0.85rem;">📧 <a href="mailto:${m.email}">${m.email}</a></div>` : ''}
-                                            ${m.phone ? `<div style="font-size:0.85rem;">📞 <a href="tel:${m.phone}">${m.phone}</a></div>` : ''}
-                                            ${m.linkedin ? `<div style="font-size:0.85rem;">💼 <a href="${m.linkedin}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open('${m.linkedin}', '_blank'); return false;">LinkedIn ↗</a></div>` : ''}
+                                            ${m.email ? `<div style="margin-top:8px;font-size:0.85rem;">📧 <a href="mailto:${encodeURIComponent(m.email.replace(/["<>]/g, ''))}">${escapeHtml(m.email)}</a></div>` : ''}
+                                            ${m.phone ? `<div style="font-size:0.85rem;">📞 <a href="tel:${m.phone.replace(/[^\d+\-\s()]/g, '').replace(/\s+/g, '')}">${escapeHtml(m.phone)}</a></div>` : ''}
+                                            ${m.linkedin ? `<div style="font-size:0.85rem;">💼 <a href="${safeUrl(m.linkedin)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">LinkedIn ↗</a></div>` : ''}
                                             <div style="margin-top:8px;">
-                                                ${a(m.specs || m.specializations).map(sp => `<span class="status status-nuevo" style="margin-right:4px;">${sp}</span>`).join('')}
+                                                ${a(m.specs || m.specializations).map(sp => `<span class="status status-nuevo" style="margin-right:4px;">${escapeHtml(sp)}</span>`).join('')}
                                             </div>
-                                            ${m.insight ? `<div style="margin-top:8px;padding:8px;background:var(--info-light);border-radius:6px;font-size:0.8rem;">💡 ${m.insight}</div>` : ''}
+                                            ${m.insight ? `<div style="margin-top:8px;padding:8px;background:var(--info-light);border-radius:6px;font-size:0.8rem;">💡 ${escapeHtml(m.insight)}</div>` : ''}
                                         </div>
                                     `).join('') || '<p style="color:var(--muted);">Sin información del equipo. Haz clic en "+ Añadir Persona" para agregar contactos.</p>'}
                                 </div>
@@ -5261,7 +5295,7 @@
                                                             📥 Descargar archivo
                                                         </button>
                                                     ` : (r.fileUrl ? `
-                                                        <a href="${r.fileUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open(this.href, '_blank'); return false;" class="btn btn-sm btn-primary">
+                                                        <a href="${r.fileUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();" class="btn btn-sm btn-primary">
                                                             🔗 Abrir enlace
                                                         </a>
                                                     ` : '')}
@@ -5292,9 +5326,9 @@
                                                 <strong>LinkedIn</strong>
                                                 ${data.social?.linkedin?.activity ? `<span class="status status-${data.social.linkedin.activity === 'Alta' ? 'ganado' : data.social.linkedin.activity === 'Media' ? 'contactado' : 'nuevo'}">${data.social.linkedin.activity}</span>` : ''}
                                             </div>
-                                            ${data.social?.linkedin?.url ? `<a href="${data.social.linkedin.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open(this.href, '_blank'); return false;" style="font-size:0.8rem;color:var(--accent);">Ver perfil ↗</a>` : ''}
-                                            ${data.social?.linkedin?.followers ? `<div style="font-size:0.85rem;margin-top:4px;">👥 ${data.social.linkedin.followers} seguidores</div>` : ''}
-                                            ${data.social?.linkedin?.lastPost ? `<div style="font-size:0.8rem;color:var(--muted);margin-top:4px;">📝 Último: ${data.social.linkedin.lastPost}</div>` : ''}
+                                            ${data.social?.linkedin?.url ? `<a href="${safeUrl(data.social.linkedin.url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();" style="font-size:0.8rem;color:var(--accent);">Ver perfil ↗</a>` : ''}
+                                            ${data.social?.linkedin?.followers ? `<div style="font-size:0.85rem;margin-top:4px;">👥 ${escapeHtml(data.social.linkedin.followers)} seguidores</div>` : ''}
+                                            ${data.social?.linkedin?.lastPost ? `<div style="font-size:0.8rem;color:var(--muted);margin-top:4px;">📝 Último: ${escapeHtml(data.social.linkedin.lastPost)}</div>` : ''}
                                         </div>
                                         
                                         <!-- Instagram -->
@@ -5304,9 +5338,9 @@
                                                 <strong>Instagram</strong>
                                                 ${data.social?.instagram?.activity ? `<span class="status status-${data.social.instagram.activity === 'Alta' ? 'ganado' : data.social.instagram.activity === 'Media' ? 'contactado' : 'nuevo'}">${data.social.instagram.activity}</span>` : ''}
                                             </div>
-                                            ${data.social?.instagram?.url ? `<a href="${data.social.instagram.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open(this.href, '_blank'); return false;" style="font-size:0.8rem;color:var(--accent);">Ver perfil ↗</a>` : ''}
-                                            ${data.social?.instagram?.followers ? `<div style="font-size:0.85rem;margin-top:4px;">👥 ${data.social.instagram.followers} seguidores</div>` : ''}
-                                            ${data.social?.instagram?.style ? `<div style="font-size:0.8rem;color:var(--muted);margin-top:4px;">🎨 ${data.social.instagram.style}</div>` : ''}
+                                            ${data.social?.instagram?.url ? `<a href="${safeUrl(data.social.instagram.url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();" style="font-size:0.8rem;color:var(--accent);">Ver perfil ↗</a>` : ''}
+                                            ${data.social?.instagram?.followers ? `<div style="font-size:0.85rem;margin-top:4px;">👥 ${escapeHtml(data.social.instagram.followers)} seguidores</div>` : ''}
+                                            ${data.social?.instagram?.style ? `<div style="font-size:0.8rem;color:var(--muted);margin-top:4px;">🎨 ${escapeHtml(data.social.instagram.style)}</div>` : ''}
                                         </div>
                                         
                                         <!-- Twitter/X -->
@@ -5316,8 +5350,8 @@
                                                 <strong>Twitter/X</strong>
                                                 ${data.social?.twitter?.activity ? `<span class="status status-${data.social.twitter.activity === 'Alta' ? 'ganado' : data.social.twitter.activity === 'Media' ? 'contactado' : 'nuevo'}">${data.social.twitter.activity}</span>` : ''}
                                             </div>
-                                            ${data.social?.twitter?.url ? `<a href="${data.social.twitter.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open(this.href, '_blank'); return false;" style="font-size:0.8rem;color:var(--accent);">Ver perfil ↗</a>` : ''}
-                                            ${data.social?.twitter?.followers ? `<div style="font-size:0.85rem;margin-top:4px;">👥 ${data.social.twitter.followers} seguidores</div>` : ''}
+                                            ${data.social?.twitter?.url ? `<a href="${safeUrl(data.social.twitter.url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();" style="font-size:0.8rem;color:var(--accent);">Ver perfil ↗</a>` : ''}
+                                            ${data.social?.twitter?.followers ? `<div style="font-size:0.85rem;margin-top:4px;">👥 ${escapeHtml(data.social.twitter.followers)} seguidores</div>` : ''}
                                         </div>
                                         
                                         <!-- Facebook -->
@@ -5326,8 +5360,8 @@
                                                 <span style="font-size:1.5rem;">📘</span>
                                                 <strong>Facebook</strong>
                                             </div>
-                                            ${data.social?.facebook?.url ? `<a href="${data.social.facebook.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open(this.href, '_blank'); return false;" style="font-size:0.8rem;color:var(--accent);">Ver página ↗</a>` : ''}
-                                            ${data.social?.facebook?.followers ? `<div style="font-size:0.85rem;margin-top:4px;">👥 ${data.social.facebook.followers} seguidores</div>` : ''}
+                                            ${data.social?.facebook?.url ? `<a href="${safeUrl(data.social.facebook.url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();" style="font-size:0.8rem;color:var(--accent);">Ver página ↗</a>` : ''}
+                                            ${data.social?.facebook?.followers ? `<div style="font-size:0.85rem;margin-top:4px;">👥 ${escapeHtml(data.social.facebook.followers)} seguidores</div>` : ''}
                                         </div>
                                         
                                         <!-- YouTube -->
@@ -5336,8 +5370,8 @@
                                                 <span style="font-size:1.5rem;">🎬</span>
                                                 <strong>YouTube</strong>
                                             </div>
-                                            ${data.social?.youtube?.url ? `<a href="${data.social.youtube.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open(this.href, '_blank'); return false;" style="font-size:0.8rem;color:var(--accent);">Ver canal ↗</a>` : ''}
-                                            ${data.social?.youtube?.subscribers ? `<div style="font-size:0.85rem;margin-top:4px;">👥 ${data.social.youtube.subscribers} suscriptores</div>` : ''}
+                                            ${data.social?.youtube?.url ? `<a href="${safeUrl(data.social.youtube.url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();" style="font-size:0.8rem;color:var(--accent);">Ver canal ↗</a>` : ''}
+                                            ${data.social?.youtube?.subscribers ? `<div style="font-size:0.85rem;margin-top:4px;">👥 ${escapeHtml(data.social.youtube.subscribers)} suscriptores</div>` : ''}
                                         </div>
                                     </div>
                                 </div>
@@ -5379,7 +5413,7 @@
                                                 <div style="font-weight:600;">${s(m.name)} ${m.isDecisionMaker ? '⭐' : ''}</div>
                                                 <div style="font-size:0.8rem;color:var(--muted);">${s(m.role)}</div>
                                             </div>
-                                            <a href="${m.linkedin}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open(this.href, '_blank'); return false;" class="btn btn-sm btn-secondary">Ver LinkedIn ↗</a>
+                                            <a href="${safeUrl(m.linkedin)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();" class="btn btn-sm btn-secondary">Ver LinkedIn ↗</a>
                                         </div>
                                     `).join('')}
                                 </div>
@@ -5459,8 +5493,8 @@
                                                     <div class="timeline-dot ${act.type}"></div>
                                                     <div class="timeline-date">${formatDateTime(act.createdAt)}${act.followupDate ? ` · 📅 Seguimiento: ${formatDateTime(act.followupDate)}` : ''}</div>
                                                     <div class="timeline-content">
-                                                        <div class="timeline-type">${act.type.toUpperCase()}</div>
-                                                        <div class="timeline-text">${act.text}</div>
+                                                        <div class="timeline-type">${escapeHtml(act.type.toUpperCase())}</div>
+                                                        <div class="timeline-text">${escapeHtml(act.text)}</div>
                                                     </div>
                                                     <button class="btn btn-sm btn-secondary" onclick="openEditActivityModal(${act.id})" style="position:absolute;top:0;right:0;padding:4px 8px;font-size:0.7rem;">✏️</button>
                                                 </div>
@@ -5501,8 +5535,8 @@
                                 <button class="btn btn-primary" style="width:100%;margin-bottom:8px;" onclick="quickSendEmail(${id})">📤 Enviar Email Rápido</button>
                                 <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;" onclick="openSendEmailModal(${id})">✉️ Redactar Email</button>
                                 <hr style="margin:12px 0;border:none;border-top:1px solid var(--border);">
-                                <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;" onclick="copyToClipboard('${s(data.contact?.email, '')}')">📧 Copiar Email</button>
-                                <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;" onclick="makePhoneCall('${s(data.contact?.phone, '')}')">📞 Llamar</button>
+                                <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;" onclick="copyToClipboard(${jsAttr(data.contact?.email || '')})">📧 Copiar Email</button>
+                                <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;" onclick="makePhoneCall(${jsAttr(data.contact?.phone || '')})">📞 Llamar</button>
                                 <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;" onclick="copyTemplate('email', ${id})">📋 Copiar Email Template</button>
                                 <button class="btn btn-secondary" style="width:100%;" onclick="copyTemplate('linkedin', ${id})">💼 Copiar LinkedIn</button>
                             </div>
@@ -8212,11 +8246,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             }
         }
         
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+        // escapeHtml() definida en la sección UI HELPERS
         
         function toggleAllBulkResults(select) {
             document.querySelectorAll('.bulk-checkbox').forEach(cb => {
@@ -13740,7 +13770,7 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                         ${isCurrent ? `
                             <div class="b2b-step-actions">
                                 <button class="btn btn-success btn-sm" onclick="completeB2BStep(${studio.id}, ${index})">✓ Marcar completado</button>
-                                ${step.channel === 'phone' ? `<button class="btn btn-primary btn-sm" onclick="makePhoneCall('${(studio.data?.contact?.phone || '').replace(/'/g, '')}')">📞 Llamar ahora</button>` : ''}
+                                ${step.channel === 'phone' ? `<button class="btn btn-primary btn-sm" onclick="makePhoneCall(${jsAttr(studio.data?.contact?.phone || '')})">📞 Llamar ahora</button>` : ''}
                                 ${step.channel === 'email' ? `<button class="btn btn-primary btn-sm" onclick="openSendEmailModal()">✉️ Enviar email</button>` : ''}
                                 <button class="btn btn-secondary btn-sm" onclick="addToCalendar(${studio.id}, ${index})">📅 Añadir a calendario</button>
                             </div>
@@ -14282,7 +14312,7 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                             ✓ Completar
                         </button>
                         ${action.step.channel === 'phone' ? `
-                            <button class="btn btn-primary" onclick="makePhoneCall('${(studio.data?.contact?.phone || '').replace(/'/g, '')}')">
+                            <button class="btn btn-primary" onclick="makePhoneCall(${jsAttr(studio.data?.contact?.phone || '')})">
                                 📞 Llamar
                             </button>
                         ` : ''}
