@@ -3466,6 +3466,19 @@
         }
 
         // ============================================
+        // CLAUDE API VÍA PROXY (Apps Script)
+        // ============================================
+        async function callClaudeAPI(messages, maxTokens = 4000, model = 'claude-sonnet-4-20250514') {
+            const result = await callAPI('claudeProxy', {
+                model: model,
+                max_tokens: maxTokens,
+                messages: messages
+            });
+            if (result.error) throw new Error(result.error);
+            return result;
+        }
+
+        // ============================================
         // GOOGLE CALENDAR VÍA APPS SCRIPT
         // ============================================
         
@@ -5967,31 +5980,9 @@
             // Generar análisis con Claude
             const analysisPrompt = buildAnalysisPrompt(name, province, studioType, webData, null);
             
-            const response = await fetch('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': apiKey,
-                    'anthropic-version': '2023-06-01',
-                    'anthropic-dangerous-direct-browser-access': 'true'
-                },
-                body: JSON.stringify({
-                    model: 'claude-sonnet-4-20250514',
-                    max_tokens: 4000,
-                    messages: [{
-                        role: 'user',
-                        content: analysisPrompt
-                    }]
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error('Error en API: ' + response.status);
-            }
-            
-            const data = await response.json();
+            const data = await callClaudeAPI([{ role: 'user', content: analysisPrompt }]);
             const analysisText = data.content[0].text;
-            
+
             // Parsear y guardar
             const analysis = parseAnalysisResponse(analysisText);
             
@@ -8386,31 +8377,9 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             // Generar análisis con Claude
             const analysisPrompt = buildAnalysisPrompt(name, province, studioType, webData, null);
             
-            const response = await fetch('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': apiKey,
-                    'anthropic-version': '2023-06-01',
-                    'anthropic-dangerous-direct-browser-access': 'true'
-                },
-                body: JSON.stringify({
-                    model: 'claude-sonnet-4-20250514',
-                    max_tokens: 4000,
-                    messages: [{
-                        role: 'user',
-                        content: analysisPrompt
-                    }]
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error('Error en API: ' + response.status);
-            }
-            
-            const data = await response.json();
+            const data = await callClaudeAPI([{ role: 'user', content: analysisPrompt }]);
             const analysisText = data.content[0].text;
-            
+
             // Parsear respuesta
             const analysis = parseAnalysisResponse(analysisText);
             
@@ -8456,10 +8425,9 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
         async function generateAndSaveStudio() {
             clearDebug();
             
-            // Verificar API key
-            if (!apiKey) {
-                alert('⚠️ Necesitas configurar tu API key de Anthropic.\n\nVe a Configuración (⚙️) en el menú lateral para añadirla.');
-                openSettingsModal();
+            // Verificar conexión cloud (necesaria para el proxy IA)
+            if (!useCloudStorage) {
+                alert('⚠️ Se necesita conexión cloud para generar análisis.\n\nVerifica tu conexión a Google Sheets.');
                 return;
             }
             
@@ -9204,55 +9172,33 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
 {"studio":{"name":"nombre exacto encontrado","shortName":"siglas","description":"descripción basada en info encontrada","founded":"año si se encontró o No encontrado","employees":"número si se encontró o No encontrado"},"contact":{"address":"dirección EXACTA encontrada o No encontrado","city":"${province}","phone":"teléfono EXACTO encontrado o No encontrado","email":"email EXACTO encontrado o No encontrado","web":"URL EXACTA encontrada o No encontrado"},"team":[{"name":"nombre REAL encontrado","role":"cargo encontrado","isDecisionMaker":true,"email":"email si se encontró o No encontrado","linkedin":"URL LinkedIn EXACTA o No encontrado","specs":["especialidad"],"insight":"enfoque de venta basado en su perfil"}],"projects":[{"name":"nombre proyecto REAL encontrado","type":"tipo","location":"ubicación","year":"año","relevance":"relevancia para Ferroplast"}],"social":{"linkedin":{"url":"URL EXACTA encontrada o No encontrado","followers":"número o No encontrado","activity":"nivel","lastPost":"No encontrado","relevantPosts":[]},"instagram":{"url":"URL EXACTA o No encontrado","followers":"No encontrado","activity":"No encontrado","style":"No encontrado"},"twitter":{"url":"URL EXACTA o No encontrado","followers":"No encontrado","activity":"No encontrado"},"facebook":{"url":"URL EXACTA o No encontrado","followers":"No encontrado"},"youtube":{"url":"No encontrado","subscribers":"No encontrado"},"analysis":"análisis basado en presencia digital encontrada"},"sales":{"priority":"Media","score":5,"hook":"gancho basado en proyectos reales encontrados","benefits":["beneficio1","beneficio2"],"objections":[{"q":"objeción","a":"respuesta"}]},"comms":{"emailSubject":"asunto profesional","emailBody":"email personalizado basado en proyectos reales encontrados","callPitch":"pitch basado en info real","linkedinNote":"nota personalizada"}}`;
 
             try {
-                debugLog('Enviando petición a la API...');
-                
-                const response = await fetch("https://api.anthropic.com/v1/messages", {
-                    method: "POST",
-                    headers: { 
-                        "Content-Type": "application/json",
-                        "x-api-key": apiKey,
-                        "anthropic-version": "2023-06-01",
-                        "anthropic-dangerous-direct-browser-access": "true"
-                    },
-                    body: JSON.stringify({
-                        model: "claude-sonnet-4-20250514",
-                        max_tokens: 5000,
-                        messages: [{ role: "user", content: prompt }]
-                    })
-                });
+                debugLog('Enviando petición a la API via proxy...');
 
-                debugLog('Respuesta recibida, status: ' + response.status);
-                
-                const result = await response.json();
+                const result = await callClaudeAPI([{ role: "user", content: prompt }], 5000);
                 debugLog('Resultado recibido');
-                
-                if (result.error) {
-                    debugLog('ERROR de API: ' + JSON.stringify(result.error));
-                    throw new Error(result.error.message || 'Error de API');
-                }
-                
+
                 if (!result.content || !result.content[0] || !result.content[0].text) {
                     debugLog('Respuesta inválida: ' + JSON.stringify(result).substring(0, 200));
                     throw new Error('Respuesta vacía o inválida de la API');
                 }
 
-                let raw = result.content[0].text;
-                debugLog('Texto recibido (' + raw.length + ' chars)');
-                debugLog('Primeros 300 chars: ' + raw.substring(0, 300));
-                
+                let rawText = result.content[0].text;
+                debugLog('Texto recibido (' + rawText.length + ' chars)');
+                debugLog('Primeros 300 chars: ' + rawText.substring(0, 300));
+
                 // Limpiar markdown
-                raw = raw.replace(/```json/gi, '').replace(/```/gi, '').trim();
-                
+                rawText = rawText.replace(/```json/gi, '').replace(/```/gi, '').trim();
+
                 // Encontrar el JSON
-                const start = raw.indexOf('{');
-                const end = raw.lastIndexOf('}');
-                
+                const start = rawText.indexOf('{');
+                const end = rawText.lastIndexOf('}');
+
                 if (start === -1 || end === -1) {
                     debugLog('ERROR: No se encontró JSON');
                     throw new Error('No se encontró JSON válido en la respuesta');
                 }
 
-                let json = raw.substring(start, end + 1);
+                let json = rawText.substring(start, end + 1);
                 debugLog('JSON extraído (' + json.length + ' chars)');
                 
                 // Limpiar caracteres problemáticos
@@ -12640,125 +12586,51 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
         }
         
         function showApiKeyWarning() {
-            // Crear banner si no existe
+            // Ya no se necesita banner - la API key está en el servidor
             let banner = document.getElementById('api-warning-banner');
-            if (!banner) {
-                banner = document.createElement('div');
-                banner.id = 'api-warning-banner';
-                banner.style.cssText = 'background:var(--warning-light);color:var(--warning);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--warning);';
-                document.querySelector('.main').insertBefore(banner, document.querySelector('.topbar'));
-            }
-            
-            if (!apiKey) {
-                banner.style.display = 'flex';
-                banner.innerHTML = `
-                    <span>⚠️ <strong>API Key no configurada</strong> - Necesitas configurar tu API key de Anthropic para generar análisis</span>
-                    <button class="btn btn-sm btn-primary" onclick="openSettingsModal()">⚙️ Configurar</button>
-                `;
-            } else {
-                banner.style.display = 'none';
-            }
+            if (banner) banner.style.display = 'none';
         }
 
         // ============================================
-        // API KEY MANAGEMENT
+        // API KEY MANAGEMENT (proxy - key en servidor)
         // ============================================
-        let apiKey = null;
 
         function loadApiKey() {
-            apiKey = localStorage.getItem('ferroplast_test_api_key');
+            // API key ahora vive en Google Apps Script Properties
+            // Solo actualizamos el estado visual
             updateApiStatus();
         }
 
         function saveApiKey() {
-            const input = document.getElementById('api-key-input');
-            const key = input.value.trim();
-            
-            if (key) {
-                localStorage.setItem('ferroplast_test_api_key', key);
-                apiKey = key;
-                updateApiStatus();
-                showApiKeyWarning();
-                alert('✅ API key guardada correctamente');
-            } else {
-                localStorage.removeItem('ferroplast_test_api_key');
-                apiKey = null;
-                updateApiStatus();
-                showApiKeyWarning();
-            }
+            // API key ya está en el servidor, no se necesita guardar localmente
+            alert('ℹ️ La API key de IA ahora está configurada de forma segura en el servidor.\nNo necesitas introducirla aquí.');
         }
 
         function updateApiStatus() {
             const icon = document.getElementById('api-status-icon');
             const text = document.getElementById('api-status-text');
-            const input = document.getElementById('api-key-input');
-            
-            if (apiKey) {
+
+            if (useCloudStorage) {
                 icon.textContent = '🟢';
-                text.textContent = 'API key configurada (••••' + apiKey.slice(-4) + ')';
-                if (input) input.value = apiKey;
+                text.textContent = 'IA disponible via proxy (API key segura en servidor)';
             } else {
-                icon.textContent = '🔴';
-                text.textContent = 'No configurada - Se requiere API key para generar análisis';
-                if (input) input.value = '';
+                icon.textContent = '🟡';
+                text.textContent = 'Sincronización cloud necesaria para análisis IA';
             }
         }
 
         async function testApiKey() {
-            const input = document.getElementById('api-key-input');
-            const key = input.value.trim();
-            
-            if (!key) {
-                alert('Introduce una API key para probar');
-                return;
-            }
-            
             const icon = document.getElementById('api-status-icon');
             const text = document.getElementById('api-status-text');
-            
+
             icon.textContent = '🟡';
-            text.textContent = 'Probando conexión...';
-            
+            text.textContent = 'Probando conexión al proxy IA...';
+
             try {
-                const response = await fetch("https://api.anthropic.com/v1/messages", {
-                    method: "POST",
-                    headers: { 
-                        "Content-Type": "application/json",
-                        "x-api-key": key,
-                        "anthropic-version": "2023-06-01",
-                        "anthropic-dangerous-direct-browser-access": "true"
-                    },
-                    body: JSON.stringify({
-                        model: "claude-sonnet-4-20250514",
-                        max_tokens: 10,
-                        messages: [{ role: "user", content: "Di solo: OK" }]
-                    })
-                });
-                
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    if (response.status === 401) {
-                        throw new Error('API key inválida o expirada');
-                    } else if (response.status === 403) {
-                        throw new Error('Sin permisos. Verifica tu plan de Anthropic.');
-                    } else {
-                        throw new Error(errorData.error?.message || 'Error HTTP ' + response.status);
-                    }
-                }
-                
-                const result = await response.json();
-                
-                if (result.error) {
-                    throw new Error(result.error.message);
-                }
-                
+                const result = await callClaudeAPI([{ role: "user", content: "Di solo: OK" }], 10);
+
                 icon.textContent = '🟢';
-                text.textContent = '✅ Conexión exitosa! API key válida';
-                
-                // Auto-guardar si funciona
-                localStorage.setItem('ferroplast_test_api_key', key);
-                apiKey = key;
-                showApiKeyWarning();
+                text.textContent = '✅ Conexión al proxy IA exitosa!';
                 
             } catch (error) {
                 icon.textContent = '🔴';
