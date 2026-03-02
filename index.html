@@ -255,8 +255,7 @@
         .detail-actions { display: flex; gap: 8px; flex-wrap: wrap; }
         
         .detail-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
-        @media (max-width: 1024px) { .detail-grid { grid-template-columns: 1fr; } }
-        
+
         .info-section { margin-bottom: 20px; }
         .info-section-title { font-size: 0.75rem; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
         .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
@@ -314,19 +313,6 @@
         .email-link:hover {
             background: var(--warning);
             color: white;
-        }
-        
-        /* Responsive para enlaces de contacto */
-        @media (max-width: 768px) {
-            .nav-link, .phone-link, .email-link {
-                padding: 12px 14px;
-                font-size: 0.9rem;
-                width: 100%;
-                box-sizing: border-box;
-            }
-            .nav-link-arrow {
-                display: none;
-            }
         }
         
         .template-box { background: var(--surface); border-left: 3px solid var(--accent); padding: 12px; border-radius: 0 8px 8px 0; font-size: 0.85rem; line-height: 1.6; white-space: pre-wrap; margin: 8px 0; }
@@ -1365,6 +1351,17 @@
             tr:active {
                 background: var(--accent-light) !important;
             }
+
+            /* Enlaces de contacto responsive */
+            .nav-link, .phone-link, .email-link {
+                padding: 12px 14px;
+                font-size: 0.9rem;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            .nav-link-arrow {
+                display: none;
+            }
         }
 
         /* ============================================
@@ -2265,23 +2262,6 @@
                         <span class="filter-label">Provincia:</span>
                         <select class="filter-select" id="filter-province" onchange="onProvinceChange()">
                             <option value="">Todas</option>
-                            <option value="Albacete">Albacete</option>
-                            <option value="Alicante">Alicante</option>
-                            <option value="Almería">Almería</option>
-                            <option value="Badajoz">Badajoz</option>
-                            <option value="Cáceres">Cáceres</option>
-                            <option value="Ciudad Real">Ciudad Real</option>
-                            <option value="Córdoba">Córdoba</option>
-                            <option value="Cuenca">Cuenca</option>
-                            <option value="Granada">Granada</option>
-                            <option value="Huelva">Huelva</option>
-                            <option value="Jaén">Jaén</option>
-                            <option value="Las Palmas">Las Palmas</option>
-                            <option value="Málaga">Málaga</option>
-                            <option value="Murcia">Murcia</option>
-                            <option value="Santa Cruz de Tenerife">Santa Cruz de Tenerife</option>
-                            <option value="Sevilla">Sevilla</option>
-                            <option value="Toledo">Toledo</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -2355,23 +2335,6 @@
                 <div class="form-group">
                     <label class="form-label">Provincia *</label>
                     <select class="form-select" id="new-studio-province">
-                            <option value="Albacete">Albacete</option>
-                            <option value="Alicante">Alicante</option>
-                            <option value="Almería">Almería</option>
-                            <option value="Badajoz">Badajoz</option>
-                            <option value="Cáceres">Cáceres</option>
-                            <option value="Ciudad Real">Ciudad Real</option>
-                            <option value="Córdoba">Córdoba</option>
-                            <option value="Cuenca">Cuenca</option>
-                            <option value="Granada">Granada</option>
-                            <option value="Huelva">Huelva</option>
-                            <option value="Jaén">Jaén</option>
-                            <option value="Las Palmas">Las Palmas</option>
-                            <option value="Málaga">Málaga</option>
-                            <option value="Murcia">Murcia</option>
-                            <option value="Santa Cruz de Tenerife">Santa Cruz de Tenerife</option>
-                            <option value="Sevilla">Sevilla</option>
-                            <option value="Toledo">Toledo</option>
                         </select>
                 </div>
                 <p style="font-size:0.8rem;color:var(--muted);margin-top:12px;">
@@ -2427,23 +2390,6 @@
                     <div class="form-group">
                         <label class="form-label">Provincia *</label>
                         <select class="form-select" id="manual-province">
-                            <option value="Albacete">Albacete</option>
-                            <option value="Alicante">Alicante</option>
-                            <option value="Almería">Almería</option>
-                            <option value="Badajoz">Badajoz</option>
-                            <option value="Cáceres">Cáceres</option>
-                            <option value="Ciudad Real">Ciudad Real</option>
-                            <option value="Córdoba">Córdoba</option>
-                            <option value="Cuenca">Cuenca</option>
-                            <option value="Granada">Granada</option>
-                            <option value="Huelva">Huelva</option>
-                            <option value="Jaén">Jaén</option>
-                            <option value="Las Palmas">Las Palmas</option>
-                            <option value="Málaga">Málaga</option>
-                            <option value="Murcia">Murcia</option>
-                            <option value="Santa Cruz de Tenerife">Santa Cruz de Tenerife</option>
-                            <option value="Sevilla">Sevilla</option>
-                            <option value="Toledo">Toledo</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -2793,23 +2739,6 @@
                     <div class="form-group">
                         <label class="form-label">Provincia</label>
                         <select class="form-select" id="edit-contact-province">
-                            <option value="Albacete">Albacete</option>
-                            <option value="Alicante">Alicante</option>
-                            <option value="Almería">Almería</option>
-                            <option value="Badajoz">Badajoz</option>
-                            <option value="Cáceres">Cáceres</option>
-                            <option value="Ciudad Real">Ciudad Real</option>
-                            <option value="Córdoba">Córdoba</option>
-                            <option value="Cuenca">Cuenca</option>
-                            <option value="Granada">Granada</option>
-                            <option value="Huelva">Huelva</option>
-                            <option value="Jaén">Jaén</option>
-                            <option value="Las Palmas">Las Palmas</option>
-                            <option value="Málaga">Málaga</option>
-                            <option value="Murcia">Murcia</option>
-                            <option value="Santa Cruz de Tenerife">Santa Cruz de Tenerife</option>
-                            <option value="Sevilla">Sevilla</option>
-                            <option value="Toledo">Toledo</option>
                         </select>
                     </div>
                 </div>
@@ -3392,6 +3321,48 @@
         const API_URL = 'https://script.google.com/macros/s/AKfycbzh2oFEM2QcL0OFef1dqz36b0C1f8qTMlvGdhoWATMwF5r2umlZpYdrq-7w86i6GF8/exec';
         // Ejemplo: 'https://script.google.com/macros/s/AKfycbw.../exec'
         
+        // ============================================
+        // PROVINCIAS - Fuente única de verdad
+        // ============================================
+        const PROVINCIAS = [
+            'Albacete', 'Alicante', 'Almería', 'Badajoz', 'Cáceres',
+            'Ciudad Real', 'Córdoba', 'Cuenca', 'Granada', 'Huelva',
+            'Jaén', 'Las Palmas', 'Málaga', 'Murcia',
+            'Santa Cruz de Tenerife', 'Sevilla', 'Toledo'
+        ];
+
+        const PROVINCIAS_POR_COMUNIDAD = {
+            'Andalucía': ['Almería', 'Córdoba', 'Granada', 'Huelva', 'Jaén', 'Málaga', 'Sevilla'],
+            'Castilla-La Mancha': ['Albacete', 'Ciudad Real', 'Cuenca', 'Toledo'],
+            'Extremadura': ['Badajoz', 'Cáceres'],
+            'Murcia': ['Murcia'],
+            'Comunidad Valenciana': ['Alicante'],
+            'Canarias': ['Las Palmas', 'Santa Cruz de Tenerife']
+        };
+
+        /**
+         * Rellena un <select> con las provincias.
+         * @param {string} selectId - ID del elemento select
+         * @param {string} [defaultLabel] - Texto de la opción por defecto (ej: "Todas"). Si es null, no se añade.
+         */
+        function populateProvinceSelect(selectId, defaultLabel) {
+            const sel = document.getElementById(selectId);
+            if (!sel) return;
+            sel.innerHTML = '';
+            if (defaultLabel) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = defaultLabel;
+                sel.appendChild(opt);
+            }
+            PROVINCIAS.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p;
+                opt.textContent = p;
+                sel.appendChild(opt);
+            });
+        }
+
         const DB_NAME = 'FerroplastCRM_TEST';
         const DB_VERSION = 1;
         const LS_KEY = 'ferroplast_crm_data_TEST';
@@ -4720,7 +4691,14 @@
         }
         
         // Llamar al cargar la página
-        document.addEventListener('DOMContentLoaded', restoreDropdownStates);
+        document.addEventListener('DOMContentLoaded', function() {
+            restoreDropdownStates();
+            // Poblar todos los selects de provincias desde la constante PROVINCIAS
+            populateProvinceSelect('filter-province', 'Todas');
+            populateProvinceSelect('new-studio-province', null);
+            populateProvinceSelect('manual-province', null);
+            populateProvinceSelect('edit-contact-province', null);
+        });
 
         // ============================================
         // NAVIGATION
@@ -5615,29 +5593,13 @@
                 <div class="form-group">
                     <label class="form-label">Provincia *</label>
                     <select class="form-select" id="new-studio-province">
-                            <option value="Albacete">Albacete</option>
-                            <option value="Alicante">Alicante</option>
-                            <option value="Almería">Almería</option>
-                            <option value="Badajoz">Badajoz</option>
-                            <option value="Cáceres">Cáceres</option>
-                            <option value="Ciudad Real">Ciudad Real</option>
-                            <option value="Córdoba">Córdoba</option>
-                            <option value="Cuenca">Cuenca</option>
-                            <option value="Granada">Granada</option>
-                            <option value="Huelva">Huelva</option>
-                            <option value="Jaén">Jaén</option>
-                            <option value="Las Palmas">Las Palmas</option>
-                            <option value="Málaga">Málaga</option>
-                            <option value="Murcia">Murcia</option>
-                            <option value="Santa Cruz de Tenerife">Santa Cruz de Tenerife</option>
-                            <option value="Sevilla">Sevilla</option>
-                            <option value="Toledo">Toledo</option>
                         </select>
                 </div>
                 <p style="font-size:0.8rem;color:var(--muted);margin-top:12px;">
                     Se generará automáticamente un informe completo con datos de contacto, equipo, proyectos y estrategia de venta.
                 </p>
             `;
+            populateProvinceSelect('new-studio-province', null);
             document.getElementById('btn-generate-text').textContent = 'Generar Análisis';
             document.getElementById('btn-generate-icon').textContent = '🚀';
             document.getElementById('btn-generate').disabled = false;
@@ -7319,7 +7281,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 const addressRegexes = [
                     /(?:C\/|Calle|Avda\.|Avenida|Plaza|Paseo|Pº|Av\.|Carrer|Carretera|Ctra\.|Polígono|Urbanización)[^<\n,]{5,80}/gi,
                     /\d{5}\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+de\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)?/g,
-                    /(?:Albacete|Alicante|Almería|Badajoz|Cáceres|Ciudad Real|Córdoba|Cuenca|Granada|Huelva|Jaén|Las Palmas|Málaga|Murcia|Santa Cruz de Tenerife|Sevilla|Toledo)[^<\n]{0,50}\d{5}/gi
+                    new RegExp('(?:' + PROVINCIAS.join('|') + ')[^<\\n]{0,50}\\d{5}', 'gi')
                 ];
                 
                 addressRegexes.forEach(regex => {
@@ -11967,7 +11929,7 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
         // ============================================
         
         const CONSTRUDATA21_CONFIG = {
-            provincias: ["Albacete", "Alicante", "Almería", "Badajoz", "Cáceres", "Ciudad Real", "Córdoba", "Cuenca", "Granada", "Huelva", "Jaén", "Las Palmas", "Málaga", "Murcia", "Santa Cruz de Tenerife", "Sevilla", "Toledo"],
+            provincias: PROVINCIAS,
             fasesRelevantes: [1, 2, 3, 4, 5],
             fasesNombres: {
                 1: 'En estudio',
@@ -11993,15 +11955,6 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             const modal = document.getElementById('construdata21-modal');
             if (modal) modal.style.display = 'none';
         }
-
-        // Provincias por comunidad autónoma
-        const PROVINCIAS_POR_COMUNIDAD = {
-            'Andalucía': ['Almería', 'Córdoba', 'Granada', 'Huelva', 'Jaén', 'Málaga', 'Sevilla'],
-            'Castilla-La Mancha': ['Albacete', 'Ciudad Real', 'Cuenca', 'Toledo'],
-            'Extremadura': ['Badajoz', 'Cáceres'],
-            'Murcia': ['Murcia'],
-            'Comunidad Valenciana': ['Alicante'],
-            'Canarias': ['Las Palmas', 'Santa Cruz de Tenerife']};
 
         function actualizarProvinciasCD21() {
             const comunidad = document.getElementById('cd21-comunidad')?.value || 'Toda España';
