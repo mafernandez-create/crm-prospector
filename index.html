@@ -10406,9 +10406,14 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const criteriosInfo = `
 📊 CRITERIOS DE PRIORIDAD AUTOMÁTICA
 
+0. TIPO DE EMPRESA (hasta 3 puntos)
+   • Arquitectura / Ingeniería (prescriptor): +3 puntos
+   • Promotora / Constructora (decisor): +2 puntos
+   • Aguas / AAPP / Regantes (usuario final): +1 punto
+
 1. TAMAÑO DEL ESTUDIO (hasta 3 puntos)
    • ≥20 empleados: +3 puntos
-   • ≥10 empleados: +2 puntos  
+   • ≥10 empleados: +2 puntos
    • ≥3 empleados: +1 punto
 
 2. NÚMERO DE PROYECTOS (hasta 3 puntos)
@@ -10428,10 +10433,10 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
    • ≥5 datos de contacto: +2 puntos
    • ≥2 datos de contacto: +1 punto
 
-PUNTUACIÓN TOTAL: 12 puntos máximo
-• Alta: ≥8 puntos
-• Media: 4-7 puntos
-• Baja: <4 puntos
+PUNTUACIÓN TOTAL: 15 puntos máximo
+• Alta: ≥9 puntos
+• Media: 5-8 puntos
+• Baja: <5 puntos
 `;
             
             if (!confirm(criteriosInfo + '\n\n¿Recalcular la prioridad de todos los estudios?')) {
@@ -10459,7 +10464,7 @@ PUNTUACIÓN TOTAL: 12 puntos máximo
                             priorityCalculatedScore: autoPriority.calculatedScore
                         });
                         updated++;
-                        console.log(`📊 ${studio.name}: ${oldPriority} → ${autoPriority.priority} (${autoPriority.calculatedScore}/12)`);
+                        console.log(`📊 ${studio.name}: ${oldPriority} → ${autoPriority.priority} (${autoPriority.calculatedScore}/15)`);
                     }
                     
                     stats[autoPriority.priority]++;
