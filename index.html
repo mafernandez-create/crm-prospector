@@ -3776,15 +3776,36 @@
             }
         }
         
+        // Normalizar studio del cloud: si las columnas individuales están vacías,
+        // extraer datos del campo 'data' que contiene el objeto completo
+        function normalizeCloudStudio(s) {
+            if (s.data && typeof s.data === 'object' && s.data.name) {
+                const d = s.data;
+                // Campos que deberían estar en columnas pero que el Apps Script no mapea
+                const fields = ['name','shortName','province','priority','score','status','type','logo','city','b2bTimeline'];
+                fields.forEach(f => {
+                    if (!s[f] && d[f] !== undefined) s[f] = d[f];
+                });
+                // El sub-objeto 'data' real (contact, team, projects, etc.)
+                if (d.data && typeof d.data === 'object') {
+                    s.data = d.data;
+                }
+                // Preservar priorityDetails si existen
+                if (d.priorityDetails) s.priorityDetails = d.priorityDetails;
+                if (d.priorityCalculatedScore) s.priorityCalculatedScore = d.priorityCalculatedScore;
+            }
+            return s;
+        }
+
         async function syncFromCloud() {
             try {
                 const data = await callAPI('exportAll');
-                
-                // Deduplicar estudios por ID
+
+                // Deduplicar estudios por ID y normalizar campos
                 const studiosMap = new Map();
-                (data.studios || []).forEach(s => studiosMap.set(String(s.id), s));
+                (data.studios || []).forEach(s => studiosMap.set(String(s.id), normalizeCloudStudio(s)));
                 cloudCache.studios = Array.from(studiosMap.values());
-                
+
                 // Deduplicar actividades por ID
                 const activitiesMap = new Map();
                 (data.activities || []).forEach(a => activitiesMap.set(String(a.id), a));
@@ -10560,7 +10581,7 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                     var studioData = {
                         name: s.name,
                         province: s.province || 'Sin provincia',
-                        studioType: selectedType,
+                        type: selectedType,
                         logoUrl: '',
                         status: 'nuevo',
                         priority: 'media',
@@ -13345,11 +13366,12 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             // Si cloud está activo, usar Apps Script
             if (useCloudStorage) {
                 const studio = await getStudio(studioId);
-                if (!studio || !studio.b2bTimeline) return;
-                
+                if (!studio || !studio.b2bTimeline || typeof studio.b2bTimeline !== 'object') return;
+
                 const step = B2B_TIMELINE[stepIndex];
+                if (!step) return;
                 const plannedDate = getPlannedDate(studio.b2bTimeline.startDate, step.day);
-                
+
                 // Generar enlace al estudio en el CRM
                 const crmLink = `${API_URL}?view=studio&id=${studioId}`;
                 
@@ -13384,11 +13406,12 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             }
             
             const studio = await getStudio(studioId);
-            if (!studio || !studio.b2bTimeline) return;
-            
+            if (!studio || !studio.b2bTimeline || typeof studio.b2bTimeline !== 'object') return;
+
             const step = B2B_TIMELINE[stepIndex];
+            if (!step) return;
             const plannedDate = getPlannedDate(studio.b2bTimeline.startDate, step.day);
-            
+
             const result = await createCalendarEvent(studio, step, plannedDate);
             
             if (result) {
@@ -13806,14 +13829,15 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             today.setHours(0, 0, 0, 0);
 
             for (const studio of studios) {
-                if (!studio.b2bTimeline || studio.status === 'ganado' || studio.status === 'perdido' || studio.status === 'standby') continue;
+                if (!studio.b2bTimeline || typeof studio.b2bTimeline !== 'object' || studio.status === 'ganado' || studio.status === 'perdido' || studio.status === 'standby') continue;
 
                 const b2b = studio.b2bTimeline;
                 const currentStep = b2b.currentStep;
-                
-                if (currentStep >= B2B_TIMELINE.length) continue;
+
+                if (currentStep == null || currentStep >= B2B_TIMELINE.length) continue;
 
                 const step = B2B_TIMELINE[currentStep];
+                if (!step) continue;
                 const plannedDate = getPlannedDate(b2b.startDate, step.day);
                 plannedDate.setHours(0, 0, 0, 0);
 
@@ -14081,16 +14105,17 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
 
         // Obtener la próxima acción B2B de un estudio específico
         function getStudioNextAction(studio) {
-            if (!studio.b2bTimeline || studio.status === 'ganado' || studio.status === 'perdido' || studio.status === 'standby') {
+            if (!studio.b2bTimeline || typeof studio.b2bTimeline !== 'object' || studio.status === 'ganado' || studio.status === 'perdido' || studio.status === 'standby') {
                 return null;
             }
-            
+
             const b2b = studio.b2bTimeline;
             const currentStep = b2b.currentStep;
-            
-            if (currentStep >= B2B_TIMELINE.length) return null;
-            
+
+            if (currentStep == null || currentStep >= B2B_TIMELINE.length) return null;
+
             const step = B2B_TIMELINE[currentStep];
+            if (!step) return null;
             const plannedDate = getPlannedDate(b2b.startDate, step.day);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
