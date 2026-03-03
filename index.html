@@ -14849,7 +14849,10 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                             <button class="btn-filter" onclick="applyPlannerFilters()">
                                 🔍 Buscar con Filtros
                             </button>
-                            
+                            <button class="btn-filter" style="background:linear-gradient(135deg,#f59e0b,#d97706);margin-top:8px;" onclick="autoPlanificar()">
+                                🚗 Auto-planificar Ruta
+                            </button>
+
                             <!-- Separador -->
                             <div style="border-top:2px solid #e2e8f0;margin:20px 0;padding-top:16px;">
                                 <label class="filter-label">🔎 Búsqueda Directa (sin filtros)</label>
@@ -15043,6 +15046,186 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             }
         }
         
+        // Coordenadas aproximadas por prefijo de CP (primeros 2 dígitos)
+        const CP_COORDS = {
+            '01':[42.85,-2.67],'02':[38.99,-1.86],'03':[38.35,-0.48],'04':[36.84,-2.47],
+            '05':[40.66,-4.70],'06':[38.88,-6.97],'07':[39.57,2.65],'08':[41.39,2.17],
+            '09':[42.34,-3.70],'10':[39.47,-6.37],'11':[36.53,-6.29],'12':[39.99,-0.03],
+            '13':[38.99,-3.93],'14':[37.88,-4.77],'15':[43.37,-8.40],'16':[40.07,-2.13],
+            '17':[41.98,2.82],'18':[37.18,-3.60],'19':[40.63,-3.16],'20':[43.32,-1.98],
+            '21':[37.26,-6.95],'22':[42.14,-0.41],'23':[37.77,-3.79],'24':[42.60,-5.57],
+            '25':[41.62,0.63],'26':[42.47,-2.45],'27':[43.01,-7.56],'28':[40.42,-3.70],
+            '29':[36.72,-4.42],'30':[37.98,-1.13],'31':[42.81,-1.64],'32':[42.34,-7.86],
+            '33':[43.36,-5.85],'34':[42.01,-4.53],'35':[28.10,-15.42],'36':[42.43,-8.64],
+            '37':[40.97,-5.66],'38':[28.47,-16.25],'39':[43.46,-3.80],'40':[40.95,-4.12],
+            '41':[37.39,-5.98],'42':[41.76,-2.47],'43':[41.12,1.24],'44':[40.34,-1.11],
+            '45':[39.86,-4.02],'46':[39.47,-0.38],'47':[41.65,-4.72],'48':[43.26,-2.92],
+            '49':[41.50,-5.75],'50':[41.65,-0.88],'51':[35.89,-5.32],'52':[35.29,-2.94]
+        };
+        const MALAGA_COORDS = [36.72, -4.42]; // Origen
+
+        function getStudioCoords(studio) {
+            const cp = extractPostalCode(studio.data?.contact?.address);
+            if (cp && cp !== '99999') {
+                const prefix = cp.substring(0, 2);
+                if (CP_COORDS[prefix]) return CP_COORDS[prefix];
+            }
+            // Fallback: buscar por provincia
+            const prov = (studio.province || '').toLowerCase();
+            for (const [prefix, coords] of Object.entries(CP_COORDS)) {
+                // No es perfecto pero cubre la mayoría
+                if (prov.includes('málaga') || prov.includes('malaga')) return CP_COORDS['29'];
+                if (prov.includes('sevilla')) return CP_COORDS['41'];
+                if (prov.includes('granada')) return CP_COORDS['18'];
+                if (prov.includes('córdoba') || prov.includes('cordoba')) return CP_COORDS['14'];
+                if (prov.includes('cádiz') || prov.includes('cadiz')) return CP_COORDS['11'];
+                if (prov.includes('almería') || prov.includes('almeria')) return CP_COORDS['04'];
+                if (prov.includes('jaén') || prov.includes('jaen')) return CP_COORDS['23'];
+                if (prov.includes('huelva')) return CP_COORDS['21'];
+                if (prov.includes('madrid')) return CP_COORDS['28'];
+                if (prov.includes('barcelona')) return CP_COORDS['08'];
+                if (prov.includes('valencia')) return CP_COORDS['46'];
+                if (prov.includes('murcia')) return CP_COORDS['30'];
+                if (prov.includes('alicante')) return CP_COORDS['03'];
+            }
+            return MALAGA_COORDS; // default
+        }
+
+        function haversineKm(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function autoPlanificar() {
+            const studios = window.filteredStudios;
+            if (!studios || studios.length === 0) {
+                showNotification('Primero busca estudios con los filtros', 'warning');
+                return;
+            }
+
+            const fechaInicio = document.getElementById('plan-fecha-inicio').value;
+            const fechaFin = document.getElementById('plan-fecha-fin').value;
+            const visitasDia = parseInt(document.getElementById('plan-visitas-dia').value);
+
+            if (!fechaInicio || !fechaFin) {
+                showNotification('Selecciona fechas de inicio y fin', 'warning');
+                return;
+            }
+
+            // Obtener días laborables disponibles
+            const start = new Date(fechaInicio);
+            const end = new Date(fechaFin);
+            const diasLaborables = [];
+            const current = new Date(start);
+            while (current <= end) {
+                const dow = current.getDay();
+                if (dow !== 0 && dow !== 6) {
+                    diasLaborables.push(current.toISOString().split('T')[0]);
+                }
+                current.setDate(current.getDate() + 1);
+            }
+
+            if (diasLaborables.length === 0) {
+                showNotification('No hay días laborables en el rango seleccionado', 'warning');
+                return;
+            }
+
+            const capacidadTotal = diasLaborables.length * visitasDia;
+            const studiosToAssign = studios.slice(0, capacidadTotal);
+
+            // Excluir studios ya asignados
+            const assignedIds = new Set();
+            Object.values(planificadorData.schedule || {}).forEach(dayStudios => {
+                dayStudios.forEach(s => assignedIds.add(s.id));
+            });
+            const unassigned = studiosToAssign.filter(s => !assignedIds.has(s.id));
+
+            if (unassigned.length === 0) {
+                showNotification('Todos los estudios ya están asignados', 'info');
+                return;
+            }
+
+            // Geocodificar estudios
+            const geoStudios = unassigned.map(s => ({
+                ...s,
+                coords: getStudioCoords(s)
+            }));
+
+            // Algoritmo: nearest-neighbor TSP por día, partiendo de Málaga
+            const remaining = [...geoStudios];
+            const dayAssignments = {};
+
+            for (const dateStr of diasLaborables) {
+                if (remaining.length === 0) break;
+
+                const dayList = [];
+                let currentPos = MALAGA_COORDS;
+
+                for (let v = 0; v < visitasDia && remaining.length > 0; v++) {
+                    // Encontrar el estudio más cercano a la posición actual
+                    let minDist = Infinity;
+                    let minIdx = 0;
+                    for (let i = 0; i < remaining.length; i++) {
+                        const d = haversineKm(currentPos[0], currentPos[1], remaining[i].coords[0], remaining[i].coords[1]);
+                        if (d < minDist) {
+                            minDist = d;
+                            minIdx = i;
+                        }
+                    }
+                    const nearest = remaining.splice(minIdx, 1)[0];
+                    dayList.push(nearest);
+                    currentPos = nearest.coords;
+                }
+
+                dayAssignments[dateStr] = dayList;
+            }
+
+            // Asignar al planificador
+            if (!planificadorData.schedule) planificadorData.schedule = {};
+            let totalAssigned = 0;
+
+            for (const [dateStr, dayStudios] of Object.entries(dayAssignments)) {
+                if (!planificadorData.schedule[dateStr]) planificadorData.schedule[dateStr] = [];
+                for (const s of dayStudios) {
+                    // Eliminar de otros días si existiera
+                    Object.keys(planificadorData.schedule).forEach(day => {
+                        planificadorData.schedule[day] = planificadorData.schedule[day].filter(existing => existing.id !== s.id);
+                    });
+                    planificadorData.schedule[dateStr].push({
+                        id: s.id,
+                        name: s.name,
+                        data: s.data,
+                        province: s.province
+                    });
+                    totalAssigned++;
+                }
+            }
+
+            savePlanificadorData();
+            updateCalendarDays();
+            if (window.filteredStudios) renderStudiosDragList(window.filteredStudios);
+
+            const diasUsados = Object.keys(dayAssignments).length;
+            const kmEstimado = Math.round(Object.values(dayAssignments).reduce((total, dayStudios) => {
+                let km = 0;
+                let pos = MALAGA_COORDS;
+                dayStudios.forEach(s => {
+                    km += haversineKm(pos[0], pos[1], s.coords[0], s.coords[1]);
+                    pos = s.coords;
+                });
+                km += haversineKm(pos[0], pos[1], MALAGA_COORDS[0], MALAGA_COORDS[1]); // vuelta
+                return total + km;
+            }, 0));
+
+            showNotification(
+                `✅ ${totalAssigned} visitas planificadas en ${diasUsados} días · ~${kmEstimado} km totales (línea recta)`,
+                'success'
+            );
+        }
+
         function updateCiudadesFilter() {
             const provinciasChecked = Array.from(document.querySelectorAll('#plan-provincias input:checked')).map(cb => cb.value);
             const studiosData = window.plannerStudiosData || [];
