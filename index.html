@@ -14096,21 +14096,23 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
         // Calcular el score de preparación para reunión
         function calculateReadinessScore(b2bTimeline) {
             if (!b2bTimeline) return { score: 0, total: 9, percentage: 0 };
-            
+
             let score = 0;
-            
+            const bant = b2bTimeline.bant || {};
+            const triggers = b2bTimeline.triggers || {};
+
             // BANT (4 puntos)
-            if (b2bTimeline.bant.budget === true) score++;
-            if (b2bTimeline.bant.authority === true) score++;
-            if (b2bTimeline.bant.need === true) score++;
-            if (b2bTimeline.bant.timeline === true) score++;
-            
+            if (bant.budget === true) score++;
+            if (bant.authority === true) score++;
+            if (bant.need === true) score++;
+            if (bant.timeline === true) score++;
+
             // Triggers (5 puntos)
-            if (b2bTimeline.triggers.activeInterest) score++;
-            if (b2bTimeline.triggers.definedProject) score++;
-            if (b2bTimeline.triggers.decisionMaker) score++;
-            if (b2bTimeline.triggers.specificQuestions) score++;
-            if (b2bTimeline.triggers.activeBenchmark) score++;
+            if (triggers.activeInterest) score++;
+            if (triggers.definedProject) score++;
+            if (triggers.decisionMaker) score++;
+            if (triggers.specificQuestions) score++;
+            if (triggers.activeBenchmark) score++;
             
             return { score, total: 9, percentage: Math.round((score / 9) * 100) };
         }
@@ -14118,7 +14120,7 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
         // Renderizar el panel B2B completo
         function renderB2BPanel(studio, activities) {
             const b2b = studio.b2bTimeline;
-            
+
             if (!b2b) {
                 return `
                     <div class="card">
@@ -14137,17 +14139,24 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                 `;
             }
 
+            // Asegurar que sub-objetos existan
+            if (!b2b.bant) b2b.bant = {};
+            if (!b2b.triggers) b2b.triggers = {};
+            if (!b2b.steps) b2b.steps = [];
+
             const readiness = calculateReadinessScore(b2b);
-            const startDate = new Date(b2b.startDate);
+            const startDate = new Date(b2b.startDate || Date.now());
             const today = new Date();
             const daysSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+            const steps = b2b.steps || [];
+            const currentStep = b2b.currentStep || 0;
 
             // Generar HTML del timeline
             let timelineHtml = '';
             B2B_TIMELINE.forEach((step, index) => {
-                const isCompleted = b2b.steps[index];
-                const isCurrent = index === b2b.currentStep;
-                const isPending = index > b2b.currentStep;
+                const isCompleted = steps[index];
+                const isCurrent = index === currentStep;
+                const isPending = index > currentStep;
                 const plannedDate = getPlannedDate(b2b.startDate, step.day);
                 
                 const statusClass = isCompleted ? 'completed' : (isCurrent ? 'current' : 'pending');
@@ -14165,8 +14174,8 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                         <div class="b2b-step-title">${step.name}</div>
                         <div class="b2b-step-desc">${step.description}</div>
                         <div class="b2b-step-date">
-                            ${isCompleted 
-                                ? '✅ Completado: ' + formatDate(b2b.steps[index].completedAt)
+                            ${isCompleted
+                                ? '✅ Completado: ' + formatDate(steps[index]?.completedAt)
                                 : '📅 Planificado: ' + formatDate(plannedDate.toISOString())
                             }
                             ${step.bestTime ? ' · ⏰ ' + step.bestTime : ''}
