@@ -1960,6 +1960,537 @@
         .pull-refresh-indicator.active {
             transform: translateX(-50%) translateY(0);
         }
+
+        /* ============================================
+           PLANIFICADOR DE VISITAS
+           ============================================ */
+        #planificador-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999999;
+            padding: 10px;
+        }
+        .planner-container {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 98vw;
+            height: 95vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+        .planner-header {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .planner-header h2 {
+            margin: 0;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .planner-header-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .planner-header-actions button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .planner-header-actions button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .planner-close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+        .planner-body {
+            display: grid;
+            grid-template-columns: 280px 320px 1fr;
+            flex: 1;
+            overflow: hidden;
+        }
+        .planner-filters {
+            background: #f8fafc;
+            border-right: 1px solid #e2e8f0;
+            padding: 16px;
+            overflow-y: auto;
+        }
+        .planner-studios {
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .planner-studios-header {
+            padding: 12px 16px;
+            background: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .planner-studios-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+        .planner-calendar {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #fafafa;
+        }
+        .planner-calendar-header {
+            padding: 12px 16px;
+            background: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .planner-calendar-grid {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            align-content: start;
+        }
+        #planificador-modal .filter-section {
+            margin-bottom: 16px;
+        }
+        #planificador-modal .filter-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 6px;
+            display: block;
+        }
+        #planificador-modal .filter-input,
+        #planificador-modal .filter-select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            background: white;
+        }
+        #planificador-modal .filter-input:focus,
+        #planificador-modal .filter-select:focus {
+            outline: none;
+            border-color: #7c3aed;
+        }
+        .filter-multi-select {
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            background: white;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+        .filter-multi-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .filter-multi-option:last-child {
+            border-bottom: none;
+        }
+        .filter-multi-option:hover {
+            background: #f8fafc;
+        }
+        .filter-multi-option input {
+            width: 14px;
+            height: 14px;
+        }
+        .btn-filter {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .btn-filter:hover {
+            opacity: 0.9;
+        }
+        .studio-drag-item {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: grab;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .studio-drag-item:hover {
+            border-color: #7c3aed;
+            box-shadow: 0 2px 8px rgba(124,58,237,0.2);
+        }
+        .studio-drag-item.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+        .studio-drag-item.scheduled {
+            background: #f0fdf4;
+            border-color: #10b981;
+        }
+        .studio-drag-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #1e293b;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .studio-drag-cp {
+            background: #7c3aed;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+        .studio-drag-meta {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        .calendar-day {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        .calendar-day.drag-over {
+            border-color: #7c3aed;
+            background: #faf5ff;
+            box-shadow: 0 0 0 3px rgba(124,58,237,0.2);
+        }
+        .calendar-day.incomplete {
+            background: #fef3c7;
+            border-color: #f59e0b;
+        }
+        .calendar-day.complete {
+            background: #f0fdf4;
+            border-color: #10b981;
+        }
+        .calendar-day.weekend {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            opacity: 0.7;
+        }
+        .calendar-day-header {
+            padding: 10px 12px;
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .calendar-day.incomplete .calendar-day-header {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+        .calendar-day.complete .calendar-day-header {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        .calendar-day.weekend .calendar-day-header {
+            background: #94a3b8;
+        }
+        .calendar-day-count {
+            background: rgba(255,255,255,0.3);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+        }
+        .calendar-day-body {
+            flex: 1;
+            padding: 8px;
+            overflow-y: auto;
+            min-height: 100px;
+        }
+        .calendar-visit {
+            background: #ede9fe;
+            border: 1px solid #c4b5fd;
+            border-radius: 6px;
+            padding: 8px;
+            margin-bottom: 6px;
+            font-size: 0.8rem;
+            position: relative;
+        }
+        .calendar-visit.reserva {
+            background: #fef3c7;
+            border: 1px dashed #f59e0b;
+            opacity: 0.85;
+        }
+        .calendar-visit.reserva .calendar-visit-name {
+            color: #92400e;
+        }
+        .reserva-separator {
+            border-top: 1px dashed #f59e0b;
+            margin: 6px 0 4px;
+            font-size: 0.65rem;
+            color: #d97706;
+            text-align: center;
+            font-weight: 600;
+        }
+        .calendar-visit-name {
+            font-weight: 600;
+            color: #5b21b6;
+            margin-bottom: 2px;
+            padding-right: 20px;
+        }
+        .calendar-visit-meta {
+            font-size: 0.7rem;
+            color: #7c3aed;
+        }
+        .calendar-visit-remove {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: none;
+            border: none;
+            color: #dc2626;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 2px;
+            line-height: 1;
+        }
+        .planner-empty-list {
+            text-align: center;
+            padding: 30px 20px;
+            color: #94a3b8;
+        }
+        .planner-empty-list-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        .planner-stats-bar {
+            display: flex;
+            gap: 16px;
+            font-size: 0.8rem;
+            color: white;
+            opacity: 0.9;
+        }
+        .planner-stats-bar span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* ============================================
+           MAPA DE PROVINCIAS
+           ============================================ */
+        #mapa-provincias-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999999;
+            padding: 10px;
+        }
+        .map-container {
+            background: white; border-radius: 16px; width: 95vw; height: 92vh;
+            display: flex; flex-direction: column;
+            overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+        .map-header {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white;
+            padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;
+            flex-shrink: 0;
+        }
+        .map-header h3 { margin: 0; font-size: 1.1rem; }
+        .map-close-btn {
+            background: rgba(255,255,255,0.2); border: none; color: white; width: 32px; height: 32px;
+            border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; transition: background 0.2s;
+        }
+        .map-close-btn:hover { background: rgba(255,255,255,0.35); }
+        .map-body {
+            position: relative; flex: 1; min-height: 0; overflow: hidden;
+            background: #d4e8f7 url('mapa_espana.svg') no-repeat;
+            background-size: 100% 100%;
+        }
+        .map-prov {
+            position: absolute; transform: translate(-50%, -50%);
+            padding: 3px 7px; border-radius: 4px; font-size: 0.7rem; font-weight: 600;
+            cursor: pointer; white-space: nowrap; z-index: 1;
+            background: rgba(255,255,255,0.88); color: #1e293b; border: 1.5px solid rgba(0,0,0,0.15);
+            transition: all 0.15s; user-select: none;
+            text-shadow: 0 0 3px rgba(255,255,255,0.8);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        }
+        .map-prov:hover:not(.map-disabled) { transform: translate(-50%, -50%) scale(1.2); z-index: 2; box-shadow: 0 2px 8px rgba(0,0,0,0.25); background: rgba(255,255,255,0.95); }
+        .map-prov.map-selected { background: #7c3aed; color: white; border-color: #5b21b6; box-shadow: 0 2px 8px rgba(124,58,237,0.5); text-shadow: none; }
+        .map-prov.map-disabled { background: rgba(255,255,255,0.5); color: #94a3b8; border-color: rgba(0,0,0,0.08); cursor: default; font-size: 0.6rem; box-shadow: none; }
+        .map-legend { display: flex; gap: 16px; padding: 10px 20px; border-top: 1px solid #e2e8f0; font-size: 0.75rem; align-items: center; flex-shrink: 0; background: white; }
+        .map-legend-item { display: flex; align-items: center; gap: 4px; }
+        .map-legend-dot { width: 12px; height: 12px; border-radius: 3px; border: 1.5px solid; }
+        .map-footer { padding: 12px 20px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; flex-shrink: 0; background: white; }
+        .map-footer button { padding: 10px 24px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: opacity 0.2s; }
+        .map-footer button:hover { opacity: 0.85; }
+        .map-origin { position: absolute; transform: translate(-50%, -50%); font-size: 1.4rem; z-index: 3; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3)); }
+
+        /* ============================================
+           RESPONSIVE: Planificador + Mapa
+           ============================================ */
+        @media (max-width: 1100px) {
+            .planner-body {
+                grid-template-columns: 240px 280px 1fr;
+            }
+        }
+        @media (max-width: 900px) {
+            .planner-body {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto 1fr;
+            }
+        }
+        @media (max-width: 768px) {
+            .map-container { width: 100vw; height: 100vh; border-radius: 0; }
+            .map-prov { font-size: 0.6rem; padding: 2px 4px; }
+        }
+
+        /* ============================================
+           PRINT: Planificador
+           ============================================ */
+        @media print {
+            body > *:not(#planificador-modal) {
+                display: none !important;
+            }
+            #planificador-modal {
+                position: static !important;
+                background: white !important;
+                padding: 0 !important;
+            }
+            .planner-container {
+                max-width: none !important;
+                max-height: none !important;
+                height: auto !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+            }
+            .planner-header, .planner-filters, .planner-studios, .planner-header-actions {
+                display: none !important;
+            }
+            .planner-body {
+                display: block !important;
+            }
+            .planner-calendar {
+                overflow: visible !important;
+            }
+            .print-header {
+                display: flex !important;
+                align-items: center;
+                gap: 20px;
+                padding: 20px;
+                border-bottom: 2px solid #e2e8f0;
+                margin-bottom: 15px;
+            }
+            .print-logo {
+                height: 60px;
+                width: auto;
+            }
+            .print-title {
+                font-size: 1.5rem;
+                font-weight: 700;
+                color: #1e293b;
+            }
+            .print-date {
+                font-size: 1rem;
+                color: #64748b;
+                margin-left: auto;
+            }
+            .planner-calendar-header {
+                display: none !important;
+            }
+            .planner-calendar-grid {
+                overflow: visible !important;
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 10px !important;
+                padding: 10px !important;
+            }
+            .calendar-day {
+                page-break-inside: avoid !important;
+                min-height: auto !important;
+                border: 1px solid #ccc !important;
+            }
+            .calendar-day.weekend {
+                display: none !important;
+            }
+            .calendar-day-header {
+                background: #333 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .calendar-day.complete .calendar-day-header {
+                background: #059669 !important;
+            }
+            .calendar-day.incomplete .calendar-day-header {
+                background: #d97706 !important;
+            }
+            .calendar-visit {
+                background: #f3f4f6 !important;
+                border: 1px solid #ddd !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .calendar-visit-remove {
+                display: none !important;
+            }
+            .calendar-day-body > div[style*="Arrastra"] {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -3052,41 +3583,22 @@
                     </p>
                 </div>
 
-                <!-- Sección API Key -->
+                <!-- Sección IA -->
                 <div class="form-group">
-                    <label class="form-label">🔑 API Key de Anthropic</label>
-                    <input type="password" class="form-input" id="api-key-input" placeholder="sk-ant-api03-...">
-                    <p style="font-size:0.75rem;color:var(--muted);margin-top:8px;">
-                        Necesaria para generar análisis. Obtén tu API key en <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>
-                    </p>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Estado de conexión</label>
+                    <label class="form-label">🤖 Análisis con IA</label>
                     <div id="api-status" style="padding:12px;border-radius:8px;background:var(--surface);font-size:0.85rem;">
-                        <span id="api-status-icon">⚪</span> <span id="api-status-text">No configurada</span>
+                        <span id="api-status-icon">⚪</span> <span id="api-status-text">Verificando...</span>
                     </div>
                 </div>
-                <div style="background:var(--info-light);padding:12px;border-radius:8px;margin-top:16px;">
-                    <p style="font-size:0.8rem;color:var(--info);margin:0 0 8px 0;">
-                        <strong>📋 Pasos para configurar:</strong>
-                    </p>
-                    <ol style="font-size:0.75rem;color:var(--text);margin:0;padding-left:16px;">
-                        <li>Ve a <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a></li>
-                        <li>Crea una nueva API key</li>
-                        <li>Copia la key y pégala arriba</li>
-                        <li>Haz clic en "Probar conexión"</li>
-                    </ol>
-                </div>
-                <div style="background:var(--warning-light);padding:12px;border-radius:8px;margin-top:12px;">
-                    <p style="font-size:0.8rem;color:var(--warning);margin:0;">
-                        ⚠️ <strong>Seguridad:</strong> Tu API key se guarda solo en tu navegador (localStorage) y se envía directamente a Anthropic. Nunca pasa por terceros.
+                <div style="background:var(--success-light, #d4edda);padding:12px;border-radius:8px;margin-top:12px;">
+                    <p style="font-size:0.8rem;color:var(--success, #155724);margin:0;">
+                        🔒 <strong>Seguridad:</strong> La API key de IA está almacenada de forma segura en el servidor. No se expone al navegador.
                     </p>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('modal-settings')">Cerrar</button>
-                <button class="btn btn-primary" onclick="saveApiKey()">💾 Guardar</button>
-                <button class="btn btn-success" onclick="testApiKey()">🧪 Probar conexión</button>
+                <button class="btn btn-success" onclick="testApiKey()">🧪 Probar conexión IA</button>
             </div>
         </div>
     </div>
@@ -12596,8 +13108,8 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                 console.error('Error inicializando CRM:', error);
                 loadingMsg.innerHTML = `
                     <h3 style="color:#e74c3c;">❌ Error al iniciar</h3>
-                    <p style="color:#666;margin:15px 0;">${error.message}</p>
-                    <pre style="background:#f5f5f5;padding:10px;border-radius:8px;font-size:11px;text-align:left;max-height:200px;overflow:auto;">${error.stack || 'Sin stack trace'}</pre>
+                    <p style="color:#666;margin:15px 0;">${escapeHtml(error.message)}</p>
+                    <pre style="background:#f5f5f5;padding:10px;border-radius:8px;font-size:11px;text-align:left;max-height:200px;overflow:auto;">${escapeHtml(error.stack || 'Sin stack trace')}</pre>
                     <button onclick="location.reload()" style="margin-top:15px;padding:10px 20px;background:#667eea;color:white;border:none;border-radius:8px;cursor:pointer;">🔄 Reintentar</button>
                 `;
             }
@@ -12655,9 +13167,9 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                 
                 if (error.message === 'Failed to fetch') {
                     text.innerHTML = '❌ Error de conexión. Posibles causas:<br>' +
-                        '<small>• API key incorrecta<br>' +
-                        '• Bloqueo de CORS del navegador<br>' +
-                        '• Sin conexión a internet</small>';
+                        '<small>• Sin conexión a internet<br>' +
+                        '• Servidor no disponible<br>' +
+                        '• Bloqueo de CORS del navegador</small>';
                 } else {
                     text.textContent = '❌ Error: ' + error.message;
                 }
@@ -14340,472 +14852,10 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             const modal = document.createElement('div');
             modal.id = 'planificador-modal';
             modal.innerHTML = `
-                <style>
-                    #planificador-modal {
-                        position: fixed;
-                        top: 0;
-                        left: 0;
-                        right: 0;
-                        bottom: 0;
-                        background: rgba(0,0,0,0.8);
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        z-index: 999999;
-                        padding: 10px;
-                    }
-                    .planner-container {
-                        background: white;
-                        border-radius: 16px;
-                        width: 100%;
-                        max-width: 98vw;
-                        height: 95vh;
-                        overflow: hidden;
-                        display: flex;
-                        flex-direction: column;
-                        box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-                    }
-                    .planner-header {
-                        background: linear-gradient(135deg, #7c3aed, #6d28d9);
-                        color: white;
-                        padding: 12px 20px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        flex-shrink: 0;
-                    }
-                    .planner-header h2 {
-                        margin: 0;
-                        font-size: 1.1rem;
-                        display: flex;
-                        align-items: center;
-                        gap: 10px;
-                    }
-                    .planner-header-actions {
-                        display: flex;
-                        gap: 8px;
-                    }
-                    .planner-header-actions button {
-                        background: rgba(255,255,255,0.2);
-                        border: none;
-                        color: white;
-                        padding: 8px 14px;
-                        border-radius: 6px;
-                        font-size: 0.8rem;
-                        cursor: pointer;
-                        font-weight: 500;
-                    }
-                    .planner-header-actions button:hover {
-                        background: rgba(255,255,255,0.3);
-                    }
-                    .planner-close {
-                        background: rgba(255,255,255,0.2);
-                        border: none;
-                        color: white;
-                        width: 36px;
-                        height: 36px;
-                        border-radius: 50%;
-                        font-size: 1.2rem;
-                        cursor: pointer;
-                    }
-                    .planner-body {
-                        display: grid;
-                        grid-template-columns: 280px 320px 1fr;
-                        flex: 1;
-                        overflow: hidden;
-                    }
-                    @media (max-width: 1100px) {
-                        .planner-body {
-                            grid-template-columns: 240px 280px 1fr;
-                        }
-                    }
-                    @media (max-width: 900px) {
-                        .planner-body {
-                            grid-template-columns: 1fr;
-                            grid-template-rows: auto auto 1fr;
-                        }
-                    }
-                    .planner-filters {
-                        background: #f8fafc;
-                        border-right: 1px solid #e2e8f0;
-                        padding: 16px;
-                        overflow-y: auto;
-                    }
-                    .planner-studios {
-                        border-right: 1px solid #e2e8f0;
-                        display: flex;
-                        flex-direction: column;
-                        overflow: hidden;
-                    }
-                    .planner-studios-header {
-                        padding: 12px 16px;
-                        background: #f1f5f9;
-                        border-bottom: 1px solid #e2e8f0;
-                        font-weight: 600;
-                        font-size: 0.9rem;
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                    }
-                    .planner-studios-list {
-                        flex: 1;
-                        overflow-y: auto;
-                        padding: 12px;
-                    }
-                    .planner-calendar {
-                        display: flex;
-                        flex-direction: column;
-                        overflow: hidden;
-                        background: #fafafa;
-                    }
-                    .planner-calendar-header {
-                        padding: 12px 16px;
-                        background: #f1f5f9;
-                        border-bottom: 1px solid #e2e8f0;
-                        font-weight: 600;
-                        font-size: 0.9rem;
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                    }
-                    .planner-calendar-grid {
-                        flex: 1;
-                        overflow-y: auto;
-                        padding: 16px;
-                        display: grid;
-                        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-                        gap: 12px;
-                        align-content: start;
-                    }
-                    .filter-section {
-                        margin-bottom: 16px;
-                    }
-                    .filter-label {
-                        font-size: 0.8rem;
-                        font-weight: 600;
-                        color: #475569;
-                        margin-bottom: 6px;
-                        display: block;
-                    }
-                    .filter-input, .filter-select {
-                        width: 100%;
-                        padding: 8px 10px;
-                        border: 1px solid #e2e8f0;
-                        border-radius: 6px;
-                        font-size: 0.85rem;
-                        background: white;
-                    }
-                    .filter-input:focus, .filter-select:focus {
-                        outline: none;
-                        border-color: #7c3aed;
-                    }
-                    .filter-multi-select {
-                        border: 1px solid #e2e8f0;
-                        border-radius: 6px;
-                        background: white;
-                        max-height: 120px;
-                        overflow-y: auto;
-                    }
-                    .filter-multi-option {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        padding: 6px 10px;
-                        font-size: 0.8rem;
-                        cursor: pointer;
-                        border-bottom: 1px solid #f1f5f9;
-                    }
-                    .filter-multi-option:last-child {
-                        border-bottom: none;
-                    }
-                    .filter-multi-option:hover {
-                        background: #f8fafc;
-                    }
-                    .filter-multi-option input {
-                        width: 14px;
-                        height: 14px;
-                    }
-                    .btn-filter {
-                        width: 100%;
-                        padding: 10px;
-                        background: linear-gradient(135deg, #7c3aed, #6d28d9);
-                        color: white;
-                        border: none;
-                        border-radius: 8px;
-                        font-weight: 600;
-                        font-size: 0.85rem;
-                        cursor: pointer;
-                        margin-top: 8px;
-                    }
-                    .btn-filter:hover {
-                        opacity: 0.9;
-                    }
-                    .studio-drag-item {
-                        background: white;
-                        border: 2px solid #e2e8f0;
-                        border-radius: 8px;
-                        padding: 10px;
-                        margin-bottom: 8px;
-                        cursor: grab;
-                        transition: all 0.2s;
-                        user-select: none;
-                    }
-                    .studio-drag-item:hover {
-                        border-color: #7c3aed;
-                        box-shadow: 0 2px 8px rgba(124,58,237,0.2);
-                    }
-                    .studio-drag-item.dragging {
-                        opacity: 0.5;
-                        cursor: grabbing;
-                    }
-                    .studio-drag-item.scheduled {
-                        background: #f0fdf4;
-                        border-color: #10b981;
-                    }
-                    .studio-drag-name {
-                        font-weight: 600;
-                        font-size: 0.85rem;
-                        color: #1e293b;
-                        margin-bottom: 4px;
-                        display: flex;
-                        align-items: center;
-                        gap: 6px;
-                    }
-                    .studio-drag-cp {
-                        background: #7c3aed;
-                        color: white;
-                        padding: 2px 6px;
-                        border-radius: 4px;
-                        font-size: 0.7rem;
-                        font-weight: 700;
-                    }
-                    .studio-drag-meta {
-                        font-size: 0.75rem;
-                        color: #64748b;
-                    }
-                    .calendar-day {
-                        background: white;
-                        border: 2px solid #e2e8f0;
-                        border-radius: 10px;
-                        min-height: 180px;
-                        display: flex;
-                        flex-direction: column;
-                        overflow: hidden;
-                        transition: all 0.2s;
-                    }
-                    .calendar-day.drag-over {
-                        border-color: #7c3aed;
-                        background: #faf5ff;
-                        box-shadow: 0 0 0 3px rgba(124,58,237,0.2);
-                    }
-                    .calendar-day.incomplete {
-                        background: #fef3c7;
-                        border-color: #f59e0b;
-                    }
-                    .calendar-day.complete {
-                        background: #f0fdf4;
-                        border-color: #10b981;
-                    }
-                    .calendar-day.weekend {
-                        background: #f1f5f9;
-                        border-color: #cbd5e1;
-                        opacity: 0.7;
-                    }
-                    .calendar-day-header {
-                        padding: 10px 12px;
-                        background: linear-gradient(135deg, #7c3aed, #6d28d9);
-                        color: white;
-                        font-weight: 600;
-                        font-size: 0.85rem;
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                    }
-                    .calendar-day.incomplete .calendar-day-header {
-                        background: linear-gradient(135deg, #f59e0b, #d97706);
-                    }
-                    .calendar-day.complete .calendar-day-header {
-                        background: linear-gradient(135deg, #10b981, #059669);
-                    }
-                    .calendar-day.weekend .calendar-day-header {
-                        background: #94a3b8;
-                    }
-                    .calendar-day-count {
-                        background: rgba(255,255,255,0.3);
-                        padding: 2px 8px;
-                        border-radius: 10px;
-                        font-size: 0.75rem;
-                    }
-                    .calendar-day-body {
-                        flex: 1;
-                        padding: 8px;
-                        overflow-y: auto;
-                        min-height: 100px;
-                    }
-                    .calendar-visit {
-                        background: #ede9fe;
-                        border: 1px solid #c4b5fd;
-                        border-radius: 6px;
-                        padding: 8px;
-                        margin-bottom: 6px;
-                        font-size: 0.8rem;
-                        position: relative;
-                    }
-                    .calendar-visit.reserva {
-                        background: #fef3c7;
-                        border: 1px dashed #f59e0b;
-                        opacity: 0.85;
-                    }
-                    .calendar-visit.reserva .calendar-visit-name {
-                        color: #92400e;
-                    }
-                    .reserva-separator {
-                        border-top: 1px dashed #f59e0b;
-                        margin: 6px 0 4px;
-                        font-size: 0.65rem;
-                        color: #d97706;
-                        text-align: center;
-                        font-weight: 600;
-                    }
-                    .calendar-visit-name {
-                        font-weight: 600;
-                        color: #5b21b6;
-                        margin-bottom: 2px;
-                        padding-right: 20px;
-                    }
-                    .calendar-visit-meta {
-                        font-size: 0.7rem;
-                        color: #7c3aed;
-                    }
-                    .calendar-visit-remove {
-                        position: absolute;
-                        top: 4px;
-                        right: 4px;
-                        background: none;
-                        border: none;
-                        color: #dc2626;
-                        cursor: pointer;
-                        font-size: 1rem;
-                        padding: 2px;
-                        line-height: 1;
-                    }
-                    .empty-list {
-                        text-align: center;
-                        padding: 30px 20px;
-                        color: #94a3b8;
-                    }
-                    .empty-list-icon {
-                        font-size: 2.5rem;
-                        margin-bottom: 10px;
-                    }
-                    .stats-bar {
-                        display: flex;
-                        gap: 16px;
-                        font-size: 0.8rem;
-                        color: white;
-                        opacity: 0.9;
-                    }
-                    .stats-bar span {
-                        display: flex;
-                        align-items: center;
-                        gap: 4px;
-                    }
-                    @media print {
-                        /* Ocultar todo excepto el planificador */
-                        body > *:not(#planificador-modal) {
-                            display: none !important;
-                        }
-                        #planificador-modal {
-                            position: static !important;
-                            background: white !important;
-                            padding: 0 !important;
-                        }
-                        .planner-container {
-                            max-width: none !important;
-                            max-height: none !important;
-                            height: auto !important;
-                            box-shadow: none !important;
-                            border-radius: 0 !important;
-                        }
-                        .planner-header, .planner-filters, .planner-studios, .planner-header-actions {
-                            display: none !important;
-                        }
-                        .planner-body {
-                            display: block !important;
-                        }
-                        .planner-calendar {
-                            overflow: visible !important;
-                        }
-                        /* Header de impresión con logo */
-                        .print-header {
-                            display: flex !important;
-                            align-items: center;
-                            gap: 20px;
-                            padding: 20px;
-                            border-bottom: 2px solid #e2e8f0;
-                            margin-bottom: 15px;
-                        }
-                        .print-logo {
-                            height: 60px;
-                            width: auto;
-                        }
-                        .print-title {
-                            font-size: 1.5rem;
-                            font-weight: 700;
-                            color: #1e293b;
-                        }
-                        .print-date {
-                            font-size: 1rem;
-                            color: #64748b;
-                            margin-left: auto;
-                        }
-                        .planner-calendar-header {
-                            display: none !important;
-                        }
-                        .planner-calendar-grid {
-                            overflow: visible !important;
-                            display: grid !important;
-                            grid-template-columns: repeat(3, 1fr) !important;
-                            gap: 10px !important;
-                            padding: 10px !important;
-                        }
-                        .calendar-day {
-                            page-break-inside: avoid !important;
-                            min-height: auto !important;
-                            border: 1px solid #ccc !important;
-                        }
-                        .calendar-day.weekend {
-                            display: none !important;
-                        }
-                        .calendar-day-header {
-                            background: #333 !important;
-                            -webkit-print-color-adjust: exact !important;
-                            print-color-adjust: exact !important;
-                        }
-                        .calendar-day.complete .calendar-day-header {
-                            background: #059669 !important;
-                        }
-                        .calendar-day.incomplete .calendar-day-header {
-                            background: #d97706 !important;
-                        }
-                        .calendar-visit {
-                            background: #f3f4f6 !important;
-                            border: 1px solid #ddd !important;
-                            -webkit-print-color-adjust: exact !important;
-                            print-color-adjust: exact !important;
-                        }
-                        .calendar-visit-remove {
-                            display: none !important;
-                        }
-                        .calendar-day-body > div[style*="Arrastra"] {
-                            display: none !important;
-                        }
-                    }
-                </style>
                 <div class="planner-container">
                     <div class="planner-header">
                         <h2>🗓️ Planificador de Visitas</h2>
-                        <div class="stats-bar" id="planner-stats">
+                        <div class="planner-stats-bar" id="planner-stats">
                             <span>📊 Total: <strong id="stat-total">0</strong></span>
                             <span>✅ Asignados: <strong id="stat-assigned">0</strong></span>
                             <span>⏳ Pendientes: <strong id="stat-pending">0</strong></span>
@@ -14896,8 +14946,8 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                                 <span class="badge" id="studios-count" style="background:#7c3aed;color:white;padding:2px 8px;border-radius:10px;font-size:0.75rem;">0</span>
                             </div>
                             <div class="planner-studios-list" id="studios-drag-list">
-                                <div class="empty-list">
-                                    <div class="empty-list-icon">🔍</div>
+                                <div class="planner-empty-list">
+                                    <div class="planner-empty-list-icon">🔍</div>
                                     <p>Aplica filtros para ver estudios</p>
                                 </div>
                             </div>
@@ -14910,8 +14960,8 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                                 <span id="calendar-range" style="font-weight:400;font-size:0.8rem;color:#64748b;"></span>
                             </div>
                             <div class="planner-calendar-grid" id="calendar-grid">
-                                <div class="empty-list">
-                                    <div class="empty-list-icon">📅</div>
+                                <div class="planner-empty-list">
+                                    <div class="planner-empty-list-icon">📅</div>
                                     <p>Selecciona el rango de fechas</p>
                                 </div>
                             </div>
@@ -15119,53 +15169,6 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             }).join('');
 
             modal.innerHTML = `
-                <style>
-                    .map-container {
-                        background: white; border-radius: 16px; width: 95vw; height: 92vh;
-                        display: flex; flex-direction: column;
-                        overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-                    }
-                    .map-header {
-                        background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white;
-                        padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;
-                        flex-shrink: 0;
-                    }
-                    .map-header h3 { margin: 0; font-size: 1.1rem; }
-                    .map-close-btn {
-                        background: rgba(255,255,255,0.2); border: none; color: white; width: 32px; height: 32px;
-                        border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex;
-                        align-items: center; justify-content: center; transition: background 0.2s;
-                    }
-                    .map-close-btn:hover { background: rgba(255,255,255,0.35); }
-                    .map-body {
-                        position: relative; flex: 1; min-height: 0; overflow: hidden;
-                        background: #d4e8f7 url('mapa_espana.svg') no-repeat;
-                        background-size: 100% 100%;
-                    }
-                    .map-prov {
-                        position: absolute; transform: translate(-50%, -50%);
-                        padding: 3px 7px; border-radius: 4px; font-size: 0.7rem; font-weight: 600;
-                        cursor: pointer; white-space: nowrap; z-index: 1;
-                        background: rgba(255,255,255,0.88); color: #1e293b; border: 1.5px solid rgba(0,0,0,0.15);
-                        transition: all 0.15s; user-select: none;
-                        text-shadow: 0 0 3px rgba(255,255,255,0.8);
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-                    }
-                    .map-prov:hover:not(.map-disabled) { transform: translate(-50%, -50%) scale(1.2); z-index: 2; box-shadow: 0 2px 8px rgba(0,0,0,0.25); background: rgba(255,255,255,0.95); }
-                    .map-prov.map-selected { background: #7c3aed; color: white; border-color: #5b21b6; box-shadow: 0 2px 8px rgba(124,58,237,0.5); text-shadow: none; }
-                    .map-prov.map-disabled { background: rgba(255,255,255,0.5); color: #94a3b8; border-color: rgba(0,0,0,0.08); cursor: default; font-size: 0.6rem; box-shadow: none; }
-                    .map-legend { display: flex; gap: 16px; padding: 10px 20px; border-top: 1px solid #e2e8f0; font-size: 0.75rem; align-items: center; flex-shrink: 0; background: white; }
-                    .map-legend-item { display: flex; align-items: center; gap: 4px; }
-                    .map-legend-dot { width: 12px; height: 12px; border-radius: 3px; border: 1.5px solid; }
-                    .map-footer { padding: 12px 20px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; flex-shrink: 0; background: white; }
-                    .map-footer button { padding: 10px 24px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: opacity 0.2s; }
-                    .map-footer button:hover { opacity: 0.85; }
-                    .map-origin { position: absolute; transform: translate(-50%, -50%); font-size: 1.4rem; z-index: 3; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3)); }
-                    @media (max-width: 768px) {
-                        .map-container { width: 100vw; height: 100vh; border-radius: 0; }
-                        .map-prov { font-size: 0.6rem; padding: 2px 4px; }
-                    }
-                </style>
                 <div class="map-container">
                     <div class="map-header">
                         <div>
@@ -15559,8 +15562,8 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             
             if (studios.length === 0) {
                 container.innerHTML = `
-                    <div class="empty-list">
-                        <div class="empty-list-icon">📭</div>
+                    <div class="planner-empty-list">
+                        <div class="planner-empty-list-icon">📭</div>
                         <p>No hay estudios con estos filtros</p>
                     </div>
                 `;
