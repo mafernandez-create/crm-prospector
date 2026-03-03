@@ -14820,10 +14820,12 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                                 </select>
                             </div>
                             <div class="filter-section">
-                                <label class="filter-label">🏛️ Provincia</label>
-                                <select class="filter-select" id="plan-provincia" onchange="updateCiudadesFilter()">
-                                    <option value="">Todas las provincias</option>
-                                </select>
+                                <label class="filter-label">🗺️ Comunidad Autónoma</label>
+                                <div class="filter-multi-select" id="plan-ccaa" style="max-height:150px;"></div>
+                            </div>
+                            <div class="filter-section">
+                                <label class="filter-label">🏛️ Provincias (selección múltiple)</label>
+                                <div class="filter-multi-select" id="plan-provincias" style="max-height:150px;"></div>
                             </div>
                             <div class="filter-section">
                                 <label class="filter-label">🏙️ Ciudades (selección múltiple)</label>
@@ -14904,36 +14906,147 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             if (modal) modal.remove();
         }
         
+        // Mapeo CCAA → Provincias
+        const CCAA_PROVINCIAS = {
+            'Andalucía': ['Almería', 'Cádiz', 'Córdoba', 'Granada', 'Huelva', 'Jaén', 'Málaga', 'Sevilla'],
+            'Aragón': ['Huesca', 'Teruel', 'Zaragoza'],
+            'Asturias': ['Asturias'],
+            'Baleares': ['Baleares', 'Illes Balears'],
+            'Canarias': ['Las Palmas', 'Santa Cruz de Tenerife'],
+            'Cantabria': ['Cantabria'],
+            'Castilla y León': ['Ávila', 'Burgos', 'León', 'Palencia', 'Salamanca', 'Segovia', 'Soria', 'Valladolid', 'Zamora'],
+            'Castilla-La Mancha': ['Albacete', 'Ciudad Real', 'Cuenca', 'Guadalajara', 'Toledo'],
+            'Cataluña': ['Barcelona', 'Girona', 'Lleida', 'Tarragona'],
+            'C. Valenciana': ['Alicante', 'Castellón', 'Valencia'],
+            'Extremadura': ['Badajoz', 'Cáceres'],
+            'Galicia': ['A Coruña', 'Lugo', 'Ourense', 'Pontevedra'],
+            'La Rioja': ['La Rioja'],
+            'Madrid': ['Madrid'],
+            'Murcia': ['Murcia'],
+            'Navarra': ['Navarra'],
+            'País Vasco': ['Álava', 'Guipúzcoa', 'Vizcaya', 'Bizkaia', 'Gipuzkoa', 'Araba'],
+            'Ceuta': ['Ceuta'],
+            'Melilla': ['Melilla']
+        };
+
+        // Mapeo inverso: provincia → CCAA (normalizado a minúsculas para matching)
+        const PROVINCIA_TO_CCAA = {};
+        Object.entries(CCAA_PROVINCIAS).forEach(([ccaa, provs]) => {
+            provs.forEach(p => PROVINCIA_TO_CCAA[p.toLowerCase()] = ccaa);
+        });
+
+        function getCCAAForProvince(province) {
+            if (!province) return null;
+            const lower = province.toLowerCase().trim();
+            // Buscar coincidencia exacta o parcial
+            if (PROVINCIA_TO_CCAA[lower]) return PROVINCIA_TO_CCAA[lower];
+            for (const [key, ccaa] of Object.entries(PROVINCIA_TO_CCAA)) {
+                if (lower.includes(key) || key.includes(lower)) return ccaa;
+            }
+            return null;
+        }
+
         async function loadPlannerFilters() {
             const studiosData = allStudios.length > 0 ? allStudios : await getAllStudios();
             window.plannerStudiosData = studiosData;
-            
-            // Obtener provincias únicas
-            const provincias = [...new Set(studiosData.map(s => s.province).filter(p => p))].sort();
-            const provinciaSelect = document.getElementById('plan-provincia');
-            provinciaSelect.innerHTML = '<option value="">Todas las provincias</option>' +
-                provincias.map(p => `<option value="${p}">${p}</option>`).join('');
-            
+
+            // Obtener provincias únicas de los datos
+            const provinciasEnDatos = [...new Set(studiosData.map(s => s.province).filter(p => p))].sort();
+            window.plannerProvincias = provinciasEnDatos;
+
+            // Obtener CCAA que tienen provincias en los datos
+            const ccaaConDatos = new Set();
+            provinciasEnDatos.forEach(p => {
+                const ccaa = getCCAAForProvince(p);
+                if (ccaa) ccaaConDatos.add(ccaa);
+            });
+            const ccaaList = [...ccaaConDatos].sort();
+
+            // Renderizar checkboxes CCAA
+            const ccaaContainer = document.getElementById('plan-ccaa');
+            ccaaContainer.innerHTML = ccaaList.map(c => `
+                <label class="filter-multi-option">
+                    <input type="checkbox" value="${c}" onchange="onCCAAChange()">
+                    <span>${c}</span>
+                </label>
+            `).join('');
+
+            // Renderizar checkboxes Provincias
+            updateProvinciasFilter();
             updateCiudadesFilter();
+        }
+
+        function onCCAAChange() {
+            const ccaaChecked = Array.from(document.querySelectorAll('#plan-ccaa input:checked')).map(cb => cb.value);
+
+            // Obtener provincias que pertenecen a las CCAA seleccionadas
+            const provinciasDeselected = new Set();
+            ccaaChecked.forEach(ccaa => {
+                (CCAA_PROVINCIAS[ccaa] || []).forEach(p => provinciasDeselected.add(p.toLowerCase()));
+            });
+
+            // Marcar/desmarcar checkboxes de provincias según CCAA
+            const provCheckboxes = document.querySelectorAll('#plan-provincias input[type="checkbox"]');
+            provCheckboxes.forEach(cb => {
+                const provValue = cb.value.toLowerCase();
+                if (ccaaChecked.length === 0) {
+                    // Si no hay CCAA seleccionada, no tocar las provincias
+                } else {
+                    cb.checked = provinciasDeselected.has(provValue);
+                }
+            });
+
+            updateProvinciasFilter();
+            updateCiudadesFilter();
+        }
+
+        function updateProvinciasFilter() {
+            const provinciasEnDatos = window.plannerProvincias || [];
+            const ccaaChecked = Array.from(document.querySelectorAll('#plan-ccaa input:checked')).map(cb => cb.value);
+
+            // Si hay CCAA seleccionadas, mostrar solo esas provincias; si no, mostrar todas
+            let provinciasToShow = provinciasEnDatos;
+            if (ccaaChecked.length > 0) {
+                const provsDeCCAA = new Set();
+                ccaaChecked.forEach(ccaa => {
+                    (CCAA_PROVINCIAS[ccaa] || []).forEach(p => provsDeCCAA.add(p.toLowerCase()));
+                });
+                provinciasToShow = provinciasEnDatos.filter(p => provsDeCCAA.has(p.toLowerCase()));
+            }
+
+            const container = document.getElementById('plan-provincias');
+            // Guardar las provincias ya checkeadas
+            const prevChecked = new Set(Array.from(document.querySelectorAll('#plan-provincias input:checked')).map(cb => cb.value));
+
+            container.innerHTML = provinciasToShow.map(p => `
+                <label class="filter-multi-option">
+                    <input type="checkbox" value="${p}" onchange="updateCiudadesFilter()" ${prevChecked.has(p) || ccaaChecked.length > 0 ? 'checked' : ''}>
+                    <span>${p}</span>
+                </label>
+            `).join('');
+
+            if (provinciasToShow.length === 0) {
+                container.innerHTML = '<div style="padding:10px;color:#94a3b8;font-size:0.8rem;">Sin provincias</div>';
+            }
         }
         
         function updateCiudadesFilter() {
-            const provinciaSeleccionada = document.getElementById('plan-provincia').value;
+            const provinciasChecked = Array.from(document.querySelectorAll('#plan-provincias input:checked')).map(cb => cb.value);
             const studiosData = window.plannerStudiosData || [];
-            
-            // Obtener ciudades filtradas por provincia
+
+            // Obtener ciudades filtradas por provincias seleccionadas
             let ciudades = studiosData
-                .filter(s => !provinciaSeleccionada || s.province === provinciaSeleccionada)
+                .filter(s => provinciasChecked.length === 0 || provinciasChecked.includes(s.province))
                 .map(s => s.data?.contact?.city)
                 .filter(c => c);
             ciudades = [...new Set(ciudades)].sort();
-            
+
             const container = document.getElementById('plan-ciudades');
             if (ciudades.length === 0) {
                 container.innerHTML = '<div style="padding:10px;color:#94a3b8;font-size:0.8rem;">Sin ciudades</div>';
                 return;
             }
-            
+
             container.innerHTML = ciudades.map(c => `
                 <label class="filter-multi-option">
                     <input type="checkbox" value="${c}">
@@ -14943,15 +15056,15 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
         }
         
         function applyPlannerFilters() {
-            const provincia = document.getElementById('plan-provincia').value;
+            const provinciasChecked = Array.from(document.querySelectorAll('#plan-provincias input:checked')).map(cb => cb.value);
             const ciudadesChecked = Array.from(document.querySelectorAll('#plan-ciudades input:checked')).map(cb => cb.value);
             const estado = document.getElementById('plan-estado').value;
-            
+
             const studiosData = window.plannerStudiosData || [];
-            
+
             // Filtrar
             let filtered = studiosData.filter(s => {
-                if (provincia && s.province !== provincia) return false;
+                if (provinciasChecked.length > 0 && !provinciasChecked.includes(s.province)) return false;
                 if (ciudadesChecked.length > 0 && !ciudadesChecked.includes(s.data?.contact?.city)) return false;
                 if (estado && (s.status || '').toLowerCase() !== estado.toLowerCase()) return false;
                 return true;
