@@ -2969,14 +2969,15 @@
                     <div style="margin-top:20px;background:var(--info-light);padding:16px;border-radius:12px;">
                         <h4 style="margin:0 0 8px 0;color:var(--info);font-size:0.9rem;">📋 Columnas esperadas:</h4>
                         <div style="font-size:0.8rem;color:var(--text);display:grid;grid-template-columns:1fr 1fr;gap:4px;">
-                            <div>• Arquitecto1:Empresa (nombre)</div>
-                            <div>• Arquitecto1:Provincia</div>
-                            <div>• Arquitecto1:Telefonos</div>
-                            <div>• Arquitecto1:Email</div>
-                            <div>• Arquitecto1:Direccion</div>
-                            <div>• Arquitecto1:Poblacion</div>
-                            <div>• Arquitecto1:Web</div>
-                            <div>• Arquitecto1:Persona contacto</div>
+                            <div>• Empresa / Nombre</div>
+                            <div>• Provincia</div>
+                            <div>• Telefono / Teléfono</div>
+                            <div>• Email</div>
+                            <div>• Direccion / Dirección</div>
+                            <div>• Poblacion / Ciudad</div>
+                            <div>• Web</div>
+                            <div>• Persona contacto / Contacto</div>
+                            <div>• Codigo Postal / CP</div>
                         </div>
                     </div>
                 </div>
@@ -2991,14 +2992,19 @@
                         <button class="btn btn-sm btn-secondary" onclick="resetImportExcel()">Cambiar archivo</button>
                     </div>
                     
-                    <div style="margin-bottom:12px;display:flex;gap:12px;align-items:center;">
+                    <div style="margin-bottom:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+                        <label style="font-size:0.85rem;display:flex;align-items:center;gap:6px;">
+                            Tipo:
+                            <select id="import-studio-type" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-size:0.85rem;">
+                            </select>
+                        </label>
                         <label style="font-size:0.85rem;display:flex;align-items:center;gap:6px;">
                             <input type="checkbox" id="import-skip-existing" checked>
-                            Omitir estudios ya existentes
+                            Omitir existentes
                         </label>
                         <label style="font-size:0.85rem;display:flex;align-items:center;gap:6px;">
                             <input type="checkbox" id="import-only-with-contact" checked>
-                            Solo con teléfono o email
+                            Solo con contacto
                         </label>
                     </div>
                     
@@ -10341,6 +10347,7 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             document.getElementById('btn-do-import').style.display = 'none';
             document.getElementById('import-footer-info').textContent = '';
             document.getElementById('import-excel-file').value = '';
+            populateTypeSelect('import-studio-type');
         }
         
         async function processExcelFile(input) {
@@ -10527,29 +10534,33 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
         
         async function executeImport() {
             var toImport = excelImportData.studios.filter(function(s) { return s.selected; });
-            
+
             if (toImport.length === 0) {
                 alert('No hay estudios seleccionados para importar');
                 return;
             }
-            
-            if (!confirm('¿Importar ' + toImport.length + ' estudios al CRM?')) {
+
+            var selectedType = document.getElementById('import-studio-type').value || 'arquitectura';
+            var typeInfo = TIPOS_ESTUDIO[selectedType] || TIPOS_ESTUDIO['arquitectura'];
+
+            if (!confirm('¿Importar ' + toImport.length + ' estudios como "' + typeInfo.label + '" al CRM?')) {
                 return;
             }
-            
+
             var btn = document.getElementById('btn-do-import');
             btn.disabled = true;
             btn.textContent = '⏳ Importando...';
-            
+
             var imported = 0;
             var errors = 0;
-            
+
             for (var i = 0; i < toImport.length; i++) {
                 var s = toImport[i];
                 try {
                     var studioData = {
                         name: s.name,
                         province: s.province || 'Sin provincia',
+                        studioType: selectedType,
                         logoUrl: '',
                         status: 'nuevo',
                         priority: 'media',
