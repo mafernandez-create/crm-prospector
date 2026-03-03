@@ -14832,6 +14832,10 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                                 <div class="filter-multi-select" id="plan-ciudades"></div>
                             </div>
                             <div class="filter-section">
+                                <label class="filter-label">🏢 Tipo de Empresa (selección múltiple)</label>
+                                <div class="filter-multi-select" id="plan-tipos" style="max-height:150px;"></div>
+                            </div>
+                            <div class="filter-section">
                                 <label class="filter-label">📋 Estado</label>
                                 <select class="filter-select" id="plan-estado">
                                     <option value="">Todos</option>
@@ -14974,6 +14978,15 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             // Renderizar checkboxes Provincias
             updateProvinciasFilter();
             updateCiudadesFilter();
+
+            // Renderizar checkboxes Tipos de Empresa
+            const tiposContainer = document.getElementById('plan-tipos');
+            tiposContainer.innerHTML = Object.entries(TIPOS_ESTUDIO).map(([key, t]) => `
+                <label class="filter-multi-option">
+                    <input type="checkbox" value="${key}">
+                    <span>${t.icon} ${t.label}</span>
+                </label>
+            `).join('');
         }
 
         function onCCAAChange() {
@@ -15058,6 +15071,7 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
         function applyPlannerFilters() {
             const provinciasChecked = Array.from(document.querySelectorAll('#plan-provincias input:checked')).map(cb => cb.value);
             const ciudadesChecked = Array.from(document.querySelectorAll('#plan-ciudades input:checked')).map(cb => cb.value);
+            const tiposChecked = Array.from(document.querySelectorAll('#plan-tipos input:checked')).map(cb => cb.value);
             const estado = document.getElementById('plan-estado').value;
 
             const studiosData = window.plannerStudiosData || [];
@@ -15066,6 +15080,7 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             let filtered = studiosData.filter(s => {
                 if (provinciasChecked.length > 0 && !provinciasChecked.includes(s.province)) return false;
                 if (ciudadesChecked.length > 0 && !ciudadesChecked.includes(s.data?.contact?.city)) return false;
+                if (tiposChecked.length > 0 && !tiposChecked.includes(s.type)) return false;
                 if (estado && (s.status || '').toLowerCase() !== estado.toLowerCase()) return false;
                 return true;
             });
