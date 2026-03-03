@@ -5160,7 +5160,7 @@
                     </td>
                     <td data-label="Tipo"><span style="font-size:0.85rem;">${getTypeLabel(studio.type || 'arquitectura')}</span></td>
                     <td data-label="Estado"><span class="status status-${studio.status}">${getStatusLabel(studio.status)}</span></td>
-                    <td data-label="Prioridad"><span class="priority priority-${(studio.priority || 'media').toLowerCase()}">${studio.priority || 'Media'}</span></td>
+                    <td data-label="Prioridad"><span class="priority priority-${(studio.priority || 'media').toLowerCase().replace(/[^a-z]/g,'')}">${escapeHtml(studio.priority || 'Media')}</span></td>
                     <td data-label="Última Actividad">${formatDate(studio.updatedAt)}</td>
                     <td data-label="Creado">${formatDate(studio.createdAt)}</td>
                     <td data-label="Tarea B2B">${renderTaskIndicator(studio)}</td>
@@ -5212,7 +5212,7 @@
                             <span>📍 ${studio.city ? escapeHtml(studio.city) + ', ' : ''}${escapeHtml(studio.province)}</span>
                             <span>📅 Creado: ${formatDate(studio.createdAt)}</span>
                             <span class="status status-${studio.status}">${getStatusLabel(studio.status)}</span>
-                            <span class="priority priority-${(studio.priority || 'media').toLowerCase()}">${studio.priority || 'Media'}</span>
+                            <span class="priority priority-${(studio.priority || 'media').toLowerCase().replace(/[^a-z]/g,'')}">${escapeHtml(studio.priority || 'Media')}</span>
                         </div>
                     </div>
                     <div class="detail-actions">
@@ -5596,7 +5596,7 @@
                                 <div style="text-align:center;padding:20px;">
                                     <span class="status status-${studio.status}" style="font-size:1rem;padding:8px 16px;">${getStatusLabel(studio.status)}</span>
                                     <div style="margin-top:12px;">
-                                        <span class="priority priority-${(studio.priority || 'media').toLowerCase()}">${studio.priority || 'Media'} Prioridad</span>
+                                        <span class="priority priority-${(studio.priority || 'media').toLowerCase().replace(/[^a-z]/g,'')}">${escapeHtml(studio.priority || 'Media')} Prioridad</span>
                                         ${studio.priorityCalculatedScore !== undefined ? `
                                             <span style="font-size:0.75rem;color:var(--muted);margin-left:8px;">(${studio.priorityCalculatedScore}/12 pts)</span>
                                         ` : ''}
@@ -10159,7 +10159,7 @@ PUNTUACIÓN TOTAL: 12 puntos máximo
                 item.activities.forEach(function(a) {
                     rowsHtml += '<tr><td>' + formatDT(a.createdAt) + '</td><td>' + getTypeSimple(a.type) + '</td><td>' + escHtml(a.text || '-') + '</td></tr>';
                 });
-                studiosHtml += '<div class="studio"><div class="studio-header"><span class="studio-name">' + (item.studio.name || 'Sin nombre') + '</span><span class="studio-meta">' + (item.studio.province || '') + ' | ' + item.activities.length + ' actividades</span></div><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th></tr></thead><tbody>' + rowsHtml + '</tbody></table></div>';
+                studiosHtml += '<div class="studio"><div class="studio-header"><span class="studio-name">' + escHtml(item.studio.name || 'Sin nombre') + '</span><span class="studio-meta">' + escHtml(item.studio.province || '') + ' | ' + item.activities.length + ' actividades</span></div><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th></tr></thead><tbody>' + rowsHtml + '</tbody></table></div>';
             });
             
             var printContent = '<!DOCTYPE html><html><head><title>Reporte de Actividades</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;padding:20px;font-size:12px}h1{font-size:18px;margin-bottom:10px}.period{color:#666;margin-bottom:20px}.studio{margin-bottom:15px;border:1px solid #ddd;border-radius:8px;overflow:hidden;page-break-inside:avoid}.studio-header{background:#f5f5f5;padding:10px;border-bottom:1px solid #ddd;display:flex;justify-content:space-between}.studio-name{font-weight:bold}.studio-meta{color:#666;font-size:11px}table{width:100%;border-collapse:collapse}th,td{padding:6px 8px;text-align:left;border-bottom:1px solid #eee}th{font-size:10px;color:#666;text-transform:uppercase}</style></head><body><h1>📊 Reporte de Actividades - Ferroplast CRM</h1><div class="period">📅 Período: ' + lastReportData.startDate + ' - ' + lastReportData.endDate + ' | Total: ' + lastReportData.totalActivities + ' actividades</div>' + studiosHtml + '<scr' + 'ipt>window.onload=function(){window.print();}</scr' + 'ipt></body></html>';
@@ -10746,7 +10746,7 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             };
             
             // Helper functions for report
-            const safeStr = (val, def = '-') => val || def;
+            const safeStr = (val, def = '-') => escapeHtml(val || def);
             const safeArr = (val) => Array.isArray(val) ? val : [];
             
             // Build team HTML
@@ -10757,10 +10757,10 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                     const isDecider = m.isDecisionMaker ? 'decision-maker' : '';
                     const deciderLabel = m.isDecisionMaker ? '⭐ Decisor clave' : '';
                     const contactParts = [];
-                    if (m.email) contactParts.push('📧 ' + m.email);
-                    if (m.phone) contactParts.push('📞 ' + m.phone);
+                    if (m.email) contactParts.push('📧 ' + escapeHtml(m.email));
+                    if (m.phone) contactParts.push('📞 ' + escapeHtml(m.phone));
                     if (m.linkedin) contactParts.push('💼 LinkedIn');
-                    const insightHtml = m.insight ? '<div style="margin-top:8px;font-size:0.85rem;color:#00a67e;">💡 ' + m.insight + '</div>' : '';
+                    const insightHtml = m.insight ? '<div style="margin-top:8px;font-size:0.85rem;color:#00a67e;">💡 ' + escapeHtml(m.insight) + '</div>' : '';
                     
                     teamHtml += '<div class="team-member ' + isDecider + '">' +
                         '<div class="team-member-name">' + safeStr(m.name) + ' ' + deciderLabel + '</div>' +
@@ -10816,8 +10816,8 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                         '</div>';
                 }
                 
-                const analysisHtml = data.social.analysis ? 
-                    '<div style="margin-top:15px;"><h3>Análisis de Presencia Digital</h3><div class="template-box" style="border-left-color:#00a67e;">' + data.social.analysis + '</div></div>' : '';
+                const analysisHtml = data.social.analysis ?
+                    '<div style="margin-top:15px;"><h3>Análisis de Presencia Digital</h3><div class="template-box" style="border-left-color:#00a67e;">' + escapeHtml(data.social.analysis) + '</div></div>' : '';
                 
                 socialHtml = '<div class="section">' +
                     '<h2>📱 Presencia en Redes Sociales</h2>' +
@@ -10831,7 +10831,7 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             const benefits = safeArr(data.sales?.benefits);
             if (benefits.length > 0) {
                 benefits.forEach(b => {
-                    const text = typeof b === 'string' ? b : safeStr(b.benefit);
+                    const text = typeof b === 'string' ? escapeHtml(b) : safeStr(b.benefit);
                     benefitsHtml += '<li>' + text + '</li>';
                 });
             } else {
@@ -10860,8 +10860,8 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                     const followupText = act.followupDate ? ' · 📅 Seguimiento: ' + formatDate(act.followupDate) : '';
                     activitiesHtml += '<div class="activity-item">' +
                         '<div class="activity-date">' + formatDateTime(act.createdAt) + followupText + '</div>' +
-                        '<div class="activity-type">' + (activityLabels[act.type] || act.type) + '</div>' +
-                        '<div class="activity-text">' + act.text + '</div>' +
+                        '<div class="activity-type">' + escapeHtml(activityLabels[act.type] || act.type) + '</div>' +
+                        '<div class="activity-text">' + escapeHtml(act.text) + '</div>' +
                         '</div>';
                 });
             } else {
@@ -10925,10 +10925,10 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
 '            <div class="header-date">Generado: ' + new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + '</div>' +
 '        </div>' +
 '    </div>' +
-'    <h1>' + studio.name + '</h1>' +
+'    <h1>' + escapeHtml(studio.name) + '</h1>' +
 '    <p style="margin-bottom:15px;">' +
-'        <span class="status-badge">' + (statusLabels[studio.status] || studio.status) + '</span> ' +
-'        <span class="priority-badge priority-' + (studio.priority || 'media').toLowerCase() + '">' + (studio.priority || 'Media') + ' Prioridad</span>' +
+'        <span class="status-badge">' + escapeHtml(statusLabels[studio.status] || studio.status) + '</span> ' +
+'        <span class="priority-badge priority-' + (studio.priority || 'media').toLowerCase().replace(/[^a-z]/g, '') + '">' + escapeHtml(studio.priority || 'Media') + ' Prioridad</span>' +
 '    </p>' +
 '    <p style="color:#6b7c93;margin-bottom:20px;">' + safeStr(data.studio?.description, 'Sin descripción disponible') + '</p>' +
 '    <div class="section">' +
@@ -10937,9 +10937,9 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
 '            <div class="info-item"><div class="info-label">Dirección</div><div class="info-value">' + (data.contact?.address && data.contact.address !== 'No encontrado' ? '<a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(data.contact.address) + '" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open(this.href, \'_blank\'); return false;" style="color:#2563eb;text-decoration:none;">📍 ' + safeStr(data.contact.address) + ' →</a>' : '-') + '</div></div>' +
 '            <div class="info-item"><div class="info-label">Población</div><div class="info-value">' + safeStr(studio.city || data.contact?.city, '-') + '</div></div>' +
 '            <div class="info-item"><div class="info-label">Provincia</div><div class="info-value">' + safeStr(studio.province, '-') + '</div></div>' +
-'            <div class="info-item"><div class="info-label">Teléfono</div><div class="info-value">' + (data.contact?.phone && data.contact.phone !== 'No encontrado' ? '<a href="tel:' + data.contact.phone.replace(/\\s+/g, '') + '" style="color:#00a67d;text-decoration:none;">📞 ' + safeStr(data.contact.phone) + '</a>' : '-') + '</div></div>' +
-'            <div class="info-item"><div class="info-label">Email</div><div class="info-value">' + (data.contact?.email && data.contact.email !== 'No encontrado' ? '<a href="mailto:' + data.contact.email + '" style="color:#f59e0b;text-decoration:none;">✉️ ' + safeStr(data.contact.email) + '</a>' : '-') + '</div></div>' +
-'            <div class="info-item"><div class="info-label">Web</div><div class="info-value">' + (data.contact?.web && data.contact.web !== 'No encontrado' ? '<a href="' + data.contact.web + '" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open(this.href, \'_blank\'); return false;" style="color:#3b82f6;text-decoration:none;">🌐 ' + safeStr(data.contact.web) + ' →</a>' : '-') + '</div></div>' +
+'            <div class="info-item"><div class="info-label">Teléfono</div><div class="info-value">' + (data.contact?.phone && data.contact.phone !== 'No encontrado' ? '<a href="tel:' + encodeURIComponent(data.contact.phone.replace(/\\s+/g, '')) + '" style="color:#00a67d;text-decoration:none;">📞 ' + safeStr(data.contact.phone) + '</a>' : '-') + '</div></div>' +
+'            <div class="info-item"><div class="info-label">Email</div><div class="info-value">' + (data.contact?.email && data.contact.email !== 'No encontrado' ? '<a href="mailto:' + encodeURIComponent(data.contact.email) + '" style="color:#f59e0b;text-decoration:none;">✉️ ' + safeStr(data.contact.email) + '</a>' : '-') + '</div></div>' +
+'            <div class="info-item"><div class="info-label">Web</div><div class="info-value">' + (data.contact?.web && data.contact.web !== 'No encontrado' ? '<a href="' + escapeHtml(safeUrl(data.contact.web, '#')) + '" target="_blank" rel="noopener noreferrer" style="color:#3b82f6;text-decoration:none;">🌐 ' + safeStr(data.contact.web) + ' →</a>' : '-') + '</div></div>' +
 '            <div class="info-item"><div class="info-label">Fundación</div><div class="info-value">' + safeStr(data.studio?.founded) + '</div></div>' +
 '        </div>' +
 '    </div>' +
@@ -12047,7 +12047,7 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             var ubicacion = comunidad;
             if (provincia) ubicacion = provincia + ', ' + comunidad;
             
-            resultsContainer.innerHTML = '<div style="text-align:center;padding:40px;"><div class="spinner" style="margin:0 auto 15px;"></div><p>Consultando Construdata21...</p><p style="font-size:0.85rem;color:var(--muted);">Buscando proyectos en ' + ubicacion + '</p></div>';
+            resultsContainer.innerHTML = '<div style="text-align:center;padding:40px;"><div class="spinner" style="margin:0 auto 15px;"></div><p>Consultando Construdata21...</p><p style="font-size:0.85rem;color:var(--muted);">Buscando proyectos en ' + escapeHtml(ubicacion) + '</p></div>';
             if (statusEl) statusEl.textContent = 'Conectando...';
             
             try {
@@ -12073,7 +12073,7 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                 
             } catch (error) {
                 console.error('Error Construdata21:', error);
-                resultsContainer.innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger);"><p>❌ Error al consultar Construdata21</p><p style="font-size:0.85rem;">' + error.message + '</p><button class="btn btn-secondary" onclick="buscarProyectosConstrudata21()" style="margin-top:15px;">🔄 Reintentar</button></div>';
+                resultsContainer.innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger);"><p>❌ Error al consultar Construdata21</p><p style="font-size:0.85rem;">' + escapeHtml(error.message) + '</p><button class="btn btn-secondary" onclick="buscarProyectosConstrudata21()" style="margin-top:15px;">🔄 Reintentar</button></div>';
                 if (statusEl) statusEl.textContent = 'Error de conexión';
             }
         }
@@ -12088,28 +12088,31 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             }
             
             container.innerHTML = proyectos.map(function(p) {
-                return '<div class="cd21-project-card" data-id="' + p.id + '" style="background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor=\'var(--primary)\'" onmouseout="this.style.borderColor=\'var(--border)\'" onclick="verDetalleProyectoConstrudata21(' + p.id + ')">' +
+                var safeId = parseInt(p.id) || 0;
+                var imgUrl = safeUrl(p.imagen, '');
+                var linkUrl = safeUrl(p.url, '');
+                return '<div class="cd21-project-card" data-id="' + safeId + '" style="background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor=\'var(--primary)\'" onmouseout="this.style.borderColor=\'var(--border)\'" onclick="verDetalleProyectoConstrudata21(' + safeId + ')">' +
                     '<div style="display:flex;justify-content:space-between;align-items:start;gap:12px;">' +
                         '<div style="flex:1;min-width:0;">' +
                             '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
-                                '<span class="status status-' + getFaseClassCD21(p.codigoFase) + '" style="font-size:0.7rem;">' + (p.fase || 'Sin fase') + '</span>' +
-                                '<span style="font-size:0.75rem;color:var(--muted);">' + (p.referencia || '') + '</span>' +
+                                '<span class="status status-' + getFaseClassCD21(p.codigoFase) + '" style="font-size:0.7rem;">' + escapeHtml(p.fase || 'Sin fase') + '</span>' +
+                                '<span style="font-size:0.75rem;color:var(--muted);">' + escapeHtml(p.referencia || '') + '</span>' +
                             '</div>' +
-                            '<h4 style="margin:0 0 6px 0;font-size:0.95rem;font-weight:600;color:var(--dark);">' + (p.nombre || 'Proyecto sin nombre') + '</h4>' +
-                            '<p style="margin:0 0 8px 0;font-size:0.85rem;color:var(--muted);">📍 ' + (p.localidad || '') + ', ' + (p.provincia || '') + '</p>' +
+                            '<h4 style="margin:0 0 6px 0;font-size:0.95rem;font-weight:600;color:var(--dark);">' + escapeHtml(p.nombre || 'Proyecto sin nombre') + '</h4>' +
+                            '<p style="margin:0 0 8px 0;font-size:0.85rem;color:var(--muted);">📍 ' + escapeHtml(p.localidad || '') + ', ' + escapeHtml(p.provincia || '') + '</p>' +
                             '<div style="display:flex;flex-wrap:wrap;gap:12px;font-size:0.8rem;color:var(--secondary);">' +
-                                (p.tipo ? '<span>🏗️ ' + p.tipo + '</span>' : '') +
-                                (p.viviendas ? '<span>🏠 ' + p.viviendas + ' viv.</span>' : '') +
-                                (p.presupuesto ? '<span>💰 ' + p.presupuesto + '€</span>' : '') +
+                                (p.tipo ? '<span>🏗️ ' + escapeHtml(p.tipo) + '</span>' : '') +
+                                (p.viviendas ? '<span>🏠 ' + escapeHtml(p.viviendas) + ' viv.</span>' : '') +
+                                (p.presupuesto ? '<span>💰 ' + escapeHtml(p.presupuesto) + '€</span>' : '') +
                             '</div>' +
                         '</div>' +
-                        (p.imagen ? '<img src="' + p.imagen + '" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;flex-shrink:0;" onerror="this.style.display=\'none\'">' : '') +
+                        (imgUrl ? '<img src="' + escapeHtml(imgUrl) + '" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;flex-shrink:0;" onerror="this.style.display=\'none\'">' : '') +
                     '</div>' +
                     '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">' +
                         '<span style="font-size:0.75rem;color:var(--muted);">🕐 ' + formatearFechaCD21(p.fechaActualizacion) + '</span>' +
                         '<div style="display:flex;gap:8px;">' +
-                            '<button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();window.open(\'' + p.url + '\',\'_blank\')">🔗 Ver en CD21</button>' +
-                            '<button class="btn btn-sm btn-primary" onclick="event.stopPropagation();importarArquitectoCD21(' + p.id + ')">📥 Importar</button>' +
+                            (linkUrl ? '<button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();window.open(' + jsAttr(linkUrl) + ',\'_blank\')">🔗 Ver en CD21</button>' : '') +
+                            '<button class="btn btn-sm btn-primary" onclick="event.stopPropagation();importarArquitectoCD21(' + safeId + ')">📥 Importar</button>' +
                         '</div>' +
                     '</div>' +
                 '</div>';
@@ -12156,29 +12159,31 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                 if (d.arquitecto) {
                     html += '<div style="background:var(--primary-light);padding:16px;border-radius:12px;margin-bottom:16px;">' +
                         '<h4 style="margin:0 0 12px 0;color:var(--primary);">🏛️ Arquitecto</h4>' +
-                        '<p style="margin:0 0 8px 0;font-weight:600;font-size:1.1rem;">' + d.arquitecto + '</p>';
-                    if (d.direccionArquitecto) html += '<p style="margin:0 0 4px 0;font-size:0.9rem;">📍 ' + d.direccionArquitecto + '</p>';
-                    if (d.telefonos && d.telefonos.length) html += '<p style="margin:0 0 4px 0;font-size:0.9rem;">📞 ' + d.telefonos.join(', ') + '</p>';
-                    if (d.emails && d.emails.length) html += '<p style="margin:0 0 4px 0;font-size:0.9rem;">✉️ ' + d.emails.join(', ') + '</p>';
-                    if (d.webs && d.webs.length) html += '<p style="margin:0;font-size:0.9rem;">🌐 ' + d.webs.map(function(w) { return '<a href="' + w + '" target="_blank">' + w + '</a>'; }).join(', ') + '</p>';
+                        '<p style="margin:0 0 8px 0;font-weight:600;font-size:1.1rem;">' + escapeHtml(d.arquitecto) + '</p>';
+                    if (d.direccionArquitecto) html += '<p style="margin:0 0 4px 0;font-size:0.9rem;">📍 ' + escapeHtml(d.direccionArquitecto) + '</p>';
+                    if (d.telefonos && d.telefonos.length) html += '<p style="margin:0 0 4px 0;font-size:0.9rem;">📞 ' + d.telefonos.map(function(t) { return escapeHtml(t); }).join(', ') + '</p>';
+                    if (d.emails && d.emails.length) html += '<p style="margin:0 0 4px 0;font-size:0.9rem;">✉️ ' + d.emails.map(function(e) { return escapeHtml(e); }).join(', ') + '</p>';
+                    if (d.webs && d.webs.length) html += '<p style="margin:0;font-size:0.9rem;">🌐 ' + d.webs.map(function(w) { var u = safeUrl(w, ''); return u ? '<a href="' + escapeHtml(u) + '" target="_blank">' + escapeHtml(w) + '</a>' : escapeHtml(w); }).join(', ') + '</p>';
                     html += '</div>';
                 }
-                
+
                 if (d.direccionObra) {
                     html += '<div style="background:#f8f9fa;padding:16px;border-radius:12px;margin-bottom:16px;">' +
                         '<h4 style="margin:0 0 8px 0;">📍 Ubicación de la Obra</h4>' +
-                        '<p style="margin:0;">' + d.direccionObra + '</p></div>';
+                        '<p style="margin:0;">' + escapeHtml(d.direccionObra) + '</p></div>';
                 }
-                
+
+                var safeProjectId = parseInt(projectId) || 0;
+                var detailUrl = safeUrl(d.url, '');
                 html += '<div style="display:flex;gap:12px;margin-top:20px;">' +
-                    '<button class="btn btn-primary" onclick="importarArquitectoCD21(' + projectId + ')" style="flex:1;">📥 Importar Arquitecto al CRM</button>' +
-                    '<button class="btn btn-secondary" onclick="window.open(\'' + d.url + '\',\'_blank\')">🔗 Ver en Construdata21</button>' +
+                    '<button class="btn btn-primary" onclick="importarArquitectoCD21(' + safeProjectId + ')" style="flex:1;">📥 Importar Arquitecto al CRM</button>' +
+                    (detailUrl ? '<button class="btn btn-secondary" onclick="window.open(' + jsAttr(detailUrl) + ',\'_blank\')">🔗 Ver en Construdata21</button>' : '') +
                 '</div></div>';
-                
+
                 content.innerHTML = html;
-                
+
             } catch (error) {
-                content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger);"><p>❌ Error al cargar detalle</p><p style="font-size:0.85rem;">' + error.message + '</p></div>';
+                content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger);"><p>❌ Error al cargar detalle</p><p style="font-size:0.85rem;">' + escapeHtml(error.message) + '</p></div>';
             }
         }
 
@@ -12464,7 +12469,7 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                     '.received-indicator{display:inline-block;background:#17a2b8;color:white;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:8px;}' +
                     '</style></head><body>' +
                     '<div class="header">' +
-                        '<div class="subject">' + (thread.subject || '(Sin asunto)') + '</div>' +
+                        '<div class="subject">' + escapeHtml(thread.subject || '(Sin asunto)') + '</div>' +
                         '<div class="thread-info">📧 ' + messages.length + ' mensaje' + (messages.length > 1 ? 's' : '') + ' en esta conversación</div>' +
                     '</div>' +
                     '<div class="messages-container">';
@@ -12487,7 +12492,7 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                             '<div class="attachments-title">📎 Adjuntos (' + msg.attachments.length + ')</div>' +
                             msg.attachments.map(function(a) {
                                 var size = a.size > 1024 ? (a.size / 1024).toFixed(1) + ' KB' : a.size + ' B';
-                                return '<span class="attachment-item">📄 ' + a.name + ' (' + size + ')</span>';
+                                return '<span class="attachment-item">📄 ' + escapeHtml(a.name) + ' (' + size + ')</span>';
                             }).join('') +
                             '</div>';
                     }
@@ -12495,12 +12500,12 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                     htmlContent += '<div class="message">' +
                         '<div class="message-header">' +
                             '<div>' +
-                                '<div class="message-from">' + msg.from + indicator + '</div>' +
-                                '<div class="message-to">Para: ' + msg.to + (msg.cc ? ' | CC: ' + msg.cc : '') + '</div>' +
+                                '<div class="message-from">' + escapeHtml(msg.from) + indicator + '</div>' +
+                                '<div class="message-to">Para: ' + escapeHtml(msg.to) + (msg.cc ? ' | CC: ' + escapeHtml(msg.cc) : '') + '</div>' +
                             '</div>' +
                             '<div class="message-date">' + fechaStr + '</div>' +
                         '</div>' +
-                        '<div class="message-body">' + (msg.body || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>' +
+                        '<div class="message-body">' + escapeHtml(msg.body || '') + '</div>' +
                         adjuntosHtml +
                     '</div>';
                 });
@@ -12508,7 +12513,7 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                 htmlContent += '</div>' +
                     '<div class="actions">' +
                         '<button class="btn btn-secondary" onclick="window.close()">✕ Cerrar</button>' +
-                        '<a href="https://mail.google.com/mail/u/0/#inbox/' + threadId + '" target="_blank" class="btn btn-primary">📧 Abrir en Gmail</a>' +
+                        '<a href="https://mail.google.com/mail/u/0/#inbox/' + encodeURIComponent(threadId) + '" target="_blank" class="btn btn-primary">📧 Abrir en Gmail</a>' +
                     '</div>' +
                     '</body></html>';
                 
