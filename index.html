@@ -14840,7 +14840,10 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                                 <div class="filter-multi-select" id="plan-ccaa" style="max-height:150px;"></div>
                             </div>
                             <div class="filter-section">
-                                <label class="filter-label">🏛️ Provincias (selección múltiple)</label>
+                                <label class="filter-label" style="display:flex;justify-content:space-between;align-items:center;">
+                                    🏛️ Provincias
+                                    <button onclick="openMapaProvincias()" style="background:#7c3aed;color:white;border:none;padding:3px 8px;border-radius:4px;font-size:0.7rem;cursor:pointer;">🗺️ Mapa</button>
+                                </label>
                                 <div class="filter-multi-select" id="plan-provincias" style="max-height:150px;"></div>
                             </div>
                             <div class="filter-section">
@@ -15062,6 +15065,132 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             }
         }
         
+        // Mapa interactivo de provincias
+        const PROV_MAP_POS = {
+            'A Coruña':[8,8],'Lugo':[14,12],'Asturias':[27,8],'Cantabria':[42,7],
+            'Vizcaya':[49,9],'Guipúzcoa':[56,9],'Navarra':[58,15],'Álava':[51,15],
+            'La Rioja':[52,19],'Pontevedra':[6,20],'Ourense':[12,21],'León':[29,18],
+            'Palencia':[37,25],'Burgos':[43,21],'Soria':[52,28],'Huesca':[67,23],
+            'Girona':[91,25],'Lleida':[75,30],'Zamora':[28,31],'Valladolid':[35,29],
+            'Segovia':[40,38],'Zaragoza':[64,29],'Barcelona':[86,33],'Tarragona':[80,36],
+            'Salamanca':[28,38],'Ávila':[36,42],'Guadalajara':[47,42],'Teruel':[62,46],
+            'Castellón':[70,50],'Madrid':[43,45],'Cuenca':[55,49],'Toledo':[41,52],
+            'Ciudad Real':[41,63],'Albacete':[57,63],'Valencia':[68,57],
+            'Cáceres':[23,57],'Badajoz':[19,64],'Alicante':[67,71],
+            'Córdoba':[35,77],'Jaén':[42,78],'Murcia':[62,75],
+            'Huelva':[19,84],'Sevilla':[26,83],'Granada':[44,85],
+            'Almería':[52,90],'Málaga':[38,91],'Cádiz':[24,93],
+            'Baleares':[90,55],'Illes Balears':[90,55],
+            'Las Palmas':[10,97],'Santa Cruz de Tenerife':[3,97],
+            'Ceuta':[30,98],'Melilla':[45,98]
+        };
+
+        function openMapaProvincias() {
+            const existing = document.getElementById('mapa-provincias-modal');
+            if (existing) existing.remove();
+
+            const provinciasEnDatos = new Set(window.plannerProvincias || []);
+            const provinciasChecked = new Set(
+                Array.from(document.querySelectorAll('#plan-provincias input:checked')).map(cb => cb.value)
+            );
+
+            const modal = document.createElement('div');
+            modal.id = 'mapa-provincias-modal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999999;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+            const provButtons = Object.entries(PROV_MAP_POS).map(([name, [x, y]]) => {
+                const enDatos = provinciasEnDatos.has(name);
+                const selected = provinciasChecked.has(name);
+                const shortName = name.length > 10 ? name.substring(0, 8) + '.' : name;
+                return `<div class="map-prov ${selected ? 'map-selected' : ''} ${enDatos ? '' : 'map-disabled'}"
+                    style="left:${x}%;top:${y}%;"
+                    data-prov="${name}"
+                    ${enDatos ? `onclick="toggleMapProv(this,'${name.replace(/'/g, "\\'")}')"` : ''}>
+                    ${shortName}
+                </div>`;
+            }).join('');
+
+            modal.innerHTML = `
+                <style>
+                    .map-container {
+                        background: white; border-radius: 16px; width: 700px; max-width: 95vw;
+                        max-height: 90vh; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+                    }
+                    .map-header {
+                        background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white;
+                        padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;
+                    }
+                    .map-header h3 { margin: 0; font-size: 1rem; }
+                    .map-body { position: relative; width: 100%; padding-bottom: 100%; background: #f8fafc; overflow: hidden; }
+                    .map-prov {
+                        position: absolute; transform: translate(-50%, -50%);
+                        padding: 2px 5px; border-radius: 3px; font-size: 0.6rem; font-weight: 600;
+                        cursor: pointer; white-space: nowrap; z-index: 1;
+                        background: #e2e8f0; color: #475569; border: 1.5px solid #cbd5e1;
+                        transition: all 0.15s;
+                    }
+                    .map-prov:hover:not(.map-disabled) { transform: translate(-50%, -50%) scale(1.15); z-index: 2; }
+                    .map-prov.map-selected { background: #7c3aed; color: white; border-color: #5b21b6; box-shadow: 0 2px 6px rgba(124,58,237,0.4); }
+                    .map-prov.map-disabled { background: #f1f5f9; color: #cbd5e1; border-color: #e2e8f0; cursor: default; font-size: 0.5rem; }
+                    .map-legend { display: flex; gap: 16px; padding: 10px 20px; border-top: 1px solid #e2e8f0; font-size: 0.75rem; align-items: center; }
+                    .map-legend-item { display: flex; align-items: center; gap: 4px; }
+                    .map-legend-dot { width: 12px; height: 12px; border-radius: 3px; border: 1.5px solid; }
+                    .map-footer { padding: 12px 20px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; }
+                    .map-footer button { padding: 8px 20px; border-radius: 6px; font-size: 0.85rem; font-weight: 500; cursor: pointer; border: none; }
+                    .map-origin { position: absolute; transform: translate(-50%, -50%); font-size: 1.2rem; z-index: 3; }
+                </style>
+                <div class="map-container">
+                    <div class="map-header">
+                        <h3>🗺️ Selecciona Provincias en el Mapa</h3>
+                        <span style="font-size:0.8rem;opacity:0.8;">Haz clic para seleccionar/deseleccionar</span>
+                    </div>
+                    <div class="map-body" id="map-body">
+                        <div class="map-origin" style="left:38%;top:91%;" title="Origen: Málaga">📍</div>
+                        ${provButtons}
+                    </div>
+                    <div class="map-legend">
+                        <div class="map-legend-item"><div class="map-legend-dot" style="background:#7c3aed;border-color:#5b21b6;"></div> Seleccionada</div>
+                        <div class="map-legend-item"><div class="map-legend-dot" style="background:#e2e8f0;border-color:#cbd5e1;"></div> Disponible</div>
+                        <div class="map-legend-item"><div class="map-legend-dot" style="background:#f1f5f9;border-color:#e2e8f0;"></div> Sin datos</div>
+                        <div class="map-legend-item" style="margin-left:auto;"><span>📍 Origen: Málaga</span></div>
+                    </div>
+                    <div class="map-footer">
+                        <button style="background:#e2e8f0;color:#475569;" onclick="document.getElementById('mapa-provincias-modal').remove()">Cancelar</button>
+                        <button style="background:#7c3aed;color:white;" onclick="aplicarMapaProvincias()">✅ Aplicar Selección</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function toggleMapProv(el, provName) {
+            el.classList.toggle('map-selected');
+        }
+
+        function aplicarMapaProvincias() {
+            const selected = Array.from(document.querySelectorAll('#mapa-provincias-modal .map-prov.map-selected'))
+                .map(el => el.dataset.prov);
+
+            // Desmarcar todas las CCAA primero
+            document.querySelectorAll('#plan-ccaa input').forEach(cb => cb.checked = false);
+
+            // Actualizar checkboxes de provincias
+            updateProvinciasFilter();
+            // Marcar las seleccionadas en el mapa
+            document.querySelectorAll('#plan-provincias input').forEach(cb => {
+                cb.checked = selected.includes(cb.value);
+            });
+
+            // Si no hay ninguna seleccionada, mostrar todas las provincias
+            if (selected.length === 0) {
+                updateProvinciasFilter();
+            }
+
+            updateCiudadesFilter();
+            document.getElementById('mapa-provincias-modal').remove();
+            showNotification(`${selected.length} provincia(s) seleccionada(s)`, 'success');
+        }
+
         // Coordenadas aproximadas por prefijo de CP (primeros 2 dígitos)
         const CP_COORDS = {
             '01':[42.85,-2.67],'02':[38.99,-1.86],'03':[38.35,-0.48],'04':[36.84,-2.47],
