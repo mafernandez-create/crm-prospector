@@ -14646,6 +14646,22 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                         font-size: 0.8rem;
                         position: relative;
                     }
+                    .calendar-visit.reserva {
+                        background: #fef3c7;
+                        border: 1px dashed #f59e0b;
+                        opacity: 0.85;
+                    }
+                    .calendar-visit.reserva .calendar-visit-name {
+                        color: #92400e;
+                    }
+                    .reserva-separator {
+                        border-top: 1px dashed #f59e0b;
+                        margin: 6px 0 4px;
+                        font-size: 0.65rem;
+                        color: #d97706;
+                        text-align: center;
+                        font-weight: 600;
+                    }
                     .calendar-visit-name {
                         font-weight: 600;
                         color: #5b21b6;
@@ -15133,8 +15149,7 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                 return;
             }
 
-            const capacidadTotal = diasLaborables.length * visitasDia;
-            const studiosToAssign = studios.slice(0, capacidadTotal);
+            const studiosToAssign = [...studios]; // Usar todos los filtrados
 
             // Excluir studios ya asignados
             const assignedIds = new Set();
@@ -15148,6 +15163,15 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                 return;
             }
 
+            // Priorizar por importancia: Alta primero, luego score desc, luego Media, luego Baja
+            const priorityOrder = { 'Alta': 0, 'Media': 1, 'Baja': 2 };
+            unassigned.sort((a, b) => {
+                const pA = priorityOrder[a.priority] ?? 1;
+                const pB = priorityOrder[b.priority] ?? 1;
+                if (pA !== pB) return pA - pB;
+                return (b.score || 0) - (a.score || 0);
+            });
+
             // Geocodificar estudios
             const geoStudios = unassigned.map(s => ({
                 ...s,
@@ -15155,8 +15179,10 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             }));
 
             // Algoritmo: nearest-neighbor TSP por día, partiendo de Málaga
+            // Primero asignar los principales (por prioridad + proximidad)
             const remaining = [...geoStudios];
-            const dayAssignments = {};
+            const dayAssignments = {}; // dateStr -> { principales: [], reservas: [] }
+            const RESERVAS_POR_DIA = 5;
 
             for (const dateStr of diasLaborables) {
                 if (remaining.length === 0) break;
@@ -15164,8 +15190,8 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                 const dayList = [];
                 let currentPos = MALAGA_COORDS;
 
+                // Seleccionar principales: nearest-neighbor
                 for (let v = 0; v < visitasDia && remaining.length > 0; v++) {
-                    // Encontrar el estudio más cercano a la posición actual
                     let minDist = Infinity;
                     let minIdx = 0;
                     for (let i = 0; i < remaining.length; i++) {
@@ -15180,27 +15206,62 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                     currentPos = nearest.coords;
                 }
 
-                dayAssignments[dateStr] = dayList;
+                dayAssignments[dateStr] = { principales: dayList, reservas: [] };
+            }
+
+            // Segunda pasada: añadir reservas cercanas a cada día
+            const remainingForReservas = [...remaining]; // los que no fueron asignados como principales
+            for (const dateStr of Object.keys(dayAssignments)) {
+                if (remainingForReservas.length === 0) break;
+
+                const principales = dayAssignments[dateStr].principales;
+                if (principales.length === 0) continue;
+
+                // Calcular centroide del día
+                const centLat = principales.reduce((sum, s) => sum + s.coords[0], 0) / principales.length;
+                const centLon = principales.reduce((sum, s) => sum + s.coords[1], 0) / principales.length;
+
+                // Buscar los RESERVAS_POR_DIA más cercanos al centroide
+                const withDist = remainingForReservas.map((s, idx) => ({
+                    idx, dist: haversineKm(centLat, centLon, s.coords[0], s.coords[1])
+                }));
+                withDist.sort((a, b) => a.dist - b.dist);
+
+                const reservaIndices = withDist.slice(0, RESERVAS_POR_DIA).map(w => w.idx);
+                // Extraer reservas (de mayor a menor idx para no desplazar indices)
+                reservaIndices.sort((a, b) => b - a);
+                const reservas = [];
+                for (const idx of reservaIndices) {
+                    reservas.push(remainingForReservas.splice(idx, 1)[0]);
+                }
+                dayAssignments[dateStr].reservas = reservas;
             }
 
             // Asignar al planificador
             if (!planificadorData.schedule) planificadorData.schedule = {};
-            let totalAssigned = 0;
+            let totalPrincipales = 0;
+            let totalReservas = 0;
 
-            for (const [dateStr, dayStudios] of Object.entries(dayAssignments)) {
+            for (const [dateStr, { principales, reservas }] of Object.entries(dayAssignments)) {
                 if (!planificadorData.schedule[dateStr]) planificadorData.schedule[dateStr] = [];
-                for (const s of dayStudios) {
-                    // Eliminar de otros días si existiera
+
+                for (const s of principales) {
                     Object.keys(planificadorData.schedule).forEach(day => {
                         planificadorData.schedule[day] = planificadorData.schedule[day].filter(existing => existing.id !== s.id);
                     });
                     planificadorData.schedule[dateStr].push({
-                        id: s.id,
-                        name: s.name,
-                        data: s.data,
-                        province: s.province
+                        id: s.id, name: s.name, data: s.data, province: s.province
                     });
-                    totalAssigned++;
+                    totalPrincipales++;
+                }
+                for (const s of reservas) {
+                    Object.keys(planificadorData.schedule).forEach(day => {
+                        planificadorData.schedule[day] = planificadorData.schedule[day].filter(existing => existing.id !== s.id);
+                    });
+                    planificadorData.schedule[dateStr].push({
+                        id: s.id, name: s.name, data: s.data, province: s.province, reserva: true
+                    });
+                    totalReservas++;
                 }
             }
 
@@ -15209,19 +15270,19 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             if (window.filteredStudios) renderStudiosDragList(window.filteredStudios);
 
             const diasUsados = Object.keys(dayAssignments).length;
-            const kmEstimado = Math.round(Object.values(dayAssignments).reduce((total, dayStudios) => {
+            const kmEstimado = Math.round(Object.values(dayAssignments).reduce((total, { principales }) => {
                 let km = 0;
                 let pos = MALAGA_COORDS;
-                dayStudios.forEach(s => {
+                principales.forEach(s => {
                     km += haversineKm(pos[0], pos[1], s.coords[0], s.coords[1]);
                     pos = s.coords;
                 });
-                km += haversineKm(pos[0], pos[1], MALAGA_COORDS[0], MALAGA_COORDS[1]); // vuelta
+                km += haversineKm(pos[0], pos[1], MALAGA_COORDS[0], MALAGA_COORDS[1]);
                 return total + km;
             }, 0));
 
             showNotification(
-                `✅ ${totalAssigned} visitas planificadas en ${diasUsados} días · ~${kmEstimado} km totales (línea recta)`,
+                `✅ ${totalPrincipales} visitas + ${totalReservas} reservas en ${diasUsados} días · ~${kmEstimado} km`,
                 'success'
             );
         }
@@ -15427,8 +15488,10 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                 
                 // Obtener estudios asignados a este día
                 const dayStudios = planificadorData.schedule?.[dateStr] || [];
-                const count = dayStudios.length;
-                
+                const countPrincipales = dayStudios.filter(s => !s.reserva).length;
+                const countReservas = dayStudios.filter(s => s.reserva).length;
+                const count = countPrincipales;
+
                 let statusClass = '';
                 if (!isWeekend) {
                     if (count === 0) statusClass = '';
@@ -15444,17 +15507,32 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                          ondrop="handleDrop(event, '${dateStr}')">
                         <div class="calendar-day-header">
                             <span>${dayName} ${dayNum} ${monthName}</span>
-                            <span class="calendar-day-count">${count}/${visitasDia}</span>
+                            <span class="calendar-day-count">${count}/${visitasDia}${countReservas > 0 ? ' +' + countReservas : ''}</span>
                         </div>
                         <div class="calendar-day-body" id="day-${dateStr}">
-                            ${isWeekend ? '<div style="text-align:center;color:#94a3b8;font-size:0.75rem;padding:20px;">Fin de semana</div>' : 
-                              dayStudios.map((s, idx) => `
-                                <div class="calendar-visit">
-                                    <button class="calendar-visit-remove" onclick="removeFromDay('${dateStr}', ${s.id})">✕</button>
-                                    <div class="calendar-visit-name">${idx + 1}. ${s.name}</div>
-                                    <div class="calendar-visit-meta">📍 ${s.data?.contact?.city || ''}</div>
-                                </div>
-                              `).join('') || '<div style="text-align:center;color:#cbd5e1;font-size:0.75rem;padding:20px;">Arrastra estudios aquí</div>'
+                            ${isWeekend ? '<div style="text-align:center;color:#94a3b8;font-size:0.75rem;padding:20px;">Fin de semana</div>' :
+                              (function() {
+                                const principales = dayStudios.filter(s => !s.reserva);
+                                const reservas = dayStudios.filter(s => s.reserva);
+                                let html = principales.map((s, idx) => `
+                                    <div class="calendar-visit">
+                                        <button class="calendar-visit-remove" onclick="removeFromDay('${dateStr}', ${s.id})">✕</button>
+                                        <div class="calendar-visit-name">${idx + 1}. ${s.name}</div>
+                                        <div class="calendar-visit-meta">📍 ${s.data?.contact?.city || ''}</div>
+                                    </div>
+                                `).join('');
+                                if (reservas.length > 0) {
+                                    html += '<div class="reserva-separator">⬇ RESERVAS ⬇</div>';
+                                    html += reservas.map((s, idx) => `
+                                        <div class="calendar-visit reserva">
+                                            <button class="calendar-visit-remove" onclick="removeFromDay('${dateStr}', ${s.id})">✕</button>
+                                            <div class="calendar-visit-name">🔄 ${s.name}</div>
+                                            <div class="calendar-visit-meta">📍 ${s.data?.contact?.city || ''}</div>
+                                        </div>
+                                    `).join('');
+                                }
+                                return html || '<div style="text-align:center;color:#cbd5e1;font-size:0.75rem;padding:20px;">Arrastra estudios aquí</div>';
+                              })()
                             }
                         </div>
                     </div>
