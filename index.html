@@ -15067,22 +15067,25 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
         
         // Mapa interactivo de provincias
         const PROV_MAP_POS = {
-            'A Coruña':[8,8],'Lugo':[14,12],'Asturias':[27,8],'Cantabria':[42,7],
-            'Vizcaya':[49,9],'Guipúzcoa':[56,9],'Navarra':[58,15],'Álava':[51,15],
-            'La Rioja':[52,19],'Pontevedra':[6,20],'Ourense':[12,21],'León':[29,18],
-            'Palencia':[37,25],'Burgos':[43,21],'Soria':[52,28],'Huesca':[67,23],
-            'Girona':[91,25],'Lleida':[75,30],'Zamora':[28,31],'Valladolid':[35,29],
-            'Segovia':[40,38],'Zaragoza':[64,29],'Barcelona':[86,33],'Tarragona':[80,36],
-            'Salamanca':[28,38],'Ávila':[36,42],'Guadalajara':[47,42],'Teruel':[62,46],
-            'Castellón':[70,50],'Madrid':[43,45],'Cuenca':[55,49],'Toledo':[41,52],
-            'Ciudad Real':[41,63],'Albacete':[57,63],'Valencia':[68,57],
-            'Cáceres':[23,57],'Badajoz':[19,64],'Alicante':[67,71],
-            'Córdoba':[35,77],'Jaén':[42,78],'Murcia':[62,75],
-            'Huelva':[19,84],'Sevilla':[26,83],'Granada':[44,85],
-            'Almería':[52,90],'Málaga':[38,91],'Cádiz':[24,93],
-            'Baleares':[90,55],'Illes Balears':[90,55],
-            'Las Palmas':[10,97],'Santa Cruz de Tenerife':[3,97],
-            'Ceuta':[30,98],'Melilla':[45,98]
+            'A Coruña':[13.9,17.8],'Álava':[47.3,21.5],'Albacete':[52.4,59.8],
+            'Alicante':[61.3,62.3],'Almería':[49.9,74.8],'Asturias':[28.7,16.6],
+            'Ávila':[34.9,42.7],'Badajoz':[28.2,59.7],'Baleares':[81.6,51.6],
+            'Barcelona':[75.7,30.8],'Burgos':[43.1,24.9],'Cáceres':[27.1,51.1],
+            'Cádiz':[30.4,80.7],'Cantabria':[37.7,15.4],'Castellón':[62.9,45.7],
+            'Ceuta':[32.6,87.2],'Ciudad Real':[41.2,58.0],'Córdoba':[35.6,68.3],
+            'Cuenca':[50.8,48.3],'Girona':[79.1,27.3],'Granada':[45.4,73.6],
+            'Guadalajara':[48.5,40.8],'Guipúzcoa':[50.8,16.8],'Huelva':[24.3,70.8],
+            'Huesca':[63.2,26.6],'Illes Balears':[81.6,51.6],'Jaén':[43.7,67.1],
+            'La Rioja':[49.2,26.1],'Las Palmas':[19.1,81.8],'León':[29.7,22.8],
+            'Lleida':[70.6,28.5],'Lugo':[20.3,18.8],'Madrid':[41.9,44.2],
+            'Málaga':[36.0,78.5],'Melilla':[46.7,93.0],'Murcia':[55.8,67.6],
+            'Navarra':[54.2,22.9],'Ourense':[19.2,27.1],'Palencia':[35.4,26.1],
+            'Pontevedra':[13.8,25.0],'Salamanca':[28.5,40.6],
+            'Santa Cruz de Tenerife':[11.4,82.2],'Segovia':[37.7,40.2],
+            'Sevilla':[31.0,72.4],'Soria':[48.9,32.7],'Tarragona':[69.2,37.7],
+            'Teruel':[59.6,41.9],'Toledo':[39.6,49.8],'Valencia':[59.5,54.5],
+            'Valladolid':[35.5,31.9],'Vizcaya':[46.9,16.8],'Zamora':[28.6,31.8],
+            'Zaragoza':[58.4,31.9]
         };
 
         function openMapaProvincias() {
@@ -15130,22 +15133,22 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                     }
                     .map-close-btn:hover { background: rgba(255,255,255,0.35); }
                     .map-body {
-                        position: relative; flex: 1; min-height: 0; background: #eef3f9; overflow: hidden;
-                    }
-                    .map-bg-svg {
-                        position: absolute; inset: 2% 5%; width: 90%; height: 96%;
-                        opacity: 0.25; pointer-events: none; z-index: 0;
+                        position: relative; flex: 1; min-height: 0; overflow: hidden;
+                        background: #d4e8f7 url('mapa_espana.svg') no-repeat center center;
+                        background-size: contain;
                     }
                     .map-prov {
                         position: absolute; transform: translate(-50%, -50%);
-                        padding: 3px 7px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;
+                        padding: 3px 7px; border-radius: 4px; font-size: 0.7rem; font-weight: 600;
                         cursor: pointer; white-space: nowrap; z-index: 1;
-                        background: #e2e8f0; color: #475569; border: 1.5px solid #cbd5e1;
+                        background: rgba(255,255,255,0.88); color: #1e293b; border: 1.5px solid rgba(0,0,0,0.15);
                         transition: all 0.15s; user-select: none;
+                        text-shadow: 0 0 3px rgba(255,255,255,0.8);
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
                     }
-                    .map-prov:hover:not(.map-disabled) { transform: translate(-50%, -50%) scale(1.2); z-index: 2; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-                    .map-prov.map-selected { background: #7c3aed; color: white; border-color: #5b21b6; box-shadow: 0 2px 8px rgba(124,58,237,0.5); }
-                    .map-prov.map-disabled { background: #f1f5f9; color: #cbd5e1; border-color: #e2e8f0; cursor: default; font-size: 0.6rem; }
+                    .map-prov:hover:not(.map-disabled) { transform: translate(-50%, -50%) scale(1.2); z-index: 2; box-shadow: 0 2px 8px rgba(0,0,0,0.25); background: rgba(255,255,255,0.95); }
+                    .map-prov.map-selected { background: #7c3aed; color: white; border-color: #5b21b6; box-shadow: 0 2px 8px rgba(124,58,237,0.5); text-shadow: none; }
+                    .map-prov.map-disabled { background: rgba(255,255,255,0.5); color: #94a3b8; border-color: rgba(0,0,0,0.08); cursor: default; font-size: 0.6rem; box-shadow: none; }
                     .map-legend { display: flex; gap: 16px; padding: 10px 20px; border-top: 1px solid #e2e8f0; font-size: 0.75rem; align-items: center; flex-shrink: 0; background: white; }
                     .map-legend-item { display: flex; align-items: center; gap: 4px; }
                     .map-legend-dot { width: 12px; height: 12px; border-radius: 3px; border: 1.5px solid; }
@@ -15167,39 +15170,7 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                         <button class="map-close-btn" onclick="document.getElementById('mapa-provincias-modal').remove()" title="Cerrar">&#10005;</button>
                     </div>
                     <div class="map-body" id="map-body">
-                        <svg class="map-bg-svg" viewBox="0 0 1000 850" preserveAspectRatio="xMidYMid meet" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <!-- Contorno simplificado de Espana peninsular -->
-                            <path d="M180 60 Q200 30 280 25 Q320 20 370 40 Q420 15 480 20 Q530 30 570 15 Q610 5 650 25
-                                Q690 10 730 30 Q760 20 790 50 Q820 40 850 60 Q870 80 860 120 Q880 150 870 180
-                                Q890 220 860 260 Q870 300 850 340 Q870 380 850 420 Q830 460 850 500
-                                Q870 540 840 580 Q860 620 830 650 Q810 680 780 700 Q750 720 710 740
-                                Q680 760 640 750 Q600 770 560 760 Q520 780 480 770 Q440 790 400 780
-                                Q360 800 320 790 Q280 810 240 800 Q200 790 170 770 Q140 750 120 720
-                                Q100 690 90 650 Q70 610 80 570 Q60 530 70 490 Q50 450 60 410
-                                Q40 370 60 330 Q50 290 70 250 Q60 210 80 180 Q70 140 90 110
-                                Q110 80 140 70 Z"
-                                fill="#cbd5e1" stroke="#94a3b8" stroke-width="2"/>
-                            <!-- Portugal (hueco) -->
-                            <path d="M90 250 Q100 220 120 200 Q140 230 130 280 Q140 330 130 380
-                                Q120 420 100 450 Q80 420 70 380 Q60 340 70 300 Q60 270 80 250 Z"
-                                fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,3"/>
-                            <!-- Baleares -->
-                            <ellipse cx="880" cy="440" rx="50" ry="30" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5"/>
-                            <ellipse cx="850" cy="470" rx="25" ry="15" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
-                            <!-- Canarias esquemático -->
-                            <ellipse cx="120" cy="800" rx="40" ry="18" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5"/>
-                            <ellipse cx="50" cy="800" rx="30" ry="15" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5"/>
-                            <!-- Ceuta y Melilla -->
-                            <circle cx="310" cy="810" r="8" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
-                            <circle cx="460" cy="810" r="8" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
-                            <!-- Texto de referencia -->
-                            <text x="100" y="340" font-size="28" fill="#94a3b8" font-style="italic" opacity="0.6">Portugal</text>
-                            <text x="700" y="650" font-size="16" fill="#b0bec5" opacity="0.5" font-style="italic">Mar Mediterr&#225;neo</text>
-                            <text x="200" y="60" font-size="14" fill="#b0bec5" opacity="0.5">Mar Cant&#225;brico</text>
-                            <text x="840" y="500" font-size="14" fill="#b0bec5" opacity="0.4">Baleares</text>
-                            <text x="55" y="830" font-size="12" fill="#b0bec5" opacity="0.4">Canarias</text>
-                        </svg>
-                        <div class="map-origin" style="left:38%;top:91%;" title="Origen: Malaga">📍</div>
+                        <div class="map-origin" style="left:36%;top:78.5%;" title="Origen: Malaga">📍</div>
                         ${provButtons}
                     </div>
                     <div class="map-legend">
