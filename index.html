@@ -4520,7 +4520,20 @@
             let score = 0;
             const details = [];
             const data = studio.data || {};
-            
+
+            // 0. TIPO DE EMPRESA (prescripción) - hasta 3 puntos
+            const tipo = (studio.type || '').toLowerCase();
+            if (tipo === 'arquitectura' || tipo === 'ingenieria') {
+                score += 3;
+                details.push(`Tipo: prescriptor directo (+3)`);
+            } else if (tipo === 'promotora' || tipo === 'constructora') {
+                score += 2;
+                details.push(`Tipo: decisor de compra (+2)`);
+            } else if (tipo === 'aguas' || tipo === 'aapp' || tipo === 'regantes') {
+                score += 1;
+                details.push(`Tipo: usuario final (+1)`);
+            }
+
             // 1. TAMAÑO DEL ESTUDIO (empleados) - hasta 3 puntos
             const employees = parseInt(data.studio?.employees) || 0;
             if (employees >= 20) {
@@ -4618,26 +4631,26 @@
             }
             
             // Determinar prioridad final
-            // Total máximo: 12 puntos
+            // Total máximo: 15 puntos (3 tipo + 3 tamaño + 3 proyectos + 2 tipo proy + 2 redes + 2 contacto)
             let priority, priorityScore;
-            if (score >= 8) {
+            if (score >= 9) {
                 priority = 'Alta';
                 priorityScore = 8;
-            } else if (score >= 4) {
+            } else if (score >= 5) {
                 priority = 'Media';
                 priorityScore = 5;
             } else {
                 priority = 'Baja';
                 priorityScore = 3;
             }
-            
-            console.log(`📊 Prioridad calculada para ${studio.name}: ${priority} (${score}/12 puntos)`, details);
-            
+
+            console.log(`📊 Prioridad calculada para ${studio.name}: ${priority} (${score}/15 puntos)`, details);
+
             return {
                 priority,
                 score: priorityScore,
                 calculatedScore: score,
-                maxScore: 12,
+                maxScore: 15,
                 details
             };
         }
