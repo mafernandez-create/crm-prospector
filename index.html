@@ -4306,6 +4306,19 @@
                 if (d.priorityDetails) s.priorityDetails = d.priorityDetails;
                 if (d.priorityCalculatedScore) s.priorityCalculatedScore = d.priorityCalculatedScore;
             }
+            // Sanear b2bTimeline: Apps Script puede devolver un Java toString() en vez de JSON
+            if (s.b2bTimeline && typeof s.b2bTimeline === 'object') {
+                if (!s.b2bTimeline.startDate || typeof s.b2bTimeline.startDate !== 'string') {
+                    // Objeto corrupto (keys numéricas = string Java serializado)
+                    s.b2bTimeline = null;
+                }
+            } else if (s.b2bTimeline && typeof s.b2bTimeline === 'string') {
+                try {
+                    s.b2bTimeline = JSON.parse(s.b2bTimeline);
+                } catch {
+                    s.b2bTimeline = null; // String no parseable (Java toString)
+                }
+            }
             return s;
         }
 
