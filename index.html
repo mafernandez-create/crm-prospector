@@ -15113,50 +15113,104 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             modal.innerHTML = `
                 <style>
                     .map-container {
-                        background: white; border-radius: 16px; width: 700px; max-width: 95vw;
-                        max-height: 90vh; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+                        background: white; border-radius: 16px; width: 95vw; height: 92vh;
+                        display: flex; flex-direction: column;
+                        overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
                     }
                     .map-header {
                         background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white;
                         padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;
+                        flex-shrink: 0;
                     }
-                    .map-header h3 { margin: 0; font-size: 1rem; }
-                    .map-body { position: relative; width: 100%; padding-bottom: 100%; background: #f8fafc; overflow: hidden; }
+                    .map-header h3 { margin: 0; font-size: 1.1rem; }
+                    .map-close-btn {
+                        background: rgba(255,255,255,0.2); border: none; color: white; width: 32px; height: 32px;
+                        border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex;
+                        align-items: center; justify-content: center; transition: background 0.2s;
+                    }
+                    .map-close-btn:hover { background: rgba(255,255,255,0.35); }
+                    .map-body {
+                        position: relative; flex: 1; min-height: 0; background: #eef3f9; overflow: hidden;
+                    }
+                    .map-bg-svg {
+                        position: absolute; inset: 2% 5%; width: 90%; height: 96%;
+                        opacity: 0.25; pointer-events: none; z-index: 0;
+                    }
                     .map-prov {
                         position: absolute; transform: translate(-50%, -50%);
-                        padding: 2px 5px; border-radius: 3px; font-size: 0.6rem; font-weight: 600;
+                        padding: 3px 7px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;
                         cursor: pointer; white-space: nowrap; z-index: 1;
                         background: #e2e8f0; color: #475569; border: 1.5px solid #cbd5e1;
-                        transition: all 0.15s;
+                        transition: all 0.15s; user-select: none;
                     }
-                    .map-prov:hover:not(.map-disabled) { transform: translate(-50%, -50%) scale(1.15); z-index: 2; }
-                    .map-prov.map-selected { background: #7c3aed; color: white; border-color: #5b21b6; box-shadow: 0 2px 6px rgba(124,58,237,0.4); }
-                    .map-prov.map-disabled { background: #f1f5f9; color: #cbd5e1; border-color: #e2e8f0; cursor: default; font-size: 0.5rem; }
-                    .map-legend { display: flex; gap: 16px; padding: 10px 20px; border-top: 1px solid #e2e8f0; font-size: 0.75rem; align-items: center; }
+                    .map-prov:hover:not(.map-disabled) { transform: translate(-50%, -50%) scale(1.2); z-index: 2; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+                    .map-prov.map-selected { background: #7c3aed; color: white; border-color: #5b21b6; box-shadow: 0 2px 8px rgba(124,58,237,0.5); }
+                    .map-prov.map-disabled { background: #f1f5f9; color: #cbd5e1; border-color: #e2e8f0; cursor: default; font-size: 0.6rem; }
+                    .map-legend { display: flex; gap: 16px; padding: 10px 20px; border-top: 1px solid #e2e8f0; font-size: 0.75rem; align-items: center; flex-shrink: 0; background: white; }
                     .map-legend-item { display: flex; align-items: center; gap: 4px; }
                     .map-legend-dot { width: 12px; height: 12px; border-radius: 3px; border: 1.5px solid; }
-                    .map-footer { padding: 12px 20px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; }
-                    .map-footer button { padding: 8px 20px; border-radius: 6px; font-size: 0.85rem; font-weight: 500; cursor: pointer; border: none; }
-                    .map-origin { position: absolute; transform: translate(-50%, -50%); font-size: 1.2rem; z-index: 3; }
+                    .map-footer { padding: 12px 20px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; flex-shrink: 0; background: white; }
+                    .map-footer button { padding: 10px 24px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: opacity 0.2s; }
+                    .map-footer button:hover { opacity: 0.85; }
+                    .map-origin { position: absolute; transform: translate(-50%, -50%); font-size: 1.4rem; z-index: 3; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3)); }
+                    @media (max-width: 768px) {
+                        .map-container { width: 100vw; height: 100vh; border-radius: 0; }
+                        .map-prov { font-size: 0.6rem; padding: 2px 4px; }
+                    }
                 </style>
                 <div class="map-container">
                     <div class="map-header">
-                        <h3>🗺️ Selecciona Provincias en el Mapa</h3>
-                        <span style="font-size:0.8rem;opacity:0.8;">Haz clic para seleccionar/deseleccionar</span>
+                        <div>
+                            <h3>Selecciona Provincias en el Mapa</h3>
+                            <span style="font-size:0.8rem;opacity:0.8;">Haz clic para seleccionar/deseleccionar</span>
+                        </div>
+                        <button class="map-close-btn" onclick="document.getElementById('mapa-provincias-modal').remove()" title="Cerrar">&#10005;</button>
                     </div>
                     <div class="map-body" id="map-body">
-                        <div class="map-origin" style="left:38%;top:91%;" title="Origen: Málaga">📍</div>
+                        <svg class="map-bg-svg" viewBox="0 0 1000 850" preserveAspectRatio="xMidYMid meet" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Contorno simplificado de Espana peninsular -->
+                            <path d="M180 60 Q200 30 280 25 Q320 20 370 40 Q420 15 480 20 Q530 30 570 15 Q610 5 650 25
+                                Q690 10 730 30 Q760 20 790 50 Q820 40 850 60 Q870 80 860 120 Q880 150 870 180
+                                Q890 220 860 260 Q870 300 850 340 Q870 380 850 420 Q830 460 850 500
+                                Q870 540 840 580 Q860 620 830 650 Q810 680 780 700 Q750 720 710 740
+                                Q680 760 640 750 Q600 770 560 760 Q520 780 480 770 Q440 790 400 780
+                                Q360 800 320 790 Q280 810 240 800 Q200 790 170 770 Q140 750 120 720
+                                Q100 690 90 650 Q70 610 80 570 Q60 530 70 490 Q50 450 60 410
+                                Q40 370 60 330 Q50 290 70 250 Q60 210 80 180 Q70 140 90 110
+                                Q110 80 140 70 Z"
+                                fill="#cbd5e1" stroke="#94a3b8" stroke-width="2"/>
+                            <!-- Portugal (hueco) -->
+                            <path d="M90 250 Q100 220 120 200 Q140 230 130 280 Q140 330 130 380
+                                Q120 420 100 450 Q80 420 70 380 Q60 340 70 300 Q60 270 80 250 Z"
+                                fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,3"/>
+                            <!-- Baleares -->
+                            <ellipse cx="880" cy="440" rx="50" ry="30" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5"/>
+                            <ellipse cx="850" cy="470" rx="25" ry="15" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
+                            <!-- Canarias esquemático -->
+                            <ellipse cx="120" cy="800" rx="40" ry="18" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5"/>
+                            <ellipse cx="50" cy="800" rx="30" ry="15" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5"/>
+                            <!-- Ceuta y Melilla -->
+                            <circle cx="310" cy="810" r="8" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
+                            <circle cx="460" cy="810" r="8" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
+                            <!-- Texto de referencia -->
+                            <text x="100" y="340" font-size="28" fill="#94a3b8" font-style="italic" opacity="0.6">Portugal</text>
+                            <text x="700" y="650" font-size="16" fill="#b0bec5" opacity="0.5" font-style="italic">Mar Mediterr&#225;neo</text>
+                            <text x="200" y="60" font-size="14" fill="#b0bec5" opacity="0.5">Mar Cant&#225;brico</text>
+                            <text x="840" y="500" font-size="14" fill="#b0bec5" opacity="0.4">Baleares</text>
+                            <text x="55" y="830" font-size="12" fill="#b0bec5" opacity="0.4">Canarias</text>
+                        </svg>
+                        <div class="map-origin" style="left:38%;top:91%;" title="Origen: Malaga">📍</div>
                         ${provButtons}
                     </div>
                     <div class="map-legend">
                         <div class="map-legend-item"><div class="map-legend-dot" style="background:#7c3aed;border-color:#5b21b6;"></div> Seleccionada</div>
                         <div class="map-legend-item"><div class="map-legend-dot" style="background:#e2e8f0;border-color:#cbd5e1;"></div> Disponible</div>
                         <div class="map-legend-item"><div class="map-legend-dot" style="background:#f1f5f9;border-color:#e2e8f0;"></div> Sin datos</div>
-                        <div class="map-legend-item" style="margin-left:auto;"><span>📍 Origen: Málaga</span></div>
+                        <div class="map-legend-item" style="margin-left:auto;"><span>📍 Origen: Malaga</span></div>
                     </div>
                     <div class="map-footer">
                         <button style="background:#e2e8f0;color:#475569;" onclick="document.getElementById('mapa-provincias-modal').remove()">Cancelar</button>
-                        <button style="background:#7c3aed;color:white;" onclick="aplicarMapaProvincias()">✅ Aplicar Selección</button>
+                        <button style="background:#7c3aed;color:white;" onclick="aplicarMapaProvincias()">Aplicar Seleccion</button>
                     </div>
                 </div>
             `;
