@@ -10702,28 +10702,81 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 // === FASE 2: ANÁLISIS CON CLAUDE ===
                 document.getElementById('progress-text').textContent = '🤖 Analizando información con IA...';
                 const studioTypeLabel = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).labelLargo.toLowerCase();
-                const prompt = 'Analiza los siguientes RESULTADOS DE BÚSQUEDA WEB REALES sobre el ' + studioTypeLabel + ' "' + updatedName + '" en ' + province + ', España.\n\n' + webData + '\n\n=== INSTRUCCIONES ===\n1. EXTRAE ÚNICAMENTE información que aparezca EXPLÍCITAMENTE en los resultados.\n2. Para cada dato, DEBE estar respaldado por la información. Si no aparece, usa "No encontrado".\n3. NO INVENTES ningún dato.\n4. Las URLs de redes sociales deben ser las que aparecen en los resultados.\n5. Los proyectos deben ser REALES.\n6. Los nombres del equipo deben aparecer en los resultados.\n\nProducto a vender: Ferroplast Mute - sistema de evacuación de aguas insonorizado (<21dB, triple certificación AENOR, catálogo BIM).\n\nIMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin backticks.\n\n{"studio":{"name":"nombre exacto encontrado","shortName":"siglas","description":"descripción basada en info encontrada","founded":"año si se encontró o No encontrado","employees":"número si se encontró o No encontrado"},"contact":{"address":"dirección EXACTA o No encontrado","city":"' + province + '","phone":"teléfono EXACTO o No encontrado","email":"email EXACTO o No encontrado","web":"URL EXACTA o No encontrado"},"team":[{"name":"nombre REAL","role":"cargo","isDecisionMaker":true,"email":"email o No encontrado","linkedin":"URL LinkedIn o No encontrado","specs":["especialidad"],"insight":"enfoque de venta"}],"projects":[{"name":"proyecto REAL","type":"tipo","location":"ubicación","year":"año","relevance":"relevancia para Ferroplast"}],"social":{"linkedin":{"url":"URL o No encontrado","followers":"número o No encontrado","activity":"nivel","lastPost":"No encontrado","relevantPosts":[]},"instagram":{"url":"URL o No encontrado","followers":"No encontrado","activity":"No encontrado","style":"No encontrado"},"twitter":{"url":"URL o No encontrado","followers":"No encontrado","activity":"No encontrado"},"facebook":{"url":"URL o No encontrado","followers":"No encontrado"},"youtube":{"url":"No encontrado","subscribers":"No encontrado"},"analysis":"análisis presencia digital"},"sales":{"priority":"Media","score":5,"hook":"gancho basado en proyectos reales","benefits":["beneficio1","beneficio2"],"objections":[{"q":"objeción","a":"respuesta"}]},"comms":{"emailSubject":"asunto","emailBody":"email personalizado","callPitch":"pitch","linkedinNote":"nota personalizada"}}';
 
-                debugLog('Enviando a Claude API...');
-                const result = await callClaudeAPI([{ role: "user", content: prompt }], 8000);
-                if (!result.content || !result.content[0] || !result.content[0].text) throw new Error('Respuesta vacía de la API');
+                // Limitar tamaño de webData para evitar exceder límites del proxy
+                let webDataTrimmed = webData;
+                if (webData.length > 80000) {
+                    debugLog('⚠️ webData muy grande: ' + webData.length + ' chars. Recortando a 80000...');
+                    webDataTrimmed = webData.substring(0, 80000) + '\n\n[... datos recortados por tamaño ...]';
+                }
+                debugLog('📊 Tamaño de datos web: ' + webDataTrimmed.length + ' chars');
+
+                const prompt = 'Analiza los siguientes RESULTADOS DE BÚSQUEDA WEB REALES sobre el ' + studioTypeLabel + ' "' + updatedName + '" en ' + province + ', España.\n\n' + webDataTrimmed + '\n\n=== INSTRUCCIONES ===\n1. EXTRAE ÚNICAMENTE información que aparezca EXPLÍCITAMENTE en los resultados.\n2. Para cada dato, DEBE estar respaldado por la información. Si no aparece, usa "No encontrado".\n3. NO INVENTES ningún dato.\n4. Las URLs de redes sociales deben ser las que aparecen en los resultados.\n5. Los proyectos deben ser REALES.\n6. Los nombres del equipo deben aparecer en los resultados.\n\nProducto a vender: Ferroplast Mute - sistema de evacuación de aguas insonorizado (<21dB, triple certificación AENOR, catálogo BIM).\n\nIMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin backticks.\n\n{"studio":{"name":"nombre exacto encontrado","shortName":"siglas","description":"descripción basada en info encontrada","founded":"año si se encontró o No encontrado","employees":"número si se encontró o No encontrado"},"contact":{"address":"dirección EXACTA o No encontrado","city":"' + province + '","phone":"teléfono EXACTO o No encontrado","email":"email EXACTO o No encontrado","web":"URL EXACTA o No encontrado"},"team":[{"name":"nombre REAL","role":"cargo","isDecisionMaker":true,"email":"email o No encontrado","linkedin":"URL LinkedIn o No encontrado","specs":["especialidad"],"insight":"enfoque de venta"}],"projects":[{"name":"proyecto REAL","type":"tipo","location":"ubicación","year":"año","relevance":"relevancia para Ferroplast"}],"social":{"linkedin":{"url":"URL o No encontrado","followers":"número o No encontrado","activity":"nivel","lastPost":"No encontrado","relevantPosts":[]},"instagram":{"url":"URL o No encontrado","followers":"No encontrado","activity":"No encontrado","style":"No encontrado"},"twitter":{"url":"URL o No encontrado","followers":"No encontrado","activity":"No encontrado"},"facebook":{"url":"URL o No encontrado","followers":"No encontrado"},"youtube":{"url":"No encontrado","subscribers":"No encontrado"},"analysis":"análisis presencia digital"},"sales":{"priority":"Media","score":5,"hook":"gancho basado en proyectos reales","benefits":["beneficio1","beneficio2"],"objections":[{"q":"objeción","a":"respuesta"}]},"comms":{"emailSubject":"asunto","emailBody":"email personalizado","callPitch":"pitch","linkedinNote":"nota personalizada"}}';
+
+                debugLog('📤 Enviando a Claude API (prompt: ' + prompt.length + ' chars)...');
+
+                let result;
+                try {
+                    result = await callClaudeAPI([{ role: "user", content: prompt }], 8000);
+                    debugLog('📥 Respuesta API recibida');
+                } catch (apiError) {
+                    debugLog('❌ Error en llamada API: ' + apiError.message);
+                    throw new Error('Error en la llamada a Claude API: ' + apiError.message);
+                }
+
+                // Verificar formato de respuesta
+                debugLog('📋 Tipo resultado: ' + typeof result);
+                debugLog('📋 Keys resultado: ' + (result ? Object.keys(result).join(', ') : 'null'));
+
+                if (!result) throw new Error('Respuesta nula de la API');
+                if (result.error) throw new Error('Error API: ' + (typeof result.error === 'string' ? result.error : JSON.stringify(result.error)));
+
+                if (!result.content || !Array.isArray(result.content) || !result.content[0]) {
+                    debugLog('❌ Formato inesperado: ' + JSON.stringify(result).substring(0, 500));
+                    throw new Error('Formato de respuesta inesperado de la API');
+                }
+
+                if (!result.content[0].text) {
+                    debugLog('❌ Sin texto en content[0]: ' + JSON.stringify(result.content[0]).substring(0, 300));
+                    throw new Error('Respuesta de IA sin texto');
+                }
+
+                // Verificar si la respuesta fue truncada
+                if (result.stop_reason === 'max_tokens') {
+                    debugLog('⚠️ RESPUESTA TRUNCADA por max_tokens. Intentando con más tokens...');
+                    // Reintentar con más tokens
+                    try {
+                        result = await callClaudeAPI([{ role: "user", content: prompt }], 16000);
+                        debugLog('📥 Segundo intento recibido');
+                        if (result.stop_reason === 'max_tokens') {
+                            debugLog('⚠️ TODAVÍA truncada. Intentando parsear lo que hay...');
+                        }
+                    } catch (retryErr) {
+                        debugLog('❌ Segundo intento falló: ' + retryErr.message);
+                    }
+                }
 
                 let rawText = result.content[0].text;
-                debugLog('Respuesta recibida: ' + rawText.length + ' chars');
+                debugLog('📝 Respuesta recibida: ' + rawText.length + ' chars (stop: ' + (result.stop_reason || 'desconocido') + ')');
+                debugLog('📝 Primeros 200 chars: ' + rawText.substring(0, 200));
+                debugLog('📝 Últimos 200 chars: ' + rawText.substring(Math.max(0, rawText.length - 200)));
+
                 rawText = rawText.replace(/```json/gi, '').replace(/```/gi, '').trim();
                 const jsonStart = rawText.indexOf('{');
                 const jsonEnd = rawText.lastIndexOf('}');
                 if (jsonStart === -1 || jsonEnd === -1) {
-                    debugLog('❌ No se encontró JSON. Primeros 500 chars: ' + rawText.substring(0, 500));
+                    debugLog('❌ No se encontró JSON. Texto completo: ' + rawText.substring(0, 1000));
                     throw new Error('No se encontró JSON válido en la respuesta de IA');
                 }
 
                 let jsonStr = rawText.substring(jsonStart, jsonEnd + 1);
-                debugLog('JSON extraído (' + jsonStr.length + ' chars)');
+                debugLog('🔧 JSON extraído (' + jsonStr.length + ' chars)');
 
                 // Limpiar caracteres problemáticos
-                jsonStr = jsonStr.replace(/\r\n/g, ' ').replace(/\n/g, ' ').replace(/\r/g, ' ').replace(/\s+/g, ' ');
-                // Reparar JSON: trailing commas, comillas sueltas
+                jsonStr = jsonStr.replace(/\r\n/g, ' ').replace(/\n/g, ' ').replace(/\r/g, ' ');
+                jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g, ' ');
+                jsonStr = jsonStr.replace(/\s+/g, ' ');
+                // Reparar JSON: trailing commas
                 jsonStr = jsonStr.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
 
                 let newData;
@@ -10735,25 +10788,26 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     const posMatch = parseError.message.match(/position (\d+)/);
                     if (posMatch) {
                         const pos = parseInt(posMatch[1]);
-                        debugLog('Posición del error: ' + pos);
-                        debugLog('Contexto: ...' + jsonStr.substring(Math.max(0, pos - 80), pos + 80) + '...');
+                        debugLog('📍 Posición del error: ' + pos);
+                        debugLog('📍 Contexto: ...' + jsonStr.substring(Math.max(0, pos - 100), pos) + '>>>AQUÍ<<<' + jsonStr.substring(pos, pos + 100) + '...');
                     }
-                    // Intento de reparación: eliminar caracteres de control
-                    try {
-                        debugLog('Intentando reparar JSON...');
-                        jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g, ' ').replace(/\s+/g, ' ');
-                        newData = JSON.parse(jsonStr);
-                        debugLog('✅ JSON reparado y parseado correctamente');
-                    } catch (repairError) {
-                        throw new Error('Error al parsear JSON de la IA: ' + parseError.message);
-                    }
+                    debugLog('📍 Últimos 200 chars del JSON: ' + jsonStr.substring(Math.max(0, jsonStr.length - 200)));
+                    throw new Error('JSON inválido de la IA: ' + parseError.message);
                 }
 
+                // Validar estructura mínima
+                debugLog('📋 Secciones en newData: ' + Object.keys(newData).join(', '));
                 debugLog('✅ Análisis completado correctamente');
 
                 // === FASE 3: MOSTRAR COMPARACIÓN ===
-                closeModal('modal-progress');
-                showReanalysisComparison(studio, newData, deepAnalysisData?.logo);
+                try {
+                    closeModal('modal-progress');
+                    showReanalysisComparison(studio, newData, deepAnalysisData?.logo);
+                } catch (renderError) {
+                    debugLog('❌ Error al renderizar comparación: ' + renderError.message);
+                    if (renderError.stack) debugLog('Stack render: ' + renderError.stack.substring(0, 500));
+                    throw new Error('Error al mostrar la comparación: ' + renderError.message);
+                }
 
             } catch (error) {
                 console.error('❌ Error en re-análisis:', error);
