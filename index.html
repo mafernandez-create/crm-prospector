@@ -10705,19 +10705,50 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 const prompt = 'Analiza los siguientes RESULTADOS DE BÚSQUEDA WEB REALES sobre el ' + studioTypeLabel + ' "' + updatedName + '" en ' + province + ', España.\n\n' + webData + '\n\n=== INSTRUCCIONES ===\n1. EXTRAE ÚNICAMENTE información que aparezca EXPLÍCITAMENTE en los resultados.\n2. Para cada dato, DEBE estar respaldado por la información. Si no aparece, usa "No encontrado".\n3. NO INVENTES ningún dato.\n4. Las URLs de redes sociales deben ser las que aparecen en los resultados.\n5. Los proyectos deben ser REALES.\n6. Los nombres del equipo deben aparecer en los resultados.\n\nProducto a vender: Ferroplast Mute - sistema de evacuación de aguas insonorizado (<21dB, triple certificación AENOR, catálogo BIM).\n\nIMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin backticks.\n\n{"studio":{"name":"nombre exacto encontrado","shortName":"siglas","description":"descripción basada en info encontrada","founded":"año si se encontró o No encontrado","employees":"número si se encontró o No encontrado"},"contact":{"address":"dirección EXACTA o No encontrado","city":"' + province + '","phone":"teléfono EXACTO o No encontrado","email":"email EXACTO o No encontrado","web":"URL EXACTA o No encontrado"},"team":[{"name":"nombre REAL","role":"cargo","isDecisionMaker":true,"email":"email o No encontrado","linkedin":"URL LinkedIn o No encontrado","specs":["especialidad"],"insight":"enfoque de venta"}],"projects":[{"name":"proyecto REAL","type":"tipo","location":"ubicación","year":"año","relevance":"relevancia para Ferroplast"}],"social":{"linkedin":{"url":"URL o No encontrado","followers":"número o No encontrado","activity":"nivel","lastPost":"No encontrado","relevantPosts":[]},"instagram":{"url":"URL o No encontrado","followers":"No encontrado","activity":"No encontrado","style":"No encontrado"},"twitter":{"url":"URL o No encontrado","followers":"No encontrado","activity":"No encontrado"},"facebook":{"url":"URL o No encontrado","followers":"No encontrado"},"youtube":{"url":"No encontrado","subscribers":"No encontrado"},"analysis":"análisis presencia digital"},"sales":{"priority":"Media","score":5,"hook":"gancho basado en proyectos reales","benefits":["beneficio1","beneficio2"],"objections":[{"q":"objeción","a":"respuesta"}]},"comms":{"emailSubject":"asunto","emailBody":"email personalizado","callPitch":"pitch","linkedinNote":"nota personalizada"}}';
 
                 debugLog('Enviando a Claude API...');
-                const result = await callClaudeAPI([{ role: "user", content: prompt }], 5000);
+                const result = await callClaudeAPI([{ role: "user", content: prompt }], 8000);
                 if (!result.content || !result.content[0] || !result.content[0].text) throw new Error('Respuesta vacía de la API');
 
                 let rawText = result.content[0].text;
+                debugLog('Respuesta recibida: ' + rawText.length + ' chars');
                 rawText = rawText.replace(/```json/gi, '').replace(/```/gi, '').trim();
                 const jsonStart = rawText.indexOf('{');
                 const jsonEnd = rawText.lastIndexOf('}');
-                if (jsonStart === -1 || jsonEnd === -1) throw new Error('No se encontró JSON válido');
+                if (jsonStart === -1 || jsonEnd === -1) {
+                    debugLog('❌ No se encontró JSON. Primeros 500 chars: ' + rawText.substring(0, 500));
+                    throw new Error('No se encontró JSON válido en la respuesta de IA');
+                }
 
                 let jsonStr = rawText.substring(jsonStart, jsonEnd + 1);
-                jsonStr = jsonStr.replace(/\r\n/g, ' ').replace(/\n/g, ' ').replace(/\r/g, ' ').replace(/\s+/g, ' ');
+                debugLog('JSON extraído (' + jsonStr.length + ' chars)');
 
-                const newData = JSON.parse(jsonStr);
+                // Limpiar caracteres problemáticos
+                jsonStr = jsonStr.replace(/\r\n/g, ' ').replace(/\n/g, ' ').replace(/\r/g, ' ').replace(/\s+/g, ' ');
+                // Reparar JSON: trailing commas, comillas sueltas
+                jsonStr = jsonStr.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
+
+                let newData;
+                try {
+                    newData = JSON.parse(jsonStr);
+                    debugLog('✅ JSON parseado correctamente');
+                } catch (parseError) {
+                    debugLog('❌ Error de parsing: ' + parseError.message);
+                    const posMatch = parseError.message.match(/position (\d+)/);
+                    if (posMatch) {
+                        const pos = parseInt(posMatch[1]);
+                        debugLog('Posición del error: ' + pos);
+                        debugLog('Contexto: ...' + jsonStr.substring(Math.max(0, pos - 80), pos + 80) + '...');
+                    }
+                    // Intento de reparación: eliminar caracteres de control
+                    try {
+                        debugLog('Intentando reparar JSON...');
+                        jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g, ' ').replace(/\s+/g, ' ');
+                        newData = JSON.parse(jsonStr);
+                        debugLog('✅ JSON reparado y parseado correctamente');
+                    } catch (repairError) {
+                        throw new Error('Error al parsear JSON de la IA: ' + parseError.message);
+                    }
+                }
+
                 debugLog('✅ Análisis completado correctamente');
 
                 // === FASE 3: MOSTRAR COMPARACIÓN ===
@@ -10725,11 +10756,22 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 showReanalysisComparison(studio, newData, deepAnalysisData?.logo);
 
             } catch (error) {
+                console.error('❌ Error en re-análisis:', error);
                 debugLog('❌ ERROR: ' + error.message);
-                document.getElementById('progress-text').textContent = 'Error: ' + error.message;
-                document.querySelector('#modal-progress .progress-spinner').style.display = 'none';
-                const modalBody = document.querySelector('#modal-progress .modal-body');
-                if (!document.getElementById('close-error-btn')) {
+                if (error.stack) debugLog('Stack: ' + error.stack.substring(0, 300));
+
+                const progressText = document.getElementById('progress-text');
+                if (progressText) progressText.textContent = '❌ Error: ' + error.message;
+
+                const spinner = document.querySelector('#modal-progress .progress-spinner');
+                if (spinner) spinner.style.display = 'none';
+
+                // Mostrar debug panel automáticamente
+                const debugPanel = document.getElementById('debug-panel');
+                if (debugPanel) debugPanel.style.display = 'block';
+
+                const progressModal = document.querySelector('#modal-progress .progress-modal');
+                if (progressModal && !document.getElementById('close-error-btn')) {
                     const closeBtn = document.createElement('button');
                     closeBtn.id = 'close-error-btn';
                     closeBtn.className = 'btn btn-secondary';
@@ -10737,11 +10779,14 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     closeBtn.textContent = 'Cerrar';
                     closeBtn.onclick = function() {
                         closeModal('modal-progress');
-                        document.querySelector('#modal-progress .progress-spinner').style.display = 'block';
+                        const sp = document.querySelector('#modal-progress .progress-spinner');
+                        if (sp) sp.style.display = 'block';
+                        const dp = document.getElementById('debug-panel');
+                        if (dp) dp.style.display = 'none';
                         const btn = document.getElementById('close-error-btn');
                         if (btn) btn.remove();
                     };
-                    modalBody.querySelector('.progress-modal').appendChild(closeBtn);
+                    progressModal.appendChild(closeBtn);
                 }
             }
         }
@@ -10750,6 +10795,12 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
         // RE-ANALYSIS COMPARISON VIEW
         // ============================================
         function showReanalysisComparison(existingStudio, newData, newLogo) {
+            // Validar que newData tiene estructura mínima
+            if (!newData || typeof newData !== 'object') {
+                showNotification('❌ Los datos del análisis están vacíos o son inválidos', 'error');
+                return;
+            }
+
             window._reanalysis = {
                 studioId: existingStudio.id,
                 existingStudio: existingStudio,
@@ -10834,8 +10885,11 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             let rows = '';
 
             for (const field of fields) {
-                const oldVal = String(oldObj[field.key] || '').trim();
-                const newVal = String(newObj[field.key] || '').trim();
+                // Convertir a string de forma segura (arrays/objects → JSON)
+                let rawOld = oldObj[field.key];
+                let rawNew = newObj[field.key];
+                const oldVal = (rawOld && typeof rawOld === 'object') ? JSON.stringify(rawOld) : String(rawOld || '').trim();
+                const newVal = (rawNew && typeof rawNew === 'object') ? JSON.stringify(rawNew) : String(rawNew || '').trim();
                 const newIsEmpty = isNoData(newVal);
                 const oldIsEmpty = isNoData(oldVal);
                 const isNew = oldIsEmpty && !newIsEmpty;
