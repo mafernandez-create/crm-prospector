@@ -4043,9 +4043,10 @@
                 console.log('🌐 API Response:', result);
                 
                 if (result.error) {
-                    throw new Error(result.error);
+                    const errMsg = typeof result.error === 'string' ? result.error : (result.error.message || JSON.stringify(result.error));
+                    throw new Error(errMsg);
                 }
-                
+
                 return result;
             } catch (error) {
                 console.error('❌ Error en API:', error);
@@ -4062,7 +4063,11 @@
                 max_tokens: maxTokens,
                 messages: messages
             });
-            if (result.error) throw new Error(result.error);
+            if (result.error) {
+                const errMsg = typeof result.error === 'string' ? result.error : (result.error.message || JSON.stringify(result.error));
+                console.error('❌ Claude API error:', result.error);
+                throw new Error(errMsg);
+            }
             return result;
         }
 
@@ -10716,12 +10721,25 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 debugLog('📤 Enviando a Claude API (prompt: ' + prompt.length + ' chars)...');
 
                 let result;
-                try {
-                    result = await callClaudeAPI([{ role: "user", content: prompt }], 8000);
-                    debugLog('📥 Respuesta API recibida');
-                } catch (apiError) {
-                    debugLog('❌ Error en llamada API: ' + apiError.message);
-                    throw new Error('Error en la llamada a Claude API: ' + apiError.message);
+                const maxRetries = 3;
+                for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                    try {
+                        debugLog('📤 Intento ' + attempt + '/' + maxRetries + '...');
+                        result = await callClaudeAPI([{ role: "user", content: prompt }], 8000);
+                        debugLog('📥 Respuesta API recibida en intento ' + attempt);
+                        break; // Éxito, salir del bucle
+                    } catch (apiError) {
+                        const errDetail = apiError.message || (typeof apiError === 'object' ? JSON.stringify(apiError) : String(apiError));
+                        debugLog('❌ Error intento ' + attempt + ': ' + errDetail);
+                        if (attempt === maxRetries) {
+                            throw new Error('Error en Claude API tras ' + maxRetries + ' intentos: ' + errDetail);
+                        }
+                        // Esperar antes de reintentar (2s, 4s)
+                        const waitSec = attempt * 2;
+                        debugLog('⏳ Esperando ' + waitSec + 's antes de reintentar...');
+                        document.getElementById('progress-text').textContent = '🔄 Reintentando análisis IA (' + attempt + '/' + maxRetries + ')...';
+                        await new Promise(r => setTimeout(r, waitSec * 1000));
+                    }
                 }
 
                 // Verificar formato de respuesta
