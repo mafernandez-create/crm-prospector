@@ -12831,49 +12831,104 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
         }
         
         // Crear copia de seguridad completa
-        async function createFullBackup() {
+        async function createFullBackup(isAutomatic = false) {
             // Cerrar menú móvil si está abierto
-            if (typeof closeMobileMenu === 'function' && isMobile) closeMobileMenu();
-            
+            if (!isAutomatic && typeof closeMobileMenu === 'function' && isMobile) closeMobileMenu();
+
             try {
-                showNotification('Preparando copia de seguridad...', 'info');
-                
-                // Obtener datos actuales
+                if (!isAutomatic) showNotification('Preparando copia de seguridad completa...', 'info');
+
+                // Obtener TODOS los datos
                 const studiosData = await getAllStudios();
                 const activitiesData = await getAllActivities();
-                
+
+                // Obtener configuraciones almacenadas en localStorage
+                let gmailSettings = null;
+                let calendarSettings = null;
+                let planificadorData = null;
+                try { gmailSettings = JSON.parse(localStorage.getItem('ferroplast_test_gmail_settings') || 'null'); } catch (e) {}
+                try { calendarSettings = JSON.parse(localStorage.getItem('ferroplast_test_calendar_settings') || 'null'); } catch (e) {}
+                try { planificadorData = JSON.parse(localStorage.getItem('crm_test_planificador') || 'null'); } catch (e) {}
+
                 const backupData = {
-                    version: '2.0',
+                    version: '3.0',
                     createdAt: new Date().toISOString(),
                     device: deviceType || 'unknown',
                     source: useCloudStorage ? 'Google Sheets' : (useLocalStorage ? 'localStorage' : 'IndexedDB'),
+                    automatic: isAutomatic,
                     stats: {
                         totalStudios: studiosData.length,
                         totalActivities: activitiesData.length,
-                        byStatus: {}
+                        totalReports: studiosData.reduce((acc, s) => acc + (s.data?.reports?.length || 0), 0),
+                        totalTeamMembers: studiosData.reduce((acc, s) => acc + (s.data?.team?.length || 0), 0),
+                        totalProjects: studiosData.reduce((acc, s) => acc + (s.data?.projects?.length || 0), 0),
+                        byStatus: {},
+                        byType: {},
+                        byPriority: {},
+                        byProvince: {}
                     },
                     data: {
                         studios: studiosData,
                         activities: activitiesData
+                    },
+                    settings: {
+                        gmail: gmailSettings,
+                        calendar: calendarSettings,
+                        planificador: planificadorData
                     }
                 };
-                
-                // Calcular estadísticas por estado
+
+                // Calcular estadísticas completas
                 studiosData.forEach(s => {
                     const status = s.status || 'sin_estado';
+                    const type = s.type || 'sin_tipo';
+                    const priority = s.priority || 'sin_prioridad';
+                    const province = s.province || 'sin_provincia';
                     backupData.stats.byStatus[status] = (backupData.stats.byStatus[status] || 0) + 1;
+                    backupData.stats.byType[type] = (backupData.stats.byType[type] || 0) + 1;
+                    backupData.stats.byPriority[priority] = (backupData.stats.byPriority[priority] || 0) + 1;
+                    backupData.stats.byProvince[province] = (backupData.stats.byProvince[province] || 0) + 1;
                 });
-                
-                // Generar nombre de archivo sugerido
+
+                // Generar nombre de archivo
                 const now = new Date();
                 const dateStr = now.toISOString().split('T')[0];
                 const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
-                const suggestedName = `CRM_Ferroplast_Backup_${dateStr}_${timeStr}.json`;
-                
+                const suggestedName = `CRM_Ferroplast_Backup_COMPLETO_${dateStr}_${timeStr}.json`;
+
                 const jsonStr = JSON.stringify(backupData, null, 2);
                 const blob = new Blob([jsonStr], { type: 'application/json' });
-                
-                // Intentar usar File System Access API (permite elegir ubicación)
+                const sizeKB = (jsonStr.length / 1024).toFixed(1);
+                const sizeMB = (jsonStr.length / (1024 * 1024)).toFixed(2);
+
+                // Para backups automáticos, usar descarga directa sin diálogo
+                if (isAutomatic) {
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = suggestedName;
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    setTimeout(() => { document.body.removeChild(link); URL.revokeObjectURL(url); }, 100);
+
+                    localStorage.setItem('ferroplast_last_auto_backup', now.toISOString());
+
+                    showNotification(`💾 Backup automático: ${backupData.stats.totalStudios} estudios, ${backupData.stats.totalActivities} actividades (${sizeMB} MB)`, 'success');
+                    console.log('💾 Backup automático completado:', {
+                        archivo: suggestedName,
+                        estudios: backupData.stats.totalStudios,
+                        actividades: backupData.stats.totalActivities,
+                        informes: backupData.stats.totalReports,
+                        equipo: backupData.stats.totalTeamMembers,
+                        proyectos: backupData.stats.totalProjects,
+                        configuraciones: { gmail: !!gmailSettings, calendar: !!calendarSettings, planificador: !!planificadorData },
+                        tamaño: sizeMB + ' MB'
+                    });
+                    return;
+                }
+
+                // Para backups manuales, intentar File System Access API
                 if ('showSaveFilePicker' in window) {
                     try {
                         const handle = await window.showSaveFilePicker({
@@ -12883,31 +12938,32 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                                 accept: { 'application/json': ['.json'] }
                             }]
                         });
-                        
+
                         const writable = await handle.createWritable();
                         await writable.write(blob);
                         await writable.close();
-                        
-                        showNotification(`✅ Backup guardado: ${backupData.stats.totalStudios} estudios, ${backupData.stats.totalActivities} actividades`, 'success');
-                        
+
+                        showNotification(`✅ Backup completo guardado: ${backupData.stats.totalStudios} estudios, ${backupData.stats.totalActivities} actividades, ${backupData.stats.totalReports} informes (${sizeMB} MB)`, 'success');
                         console.log('💾 Backup completo creado:', {
                             archivo: handle.name,
                             estudios: backupData.stats.totalStudios,
                             actividades: backupData.stats.totalActivities,
-                            tamaño: (jsonStr.length / 1024).toFixed(1) + ' KB'
+                            informes: backupData.stats.totalReports,
+                            equipo: backupData.stats.totalTeamMembers,
+                            proyectos: backupData.stats.totalProjects,
+                            configuraciones: { gmail: !!gmailSettings, calendar: !!calendarSettings, planificador: !!planificadorData },
+                            tamaño: sizeMB + ' MB'
                         });
                         return;
                     } catch (pickerError) {
-                        // Si el usuario cancela o hay error, intentar método tradicional
                         if (pickerError.name === 'AbortError') {
                             showNotification('Guardado cancelado', 'info');
                             return;
                         }
-                        console.log('showSaveFilePicker no disponible, usando método alternativo');
                     }
                 }
-                
-                // Fallback: método tradicional de descarga
+
+                // Fallback: descarga directa
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
@@ -12915,26 +12971,74 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                 link.style.display = 'none';
                 document.body.appendChild(link);
                 link.click();
-                
-                // Limpiar después de un pequeño delay
-                setTimeout(() => {
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                }, 100);
-                
-                showNotification(`✅ Backup: ${backupData.stats.totalStudios} estudios, ${backupData.stats.totalActivities} actividades`, 'success');
-                
+                setTimeout(() => { document.body.removeChild(link); URL.revokeObjectURL(url); }, 100);
+
+                showNotification(`✅ Backup completo: ${backupData.stats.totalStudios} estudios, ${backupData.stats.totalActivities} actividades, ${backupData.stats.totalReports} informes (${sizeMB} MB)`, 'success');
                 console.log('💾 Backup completo creado:', {
                     archivo: suggestedName,
                     estudios: backupData.stats.totalStudios,
                     actividades: backupData.stats.totalActivities,
-                    tamaño: (jsonStr.length / 1024).toFixed(1) + ' KB'
+                    tamaño: sizeMB + ' MB'
                 });
-                
+
             } catch (error) {
                 console.error('Error creando backup:', error);
                 showNotification('Error al crear backup: ' + error.message, 'error');
             }
+        }
+
+        // ============================================
+        // BACKUP AUTOMÁTICO - VIERNES 12:00
+        // ============================================
+        let autoBackupInterval = null;
+
+        function startScheduledBackup() {
+            // Verificar cada minuto si es viernes a las 12:00
+            if (autoBackupInterval) clearInterval(autoBackupInterval);
+
+            autoBackupInterval = setInterval(() => {
+                const now = new Date();
+                const dayOfWeek = now.getDay(); // 0=Dom, 5=Vie
+                const hour = now.getHours();
+                const minute = now.getMinutes();
+
+                // Viernes (5) a las 12:00
+                if (dayOfWeek === 5 && hour === 12 && minute === 0) {
+                    const lastBackup = localStorage.getItem('ferroplast_last_auto_backup');
+                    const today = now.toISOString().split('T')[0];
+
+                    // Solo ejecutar si no se ha hecho backup hoy
+                    if (!lastBackup || !lastBackup.startsWith(today)) {
+                        console.log('📅 Backup automático programado - Viernes 12:00');
+                        createFullBackup(true);
+                    }
+                }
+            }, 60000); // Verificar cada 60 segundos
+
+            console.log('📅 Backup automático programado: Viernes 12:00');
+
+            // Mostrar indicador de próximo backup
+            showNextBackupInfo();
+        }
+
+        function showNextBackupInfo() {
+            const now = new Date();
+            const dayOfWeek = now.getDay();
+            const hour = now.getHours();
+
+            // Calcular días hasta el próximo viernes
+            let daysUntilFriday = (5 - dayOfWeek + 7) % 7;
+            if (daysUntilFriday === 0 && hour >= 12) daysUntilFriday = 7; // Si ya pasó, próximo viernes
+
+            const nextBackup = new Date(now);
+            nextBackup.setDate(now.getDate() + daysUntilFriday);
+            nextBackup.setHours(12, 0, 0, 0);
+
+            const lastBackup = localStorage.getItem('ferroplast_last_auto_backup');
+            const lastBackupStr = lastBackup ? new Date(lastBackup).toLocaleString('es-ES') : 'Nunca';
+
+            console.log('📅 Próximo backup automático:', nextBackup.toLocaleString('es-ES'));
+            console.log('📅 Último backup automático:', lastBackupStr);
         }
         
         // Restaurar desde backup (función auxiliar)
@@ -13192,7 +13296,15 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                         <div class="restore-status-list">
                             ${statusHtml || '<span style="color:#6b7280;font-size:0.85rem;">Sin información de estados</span>'}
                         </div>
-                        
+
+                        ${backup.data.settings ? `
+                        <div style="background:#ecfdf5;border-left:4px solid #10b981;padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:16px;font-size:0.85rem;color:#065f46;">
+                            ⚙️ <strong>Incluye configuraciones:</strong>
+                            ${backup.data.settings.gmail ? ' 📧 Gmail' : ''}
+                            ${backup.data.settings.calendar ? ' 📅 Calendario' : ''}
+                            ${backup.data.settings.planificador ? ' 📋 Planificador' : ''}
+                        </div>` : ''}
+
                         <div class="restore-warning">
                             ⚠️ <strong>Atención:</strong> Esta acción reemplazará TODOS los datos actuales del CRM. Se recomienda crear una copia de seguridad antes de continuar.
                         </div>
@@ -13257,19 +13369,41 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                     saveToLocalStorage();
                 }
                 
+                // Restaurar settings (v3.0+)
+                let settingsRestored = [];
+                if (backup.data.settings) {
+                    if (backup.data.settings.gmail) {
+                        localStorage.setItem('ferroplast_test_gmail_settings', JSON.stringify(backup.data.settings.gmail));
+                        settingsRestored.push('Gmail');
+                        console.log('📧 Configuración Gmail restaurada');
+                    }
+                    if (backup.data.settings.calendar) {
+                        localStorage.setItem('ferroplast_test_calendar_settings', JSON.stringify(backup.data.settings.calendar));
+                        settingsRestored.push('Calendario');
+                        console.log('📅 Configuración Calendario restaurada');
+                    }
+                    if (backup.data.settings.planificador) {
+                        localStorage.setItem('crm_test_planificador', JSON.stringify(backup.data.settings.planificador));
+                        settingsRestored.push('Planificador');
+                        console.log('📋 Datos del Planificador restaurados');
+                    }
+                }
+
                 // Recargar datos
                 await loadStudios();
                 await loadDashboard();
-                
+
                 // Cerrar modal y mostrar éxito
                 if (modal) modal.remove();
                 window.pendingRestore = null;
-                
-                showNotification(`✅ Backup restaurado: ${backup.data.studios.length} estudios, ${backup.data.activities?.length || 0} actividades`, 'success');
-                
+
+                const settingsMsg = settingsRestored.length > 0 ? `, config: ${settingsRestored.join(', ')}` : '';
+                showNotification(`✅ Backup restaurado: ${backup.data.studios.length} estudios, ${backup.data.activities?.length || 0} actividades${settingsMsg}`, 'success');
+
                 console.log('✅ Backup restaurado correctamente:', {
                     estudios: backup.data.studios.length,
-                    actividades: backup.data.activities?.length || 0
+                    actividades: backup.data.activities?.length || 0,
+                    settings: settingsRestored
                 });
                 
             } catch (error) {
@@ -13884,7 +14018,10 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                 if (useCloudStorage) {
                     startAutoSync();
                 }
-                
+
+                // Iniciar backup automático programado (viernes 12:00)
+                startScheduledBackup();
+
                 console.log('✅ CRM inicializado correctamente');
                 console.log(`📱 Modo: ${deviceType}`);
             } catch (error) {
