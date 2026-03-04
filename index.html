@@ -3398,6 +3398,26 @@
         </div>
     </div>
 
+    <!-- Modal Cambiar Tipo de Estudio -->
+    <div class="modal-overlay" id="modal-change-type">
+        <div class="modal" style="max-width:400px;">
+            <div class="modal-header">
+                <h3 class="modal-title">🏷️ Cambiar Tipo de Estudio</h3>
+                <button class="modal-close" onclick="closeModal('modal-change-type')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Nuevo Tipo</label>
+                    <select class="form-select" id="new-studio-type-change"></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-change-type')">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveTypeChange()">💾 Guardar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Tareas Pendientes al Iniciar -->
     <div class="modal-overlay" id="modal-pending-tasks">
         <div class="modal" style="max-width:700px;">
@@ -5746,7 +5766,7 @@
                     <div class="detail-info">
                         <div class="detail-name">${escapeHtml(studio.name)}</div>
                         <div class="detail-meta">
-                            <span>${getTypeIcon(studio.type)} ${getTypeLabel(studio.type || 'arquitectura')}</span>
+                            <span onclick="openChangeTypeModal()" style="cursor:pointer;background:var(--bg-tertiary);padding:2px 10px;border-radius:12px;transition:all 0.2s;" onmouseover="this.style.background='var(--primary-light)';this.style.color='var(--primary)'" onmouseout="this.style.background='var(--bg-tertiary)';this.style.color='inherit'" title="Haz clic para cambiar el tipo">${getTypeIcon(studio.type)} ${getTypeLabel(studio.type || 'arquitectura')} <span style="font-size:0.7rem;opacity:0.6;">✏️</span></span>
                             <span>📍 ${studio.city ? escapeHtml(studio.city) + ', ' : ''}${escapeHtml(studio.province)}</span>
                             <span>📅 Creado: ${formatDate(studio.createdAt)}</span>
                             <span class="status status-${studio.status}">${getStatusLabel(studio.status)}</span>
@@ -10337,6 +10357,52 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             });
             
             closeModal('modal-status');
+            await loadStudios();
+            showStudioDetail(currentStudioId);
+        }
+
+        // ============================================
+        // CHANGE TYPE
+        // ============================================
+        async function openChangeTypeModal() {
+            const studio = await getStudio(currentStudioId);
+            if (!studio) return;
+            populateTypeSelect('new-studio-type-change', null);
+            document.getElementById('new-studio-type-change').value = studio.type || 'arquitectura';
+            openModal('modal-change-type');
+        }
+
+        async function saveTypeChange() {
+            const newType = document.getElementById('new-studio-type-change').value;
+            const studio = await getStudio(currentStudioId);
+            if (!studio) return;
+
+            const oldType = studio.type || 'arquitectura';
+            if (oldType === newType) {
+                closeModal('modal-change-type');
+                return;
+            }
+
+            await updateStudio(currentStudioId, { type: newType });
+
+            // Recalcular prioridad ya que el tipo influye en el scoring
+            const updated = await getStudio(currentStudioId);
+            if (updated) {
+                const autoPriority = calculateAutoPriority(updated);
+                await updateStudio(currentStudioId, {
+                    priority: autoPriority.priority,
+                    score: autoPriority.score,
+                    priorityDetails: autoPriority.details
+                });
+            }
+
+            await addActivity({
+                studioId: currentStudioId,
+                type: 'status',
+                text: `Tipo cambiado de ${getTypeLabel(oldType)} a ${getTypeLabel(newType)}`
+            });
+
+            closeModal('modal-change-type');
             await loadStudios();
             showStudioDetail(currentStudioId);
         }
