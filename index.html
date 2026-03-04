@@ -244,6 +244,37 @@
         .priority-media { background: var(--warning-light); color: var(--warning); }
         .priority-baja { background: var(--surface); color: var(--muted); }
         
+        /* Re-analysis Comparison View */
+        .reanalysis-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:var(--surface); z-index:999; display:none; flex-direction:column; overflow:hidden; }
+        .reanalysis-overlay.active { display:flex; }
+        .reanalysis-header { padding:16px 24px; background:var(--card); border-bottom:2px solid var(--primary); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+        .reanalysis-body { flex:1; overflow-y:auto; padding:24px; max-width:1200px; margin:0 auto; width:100%; }
+        .reanalysis-footer { padding:12px 24px; background:var(--card); border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+        .diff-section { margin-bottom:24px; background:var(--card); border-radius:12px; padding:16px; border:1px solid var(--border); }
+        .diff-section-title { font-family:'Sora',sans-serif; font-size:1rem; font-weight:700; padding-bottom:12px; border-bottom:2px solid var(--border); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+        .diff-grid-header { display:grid; grid-template-columns:30px 140px 1fr 1fr; gap:10px; padding:6px 12px; font-size:0.7rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; }
+        .diff-row { display:grid; grid-template-columns:30px 140px 1fr 1fr; gap:10px; padding:8px 12px; border-radius:8px; margin-bottom:2px; align-items:start; font-size:0.85rem; }
+        .diff-row:hover { background:var(--surface); }
+        .diff-unchanged { opacity:0.4; }
+        .diff-changed { background:var(--warning-light); }
+        .diff-new { background:var(--success-light); }
+        .diff-label { font-weight:600; color:var(--muted); font-size:0.8rem; }
+        .diff-old { color:var(--text); word-break:break-word; }
+        .diff-new-val { color:var(--success); font-weight:500; word-break:break-word; }
+        .diff-array-item { padding:12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; }
+        .diff-array-item.item-new { border-left:4px solid var(--success); background:var(--success-light); }
+        .diff-array-item.item-update { border-left:4px solid var(--warning); background:var(--warning-light); }
+        .diff-array-item.item-keep { border-left:4px solid var(--border); opacity:0.5; }
+        .diff-array-item .item-header { display:flex; align-items:center; gap:8px; margin-bottom:8px; font-weight:600; }
+        .diff-array-item .item-fields { display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; font-size:0.82rem; }
+        .diff-array-item .item-field-label { color:var(--muted); font-size:0.75rem; }
+        @media(max-width:768px) {
+            .diff-row { grid-template-columns:30px 1fr; }
+            .diff-grid-header { display:none; }
+            .diff-old,.diff-new-val { grid-column:2; }
+            .diff-array-item .item-fields { grid-template-columns:1fr; }
+        }
+
         /* Detail View */
         .detail-header { display: flex; align-items: flex-start; gap: 20px; margin-bottom: 24px; }
         .detail-avatar { width: 80px; height: 80px; background: linear-gradient(135deg, var(--accent), var(--primary)); color: white; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; }
@@ -3398,6 +3429,26 @@
         </div>
     </div>
 
+    <!-- Vista de Comparación Re-análisis -->
+    <div class="reanalysis-overlay" id="reanalysis-view">
+        <div class="reanalysis-header">
+            <div>
+                <h2 style="font-family:'Sora',sans-serif;font-size:1.2rem;margin:0;display:flex;align-items:center;gap:8px;">🔄 Comparación de Re-análisis</h2>
+                <p id="reanalysis-studio-name" style="font-size:0.85rem;color:var(--muted);margin:4px 0 0 0;"></p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn btn-secondary" onclick="reanalysisSelectAll(true)" style="font-size:0.8rem;">☑️ Seleccionar Todo</button>
+                <button class="btn btn-secondary" onclick="reanalysisSelectAll(false)" style="font-size:0.8rem;">⬜ Deseleccionar</button>
+                <button class="btn btn-secondary" onclick="closeReanalysis()">✕ Cancelar</button>
+            </div>
+        </div>
+        <div class="reanalysis-body" id="reanalysis-body"></div>
+        <div class="reanalysis-footer">
+            <div id="reanalysis-stats" style="font-size:0.85rem;color:var(--muted);"></div>
+            <button class="btn btn-primary" onclick="applyReanalysisChanges()" id="btn-apply-reanalysis" style="font-size:0.9rem;">✅ Aplicar Cambios Seleccionados</button>
+        </div>
+    </div>
+
     <!-- Modal Cambiar Tipo de Estudio -->
     <div class="modal-overlay" id="modal-change-type">
         <div class="modal" style="max-width:400px;">
@@ -5777,6 +5828,7 @@
                         <button class="btn btn-primary" onclick="openActivityModal()">📝 Añadir Actividad</button>
                         <button class="btn btn-secondary" onclick="openStatusModal()">🔄 Cambiar Estado</button>
                         <button class="btn btn-success" onclick="generateReport(${id})">🖨️ Generar Informe</button>
+                        <button class="btn" style="background:var(--warning);color:white;" onclick="reanalyzeStudio(${id})">🔬 Re-analizar</button>
                         <button class="btn btn-secondary" onclick="showView('studios')">← Volver</button>
                     </div>
                 </div>
@@ -10405,6 +10457,640 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             closeModal('modal-change-type');
             await loadStudios();
             showStudioDetail(currentStudioId);
+        }
+
+        // ============================================
+        // RE-ANALYSIS WITH COMPARISON
+        // ============================================
+        async function reanalyzeStudio(id) {
+            if (!useCloudStorage) {
+                alert('⚠️ Se necesita conexión cloud para re-analizar.\n\nVerifica tu conexión a Google Sheets.');
+                return;
+            }
+            const studio = await getStudio(id);
+            if (!studio) { alert('Estudio no encontrado'); return; }
+
+            const name = studio.name;
+            const province = studio.province;
+            const studioType = studio.type || 'arquitectura';
+            const providedUrl = (studio.data?.contact?.web && studio.data.contact.web !== 'No encontrado') ? studio.data.contact.web : null;
+
+            openModal('modal-progress');
+            document.getElementById('progress-text').textContent = '🔬 Re-analizando ' + name + '...';
+            clearDebug();
+            debugLog('Re-análisis iniciado para: ' + name + ' (' + province + ') Tipo: ' + studioType);
+
+            let webData = '';
+            let deepAnalysisData = null;
+            let updatedName = name;
+
+            try {
+                // === FASE 1: BÚSQUEDAS WEB ===
+                try {
+                    let directWebContent = null;
+
+                    if (providedUrl) {
+                        document.getElementById('progress-text').textContent = '🌐 Analizando web del estudio...';
+                        debugLog('Analizando URL: ' + providedUrl);
+                        try {
+                            const pageContent = await fetchPageContentDeep(providedUrl);
+                            if (pageContent.text && pageContent.text.length > 100) {
+                                directWebContent = pageContent;
+                                if (pageContent.logo) deepAnalysisData = { logo: pageContent.logo };
+                                if (pageContent.structuredData?.name) updatedName = pageContent.structuredData.name;
+
+                                webData += '\n=== ANÁLISIS DIRECTO DE LA URL ===\nURL: ' + providedUrl + '\n';
+                                if (pageContent.structuredData?.name) webData += 'Nombre oficial: ' + pageContent.structuredData.name + '\n';
+                                webData += '\n--- DATOS DE CONTACTO EXTRAÍDOS ---\n';
+                                if (pageContent.emails?.length > 0) webData += 'EMAILS: ' + pageContent.emails.join(', ') + '\n';
+                                if (pageContent.phones?.length > 0) webData += 'TELÉFONOS: ' + pageContent.phones.join(', ') + '\n';
+                                if (pageContent.addresses?.length > 0) webData += 'DIRECCIONES: ' + pageContent.addresses.join('; ') + '\n';
+                                if (pageContent.structuredData?.telephone) webData += 'TELÉFONO (JSON-LD): ' + pageContent.structuredData.telephone + '\n';
+                                if (pageContent.structuredData?.email) webData += 'EMAIL (JSON-LD): ' + pageContent.structuredData.email + '\n';
+                                if (pageContent.structuredData?.address) webData += 'DIRECCIÓN (JSON-LD): ' + JSON.stringify(pageContent.structuredData.address) + '\n';
+                                if (pageContent.social && Object.keys(pageContent.social).length > 0) {
+                                    webData += '\n--- REDES SOCIALES ---\n';
+                                    Object.entries(pageContent.social).forEach(([net, url]) => { if (url && typeof url === 'string') webData += net.toUpperCase() + ': ' + url + '\n'; });
+                                }
+                                if (pageContent.people?.length > 0) {
+                                    webData += '\n--- EQUIPO ENCONTRADO EN LA WEB ---\n';
+                                    pageContent.people.forEach(p => { webData += '• ' + p.name + ' - ' + (p.role || 'Sin cargo') + (p.email ? ' | Email: ' + p.email : '') + (p.linkedin ? ' | LinkedIn: ' + p.linkedin : '') + '\n'; });
+                                }
+                                webData += '\n--- CONTENIDO DE LA PÁGINA ---\n' + pageContent.text.substring(0, 5000) + '\n';
+                            }
+                        } catch (e) { debugLog('Error analizando URL: ' + e.message); }
+                    }
+
+                    // Búsquedas web
+                    const tipoLabel = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).label.toLowerCase();
+                    document.getElementById('progress-text').textContent = '🔍 Buscando información en la web...';
+                    const mainSearch = await searchWeb('"' + name + '" ' + tipoLabel + ' ' + province + ' España');
+                    debugLog('Búsqueda principal: ' + mainSearch.length + ' resultados');
+
+                    let domainContactSearch = [];
+                    if (providedUrl) {
+                        try { const domain = new URL(providedUrl).hostname.replace('www.', ''); domainContactSearch = await searchWeb(domain + ' teléfono email contacto'); } catch (e) {}
+                    }
+
+                    document.getElementById('progress-text').textContent = '🔍 Buscando variaciones...';
+                    const altName = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    const altSearch = await searchWeb(altName + ' estudio ' + tipoLabel + ' ' + province);
+
+                    document.getElementById('progress-text').textContent = '📞 Buscando datos de contacto...';
+                    const contactSearch = await searchWeb('"' + name + '" ' + province + ' teléfono dirección email contacto');
+
+                    document.getElementById('progress-text').textContent = '🌐 Buscando web oficial...';
+                    const webSearch = await searchWeb('"' + name + '" ' + tipoLabel + ' web oficial ' + province);
+
+                    document.getElementById('progress-text').textContent = '🏗️ Buscando proyectos...';
+                    const projectSearch = await searchWeb('"' + name + '" ' + tipoLabel + ' proyectos obras ' + province);
+
+                    document.getElementById('progress-text').textContent = '🏆 Buscando premios...';
+                    const awardsSearch = await searchWeb('"' + name + '" ' + tipoLabel + ' premio reconocimiento ' + province);
+
+                    document.getElementById('progress-text').textContent = '💼 Buscando en LinkedIn...';
+                    const linkedinSearch = await searchWeb('site:linkedin.com "' + name + '" ' + tipoLabel + ' ' + province);
+
+                    document.getElementById('progress-text').textContent = '👥 Buscando equipo...';
+                    const teamSearch = await searchWeb('"' + name + '" arquitecto fundador director ' + province);
+
+                    document.getElementById('progress-text').textContent = '📱 Buscando en redes sociales...';
+                    const instagramSearch = await searchWeb('site:instagram.com "' + name + '" ' + tipoLabel);
+                    const facebookSearch = await searchWeb('site:facebook.com "' + name + '" ' + tipoLabel + ' ' + province);
+
+                    document.getElementById('progress-text').textContent = '📋 Buscando en directorios...';
+                    const directoryResults = await searchBusinessDirectories(name, province);
+
+                    document.getElementById('progress-text').textContent = '📰 Buscando noticias...';
+                    const newsSearch = await searchWeb('"' + name + '" ' + tipoLabel + ' noticias entrevista ' + province);
+
+                    document.getElementById('progress-text').textContent = '🏛️ Buscando en plataformas...';
+                    const archSearch = await searchWeb('"' + name + '" site:plataformaarquitectura.cl OR site:archdaily.com OR site:dezeen.com');
+
+                    // Compilar resultados
+                    webData += '\n=== RESULTADOS DE BÚSQUEDA WEB PARA "' + name + '" en ' + province + ' ===\n\n';
+                    const sections = [
+                        ['BÚSQUEDA PRINCIPAL', mainSearch], ['BÚSQUEDA ALTERNATIVA', altSearch],
+                        ['DATOS DE CONTACTO', contactSearch], ['WEB OFICIAL', webSearch],
+                        ['PROYECTOS Y OBRAS', projectSearch], ['PREMIOS', awardsSearch],
+                        ['LINKEDIN', linkedinSearch], ['EQUIPO', teamSearch],
+                        ['INSTAGRAM', instagramSearch], ['FACEBOOK', facebookSearch],
+                        ['DIRECTORIOS', directoryResults], ['NOTICIAS', newsSearch],
+                        ['PLATAFORMAS', archSearch], ['CONTACTO DOMINIO', domainContactSearch]
+                    ];
+                    sections.forEach(([title, results]) => {
+                        webData += '--- ' + title + ' ---\n' + results.map(r => '• ' + r.title + '\n  URL: ' + r.url + '\n  ' + r.snippet).join('\n\n') + '\n\n';
+                    });
+
+                    // Extraer contactos de snippets
+                    const allSearchResults = [...mainSearch, ...contactSearch, ...webSearch, ...directoryResults, ...teamSearch, ...domainContactSearch];
+                    let snippetsText = allSearchResults.map(r => r.snippet + ' ' + r.title).join(' ');
+                    if (directWebContent) {
+                        if (directWebContent.emails) snippetsText += ' ' + directWebContent.emails.join(' ');
+                        if (directWebContent.phones) snippetsText += ' ' + directWebContent.phones.join(' ');
+                    }
+                    const snippetEmails = (snippetsText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || []).filter(e => !e.includes('example') && !e.includes('@gmail.com') && e.length > 5);
+                    if (snippetEmails.length > 0) webData += '\n--- EMAILS ENCONTRADOS ---\n' + snippetEmails.join('\n') + '\n';
+                    const phonePatterns = [/(?:\+34[\s.-]?)?9\d{2}[\s.-]?\d{3}[\s.-]?\d{3}/g, /(?:\+34[\s.-]?)?9\d{2}[\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}/g, /(?:\+34[\s.-]?)?[67]\d{2}[\s.-]?\d{3}[\s.-]?\d{3}/g];
+                    let snippetPhones = [];
+                    phonePatterns.forEach(rx => { const m = snippetsText.match(rx) || []; snippetPhones.push(...m); });
+                    snippetPhones = [...new Set(snippetPhones)].filter(p => p.replace(/\D/g, '').length >= 9);
+                    if (snippetPhones.length > 0) webData += '\n--- TELÉFONOS ENCONTRADOS ---\n' + snippetPhones.join('\n') + '\n';
+
+                    // Colegios
+                    document.getElementById('progress-text').textContent = '🏛️ Buscando en Colegios...';
+                    const colegioResults = await searchColegiosArquitectos(name, province);
+                    if (colegioResults.length > 0) webData += '\n--- COLEGIOS ---\n' + colegioResults.map(r => '• ' + r.title + '\n  ' + r.snippet).join('\n\n') + '\n';
+
+                    // Análisis profundo del sitio web
+                    const allResults = [...mainSearch, ...contactSearch, ...webSearch, ...projectSearch];
+                    const possibleWebsites = allResults.filter(r => r.url && !r.url.includes('linkedin') && !r.url.includes('facebook') && !r.url.includes('instagram') && !r.url.includes('twitter') && !r.url.includes('google') && !r.url.includes('bing') && !r.url.includes('youtube') && !r.url.includes('paginasamarillas'));
+                    const uniqueWebsites = [...new Map(possibleWebsites.map(item => { try { return [new URL(item.url).hostname, item]; } catch { return [item.url, item]; } })).values()];
+                    if (providedUrl && !uniqueWebsites.find(w => w.url === providedUrl)) uniqueWebsites.unshift({ url: providedUrl, title: name });
+
+                    const websiteToAnalyze = providedUrl || (uniqueWebsites.length > 0 ? uniqueWebsites[0].url : null);
+                    if (websiteToAnalyze) {
+                        document.getElementById('progress-text').textContent = '🔬 Análisis profundo de: ' + new URL(websiteToAnalyze).hostname + '...';
+                        const previousLogo = deepAnalysisData?.logo;
+                        deepAnalysisData = await deepAnalyzeWebsite(websiteToAnalyze);
+                        if (!deepAnalysisData?.logo && previousLogo) deepAnalysisData.logo = previousLogo;
+
+                        if (deepAnalysisData) {
+                            webData += '\n\n=== ANÁLISIS PROFUNDO DEL SITIO WEB ===\nURL: ' + websiteToAnalyze;
+                            if (deepAnalysisData.allEmails?.length > 0) webData += '\n\n📧 EMAILS:\n' + deepAnalysisData.allEmails.join('\n');
+                            if (deepAnalysisData.allPhones?.length > 0) webData += '\n\n📞 TELÉFONOS:\n' + deepAnalysisData.allPhones.join('\n');
+                            if (deepAnalysisData.allAddresses?.length > 0) webData += '\n\n📍 DIRECCIONES:\n' + deepAnalysisData.allAddresses.join('\n');
+                            if (Object.keys(deepAnalysisData.socialLinks || {}).length > 0) {
+                                webData += '\n\n🔗 REDES SOCIALES:';
+                                Object.entries(deepAnalysisData.socialLinks).forEach(([net, url]) => { if (typeof url === 'string') webData += '\n' + net.toUpperCase() + ': ' + url; });
+                            }
+                            if (deepAnalysisData.structuredData && Object.keys(deepAnalysisData.structuredData).length > 0) {
+                                webData += '\n\n📋 DATOS ESTRUCTURADOS:';
+                                if (deepAnalysisData.structuredData.name) webData += '\nNombre: ' + deepAnalysisData.structuredData.name;
+                                if (deepAnalysisData.structuredData.telephone) webData += '\nTeléfono: ' + deepAnalysisData.structuredData.telephone;
+                                if (deepAnalysisData.structuredData.email) webData += '\nEmail: ' + deepAnalysisData.structuredData.email;
+                            }
+                            if (deepAnalysisData.mainPage) webData += '\n\n--- PÁGINA PRINCIPAL ---\n' + deepAnalysisData.mainPage.substring(0, 4000);
+                            if (deepAnalysisData.contactPage) webData += '\n\n--- PÁGINA CONTACTO ---\n' + deepAnalysisData.contactPage.substring(0, 3000);
+                            if (deepAnalysisData.aboutPage) webData += '\n\n--- SOBRE NOSOTROS ---\n' + deepAnalysisData.aboutPage.substring(0, 3000);
+                            if (deepAnalysisData.teamPage) webData += '\n\n--- EQUIPO ---\n' + deepAnalysisData.teamPage.substring(0, 3000);
+                            if (deepAnalysisData.projectsPage) webData += '\n\n--- PROYECTOS ---\n' + deepAnalysisData.projectsPage.substring(0, 3000);
+                        }
+                    }
+
+                    // Social media data
+                    if (deepAnalysisData?.socialLinks?.instagram || instagramSearch.length > 0) {
+                        const instaUrl = deepAnalysisData?.socialLinks?.instagram || instagramSearch[0]?.url;
+                        if (instaUrl) { const u = instaUrl.match(/instagram\.com\/([^\/\?]+)/)?.[1]; if (u && u !== 'p' && u !== 'reel') { const d = await getInstagramPublicData(u); webData += '\n\n--- DATOS INSTAGRAM ---\n' + JSON.stringify(d, null, 2); } }
+                    }
+                    if (deepAnalysisData?.socialLinks?.linkedin || linkedinSearch.length > 0) {
+                        const liUrl = deepAnalysisData?.socialLinks?.linkedin || linkedinSearch[0]?.url;
+                        if (liUrl && liUrl.includes('/company/')) { const d = await getLinkedInPublicData(liUrl); webData += '\n\n--- DATOS LINKEDIN ---\n' + JSON.stringify(d, null, 2); }
+                    }
+
+                    // Team consolidation
+                    document.getElementById('progress-text').textContent = '👥 Consolidando equipo...';
+                    let mainWebsiteUrl = providedUrl || websiteToAnalyze || (uniqueWebsites.length > 0 ? uniqueWebsites[0].url : null);
+                    let websiteTeamMembers = [];
+                    if (mainWebsiteUrl) {
+                        websiteTeamMembers = await searchTeamOnWebsite(name, mainWebsiteUrl, province);
+                        if (websiteTeamMembers.length > 0) {
+                            webData += '\n\n=== EQUIPO EN WEB OFICIAL ===\n';
+                            websiteTeamMembers.forEach(m => { webData += '\n👤 ' + m.name + '\n   Cargo: ' + m.role + (m.url ? '\n   Fuente: ' + m.url : '') + '\n'; });
+                        }
+                    }
+
+                    const linkedinEmployees = await searchLinkedInEmployees(name, province);
+                    if (linkedinEmployees.length > 0) {
+                        webData += '\n\n=== EMPLEADOS LINKEDIN ===\n';
+                        linkedinEmployees.forEach(e => { webData += '\n👤 ' + e.name + '\n   Cargo: ' + e.role + '\n   LinkedIn: ' + e.linkedin + '\n'; });
+                    }
+
+                    const registroDirectors = await searchRegistroMercantil(name, province);
+                    if (registroDirectors.length > 0) {
+                        webData += '\n\n=== ADMINISTRADORES ===\n';
+                        registroDirectors.forEach(d => { webData += '\n👔 ' + d.name + '\n   Cargo: ' + d.role + '\n'; });
+                    }
+
+                    // Consolidate people
+                    const allFoundPeople = [...(websiteTeamMembers || []), ...(linkedinEmployees || []), ...(deepAnalysisData?.allPeople || [])];
+                    const uniquePeopleNames = new Set();
+                    const consolidatedPeople = [];
+                    for (const person of allFoundPeople) {
+                        const n = person.name?.toLowerCase().trim();
+                        if (n && !uniquePeopleNames.has(n) && n.split(' ').length >= 2) { uniquePeopleNames.add(n); consolidatedPeople.push(person); }
+                    }
+                    if (consolidatedPeople.length > 0) {
+                        webData += '\n\n=== EQUIPO CONSOLIDADO ===\n';
+                        for (const person of consolidatedPeople.slice(0, 8)) {
+                            if (!person.linkedin) {
+                                document.getElementById('progress-text').textContent = '🔍 LinkedIn de ' + person.name + '...';
+                                const info = await consolidatePersonInfo(person.name, name, province);
+                                if (info.linkedin) person.linkedin = info.linkedin;
+                                if (info.role && !person.role) person.role = info.role;
+                            }
+                            webData += '\n👤 ' + person.name + '\n   Cargo: ' + (person.role || 'No especificado') + (person.email ? '\n   Email: ' + person.email : '') + (person.linkedin ? '\n   LinkedIn: ' + person.linkedin : '') + '\n';
+                        }
+                    }
+
+                    debugLog('Búsqueda completada. Total: ' + webData.length + ' chars');
+                } catch (searchError) {
+                    debugLog('Error en búsquedas: ' + searchError.message);
+                    webData = 'No se pudieron realizar búsquedas web.';
+                }
+
+                // === FASE 2: ANÁLISIS CON CLAUDE ===
+                document.getElementById('progress-text').textContent = '🤖 Analizando información con IA...';
+                const studioTypeLabel = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).labelLargo.toLowerCase();
+                const prompt = 'Analiza los siguientes RESULTADOS DE BÚSQUEDA WEB REALES sobre el ' + studioTypeLabel + ' "' + updatedName + '" en ' + province + ', España.\n\n' + webData + '\n\n=== INSTRUCCIONES ===\n1. EXTRAE ÚNICAMENTE información que aparezca EXPLÍCITAMENTE en los resultados.\n2. Para cada dato, DEBE estar respaldado por la información. Si no aparece, usa "No encontrado".\n3. NO INVENTES ningún dato.\n4. Las URLs de redes sociales deben ser las que aparecen en los resultados.\n5. Los proyectos deben ser REALES.\n6. Los nombres del equipo deben aparecer en los resultados.\n\nProducto a vender: Ferroplast Mute - sistema de evacuación de aguas insonorizado (<21dB, triple certificación AENOR, catálogo BIM).\n\nIMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin backticks.\n\n{"studio":{"name":"nombre exacto encontrado","shortName":"siglas","description":"descripción basada en info encontrada","founded":"año si se encontró o No encontrado","employees":"número si se encontró o No encontrado"},"contact":{"address":"dirección EXACTA o No encontrado","city":"' + province + '","phone":"teléfono EXACTO o No encontrado","email":"email EXACTO o No encontrado","web":"URL EXACTA o No encontrado"},"team":[{"name":"nombre REAL","role":"cargo","isDecisionMaker":true,"email":"email o No encontrado","linkedin":"URL LinkedIn o No encontrado","specs":["especialidad"],"insight":"enfoque de venta"}],"projects":[{"name":"proyecto REAL","type":"tipo","location":"ubicación","year":"año","relevance":"relevancia para Ferroplast"}],"social":{"linkedin":{"url":"URL o No encontrado","followers":"número o No encontrado","activity":"nivel","lastPost":"No encontrado","relevantPosts":[]},"instagram":{"url":"URL o No encontrado","followers":"No encontrado","activity":"No encontrado","style":"No encontrado"},"twitter":{"url":"URL o No encontrado","followers":"No encontrado","activity":"No encontrado"},"facebook":{"url":"URL o No encontrado","followers":"No encontrado"},"youtube":{"url":"No encontrado","subscribers":"No encontrado"},"analysis":"análisis presencia digital"},"sales":{"priority":"Media","score":5,"hook":"gancho basado en proyectos reales","benefits":["beneficio1","beneficio2"],"objections":[{"q":"objeción","a":"respuesta"}]},"comms":{"emailSubject":"asunto","emailBody":"email personalizado","callPitch":"pitch","linkedinNote":"nota personalizada"}}';
+
+                debugLog('Enviando a Claude API...');
+                const result = await callClaudeAPI([{ role: "user", content: prompt }], 5000);
+                if (!result.content || !result.content[0] || !result.content[0].text) throw new Error('Respuesta vacía de la API');
+
+                let rawText = result.content[0].text;
+                rawText = rawText.replace(/```json/gi, '').replace(/```/gi, '').trim();
+                const jsonStart = rawText.indexOf('{');
+                const jsonEnd = rawText.lastIndexOf('}');
+                if (jsonStart === -1 || jsonEnd === -1) throw new Error('No se encontró JSON válido');
+
+                let jsonStr = rawText.substring(jsonStart, jsonEnd + 1);
+                jsonStr = jsonStr.replace(/\r\n/g, ' ').replace(/\n/g, ' ').replace(/\r/g, ' ').replace(/\s+/g, ' ');
+
+                const newData = JSON.parse(jsonStr);
+                debugLog('✅ Análisis completado correctamente');
+
+                // === FASE 3: MOSTRAR COMPARACIÓN ===
+                closeModal('modal-progress');
+                showReanalysisComparison(studio, newData, deepAnalysisData?.logo);
+
+            } catch (error) {
+                debugLog('❌ ERROR: ' + error.message);
+                document.getElementById('progress-text').textContent = 'Error: ' + error.message;
+                document.querySelector('#modal-progress .progress-spinner').style.display = 'none';
+                const modalBody = document.querySelector('#modal-progress .modal-body');
+                if (!document.getElementById('close-error-btn')) {
+                    const closeBtn = document.createElement('button');
+                    closeBtn.id = 'close-error-btn';
+                    closeBtn.className = 'btn btn-secondary';
+                    closeBtn.style.marginTop = '20px';
+                    closeBtn.textContent = 'Cerrar';
+                    closeBtn.onclick = function() {
+                        closeModal('modal-progress');
+                        document.querySelector('#modal-progress .progress-spinner').style.display = 'block';
+                        const btn = document.getElementById('close-error-btn');
+                        if (btn) btn.remove();
+                    };
+                    modalBody.querySelector('.progress-modal').appendChild(closeBtn);
+                }
+            }
+        }
+
+        // ============================================
+        // RE-ANALYSIS COMPARISON VIEW
+        // ============================================
+        function showReanalysisComparison(existingStudio, newData, newLogo) {
+            window._reanalysis = {
+                studioId: existingStudio.id,
+                existingStudio: existingStudio,
+                newData: newData,
+                newLogo: newLogo,
+                selections: {}
+            };
+
+            const oldData = existingStudio.data || {};
+            let html = '';
+
+            // Logo
+            html += renderLogoDiff(existingStudio.logo, newLogo);
+
+            // Contacto
+            html += renderScalarDiffSection('📞 Contacto', 'contact', [
+                { key: 'address', label: 'Dirección' }, { key: 'city', label: 'Población' },
+                { key: 'phone', label: 'Teléfono' }, { key: 'email', label: 'Email' }, { key: 'web', label: 'Web' }
+            ], oldData.contact, newData.contact);
+
+            // Perfil
+            html += renderScalarDiffSection('🏢 Perfil', 'studio', [
+                { key: 'name', label: 'Nombre' }, { key: 'shortName', label: 'Nombre Corto' },
+                { key: 'description', label: 'Descripción' }, { key: 'founded', label: 'Fundación' },
+                { key: 'employees', label: 'Empleados' }
+            ], oldData.studio, newData.studio);
+
+            // Equipo
+            html += renderArrayDiffSection('👥 Equipo', 'team', oldData.team, newData.team, 'name',
+                ['role', 'email', 'linkedin', 'isDecisionMaker', 'insight', 'specs']);
+
+            // Proyectos
+            html += renderArrayDiffSection('🏗️ Proyectos', 'projects', oldData.projects, newData.projects, 'name',
+                ['type', 'location', 'year', 'relevance']);
+
+            // Social
+            html += renderSocialDiffSection(oldData.social, newData.social);
+
+            // Ventas
+            html += renderScalarDiffSection('💎 Ventas', 'sales', [
+                { key: 'priority', label: 'Prioridad' }, { key: 'score', label: 'Puntuación' },
+                { key: 'hook', label: 'Gancho' }
+            ], oldData.sales, newData.sales);
+
+            // Comunicaciones
+            html += renderScalarDiffSection('✉️ Comunicaciones', 'comms', [
+                { key: 'emailSubject', label: 'Asunto Email' }, { key: 'emailBody', label: 'Cuerpo Email' },
+                { key: 'callPitch', label: 'Pitch Llamada' }, { key: 'linkedinNote', label: 'Nota LinkedIn' }
+            ], oldData.comms, newData.comms);
+
+            document.getElementById('reanalysis-body').innerHTML = html;
+            document.getElementById('reanalysis-studio-name').textContent = existingStudio.name + ' — ' + existingStudio.province;
+            document.getElementById('reanalysis-view').classList.add('active');
+            updateReanalysisStats();
+        }
+
+        function isNoData(val) {
+            if (!val) return true;
+            const v = String(val).trim().toLowerCase();
+            return v === '' || v === 'no encontrado' || v === 'no disponible' || v === '-' || v === 'n/a';
+        }
+
+        function renderLogoDiff(oldLogo, newLogo) {
+            if (!newLogo || newLogo === oldLogo) return '';
+            const fp = '_logo';
+            window._reanalysis.selections[fp] = true;
+            return '<div class="diff-section"><div class="diff-section-title">🖼️ Logo</div>' +
+                '<div style="display:flex;align-items:center;gap:16px;padding:8px;">' +
+                '<input type="checkbox" checked onchange="toggleReanalysisField(\'' + fp + '\',this.checked)" data-reanalysis-field="' + fp + '">' +
+                '<div style="text-align:center;flex:1;"><div class="diff-label">Actual</div>' +
+                (oldLogo ? '<img src="' + safeUrl(oldLogo) + '" style="max-height:60px;border-radius:8px;margin-top:4px;" onerror="this.style.display=\'none\'">' : '<span style="color:var(--muted);">(sin logo)</span>') +
+                '</div><div style="font-size:1.2rem;">→</div>' +
+                '<div style="text-align:center;flex:1;"><div class="diff-label" style="color:var(--success);">Nuevo</div>' +
+                '<img src="' + safeUrl(newLogo) + '" style="max-height:60px;border-radius:8px;margin-top:4px;" onerror="this.style.display=\'none\'">' +
+                '</div></div></div>';
+        }
+
+        function renderScalarDiffSection(title, sectionKey, fields, oldObj, newObj) {
+            oldObj = oldObj || {};
+            newObj = newObj || {};
+            let hasChanges = false;
+            let rows = '';
+
+            for (const field of fields) {
+                const oldVal = String(oldObj[field.key] || '').trim();
+                const newVal = String(newObj[field.key] || '').trim();
+                const newIsEmpty = isNoData(newVal);
+                const oldIsEmpty = isNoData(oldVal);
+                const isNew = oldIsEmpty && !newIsEmpty;
+                const isChanged = !oldIsEmpty && !newIsEmpty && oldVal !== newVal;
+                const isUnchanged = (!isNew && !isChanged) || newIsEmpty;
+
+                const fp = sectionKey + '.' + field.key;
+                if (isNew || isChanged) {
+                    window._reanalysis.selections[fp] = true;
+                    hasChanges = true;
+                }
+
+                const cls = isNew ? 'diff-new' : isChanged ? 'diff-changed' : 'diff-unchanged';
+                const chk = (isNew || isChanged) ? 'checked' : '';
+                const dis = isUnchanged ? 'disabled' : '';
+                const oldDisplay = oldIsEmpty ? '<em style="opacity:0.4">(vacío)</em>' : escapeHtml(oldVal.length > 200 ? oldVal.substring(0, 200) + '...' : oldVal);
+                const newDisplay = isUnchanged ? '<span style="opacity:0.3">—</span>' : escapeHtml(newVal.length > 200 ? newVal.substring(0, 200) + '...' : newVal);
+
+                rows += '<div class="diff-row ' + cls + '">' +
+                    '<input type="checkbox" ' + chk + ' ' + dis + ' onchange="toggleReanalysisField(\'' + fp + '\',this.checked)" data-reanalysis-field="' + fp + '">' +
+                    '<div class="diff-label">' + escapeHtml(field.label) + '</div>' +
+                    '<div class="diff-old">' + oldDisplay + '</div>' +
+                    '<div class="diff-new-val">' + newDisplay + '</div></div>';
+            }
+
+            return '<div class="diff-section"><div class="diff-section-title">' + title +
+                (hasChanges ? ' <span style="font-size:0.7rem;background:var(--warning-light);color:var(--warning);padding:2px 8px;border-radius:10px;">cambios</span>' : '') +
+                '</div>' +
+                '<div class="diff-grid-header"><div></div><div>Campo</div><div>Actual</div><div>Nuevo</div></div>' +
+                rows + '</div>';
+        }
+
+        function renderArrayDiffSection(title, sectionKey, oldArr, newArr, matchKey, compareFields) {
+            oldArr = Array.isArray(oldArr) ? oldArr : [];
+            newArr = Array.isArray(newArr) ? newArr : [];
+            let html = '<div class="diff-section"><div class="diff-section-title">' + title + '</div>';
+            const matched = new Set();
+            let itemIdx = 0;
+
+            // Match new items to existing
+            for (let i = 0; i < newArr.length; i++) {
+                const newItem = newArr[i];
+                const newName = (newItem[matchKey] || '').toLowerCase().trim();
+                if (isNoData(newName)) continue;
+
+                const oldIdx = oldArr.findIndex(o => (o[matchKey] || '').toLowerCase().trim() === newName);
+
+                if (oldIdx >= 0) {
+                    matched.add(oldIdx);
+                    // Update existing
+                    let hasFieldChanges = false;
+                    let fieldsHtml = '<div class="item-fields">';
+                    for (const fk of compareFields) {
+                        const ov = String(oldArr[oldIdx][fk] || '').trim();
+                        const nv = String(newItem[fk] || '').trim();
+                        const changed = !isNoData(nv) && ov !== nv;
+                        if (changed) hasFieldChanges = true;
+                        const fp = sectionKey + '[' + i + '].' + fk;
+                        if (changed) window._reanalysis.selections[fp] = true;
+                        fieldsHtml += '<div><span class="item-field-label">' + escapeHtml(fk) + ':</span> ' +
+                            '<span style="' + (changed ? 'text-decoration:line-through;opacity:0.5' : '') + '">' + escapeHtml(ov || '—') + '</span>' +
+                            (changed ? ' → <span style="color:var(--success);font-weight:500">' + escapeHtml(nv.length > 100 ? nv.substring(0, 100) + '...' : nv) + '</span>' +
+                            ' <input type="checkbox" checked onchange="toggleReanalysisField(\'' + fp + '\',this.checked)" data-reanalysis-field="' + fp + '" style="vertical-align:middle;">' : '') +
+                            '</div>';
+                    }
+                    fieldsHtml += '</div>';
+
+                    if (hasFieldChanges) {
+                        html += '<div class="diff-array-item item-update"><div class="item-header">🔄 ' + escapeHtml(newItem[matchKey]) + '</div>' + fieldsHtml + '</div>';
+                    }
+                } else {
+                    // New item
+                    const fp = sectionKey + '[' + i + ']._new';
+                    window._reanalysis.selections[fp] = true;
+                    let fieldsHtml = '<div class="item-fields">';
+                    for (const fk of [matchKey, ...compareFields]) {
+                        const nv = String(newItem[fk] || '').trim();
+                        if (!isNoData(nv)) fieldsHtml += '<div><span class="item-field-label">' + escapeHtml(fk) + ':</span> ' + escapeHtml(nv.length > 100 ? nv.substring(0, 100) + '...' : nv) + '</div>';
+                    }
+                    fieldsHtml += '</div>';
+                    html += '<div class="diff-array-item item-new"><div class="item-header">' +
+                        '<input type="checkbox" checked onchange="toggleReanalysisField(\'' + fp + '\',this.checked)" data-reanalysis-field="' + fp + '">' +
+                        ' ➕ ' + escapeHtml(newItem[matchKey]) + ' <span style="font-size:0.7rem;color:var(--success);">NUEVO</span></div>' + fieldsHtml + '</div>';
+                }
+                itemIdx++;
+            }
+
+            // Existing items not in new = kept
+            for (let i = 0; i < oldArr.length; i++) {
+                if (!matched.has(i)) {
+                    html += '<div class="diff-array-item item-keep"><div class="item-header">✓ ' + escapeHtml(oldArr[i][matchKey] || 'Sin nombre') + ' <span style="font-size:0.7rem;color:var(--muted);">se conserva</span></div></div>';
+                }
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        function renderSocialDiffSection(oldSocial, newSocial) {
+            oldSocial = oldSocial || {};
+            newSocial = newSocial || {};
+            const platforms = ['linkedin', 'instagram', 'twitter', 'facebook', 'youtube'];
+            const subFields = { linkedin: ['url', 'followers', 'activity'], instagram: ['url', 'followers', 'activity', 'style'], twitter: ['url', 'followers', 'activity'], facebook: ['url', 'followers'], youtube: ['url', 'subscribers'] };
+            let rows = '';
+            let hasChanges = false;
+
+            for (const platform of platforms) {
+                const oldP = oldSocial[platform] || {};
+                const newP = newSocial[platform] || {};
+                for (const sf of (subFields[platform] || [])) {
+                    const oldVal = String(typeof oldP === 'string' ? (sf === 'url' ? oldP : '') : (oldP[sf] || '')).trim();
+                    const newVal = String(typeof newP === 'string' ? (sf === 'url' ? newP : '') : (newP[sf] || '')).trim();
+                    const newIsEmpty = isNoData(newVal);
+                    const oldIsEmpty = isNoData(oldVal);
+                    const isNew = oldIsEmpty && !newIsEmpty;
+                    const isChanged = !oldIsEmpty && !newIsEmpty && oldVal !== newVal;
+                    const isUnchanged = (!isNew && !isChanged) || newIsEmpty;
+                    const fp = 'social.' + platform + '.' + sf;
+                    if (isNew || isChanged) { window._reanalysis.selections[fp] = true; hasChanges = true; }
+                    const cls = isNew ? 'diff-new' : isChanged ? 'diff-changed' : 'diff-unchanged';
+                    rows += '<div class="diff-row ' + cls + '">' +
+                        '<input type="checkbox" ' + ((isNew || isChanged) ? 'checked' : '') + ' ' + (isUnchanged ? 'disabled' : '') +
+                        ' onchange="toggleReanalysisField(\'' + fp + '\',this.checked)" data-reanalysis-field="' + fp + '">' +
+                        '<div class="diff-label">' + platform + '.' + sf + '</div>' +
+                        '<div class="diff-old">' + (oldIsEmpty ? '<em style="opacity:0.4">(vacío)</em>' : escapeHtml(oldVal)) + '</div>' +
+                        '<div class="diff-new-val">' + (isUnchanged ? '<span style="opacity:0.3">—</span>' : escapeHtml(newVal)) + '</div></div>';
+                }
+            }
+
+            // Social analysis
+            const oldAnalysis = String(oldSocial.analysis || '').trim();
+            const newAnalysis = String(newSocial.analysis || '').trim();
+            if (!isNoData(newAnalysis) && oldAnalysis !== newAnalysis) {
+                const fp = 'social.analysis';
+                window._reanalysis.selections[fp] = true;
+                hasChanges = true;
+                rows += '<div class="diff-row diff-changed">' +
+                    '<input type="checkbox" checked onchange="toggleReanalysisField(\'' + fp + '\',this.checked)" data-reanalysis-field="' + fp + '">' +
+                    '<div class="diff-label">Análisis</div>' +
+                    '<div class="diff-old">' + escapeHtml((oldAnalysis || '(vacío)').substring(0, 200)) + '</div>' +
+                    '<div class="diff-new-val">' + escapeHtml(newAnalysis.substring(0, 200)) + '</div></div>';
+            }
+
+            return '<div class="diff-section"><div class="diff-section-title">📱 Redes Sociales' +
+                (hasChanges ? ' <span style="font-size:0.7rem;background:var(--warning-light);color:var(--warning);padding:2px 8px;border-radius:10px;">cambios</span>' : '') +
+                '</div><div class="diff-grid-header"><div></div><div>Campo</div><div>Actual</div><div>Nuevo</div></div>' + rows + '</div>';
+        }
+
+        // ============================================
+        // RE-ANALYSIS SELECTION & APPLY
+        // ============================================
+        function toggleReanalysisField(fp, checked) {
+            window._reanalysis.selections[fp] = checked;
+            updateReanalysisStats();
+        }
+
+        function reanalysisSelectAll(select) {
+            document.querySelectorAll('[data-reanalysis-field]:not(:disabled)').forEach(cb => {
+                cb.checked = select;
+                window._reanalysis.selections[cb.dataset.reanalysisField] = select;
+            });
+            updateReanalysisStats();
+        }
+
+        function updateReanalysisStats() {
+            const entries = Object.entries(window._reanalysis.selections);
+            const total = entries.length;
+            const selected = entries.filter(([, v]) => v).length;
+            document.getElementById('reanalysis-stats').textContent = selected + ' cambios seleccionados de ' + total + ' detectados';
+            document.getElementById('btn-apply-reanalysis').disabled = selected === 0;
+        }
+
+        function closeReanalysis() {
+            document.getElementById('reanalysis-view').classList.remove('active');
+            window._reanalysis = null;
+        }
+
+        async function applyReanalysisChanges() {
+            const { studioId, existingStudio, newData, newLogo, selections } = window._reanalysis;
+            const updates = {};
+            const data = JSON.parse(JSON.stringify(existingStudio.data || {}));
+
+            for (const [fp, isSelected] of Object.entries(selections)) {
+                if (!isSelected) continue;
+
+                // Logo
+                if (fp === '_logo') { updates.logo = newLogo; continue; }
+
+                // Array new items
+                const arrayNewMatch = fp.match(/^(team|projects)\[(\d+)\]\._new$/);
+                if (arrayNewMatch) {
+                    const [, arrKey, idx] = arrayNewMatch;
+                    if (!data[arrKey]) data[arrKey] = [];
+                    const newItem = newData[arrKey]?.[parseInt(idx)];
+                    if (newItem) data[arrKey].push(JSON.parse(JSON.stringify(newItem)));
+                    continue;
+                }
+
+                // Array field updates
+                const arrayFieldMatch = fp.match(/^(team|projects)\[(\d+)\]\.(.+)$/);
+                if (arrayFieldMatch) {
+                    const [, arrKey, idx, fieldKey] = arrayFieldMatch;
+                    if (!data[arrKey]) data[arrKey] = [];
+                    const newItem = newData[arrKey]?.[parseInt(idx)];
+                    if (!newItem) continue;
+                    const matchName = (newItem.name || '').toLowerCase().trim();
+                    const existingIdx = data[arrKey].findIndex(o => (o.name || '').toLowerCase().trim() === matchName);
+                    if (existingIdx >= 0) {
+                        data[arrKey][existingIdx][fieldKey] = newItem[fieldKey];
+                    }
+                    continue;
+                }
+
+                // Scalar fields (e.g., "contact.phone", "social.linkedin.url")
+                const parts = fp.split('.');
+                if (parts.length === 2) {
+                    const [section, key] = parts;
+                    if (!data[section]) data[section] = {};
+                    data[section][key] = newData[section]?.[key];
+                } else if (parts.length === 3) {
+                    const [section, sub, key] = parts;
+                    if (!data[section]) data[section] = {};
+                    if (!data[section][sub]) data[section][sub] = {};
+                    data[section][sub][key] = newData[section]?.[sub]?.[key];
+                }
+            }
+
+            updates.data = data;
+
+            // Update top-level fields
+            if (selections['studio.name'] && newData.studio?.name && !isNoData(newData.studio.name)) updates.name = newData.studio.name;
+            if (selections['studio.shortName'] && newData.studio?.shortName) updates.shortName = newData.studio.shortName;
+            if (selections['contact.city'] && newData.contact?.city && !isNoData(newData.contact.city)) updates.city = newData.contact.city;
+
+            // Recalculate priority
+            if (selections['sales.priority'] || selections['sales.score']) {
+                if (newData.sales?.priority) updates.priority = newData.sales.priority;
+                if (newData.sales?.score) updates.score = newData.sales.score;
+            }
+
+            try {
+                await updateStudio(studioId, updates);
+                await addActivity({
+                    studioId: studioId,
+                    type: 'note',
+                    text: '🔬 Re-análisis completado. ' + Object.values(selections).filter(Boolean).length + ' cambios aplicados selectivamente.'
+                });
+
+                closeReanalysis();
+                showNotification('✅ Cambios aplicados correctamente', 'success');
+                await loadStudios();
+                showStudioDetail(studioId);
+            } catch (error) {
+                showNotification('❌ Error al aplicar: ' + error.message, 'error');
+            }
         }
 
         // ============================================
