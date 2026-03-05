@@ -8655,7 +8655,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             
             openModal('modal-bulk-progress');
             let progress = 0;
-            const totalSteps = 12;
+            const totalSteps = 14;
             
             const updateProgress = (text, detail = '') => {
                 progress++;
@@ -8791,15 +8791,73 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 const capitalResults = await searchWeb(`mejores estudios ${typeLabel} ${capitalCity} listado`);
                 await processSearchResults(capitalResults, foundStudios, province, 'Capital provincia', 75);
                 
-                // 12. Procesar y ordenar resultados
+                // 12. Búsqueda en DUNS 100000
+                updateProgress('📊 Consultando DUNS 100000...', 'Base de datos empresarial');
+                const dunsQueries = [
+                    `site:duns100000.com ${typeLabel} ${province}`,
+                    `duns 100000 ${typeSearchTerms[0]} ${province} España`
+                ];
+                for (const query of dunsQueries) {
+                    const results = await searchWeb(query);
+                    await processSearchResults(results, foundStudios, province, 'DUNS 100000', 88);
+                }
+
+                // 13. Enriquecimiento con IA — pedir a Claude que sugiera empresas adicionales
+                updateProgress('🤖 Enriqueciendo con IA...', 'Analizando resultados y buscando candidatos adicionales');
+                try {
+                    const existingNames = Array.from(foundStudios.values()).map(s => s.name).slice(0, 30).join(', ');
+                    const enrichPrompt = `Eres un experto en el sector de ${typeLabel} en España. Necesito una lista de empresas/estudios de ${typeLabel} en la provincia de ${province}.
+
+Ya tengo estas empresas identificadas: ${existingNames || 'ninguna todavía'}.
+
+Dame hasta 15 empresas ADICIONALES de ${typeLabel} en ${province} que NO estén en mi lista. Para cada una indica:
+- Nombre exacto de la empresa
+- Ciudad dentro de ${province}
+- Breve descripción (1 línea)
+
+Responde SOLO en formato JSON array:
+[{"nombre":"...","ciudad":"...","descripcion":"..."}]
+
+IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inventes nombres.`;
+
+                    const aiResult = await callClaudeAPI([{ role: 'user', content: enrichPrompt }], 3000);
+                    if (aiResult?.content?.[0]?.text) {
+                        let aiText = aiResult.content[0].text.replace(/```json/gi, '').replace(/```/gi, '').trim();
+                        const arrStart = aiText.indexOf('[');
+                        const arrEnd = aiText.lastIndexOf(']');
+                        if (arrStart !== -1 && arrEnd !== -1) {
+                            const aiStudios = JSON.parse(aiText.substring(arrStart, arrEnd + 1));
+                            for (const ai of aiStudios) {
+                                if (!ai.nombre || ai.nombre.length < 3) continue;
+                                const key = normalizeStudioKey(ai.nombre);
+                                if (!foundStudios.has(key)) {
+                                    foundStudios.set(key, {
+                                        name: ai.nombre,
+                                        snippet: (ai.descripcion || '') + (ai.ciudad ? ' — ' + ai.ciudad : ''),
+                                        url: '',
+                                        urls: [],
+                                        relevance: 65,
+                                        sources: ['IA (Claude)'],
+                                        province: province
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } catch (aiErr) {
+                    console.warn('Enriquecimiento IA no disponible:', aiErr.message);
+                    // No bloquear la búsqueda si la IA falla (ej: sin créditos)
+                }
+
+                // 14. Procesar y ordenar resultados
                 updateProgress('✨ Procesando resultados...', `${foundStudios.size} estudios encontrados`);
-                
+
                 // Convertir Map a array y ordenar por relevancia
                 bulkSearchResults = Array.from(foundStudios.values())
                     .sort((a, b) => b.relevance - a.relevance);
-                
+
                 closeModal('modal-bulk-progress');
-                
+
                 // Mostrar resultados
                 displayBulkResults(province, studioType);
                 
@@ -8952,7 +9010,12 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                             </div>
                             <p style="margin:0 0 8px 0;font-size:0.9rem;color:var(--muted);line-height:1.4;">${escapeHtml(studio.snippet.substring(0, 150))}${studio.snippet.length > 150 ? '...' : ''}</p>
                             <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
-                                ${studio.sources.map(src => `<span style="background:var(--primary-light);color:var(--primary);padding:2px 8px;border-radius:4px;font-size:0.75rem;">${escapeHtml(src)}</span>`).join('')}
+                                ${studio.sources.map(src => {
+                                    let bg = 'var(--primary-light)', fg = 'var(--primary)';
+                                    if (src.includes('IA')) { bg = '#f3e8ff'; fg = '#7c3aed'; }
+                                    else if (src.includes('DUNS')) { bg = '#fef3c7'; fg = '#b45309'; }
+                                    return `<span style="background:${bg};color:${fg};padding:2px 8px;border-radius:4px;font-size:0.75rem;">${escapeHtml(src)}</span>`;
+                                }).join('')}
                             </div>
                             ${studio.url ? `<a href="${escapeHtml(studio.url)}" target="_blank" style="font-size:0.8rem;color:var(--primary);text-decoration:none;">🔗 ${truncateUrl(studio.url)}</a>` : ''}
                         </div>
@@ -16037,9 +16100,17 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             // Reutilizar modal-new-studio pero con foco en búsqueda
             document.getElementById('new-studio-body').innerHTML = `
                 <div style="background:linear-gradient(135deg,#eff6ff,#eef2ff);border-radius:10px;padding:16px;margin-bottom:16px;">
-                    <p style="margin:0;font-size:0.9rem;color:#1e40af;">
-                        🌐 Busca estudios y empresas por internet. Selecciona el tipo y la provincia, y el CRM rastreará múltiples fuentes para proponerte candidatos.
+                    <p style="margin:0 0 8px 0;font-size:0.9rem;color:#1e40af;">
+                        🌐 Busca estudios y empresas por internet. El CRM rastreará <strong>14 fuentes</strong> incluyendo colegios profesionales, directorios, DUNS 100000, portales especializados e IA.
                     </p>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:0.72rem;">DuckDuckGo</span>
+                        <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:0.72rem;">DUNS 100000</span>
+                        <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:0.72rem;">LinkedIn</span>
+                        <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:0.72rem;">Portales sector</span>
+                        <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:0.72rem;">Claude IA</span>
+                        <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:0.72rem;">Google Maps</span>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Tipo de Estudio *</label>
@@ -16050,9 +16121,14 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                     <select class="form-select" id="new-studio-province"></select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Nombre específico <span style="color:var(--muted);font-weight:normal;font-size:0.85em;">(opcional)</span></label>
-                    <input type="text" class="form-input" id="new-studio-name" placeholder="Dejar vacío para buscar todos los de la provincia">
-                    <p style="font-size:0.75rem;color:var(--muted);margin-top:4px;">💡 Si lo dejas vacío, buscará todos los estudios del tipo seleccionado en la provincia</p>
+                    <label class="form-label">Nombre espec\u00edfico <span style="color:var(--muted);font-weight:normal;font-size:0.85em;">(opcional)</span></label>
+                    <input type="text" class="form-input" id="new-studio-name" placeholder="Dejar vac\u00edo para buscar todos los de la provincia">
+                    <p style="font-size:0.75rem;color:var(--muted);margin-top:4px;">💡 Si lo dejas vac\u00edo, buscar\u00e1 todos los estudios del tipo seleccionado en la provincia</p>
+                </div>
+                <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;">
+                    <a href="https://www.duns100000.com" target="_blank" style="display:inline-flex;align-items:center;gap:6px;font-size:0.82rem;color:#6366f1;text-decoration:none;font-weight:600;">
+                        📊 Abrir DUNS 100000 <span style="font-size:0.7rem;color:var(--muted);">(acceso directo a la plataforma)</span>
+                    </a>
                 </div>
             `;
             populateTypeSelect('new-studio-type', null);
