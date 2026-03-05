@@ -2682,6 +2682,10 @@
                             <span class="nav-item-icon">📧</span>
                             <span>Config. Gmail</span>
                         </div>
+                        <div class="nav-item" onclick="openDunsSegmentModal()">
+                            <span class="nav-item-icon">🔍</span>
+                            <span>Segmentar DUNS</span>
+                        </div>
                         <div class="nav-item" onclick="openDunsSettingsModal()">
                             <span class="nav-item-icon">📊</span>
                             <span>Config. DUNS 100000</span>
@@ -3814,6 +3818,80 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('modal-duns-settings')">Cerrar</button>
                 <button class="btn btn-primary" onclick="saveDunsSettings()" style="background:linear-gradient(135deg, #f59e0b, #d97706);border:none;">💾 Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DUNS Segmentacion Modal -->
+    <div class="modal-overlay" id="modal-duns-segment">
+        <div class="modal" style="max-width:700px;">
+            <div class="modal-header" style="background:linear-gradient(135deg, #2563eb, #1d4ed8);color:white;">
+                <h3 class="modal-title">🔍 Segmentaci&oacute;n DUNS 100000</h3>
+                <button class="modal-close" onclick="closeModal('modal-duns-segment')" style="color:white;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="background:#dbeafe;padding:12px;border-radius:8px;margin-bottom:16px;">
+                    <p style="font-size:0.85rem;color:#1e40af;margin:0;">
+                        Busca empresas en la base de datos DUNS 100000 filtrando por provincia y tipo de actividad. Los resultados incluyen datos de contacto y directivos.
+                    </p>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="form-group">
+                        <label class="form-label">Provincia</label>
+                        <select class="form-input" id="duns-seg-provincia">
+                            <option value="">-- Seleccionar --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tipo de estudio</label>
+                        <select class="form-input" id="duns-seg-tipo">
+                            <option value="">-- Seleccionar --</option>
+                            <option value="arquitectura">Arquitectura</option>
+                            <option value="ingenieria">Ingenier&iacute;a</option>
+                            <option value="constructora">Constructora</option>
+                            <option value="promotora">Promotora</option>
+                            <option value="regantes">Com. Regantes</option>
+                            <option value="aguas">Gesti&oacute;n Aguas</option>
+                            <option value="aapp">Admin. P&uacute;blica</option>
+                            <option value="otros">Otros</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="duns-seg-progress" style="display:none;margin:16px 0;">
+                    <div style="background:var(--surface);border-radius:8px;padding:16px;text-align:center;">
+                        <div class="loading-spinner" style="margin:0 auto 8px;"></div>
+                        <span id="duns-seg-progress-text">Buscando empresas...</span>
+                    </div>
+                </div>
+                <div id="duns-seg-results" style="display:none;margin-top:16px;">
+                    <h4 id="duns-seg-results-title" style="margin-bottom:8px;"></h4>
+                    <div style="max-height:400px;overflow-y:auto;">
+                        <table class="data-table" style="width:100%;font-size:0.8rem;">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="duns-seg-check-all" onchange="toggleAllDunsSegResults(this)"></th>
+                                    <th>Empresa</th>
+                                    <th>Direcci&oacute;n</th>
+                                    <th>Tel&eacute;fono</th>
+                                    <th>Web</th>
+                                    <th>Directivos</th>
+                                </tr>
+                            </thead>
+                            <tbody id="duns-seg-results-body"></tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
+                        <button class="btn btn-primary" onclick="importDunsSegResults()" style="background:linear-gradient(135deg, #2563eb, #1d4ed8);border:none;">
+                            📥 Importar seleccionados
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-duns-segment')">Cerrar</button>
+                <button class="btn btn-primary" id="duns-seg-search-btn" onclick="executeDunsSegmentation()" style="background:linear-gradient(135deg, #2563eb, #1d4ed8);border:none;">
+                    🔍 Buscar empresas
+                </button>
             </div>
         </div>
     </div>
@@ -15027,6 +15105,178 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                 console.warn('📊 DUNS búsqueda directa falló, usando fallback:', err.message);
                 return null;
             }
+        }
+
+        // ============================================
+        // DUNS SEGMENTACION
+        // ============================================
+
+        const DUNS_PROVINCIAS_CODES = {
+            'A Coruña': '15', 'Álava': '01', 'Albacete': '02', 'Alicante': '03',
+            'Almería': '04', 'Asturias': '33', 'Ávila': '05', 'Badajoz': '06',
+            'Barcelona': '08', 'Burgos': '09', 'Cáceres': '10', 'Cádiz': '11',
+            'Cantabria': '39', 'Castellón': '12', 'Ciudad Real': '13', 'Córdoba': '14',
+            'Cuenca': '16', 'Girona': '17', 'Granada': '18', 'Guadalajara': '19',
+            'Guipúzcoa': '20', 'Huelva': '21', 'Huesca': '22', 'Illes Balears': '07',
+            'Jaén': '23', 'La Rioja': '26', 'Las Palmas': '35', 'León': '24',
+            'Lleida': '25', 'Lugo': '27', 'Madrid': '28', 'Málaga': '29',
+            'Murcia': '30', 'Navarra': '31', 'Ourense': '32', 'Palencia': '34',
+            'Pontevedra': '36', 'Salamanca': '37', 'Santa Cruz de Tenerife': '38',
+            'Segovia': '40', 'Sevilla': '41', 'Soria': '42', 'Tarragona': '43',
+            'Teruel': '44', 'Toledo': '45', 'Valencia': '46', 'Valladolid': '47',
+            'Vizcaya': '48', 'Zamora': '49', 'Zaragoza': '50'
+        };
+
+        const DUNS_TIPO_CONFIG = {
+            'arquitectura':  { cnae: '7111', sic: '3446#8911', label: 'Arquitectura' },
+            'ingenieria':    { cnae: '7112', sic: '8711#8712', label: 'Ingeniería' },
+            'constructora':  { cnae: '4121', sic: '1522#1542', label: 'Construcción' },
+            'promotora':     { cnae: '4110', sic: '6552', label: 'Promoción inmobiliaria' },
+            'regantes':      { cnae: '3600', sic: '4941', label: 'Com. Regantes / Aguas' },
+            'aguas':         { cnae: '3600', sic: '4941#4952', label: 'Gestión de aguas' },
+            'aapp':          { cnae: '8411', sic: '9111#9199', label: 'Admin. Pública' },
+            'otros':         { cnae: '', sic: '', label: 'Otros' }
+        };
+
+        function openDunsSegmentModal() {
+            if (isMobile) closeMobileMenu();
+            loadDunsSettings();
+            if (!dunsSettings.username || !dunsSettings.password) {
+                alert('Configura primero tus credenciales DUNS 100000 en Config. DUNS 100000');
+                return;
+            }
+            // Populate provinces dropdown
+            const select = document.getElementById('duns-seg-provincia');
+            if (select.options.length <= 1) {
+                Object.keys(DUNS_PROVINCIAS_CODES).sort().forEach(prov => {
+                    const opt = document.createElement('option');
+                    opt.value = DUNS_PROVINCIAS_CODES[prov];
+                    opt.textContent = prov;
+                    select.appendChild(opt);
+                });
+            }
+            document.getElementById('duns-seg-progress').style.display = 'none';
+            document.getElementById('duns-seg-results').style.display = 'none';
+            openModal('modal-duns-segment');
+        }
+
+        async function executeDunsSegmentation() {
+            const provinciaCode = document.getElementById('duns-seg-provincia').value;
+            const tipo = document.getElementById('duns-seg-tipo').value;
+
+            if (!provinciaCode) { alert('Selecciona una provincia'); return; }
+            if (!tipo) { alert('Selecciona un tipo de estudio'); return; }
+
+            const config = DUNS_TIPO_CONFIG[tipo];
+            const progressEl = document.getElementById('duns-seg-progress');
+            const progressText = document.getElementById('duns-seg-progress-text');
+            const resultsEl = document.getElementById('duns-seg-results');
+            const searchBtn = document.getElementById('duns-seg-search-btn');
+
+            progressEl.style.display = 'block';
+            resultsEl.style.display = 'none';
+            searchBtn.disabled = true;
+            progressText.textContent = 'Conectando con DUNS 100000...';
+
+            try {
+                progressText.textContent = 'Buscando empresas de ' + config.label + '...';
+
+                const result = await callAPI('dunsSearch', {
+                    username: dunsSettings.username,
+                    password: dunsSettings.password,
+                    action: 'segment',
+                    provinciaCode: provinciaCode,
+                    cnae: config.cnae,
+                    sic: config.sic
+                });
+
+                progressEl.style.display = 'none';
+                searchBtn.disabled = false;
+
+                if (result.success && result.companies && result.companies.length > 0) {
+                    displayDunsSegResults(result.companies, config.label);
+                } else {
+                    alert('No se encontraron empresas: ' + (result.message || 'Sin resultados'));
+                }
+            } catch (err) {
+                progressEl.style.display = 'none';
+                searchBtn.disabled = false;
+                alert('Error en la segmentación: ' + err.message);
+                console.error('DUNS segment error:', err);
+            }
+        }
+
+        function displayDunsSegResults(companies, typeLabel) {
+            const resultsEl = document.getElementById('duns-seg-results');
+            const titleEl = document.getElementById('duns-seg-results-title');
+            const tbody = document.getElementById('duns-seg-results-body');
+
+            titleEl.textContent = companies.length + ' empresas de ' + typeLabel + ' encontradas';
+            tbody.innerHTML = '';
+
+            companies.forEach((c, i) => {
+                const directors = (c.directors || []).map(d => d.cargo + ': ' + d.nombre).join(', ');
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="checkbox" class="duns-seg-check" data-idx="${i}" checked></td>
+                    <td><strong>${c.name || ''}</strong><br><small style="color:#666;">${c.nif || ''} | ${c.cnae || ''}</small></td>
+                    <td><small>${c.address || ''}</small></td>
+                    <td>${c.phone || ''}</td>
+                    <td>${c.website ? '<a href="http://' + c.website + '" target="_blank" style="font-size:0.75rem;">' + c.website + '</a>' : ''}</td>
+                    <td><small>${directors || '-'}</small></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            window._dunsSegCompanies = companies;
+            resultsEl.style.display = 'block';
+        }
+
+        function toggleAllDunsSegResults(masterCheckbox) {
+            document.querySelectorAll('.duns-seg-check').forEach(cb => cb.checked = masterCheckbox.checked);
+        }
+
+        async function importDunsSegResults() {
+            const companies = window._dunsSegCompanies || [];
+            const checked = document.querySelectorAll('.duns-seg-check:checked');
+            if (checked.length === 0) { alert('Selecciona al menos una empresa'); return; }
+
+            const provinciaSelect = document.getElementById('duns-seg-provincia');
+            const provinciaName = provinciaSelect.options[provinciaSelect.selectedIndex].text;
+            const tipo = document.getElementById('duns-seg-tipo').value;
+            const tipoLabel = DUNS_TIPO_CONFIG[tipo]?.label || tipo;
+
+            let imported = 0;
+            for (const cb of checked) {
+                const c = companies[parseInt(cb.dataset.idx)];
+                if (!c || !c.name) continue;
+
+                const directors = (c.directors || []).map(d => d.cargo + ': ' + d.nombre).join('\n');
+                const studioData = {
+                    name: c.name,
+                    type: tipo,
+                    province: provinciaName,
+                    city: (c.address || '').split(',').slice(-2, -1)[0]?.trim() || provinciaName,
+                    phone: c.phone || '',
+                    email: '',
+                    web: c.website || '',
+                    nif: c.nif || '',
+                    notes: 'DUNS Segmentación | ' + (c.cnae || '') + '\nVentas: ' + (c.sales || 'N/A') + ' | Empleados: ' + (c.employees || 'N/A') + '\n' + directors,
+                    source: 'DUNS 100000 Segmentación',
+                    status: 'nuevo'
+                };
+
+                try {
+                    await callAPI('addStudio', studioData);
+                    imported++;
+                } catch (err) {
+                    console.warn('Error importing', c.name, err);
+                }
+            }
+
+            alert(imported + ' estudios importados correctamente desde DUNS 100000');
+            closeModal('modal-duns-segment');
+            if (typeof loadStudios === 'function') loadStudios();
         }
 
         // ============================================
