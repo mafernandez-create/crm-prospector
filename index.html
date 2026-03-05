@@ -16088,6 +16088,7 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                         </div>
                         <div class="planner-header-actions">
                             <button onclick="exportPlanToExcel()">📊 Excel</button>
+                            <button onclick="exportPlanToWord()">📄 Word</button>
                             <button onclick="printPlan()">🖨️ Imprimir</button>
                             <button onclick="exportPlanJSON()">💾 Exportar</button>
                             <button onclick="importPlanJSON()">📂 Importar</button>
@@ -17068,46 +17069,276 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                 showNotification('No hay visitas planificadas', 'warning');
                 return;
             }
-            
-            const rows = [['Fecha', 'Día', 'Orden', 'Estudio', 'CP', 'Dirección', 'Ciudad', 'Provincia', 'Teléfono', 'Email']];
-            
-            // Ordenar fechas
+
+            const rows = [['Fecha', 'Día', 'Orden', 'Estudio', 'Tipo', 'Prioridad', 'CP', 'Dirección', 'Ciudad', 'Provincia', 'Teléfono', 'Email', 'Comercial Ferroplast', 'Comercial Tuyper']];
             const sortedDates = Object.keys(planificadorData.schedule).sort();
-            
+
             sortedDates.forEach(dateStr => {
                 const date = new Date(dateStr);
                 const dayName = date.toLocaleDateString('es-ES', { weekday: 'long' });
                 const dateFormatted = date.toLocaleDateString('es-ES');
-                
-                planificadorData.schedule[dateStr].forEach((s, idx) => {
+
+                planificadorData.schedule[dateStr].filter(s => !s.reserva).forEach((s, idx) => {
+                    const com = getComercialForZona(s.province);
+                    const tipoLabel = TIPOS_ESTUDIO[s.type]?.label || s.type || '';
                     rows.push([
                         dateFormatted,
                         dayName.charAt(0).toUpperCase() + dayName.slice(1),
                         idx + 1,
                         s.name || '',
+                        tipoLabel,
+                        s.priority || '',
                         extractPostalCode(s.data?.contact?.address),
                         s.data?.contact?.address || '',
                         s.data?.contact?.city || '',
                         s.province || '',
                         s.data?.contact?.phone || '',
-                        s.data?.contact?.email || ''
+                        s.data?.contact?.email || '',
+                        com.ferroplast || '',
+                        com.tuyper || ''
                     ]);
                 });
             });
-            
-            // Crear Excel con XLSX
+
             const ws = XLSX.utils.aoa_to_sheet(rows);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Plan de Visitas');
-            
-            // Ajustar anchos de columna
             ws['!cols'] = [
-                { wch: 12 }, { wch: 12 }, { wch: 6 }, { wch: 35 }, { wch: 8 },
-                { wch: 40 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 30 }
+                { wch: 12 }, { wch: 12 }, { wch: 6 }, { wch: 35 }, { wch: 12 }, { wch: 10 }, { wch: 8 },
+                { wch: 40 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 30 }, { wch: 20 }, { wch: 20 }
             ];
-            
-            XLSX.writeFile(wb, `plan_visitas_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+            XLSX.writeFile(wb, 'plan_visitas_' + new Date().toISOString().split('T')[0] + '.xlsx');
             showNotification('Excel exportado correctamente', 'success');
+        }
+
+        function exportPlanToWord() {
+            if (!planificadorData.schedule || Object.keys(planificadorData.schedule).length === 0) {
+                showNotification('No hay visitas planificadas', 'warning');
+                return;
+            }
+
+            const sortedDates = Object.keys(planificadorData.schedule).sort();
+            const firstDate = new Date(sortedDates[0]);
+            const lastDate = new Date(sortedDates[sortedDates.length - 1]);
+
+            // Detectar región según provincias
+            const allProvinces = [...new Set(sortedDates.flatMap(d => (planificadorData.schedule[d] || []).map(s => s.province)).filter(Boolean))];
+            let regionName = 'VISITAS COMERCIALES';
+            for (const [comunidad, provs] of Object.entries(PROVINCIAS_POR_COMUNIDAD)) {
+                if (allProvinces.every(p => provs.includes(p))) { regionName = comunidad.toUpperCase(); break; }
+            }
+
+            const formatDateEs = (d) => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+            const formatDayEs = (d) => {
+                const name = d.toLocaleDateString('es-ES', { weekday: 'long' });
+                return name.charAt(0).toUpperCase() + name.slice(1);
+            };
+
+            // Contar visitas totales
+            let totalVisitas = 0;
+            sortedDates.forEach(d => { totalVisitas += (planificadorData.schedule[d] || []).filter(s => !s.reserva).length; });
+
+            // Detectar tipos
+            const allTypes = {};
+            sortedDates.forEach(d => {
+                (planificadorData.schedule[d] || []).filter(s => !s.reserva).forEach(s => {
+                    const t = TIPOS_ESTUDIO[s.type]?.label || s.type || 'otros';
+                    allTypes[t] = (allTypes[t] || 0) + 1;
+                });
+            });
+            const tiposStr = Object.entries(allTypes).map(([t, c]) => c + ' ' + t.toLowerCase()).join(', ');
+
+            // Comerciales
+            const comercialesZona = {};
+            allProvinces.forEach(p => { comercialesZona[p] = getComercialForZona(p); });
+
+            // Hora base de inicio por visita (estimación)
+            function estimateTime(dayIdx, visitIdx, totalVisitsDay) {
+                const startHour = dayIdx === 0 ? 11 : 9; // Primer día viaje, resto 9:00
+                const lunchStart = 13.5;
+                const lunchEnd = 15;
+                let hour = startHour;
+                for (let i = 0; i < visitIdx; i++) {
+                    hour += 1; // ~1h por visita
+                    if (hour >= lunchStart && hour < lunchEnd) hour = lunchEnd;
+                }
+                if (hour >= lunchStart && hour < lunchEnd) hour = lunchEnd;
+                const h = Math.floor(hour);
+                const m = Math.round((hour - h) * 60);
+                return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + 'h';
+            }
+
+            // Generar HTML del documento
+            let html = '<!DOCTYPE html><html><head><meta charset="utf-8"><style>';
+            html += 'body{font-family:Calibri,Arial,sans-serif;max-width:800px;margin:30px auto;color:#1e293b;line-height:1.5;padding:0 20px;}';
+            html += 'h1{text-align:center;color:#1e3a5f;font-size:1.8rem;margin-bottom:4px;border-bottom:3px solid #1e3a5f;padding-bottom:10px;}';
+            html += '.subtitle{text-align:center;color:#64748b;font-size:1rem;margin-bottom:30px;}';
+            html += 'h2{color:#1e3a5f;font-size:1.3rem;border-bottom:2px solid #3b82f6;padding-bottom:6px;margin-top:35px;}';
+            html += 'h3{color:#1e3a5f;font-size:1.1rem;margin-top:30px;background:#eff6ff;padding:10px 14px;border-left:4px solid #3b82f6;border-radius:0 8px 8px 0;}';
+            html += '.route-info{color:#475569;font-style:italic;margin-bottom:15px;font-size:0.95rem;}';
+            html += '.summary-table{width:100%;border-collapse:collapse;margin:15px 0 25px;}';
+            html += '.summary-table th{background:#1e3a5f;color:white;padding:10px 14px;text-align:left;font-size:0.9rem;}';
+            html += '.summary-table td{padding:10px 14px;border-bottom:1px solid #e2e8f0;font-size:0.9rem;}';
+            html += '.summary-table tr:nth-child(even){background:#f8fafc;}';
+            html += '.visit{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 18px;margin:12px 0;page-break-inside:avoid;}';
+            html += '.visit-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}';
+            html += '.visit-title{font-weight:700;font-size:1.05rem;color:#1e293b;}';
+            html += '.visit-badge{font-size:0.75rem;padding:3px 10px;border-radius:12px;font-weight:600;}';
+            html += '.visit-detail{font-size:0.9rem;color:#475569;margin:3px 0;}';
+            html += '.visit-note{font-size:0.85rem;color:#64748b;margin-top:8px;padding:8px 12px;background:#fffbeb;border-left:3px solid #f59e0b;border-radius:0 6px 6px 0;font-style:italic;}';
+            html += '.break{text-align:center;color:#64748b;font-style:italic;margin:15px 0;padding:8px;border-top:1px dashed #cbd5e1;border-bottom:1px dashed #cbd5e1;}';
+            html += '.notes{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;margin-top:30px;}';
+            html += '.notes h2{color:#166534;border-color:#22c55e;}';
+            html += '.notes li{margin:6px 0;font-size:0.9rem;}';
+            html += '.comerciales{background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;padding:14px 18px;margin-top:20px;}';
+            html += '.comerciales-title{font-weight:700;color:#4338ca;margin-bottom:8px;}';
+            html += '.com-item{font-size:0.9rem;margin:3px 0;}';
+            html += '.mapa{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin-top:25px;}';
+            html += '.mapa h2{color:#475569;border-color:#94a3b8;}';
+            html += '.mapa p{font-size:0.9rem;color:#475569;}';
+            html += '@media print{body{margin:15px;padding:0;} .visit{page-break-inside:avoid;}}';
+            html += '</style></head><body>';
+
+            // Título
+            html += '<h1>PLANIFICACION DE VISITAS - ' + regionName + '</h1>';
+            html += '<div class="subtitle">Semana del ' + firstDate.getDate() + ' al ' + lastDate.getDate() + ' de ' +
+                firstDate.toLocaleDateString('es-ES', { month: 'long' }) + ' de ' + firstDate.getFullYear() +
+                ' | ' + allProvinces.join(', ') + '</div>';
+
+            // Resumen
+            html += '<h2>RESUMEN DE RUTA</h2>';
+            html += '<p style="color:#475569;">Viaje comercial de ' + sortedDates.length + ' d\u00eda' + (sortedDates.length > 1 ? 's' : '') +
+                ' a ' + regionName.charAt(0) + regionName.slice(1).toLowerCase() +
+                '. Total: <strong>' + totalVisitas + ' visitas</strong> (' + tiposStr + ').</p>';
+
+            // Tabla resumen
+            html += '<table class="summary-table"><thead><tr><th>D\u00eda</th><th>Zona</th><th>N\u00ba Visitas</th></tr></thead><tbody>';
+            sortedDates.forEach(dateStr => {
+                const date = new Date(dateStr);
+                const studios = (planificadorData.schedule[dateStr] || []).filter(s => !s.reserva);
+                const cities = [...new Set(studios.map(s => s.data?.contact?.city || s.province).filter(Boolean))];
+                html += '<tr><td><strong>' + formatDayEs(date) + ' ' + date.getDate() + '</strong></td>';
+                html += '<td>' + cities.join(' \u2192 ') + '</td>';
+                html += '<td style="text-align:center;font-weight:600;">' + studios.length + '</td></tr>';
+            });
+            html += '</tbody></table>';
+
+            // Comerciales de zona
+            if (Object.keys(comercialesZona).length > 0) {
+                html += '<div class="comerciales"><div class="comerciales-title">\uD83D\uDC54 Comerciales de Zona</div>';
+                for (const [prov, com] of Object.entries(comercialesZona)) {
+                    html += '<div class="com-item"><strong>' + prov + ':</strong> ';
+                    const parts = [];
+                    if (com.ferroplast) parts.push('\uD83D\uDD35 Ferroplast: ' + com.ferroplast);
+                    if (com.tuyper) parts.push('\uD83D\uDFE0 Tuyper: ' + com.tuyper);
+                    html += parts.join(' | ') + '</div>';
+                }
+                html += '</div>';
+            }
+
+            // Detalle por día
+            sortedDates.forEach((dateStr, dayIdx) => {
+                const date = new Date(dateStr);
+                const studios = (planificadorData.schedule[dateStr] || []).filter(s => !s.reserva);
+                const cities = [...new Set(studios.map(s => s.data?.contact?.city || '').filter(Boolean))];
+
+                html += '<h3>' + formatDayEs(date).toUpperCase() + ' ' + date.getDate() + ' DE ' +
+                    date.toLocaleDateString('es-ES', { month: 'long' }).toUpperCase() + ' ' + date.getFullYear() + '</h3>';
+                html += '<div class="route-info">Ruta: ' + cities.join(' \u2192 ') + '</div>';
+
+                let lunchInserted = false;
+                studios.forEach((s, idx) => {
+                    const time = estimateTime(dayIdx, idx, studios.length);
+                    const hourNum = parseInt(time.split(':')[0]);
+
+                    // Insertar almuerzo
+                    if (!lunchInserted && hourNum >= 14 && idx > 0) {
+                        html += '<div class="break">\uD83C\uDF7D\uFE0F Almuerzo (13:30 - 15:00)</div>';
+                        lunchInserted = true;
+                    }
+
+                    const tipoLabel = TIPOS_ESTUDIO[s.type]?.label || s.type || '';
+                    const prioridad = s.priority || 'Media';
+                    const bgBadge = prioridad === 'Alta' ? '#fef2f2;color:#dc2626' :
+                                    prioridad === 'Baja' ? '#f0fdf4;color:#16a34a' : '#fffbeb;color:#d97706';
+
+                    html += '<div class="visit">';
+                    html += '<div class="visit-header">';
+                    html += '<div class="visit-title">VISITA ' + (idx + 1) + ' \u2014 ' + time + ' \u2014 ' + (s.name || '') + '</div>';
+                    html += '<span class="visit-badge" style="background:' + bgBadge + '">' + tipoLabel.toUpperCase() + ' / ' + prioridad.toUpperCase() + '</span>';
+                    html += '</div>';
+
+                    if (s.data?.contact?.city || s.province) {
+                        html += '<div class="visit-detail">\uD83D\uDCCD Ciudad: <strong>' + (s.data?.contact?.city || '') + '</strong>' + (s.province ? ' (' + s.province + ')' : '') + '</div>';
+                    }
+                    if (s.data?.contact?.address && !isNoData(s.data.contact.address)) {
+                        html += '<div class="visit-detail">\uD83C\uDFE2 Direcci\u00f3n: ' + s.data.contact.address + '</div>';
+                    }
+                    if (s.data?.contact?.phone && !isNoData(s.data.contact.phone)) {
+                        html += '<div class="visit-detail">\uD83D\uDCDE Tel: <strong>' + s.data.contact.phone + '</strong></div>';
+                    }
+                    if (s.data?.contact?.email && !isNoData(s.data.contact.email)) {
+                        html += '<div class="visit-detail">\uD83D\uDCE7 Email: ' + s.data.contact.email + '</div>';
+                    }
+                    if (s.data?.contact?.web && !isNoData(s.data.contact.web)) {
+                        html += '<div class="visit-detail">\uD83C\uDF10 Web: ' + s.data.contact.web + '</div>';
+                    }
+
+                    // Nota: descripción del estudio
+                    const desc = s.data?.studio?.description;
+                    if (desc && !isNoData(desc)) {
+                        html += '<div class="visit-note">' + desc + '</div>';
+                    }
+
+                    html += '</div>';
+                });
+
+                // Noche
+                if (dayIdx < sortedDates.length - 1) {
+                    html += '<div class="break">\uD83C\uDFE8 Noche en ' + (cities[cities.length - 1] || allProvinces[0] || '') + '</div>';
+                }
+            });
+
+            // Notas adicionales
+            html += '<div class="notes"><h2>NOTAS ADICIONALES</h2><ul>';
+            html += '<li>Todos los clientes son del CRM de Ferroplast \u2014 verificar datos de contacto actualizados antes de la visita.</li>';
+            html += '<li>Se recomienda llamar con antelaci\u00f3n para confirmar disponibilidad.</li>';
+            allProvinces.forEach(p => {
+                const com = getComercialForZona(p);
+                if (com.ferroplast) html += '<li>Comercial Ferroplast en ' + p + ': <strong>' + com.ferroplast + '</strong></li>';
+            });
+            html += '</ul></div>';
+
+            // Mapa de ruta
+            html += '<div class="mapa"><h2>MAPA DE RUTA</h2>';
+            sortedDates.forEach(dateStr => {
+                const date = new Date(dateStr);
+                const studios = (planificadorData.schedule[dateStr] || []).filter(s => !s.reserva);
+                const cities = studios.map(s => s.data?.contact?.city || '').filter(Boolean);
+                const uniqueCities = [...new Set(cities)];
+                html += '<p><strong>' + formatDayEs(date) + ':</strong> ' + uniqueCities.join(' \u2192 ') + '</p>';
+            });
+            html += '</div>';
+
+            html += '<p style="text-align:center;color:#94a3b8;margin-top:30px;font-size:0.85rem;">Documento generado desde CRM Ferroplast \u2014 ' +
+                new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) + '</p>';
+            html += '</body></html>';
+
+            // Descargar como .doc (Word abre HTML correctamente)
+            const dateRange = firstDate.getDate() + '-' + lastDate.getDate() + '_' +
+                firstDate.toLocaleDateString('es-ES', { month: 'long' }) + '_' + firstDate.getFullYear();
+            const fileName = 'Planificacion_Visitas_' + regionName.replace(/\s+/g, '_') + '_' + dateRange + '.doc';
+
+            const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            link.click();
+            URL.revokeObjectURL(url);
+
+            showNotification('Documento Word exportado: ' + fileName, 'success');
         }
         
         function printPlan() {
