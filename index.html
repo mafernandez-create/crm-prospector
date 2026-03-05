@@ -17270,10 +17270,13 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                     html += '</div>';
 
                     if (s.data?.contact?.city || s.province) {
-                        html += '<div class="visit-detail">\uD83D\uDCCD Ciudad: <strong>' + (s.data?.contact?.city || '') + '</strong>' + (s.province ? ' (' + s.province + ')' : '') + '</div>';
+                        const cityText = (s.data?.contact?.city || '') + (s.province ? ', ' + s.province : '');
+                        const wazeCity = 'https://waze.com/ul?q=' + encodeURIComponent(cityText) + '&navigate=yes';
+                        html += '<div class="visit-detail">\uD83D\uDCCD Ciudad: <a href="' + wazeCity + '" style="color:#3b82f6;font-weight:700;text-decoration:none;" target="_blank">' + (s.data?.contact?.city || '') + '</a>' + (s.province ? ' (' + s.province + ')' : '') + '</div>';
                     }
                     if (s.data?.contact?.address && !isNoData(s.data.contact.address)) {
-                        html += '<div class="visit-detail">\uD83C\uDFE2 Direcci\u00f3n: ' + s.data.contact.address + '</div>';
+                        const wazeAddr = 'https://waze.com/ul?q=' + encodeURIComponent(s.data.contact.address) + '&navigate=yes';
+                        html += '<div class="visit-detail">\uD83C\uDFE2 Direcci\u00f3n: <a href="' + wazeAddr + '" style="color:#3b82f6;text-decoration:none;" target="_blank">' + s.data.contact.address + '</a></div>';
                     }
                     if (s.data?.contact?.phone && !isNoData(s.data.contact.phone)) {
                         html += '<div class="visit-detail">\uD83D\uDCDE Tel: <strong>' + s.data.contact.phone + '</strong></div>';
