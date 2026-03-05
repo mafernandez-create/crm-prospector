@@ -2641,6 +2641,10 @@
                     <span class="nav-item-icon">👔</span>
                     <span>Equipo Comercial</span>
                 </div>
+                <div class="nav-item" onclick="openBuscarEstudios()">
+                    <span class="nav-item-icon">🌐</span>
+                    <span>Buscar Estudios</span>
+                </div>
 
                 <!-- Desplegable Configuración -->
                 <div class="nav-dropdown" id="dropdown-config">
@@ -8660,11 +8664,20 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 document.getElementById('bulk-progress-bar').style.width = `${(progress / totalSteps) * 100}%`;
             };
             
-            const typeLabel = studioType === 'arquitectura' ? 'arquitectura' : 'ingeniería';
-            const typeSearchTerms = studioType === 'arquitectura' 
-                ? ['arquitectura', 'arquitectos', 'estudio arquitectura', 'despacho arquitectura']
-                : ['ingeniería', 'ingenieros', 'estudio ingeniería', 'consultora ingeniería'];
-            
+            const searchConfig = {
+                'arquitectura': { label: 'arquitectura', terms: ['arquitectura', 'arquitectos', 'estudio arquitectura', 'despacho arquitectura'] },
+                'ingenieria':   { label: 'ingeniería', terms: ['ingeniería', 'ingenieros', 'consultora ingeniería', 'estudio ingeniería'] },
+                'constructora': { label: 'construcción', terms: ['constructora', 'empresa construcción', 'construcciones', 'obra civil'] },
+                'promotora':    { label: 'promoción inmobiliaria', terms: ['promotora inmobiliaria', 'promoción viviendas', 'promotora'] },
+                'regantes':     { label: 'comunidades de regantes', terms: ['comunidad de regantes', 'comunidad regantes', 'zona regable', 'modernización riego'] },
+                'aguas':        { label: 'gestión de aguas', terms: ['empresa aguas', 'gestión agua', 'abastecimiento agua', 'servicio municipal aguas'] },
+                'aapp':         { label: 'administración pública', terms: ['ayuntamiento obras', 'diputación obras públicas', 'junta obras'] },
+                'otros':        { label: 'empresas', terms: ['empresa', 'estudio', 'consultoría'] }
+            };
+            const config = searchConfig[studioType] || searchConfig['otros'];
+            const typeLabel = config.label;
+            const typeSearchTerms = config.terms;
+
             try {
                 // 1. Búsqueda en Colegio de Arquitectos/Ingenieros
                 updateProgress('🏛️ Consultando colegios profesionales...', province);
@@ -8703,18 +8716,48 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 await processSearchResults(linkedinResults, foundStudios, province, 'LinkedIn', 80);
                 
                 // 5. Búsqueda en portales de arquitectura
-                updateProgress('🏗️ Consultando portales especializados...', 'ArchDaily, Plataforma Arquitectura...');
-                if (studioType === 'arquitectura') {
-                    const portalQueries = [
+                updateProgress('🏗️ Consultando portales especializados...', 'Fuentes del sector');
+                const portalQueriesByType = {
+                    'arquitectura': [
                         `site:archdaily.com arquitectos ${province} España`,
                         `site:plataformaarquitectura.cl ${province}`,
                         `site:dezeen.com architects ${province} Spain`,
                         `site:arquitecturaviva.com ${province}`
-                    ];
-                    for (const query of portalQueries) {
-                        const results = await searchWeb(query);
-                        await processSearchResults(results, foundStudios, province, 'Portal especializado', 90);
-                    }
+                    ],
+                    'ingenieria': [
+                        `ingeniería civil ${province} consultora proyectos`,
+                        `colegio ingenieros caminos ${province} colegiados`
+                    ],
+                    'constructora': [
+                        `constructora ${province} obras edificación`,
+                        `empresa construcción ${province} obra civil infraestructuras`,
+                        `licitación obra ${province} adjudicatario constructora`
+                    ],
+                    'promotora': [
+                        `promotora inmobiliaria ${province} obra nueva`,
+                        `site:idealista.com promotora ${province}`,
+                        `promoción viviendas ${province} nueva construcción`
+                    ],
+                    'regantes': [
+                        `comunidad regantes ${province} modernización`,
+                        `site:fenacore.org ${province}`,
+                        `confederación hidrográfica regantes ${province}`,
+                        `SEIASA modernización regadío ${province}`
+                    ],
+                    'aguas': [
+                        `empresa aguas ${province} abastecimiento`,
+                        `servicio municipal aguas ${province}`,
+                        `gestión agua potable ${province} concesión`
+                    ],
+                    'aapp': [
+                        `ayuntamiento ${province} obras públicas urbanismo`,
+                        `diputación ${province} infraestructuras obras`
+                    ]
+                };
+                const portalQueries = portalQueriesByType[studioType] || [`${typeLabel} ${province} empresas listado`];
+                for (const query of portalQueries) {
+                    const results = await searchWeb(query);
+                    await processSearchResults(results, foundStudios, province, 'Portal especializado', 90);
                 }
                 
                 // 6. Búsqueda en Instagram
@@ -8876,7 +8919,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             document.getElementById('bulk-search-province').textContent = province;
             
             const listContainer = document.getElementById('bulk-results-list');
-            const typeLabel = studioType === 'arquitectura' ? 'arquitectura' : 'ingeniería';
+            const typeLabel = (TIPOS_ESTUDIO[studioType]?.label || studioType || 'estudios').toLowerCase();
             
             if (bulkSearchResults.length === 0) {
                 listContainer.innerHTML = `
@@ -15983,6 +16026,47 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
         
         function savePlanificadorData() {
             localStorage.setItem('crm_test_planificador', JSON.stringify(planificadorData));
+        }
+
+        // ============================================
+        // BUSCAR ESTUDIOS EN INTERNET - Acceso directo
+        // ============================================
+        function openBuscarEstudios() {
+            if (isMobile) closeMobileMenu();
+
+            // Reutilizar modal-new-studio pero con foco en búsqueda
+            document.getElementById('new-studio-body').innerHTML = `
+                <div style="background:linear-gradient(135deg,#eff6ff,#eef2ff);border-radius:10px;padding:16px;margin-bottom:16px;">
+                    <p style="margin:0;font-size:0.9rem;color:#1e40af;">
+                        🌐 Busca estudios y empresas por internet. Selecciona el tipo y la provincia, y el CRM rastreará múltiples fuentes para proponerte candidatos.
+                    </p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tipo de Estudio *</label>
+                    <select class="form-select" id="new-studio-type"></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Provincia *</label>
+                    <select class="form-select" id="new-studio-province"></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nombre específico <span style="color:var(--muted);font-weight:normal;font-size:0.85em;">(opcional)</span></label>
+                    <input type="text" class="form-input" id="new-studio-name" placeholder="Dejar vacío para buscar todos los de la provincia">
+                    <p style="font-size:0.75rem;color:var(--muted);margin-top:4px;">💡 Si lo dejas vacío, buscará todos los estudios del tipo seleccionado en la provincia</p>
+                </div>
+            `;
+            populateTypeSelect('new-studio-type', null);
+            populateProvinceSelect('new-studio-province', null);
+
+            const modalTitle = document.querySelector('#modal-new-studio .modal-title');
+            if (modalTitle) modalTitle.textContent = '🌐 Buscar Estudios en Internet';
+
+            document.getElementById('btn-generate-text').textContent = 'Buscar';
+            document.getElementById('btn-generate-icon').textContent = '🔍';
+            document.getElementById('btn-generate').disabled = false;
+            document.getElementById('btn-generate').onclick = generateAndSaveStudio;
+
+            openModal('modal-new-studio');
         }
 
         // ============================================
