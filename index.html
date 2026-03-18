@@ -4082,11 +4082,25 @@
         // PROVINCIAS - Fuente única de verdad
         // ============================================
         const PROVINCIAS = [
-            'Albacete', 'Alicante', 'Almería', 'Badajoz', 'Cáceres',
+            'Albacete', 'Alicante', 'Almería', 'Badajoz', 'Cáceres', 'Cádiz',
             'Ciudad Real', 'Córdoba', 'Cuenca', 'Granada', 'Huelva',
             'Jaén', 'Las Palmas', 'Málaga', 'Murcia',
             'Santa Cruz de Tenerife', 'Sevilla', 'Toledo'
         ];
+
+        // ============================================
+        // MAPEO PÁGINAS AMARILLAS - Categorías por tipo
+        // ============================================
+        const PA_CATEGORY_MAP = {
+            'arquitectura':  'arquitectos',
+            'ingenieria':    'ingenieros',
+            'constructora':  'empresas-de-construccion',
+            'promotora':     'promotoras-inmobiliarias',
+            'regantes':      'comunidades-de-regantes',
+            'aguas':         'abastecimiento-de-aguas',
+            'aapp':          null,
+            'otros':         null
+        };
 
         // ============================================
         // TIPOS DE ESTUDIO - Fuente única de verdad
@@ -4116,9 +4130,11 @@
             { empresa: 'Tuyper', nombre: 'Fran Dominguez', zona: 'Badajoz' },
             { empresa: 'Ferroplast', nombre: 'Javier Adán', zona: 'Cáceres' },
             { empresa: 'Tuyper', nombre: 'Fran Dominguez', zona: 'Cáceres' },
+            { empresa: 'Ferroplast', nombre: 'Rafael Jurado', zona: 'Cádiz' },
             { empresa: 'Tuyper', nombre: 'Rafael Amador', zona: 'Cádiz' },
             { empresa: 'Ferroplast', nombre: 'Felix Quintero', zona: 'Ciudad Real' },
             { empresa: 'Tuyper', nombre: 'Joseba Robles', zona: 'Ciudad Real' },
+            { empresa: 'Ferroplast', nombre: 'Rafael Jurado', zona: 'Córdoba' },
             { empresa: 'Tuyper', nombre: 'Joseba Robles', zona: 'Córdoba' },
             { empresa: 'Ferroplast', nombre: 'Inocencio (Chenco) Alonso', zona: 'Cuenca' },
             { empresa: 'Tuyper', nombre: 'Justo Anadon', zona: 'Cuenca' },
@@ -4129,6 +4145,7 @@
             { empresa: 'Tuyper', nombre: 'Rafael Amador', zona: 'Huelva' },
             { empresa: 'Ferroplast', nombre: 'Felix Quintero', zona: 'Jaén' },
             { empresa: 'Tuyper', nombre: 'Joseba Robles', zona: 'Jaén' },
+            { empresa: 'Ferroplast', nombre: 'Rafael Jurado', zona: 'Málaga' },
             { empresa: 'Tuyper', nombre: 'Joseba Robles', zona: 'Málaga' },
             { empresa: 'Ferroplast', nombre: 'Juan Vilella', zona: 'Murcia' },
             { empresa: 'Tuyper', nombre: 'Clemente Bernabe', zona: 'Murcia' },
@@ -4168,7 +4185,7 @@
         }
 
         const PROVINCIAS_POR_COMUNIDAD = {
-            'Andalucía': ['Almería', 'Córdoba', 'Granada', 'Huelva', 'Jaén', 'Málaga', 'Sevilla'],
+            'Andalucía': ['Almería', 'Cádiz', 'Córdoba', 'Granada', 'Huelva', 'Jaén', 'Málaga', 'Sevilla'],
             'Castilla-La Mancha': ['Albacete', 'Ciudad Real', 'Cuenca', 'Toledo'],
             'Extremadura': ['Badajoz', 'Cáceres'],
             'Murcia': ['Murcia'],
@@ -8791,7 +8808,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             
             openModal('modal-bulk-progress');
             let progress = 0;
-            const totalSteps = 14;
+            const totalSteps = 16;
             
             const updateProgress = (text, detail = '') => {
                 progress++;
@@ -8833,14 +8850,56 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                     await processSearchResults(results, foundStudios, province, 'Búsqueda general', 70);
                 }
                 
-                // 3. Búsqueda en directorios profesionales
-                updateProgress('📋 Consultando directorios profesionales...', 'Páginas Amarillas, Infobel...');
+                // 3. Scraping directo de Páginas Amarillas + directorios
+                updateProgress('📒 Scraping directo Páginas Amarillas...', 'Extrayendo datos estructurados');
+                let paResults = null;
+                try {
+                    paResults = await searchPaginasAmarillas(studioType, province, 5);
+                } catch (e) { console.warn('PA directo error:', e); }
+
+                if (paResults && paResults.length > 0) {
+                    console.log(`📒 PA directo: ${paResults.length} empresas encontradas`);
+                    for (const pa of paResults) {
+                        if (!pa.name || pa.name.length < 3) continue;
+                        const key = normalizeStudioKey(pa.name);
+                        if (foundStudios.has(key)) {
+                            const existing = foundStudios.get(key);
+                            existing.relevance = Math.min(100, existing.relevance + 10);
+                            if (!existing.sources.includes('Páginas Amarillas (directo)')) {
+                                existing.sources.push('Páginas Amarillas (directo)');
+                            }
+                            // Mergear datos PA
+                            if (pa.phone && !existing.paPhone) existing.paPhone = pa.phone;
+                            if (pa.address && !existing.paAddress) existing.paAddress = pa.address;
+                            if (pa.city && !existing.paCity) existing.paCity = pa.city;
+                        } else {
+                            foundStudios.set(key, {
+                                name: pa.name,
+                                snippet: [pa.city, pa.address].filter(Boolean).join(' — '),
+                                url: '',
+                                urls: [],
+                                relevance: 80,
+                                sources: ['Páginas Amarillas (directo)'],
+                                province: province,
+                                paPhone: pa.phone || '',
+                                paAddress: pa.address || '',
+                                paCity: pa.city || ''
+                            });
+                        }
+                    }
+                }
+
+                // 3b. Directorios indirectos (Infobel, Empresia, Einforma + PA fallback)
+                updateProgress('📋 Consultando directorios empresariales...', 'Infobel, Empresia, Einforma...');
                 const directorioQueries = [
-                    `site:paginasamarillas.es ${typeLabel} ${province}`,
                     `site:infobel.com ${typeLabel} ${province}`,
                     `site:empresia.es ${typeLabel} ${province}`,
                     `site:einforma.com estudio ${typeLabel} ${province}`
                 ];
+                // Si PA directo falló, añadir búsqueda indirecta via DuckDuckGo
+                if (!paResults || paResults.length === 0) {
+                    directorioQueries.unshift(`site:paginasamarillas.es ${typeLabel} ${province}`);
+                }
                 for (const query of directorioQueries) {
                     const results = await searchWeb(query);
                     await processSearchResults(results, foundStudios, province, 'Directorio empresarial', 65);
@@ -8858,21 +8917,27 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                         `site:archdaily.com arquitectos ${province} España`,
                         `site:plataformaarquitectura.cl ${province}`,
                         `site:dezeen.com architects ${province} Spain`,
-                        `site:arquitecturaviva.com ${province}`
+                        `site:arquitecturaviva.com ${province}`,
+                        `site:houzz.es arquitectos ${province}`,
+                        `site:habitissimo.es arquitectos ${province}`
                     ],
                     'ingenieria': [
                         `ingeniería civil ${province} consultora proyectos`,
-                        `colegio ingenieros caminos ${province} colegiados`
+                        `colegio ingenieros caminos ${province} colegiados`,
+                        `site:habitissimo.es ingenieros ${province}`
                     ],
                     'constructora': [
                         `constructora ${province} obras edificación`,
                         `empresa construcción ${province} obra civil infraestructuras`,
-                        `licitación obra ${province} adjudicatario constructora`
+                        `licitación obra ${province} adjudicatario constructora`,
+                        `site:houzz.es constructoras ${province}`,
+                        `site:habitissimo.es constructoras ${province}`
                     ],
                     'promotora': [
                         `promotora inmobiliaria ${province} obra nueva`,
                         `site:idealista.com promotora ${province}`,
-                        `promoción viviendas ${province} nueva construcción`
+                        `promoción viviendas ${province} nueva construcción`,
+                        `site:habitissimo.es promotoras ${province}`
                     ],
                     'regantes': [
                         `comunidad regantes ${province} modernización`,
@@ -9018,7 +9083,57 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                     // No bloquear la búsqueda si la IA falla (ej: sin créditos)
                 }
 
-                // 14. Procesar y ordenar resultados
+                // 14. Enriquecimiento web — visitar webs de los estudios encontrados
+                updateProgress('🌐 Enriqueciendo datos visitando webs...', 'Extrayendo emails, teléfonos y equipo');
+                try {
+                    // Filtrar estudios con URL válida (excluir LinkedIn, Instagram, PA, DUNS)
+                    const studiosWithUrl = Array.from(foundStudios.values())
+                        .filter(s => s.url && s.url.length > 5 &&
+                            !s.url.includes('linkedin.com') &&
+                            !s.url.includes('instagram.com') &&
+                            !s.url.includes('paginasamarillas.es') &&
+                            !s.url.includes('duns100000.com') &&
+                            !s.url.includes('facebook.com') &&
+                            !s.url.includes('infobel.com') &&
+                            !s.url.includes('empresia.es') &&
+                            !s.url.includes('einforma.com'))
+                        .sort((a, b) => b.relevance - a.relevance)
+                        .slice(0, 15);
+
+                    let enrichedCount = 0;
+                    for (const studio of studiosWithUrl) {
+                        try {
+                            const pageData = await fetchPageContentDeep(studio.url);
+                            if (pageData) {
+                                if (pageData.emails?.length > 0) studio.webEmails = pageData.emails;
+                                if (pageData.phones?.length > 0) studio.webPhones = pageData.phones;
+                                if (pageData.addresses?.length > 0) studio.webAddresses = pageData.addresses;
+                                if (pageData.people?.length > 0) studio.webPeople = pageData.people;
+                                if (pageData.social && Object.keys(pageData.social).length > 0) studio.webSocial = pageData.social;
+                                if (pageData.logo) studio.webLogo = pageData.logo;
+
+                                // Incrementar relevancia si encontramos datos reales
+                                if (pageData.emails?.length > 0 || pageData.phones?.length > 0) {
+                                    studio.relevance = Math.min(100, studio.relevance + 15);
+                                    enrichedCount++;
+                                }
+                                if (!studio.sources.includes('Web (enriquecido)')) {
+                                    studio.sources.push('Web (enriquecido)');
+                                }
+                            }
+                        } catch (e) {
+                            console.warn(`🌐 Error enriqueciendo ${studio.name}:`, e.message);
+                        }
+
+                        // Espera entre peticiones
+                        await new Promise(resolve => setTimeout(resolve, 1500));
+                    }
+                    console.log(`🌐 Enriquecidos ${enrichedCount} de ${studiosWithUrl.length} estudios con datos web`);
+                } catch (enrichErr) {
+                    console.warn('Error en enriquecimiento web:', enrichErr.message);
+                }
+
+                // 15. Procesar y ordenar resultados
                 updateProgress('✨ Procesando resultados...', `${foundStudios.size} estudios encontrados`);
 
                 // Convertir Map a array y ordenar por relevancia
@@ -9056,9 +9171,18 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                     if (result.url && !existing.urls.includes(result.url)) {
                         existing.urls.push(result.url);
                     }
+                    // Mergear campos enriquecidos si el resultado los tiene
+                    if (result.paPhone && !existing.paPhone) existing.paPhone = result.paPhone;
+                    if (result.paAddress && !existing.paAddress) existing.paAddress = result.paAddress;
+                    if (result.paCity && !existing.paCity) existing.paCity = result.paCity;
+                    if (result.webEmails?.length > 0 && !existing.webEmails) existing.webEmails = result.webEmails;
+                    if (result.webPhones?.length > 0 && !existing.webPhones) existing.webPhones = result.webPhones;
+                    if (result.webPeople?.length > 0 && !existing.webPeople) existing.webPeople = result.webPeople;
+                    if (result.webSocial && !existing.webSocial) existing.webSocial = result.webSocial;
+                    if (result.webLogo && !existing.webLogo) existing.webLogo = result.webLogo;
                 } else {
-                    // Nuevo estudio
-                    foundStudios.set(key, {
+                    // Nuevo estudio — incluir campos enriquecidos si existen
+                    const entry = {
                         name: studioName,
                         snippet: result.snippet || '',
                         url: result.url || '',
@@ -9066,7 +9190,18 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                         relevance: baseRelevance,
                         sources: [source],
                         province: province
-                    });
+                    };
+                    // Copiar campos PA si existen
+                    if (result.paPhone) entry.paPhone = result.paPhone;
+                    if (result.paAddress) entry.paAddress = result.paAddress;
+                    if (result.paCity) entry.paCity = result.paCity;
+                    // Copiar campos web enriquecidos si existen
+                    if (result.webEmails) entry.webEmails = result.webEmails;
+                    if (result.webPhones) entry.webPhones = result.webPhones;
+                    if (result.webPeople) entry.webPeople = result.webPeople;
+                    if (result.webSocial) entry.webSocial = result.webSocial;
+                    if (result.webLogo) entry.webLogo = result.webLogo;
+                    foundStudios.set(key, entry);
                 }
             }
         }
@@ -9118,7 +9253,99 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                 .replace(/[^a-z0-9]/g, '')
                 .substring(0, 30);
         }
-        
+
+        // ============================================
+        // SCRAPING DIRECTO DE PÁGINAS AMARILLAS
+        // ============================================
+        async function searchPaginasAmarillas(studioType, province, maxPages = 3) {
+            const category = PA_CATEGORY_MAP[studioType];
+            if (!category) {
+                console.log(`📒 PA: No hay categoría para tipo "${studioType}"`);
+                return null;
+            }
+
+            // Convertir nombre de provincia a slug para URL
+            const provinceSlug = province
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/\s+/g, '-');
+
+            const baseUrl = `https://www.paginasamarillas.es/a/${category}/${provinceSlug}/`;
+            const allResults = [];
+
+            try {
+                for (let page = 1; page <= maxPages; page++) {
+                    const url = page === 1 ? baseUrl : `${baseUrl}${page}`;
+                    console.log(`📒 PA: Cargando página ${page}... ${url}`);
+
+                    let html;
+                    try {
+                        html = await fetchWithProxy(url);
+                    } catch (e) {
+                        console.warn(`📒 PA: Error cargando página ${page}:`, e.message);
+                        if (page === 1) return null; // Si falla la primera página, abortar
+                        break;
+                    }
+
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+
+                    // Buscar listings con schema.org LocalBusiness
+                    const listings = doc.querySelectorAll('[itemtype*="LocalBusiness"]');
+                    if (listings.length === 0 && page === 1) {
+                        console.log('📒 PA: No se encontraron listings en la primera página');
+                        return null;
+                    }
+                    if (listings.length === 0) break;
+
+                    listings.forEach(listing => {
+                        const nameEl = listing.querySelector('[itemprop="name"]');
+                        const phoneEl = listing.querySelector('[itemprop="telephone"]');
+                        const addressEl = listing.querySelector('[itemprop="streetAddress"]');
+                        const cityEl = listing.querySelector('[itemprop="addressLocality"]');
+
+                        const name = nameEl?.textContent?.trim();
+                        if (!name || name.length < 3) return;
+
+                        allResults.push({
+                            name: name,
+                            phone: phoneEl?.textContent?.trim() || '',
+                            address: addressEl?.textContent?.trim() || '',
+                            city: cityEl?.textContent?.trim() || '',
+                            paUrl: url
+                        });
+                    });
+
+                    console.log(`📒 PA: Página ${page} → ${listings.length} resultados (total: ${allResults.length})`);
+
+                    // Verificar si hay más páginas
+                    const paginationLinks = doc.querySelectorAll('.pagination a, [class*="paginat"] a, nav a[href*="/' + provinceSlug + '/"]');
+                    const hasNextPage = Array.from(paginationLinks).some(a => {
+                        const href = a.getAttribute('href') || '';
+                        return href.includes(`/${page + 1}`) || a.textContent.trim() === String(page + 1);
+                    });
+
+                    if (!hasNextPage && page < maxPages) {
+                        console.log(`📒 PA: No hay más páginas después de la ${page}`);
+                        break;
+                    }
+
+                    // Espera entre páginas para no saturar
+                    if (page < maxPages) {
+                        await new Promise(resolve => setTimeout(resolve, 1500));
+                    }
+                }
+
+                console.log(`📒 PA directo: ${allResults.length} empresas encontradas en ${province}`);
+                return allResults.length > 0 ? allResults : null;
+
+            } catch (error) {
+                console.error('📒 PA: Error general en scraping:', error);
+                return null;
+            }
+        }
+
         function getCityForProvince(province) {
             const capitals = {
                 'Albacete': 'Albacete',
@@ -9178,12 +9405,26 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                                 ${getRelevanceBadge(studio.relevance)}
                             </div>
                             <p style="margin:0 0 8px 0;font-size:0.9rem;color:var(--muted);line-height:1.4;">${escapeHtml(studio.snippet.substring(0, 150))}${studio.snippet.length > 150 ? '...' : ''}</p>
+                            ${(studio.paPhone || studio.paCity || studio.paAddress) ? `
+                            <div style="margin:0 0 6px 0;font-size:0.82rem;color:#78350f;background:#fef9c3;padding:4px 8px;border-radius:4px;display:flex;flex-wrap:wrap;gap:8px;">
+                                ${studio.paPhone ? `<span>📞 ${escapeHtml(studio.paPhone)}</span>` : ''}
+                                ${studio.paCity ? `<span>📍 ${escapeHtml(studio.paCity)}</span>` : ''}
+                                ${studio.paAddress ? `<span>🏠 ${escapeHtml(studio.paAddress)}</span>` : ''}
+                            </div>` : ''}
+                            ${(studio.webEmails?.length > 0 || studio.webPeople?.length > 0) ? `
+                            <div style="margin:0 0 6px 0;font-size:0.82rem;color:#064e3b;background:#d1fae5;padding:4px 8px;border-radius:4px;display:flex;flex-wrap:wrap;gap:8px;">
+                                ${studio.webEmails?.length > 0 ? `<span>✉️ ${escapeHtml(studio.webEmails[0])}</span>` : ''}
+                                ${studio.webPhones?.length > 0 ? `<span>📞 ${escapeHtml(studio.webPhones[0])}</span>` : ''}
+                                ${studio.webPeople?.length > 0 ? `<span>👥 ${studio.webPeople.slice(0, 2).map(p => escapeHtml(p.name || p) + (p.role ? ' (' + escapeHtml(p.role) + ')' : '')).join(', ')}</span>` : ''}
+                            </div>` : ''}
                             <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
                                 ${studio.sources.map(src => {
                                     let bg = 'var(--primary-light)', fg = 'var(--primary)';
                                     if (src.includes('IA')) { bg = '#f3e8ff'; fg = '#7c3aed'; }
                                     else if (src.includes('DUNS') && src.includes('directo')) { bg = '#d97706'; fg = '#fff'; }
                                     else if (src.includes('DUNS')) { bg = '#fef3c7'; fg = '#b45309'; }
+                                    else if (src.includes('Páginas Amarillas')) { bg = '#fbbf24'; fg = '#78350f'; }
+                                    else if (src.includes('Web (enriquecido)')) { bg = '#34d399'; fg = '#064e3b'; }
                                     return `<span style="background:${bg};color:${fg};padding:2px 8px;border-radius:4px;font-size:0.75rem;">${escapeHtml(src)}</span>`;
                                 }).join('')}
                             </div>
@@ -9332,91 +9573,219 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
         }
         
         async function generateStudioFromBulk(name, url, province, studioType) {
-            // Esta función usa la lógica existente de generación pero con parámetros directos
-            
             debugLog('Generando desde búsqueda masiva: ' + name);
-            
+
             let webData = '';
-            let deepAnalysisData = null;
+            let deepAnalysis = null;
             let providedUrl = url;
-            
-            // Si hay URL, analizarla primero
+
+            // 1. Buscar datos enriquecidos del bulkSearchResults
+            const bulkKey = normalizeStudioKey(name);
+            const bulkData = bulkSearchResults.find(s => normalizeStudioKey(s.name) === bulkKey);
+            const paPhone = bulkData?.paPhone || '';
+            const paAddress = bulkData?.paAddress || '';
+            const paCity = bulkData?.paCity || '';
+            const webEmails = bulkData?.webEmails || [];
+            const webPhones = bulkData?.webPhones || [];
+            const webPeople = bulkData?.webPeople || [];
+            const webSocial = bulkData?.webSocial || {};
+            const webLogo = bulkData?.webLogo || null;
+
+            // 2. Análisis profundo del sitio web (con subpáginas)
             if (providedUrl) {
                 try {
-                    const pageContent = await fetchPageContentDeep(providedUrl);
-                    if (pageContent.text && pageContent.text.length > 100) {
-                        if (pageContent.logo) {
-                            deepAnalysisData = { logo: pageContent.logo };
+                    deepAnalysis = await deepAnalyzeWebsite(providedUrl);
+                    if (deepAnalysis) {
+                        if (deepAnalysis.structuredData?.name) {
+                            name = deepAnalysis.structuredData.name;
                         }
-                        if (pageContent.structuredData?.name) {
-                            name = pageContent.structuredData.name;
-                        }
-                        webData += `\n=== ANÁLISIS DE LA WEB ===\n`;
+                        webData += `\n=== ANÁLISIS PROFUNDO DE LA WEB ===\n`;
                         webData += `URL: ${providedUrl}\n`;
-                        if (pageContent.emails?.length > 0) webData += `EMAILS: ${pageContent.emails.join(', ')}\n`;
-                        if (pageContent.phones?.length > 0) webData += `TELÉFONOS: ${pageContent.phones.join(', ')}\n`;
-                        if (pageContent.addresses?.length > 0) webData += `DIRECCIONES: ${pageContent.addresses.join('; ')}\n`;
-                        webData += `\n${pageContent.text.substring(0, 3000)}\n`;
+                        if (deepAnalysis.allEmails?.length > 0) webData += `EMAILS: ${[...new Set(deepAnalysis.allEmails)].join(', ')}\n`;
+                        if (deepAnalysis.allPhones?.length > 0) webData += `TELÉFONOS: ${[...new Set(deepAnalysis.allPhones)].join(', ')}\n`;
+                        if (deepAnalysis.allAddresses?.length > 0) webData += `DIRECCIONES: ${[...new Set(deepAnalysis.allAddresses)].join('; ')}\n`;
+                        if (deepAnalysis.socialLinks && Object.keys(deepAnalysis.socialLinks).length > 0) {
+                            webData += `REDES SOCIALES: ${Object.entries(deepAnalysis.socialLinks).map(([k,v]) => `${k}: ${v}`).join(', ')}\n`;
+                        }
+                        if (deepAnalysis.mainPage) webData += `\n${deepAnalysis.mainPage.substring(0, 2000)}\n`;
+                        if (deepAnalysis.contactPage) webData += `\n=== PÁGINA CONTACTO ===\n${deepAnalysis.contactPage.substring(0, 1000)}\n`;
+                        if (deepAnalysis.aboutPage) webData += `\n=== PÁGINA ABOUT ===\n${deepAnalysis.aboutPage.substring(0, 1000)}\n`;
+                        if (deepAnalysis.teamPage) webData += `\n=== PÁGINA EQUIPO ===\n${deepAnalysis.teamPage.substring(0, 1000)}\n`;
                     }
                 } catch (e) {
-                    debugLog('Error analizando URL: ' + e.message);
+                    debugLog('Error en análisis profundo, intentando fetch simple: ' + e.message);
+                    try {
+                        const pageContent = await fetchPageContentDeep(providedUrl);
+                        if (pageContent.text && pageContent.text.length > 100) {
+                            deepAnalysis = {
+                                allEmails: pageContent.emails || [],
+                                allPhones: pageContent.phones || [],
+                                allAddresses: pageContent.addresses || [],
+                                socialLinks: pageContent.social || {},
+                                logo: pageContent.logo || null,
+                                structuredData: pageContent.structured || {}
+                            };
+                            webData += `\n=== ANÁLISIS DE LA WEB ===\n`;
+                            webData += `URL: ${providedUrl}\n`;
+                            if (pageContent.emails?.length > 0) webData += `EMAILS: ${pageContent.emails.join(', ')}\n`;
+                            if (pageContent.phones?.length > 0) webData += `TELÉFONOS: ${pageContent.phones.join(', ')}\n`;
+                            webData += `\n${pageContent.text.substring(0, 3000)}\n`;
+                        }
+                    } catch (e2) {
+                        debugLog('Error también en fetch simple: ' + e2.message);
+                    }
                 }
             }
-            
-            // Búsquedas adicionales
+
+            // Añadir datos de PA al webData para que Claude los use
+            if (paPhone || paAddress || paCity) {
+                webData += `\n=== DATOS DE PÁGINAS AMARILLAS ===\n`;
+                if (paPhone) webData += `TELÉFONO PA: ${paPhone}\n`;
+                if (paAddress) webData += `DIRECCIÓN PA: ${paAddress}\n`;
+                if (paCity) webData += `CIUDAD PA: ${paCity}\n`;
+            }
+
+            // 3. Buscar empleados en LinkedIn
+            let linkedInEmployees = [];
+            try {
+                linkedInEmployees = await searchLinkedInEmployees(name, province);
+                if (linkedInEmployees.length > 0) {
+                    debugLog(`LinkedIn: ${linkedInEmployees.length} empleados encontrados para ${name}`);
+                    webData += `\n=== EMPLEADOS LINKEDIN ===\n`;
+                    linkedInEmployees.forEach(emp => {
+                        webData += `- ${emp.name} (${emp.role}) ${emp.linkedin || ''}\n`;
+                    });
+                }
+            } catch (e) {
+                debugLog('Error buscando empleados LinkedIn: ' + e.message);
+            }
+
+            // 4. Búsquedas adicionales en DuckDuckGo
             const mainSearch = await searchWeb(`"${name}" ${studioType} ${province}`);
             const contactSearch = await searchWeb(`"${name}" ${province} teléfono email contacto`);
-            
+
             webData += '\n=== RESULTADOS DE BÚSQUEDA ===\n';
             [...mainSearch, ...contactSearch].forEach(r => {
                 webData += `- ${r.title}: ${r.snippet}\n`;
             });
-            
-            // Generar análisis con Claude
-            const analysisPrompt = buildAnalysisPrompt(name, province, studioType, webData, null);
-            
-            const data = await callClaudeAPI([{ role: 'user', content: analysisPrompt }]);
-            const analysisText = data.content[0].text;
 
-            // Parsear respuesta
-            const analysis = parseAnalysisResponse(analysisText);
-            
-            // Crear objeto de estudio
+            // 5. Intentar Claude API (método principal)
+            let analysis = null;
+            try {
+                const analysisPrompt = buildAnalysisPrompt(name, province, studioType, webData, null);
+                const data = await callClaudeAPI([{ role: 'user', content: analysisPrompt }]);
+                const analysisText = data.content[0].text;
+                analysis = parseAnalysisResponse(analysisText);
+                debugLog('Claude API: análisis completado para ' + name);
+            } catch (aiErr) {
+                debugLog('Claude API no disponible: ' + aiErr.message + ' — usando fallback');
+            }
+
+            // 6. Construir studioData con cascada de datos
+            // Combinar equipo de todas las fuentes
+            const allTeam = [];
+            // Equipo de Claude IA (si disponible)
+            if (analysis?.equipo?.length > 0) {
+                allTeam.push(...analysis.equipo);
+            }
+            // Equipo de LinkedIn
+            if (linkedInEmployees.length > 0) {
+                for (const emp of linkedInEmployees) {
+                    const exists = allTeam.some(t =>
+                        (t.name || t.nombre || '').toLowerCase() === emp.name.toLowerCase()
+                    );
+                    if (!exists) {
+                        allTeam.push({ nombre: emp.name, cargo: emp.role, linkedin: emp.linkedin || '' });
+                    }
+                }
+            }
+            // Equipo de deep analysis / web enrichment
+            const deepPeople = deepAnalysis?.mainPage ? [] : []; // People from deep analyze are in webData
+            if (webPeople.length > 0) {
+                for (const person of webPeople) {
+                    const pName = person.name || person.nombre || '';
+                    if (!pName) continue;
+                    const exists = allTeam.some(t =>
+                        (t.name || t.nombre || '').toLowerCase() === pName.toLowerCase()
+                    );
+                    if (!exists) {
+                        allTeam.push({ nombre: pName, cargo: person.role || person.cargo || 'Profesional' });
+                    }
+                }
+            }
+
+            // Determinar mejor email con cascada
+            const bestEmail = analysis?.email ||
+                (deepAnalysis?.allEmails?.length > 0 ? deepAnalysis.allEmails[0] : '') ||
+                (webEmails.length > 0 ? webEmails[0] : '') || '';
+
+            // Determinar mejor teléfono con cascada (PA primero)
+            const bestPhone = paPhone || analysis?.telefono ||
+                (deepAnalysis?.allPhones?.length > 0 ? deepAnalysis.allPhones[0] : '') ||
+                (webPhones.length > 0 ? webPhones[0] : '') || '';
+
+            // Determinar mejor dirección con cascada (PA primero)
+            const bestAddress = paAddress || analysis?.direccion ||
+                (deepAnalysis?.allAddresses?.length > 0 ? deepAnalysis.allAddresses[0] : '') || '';
+
+            // Determinar ciudad
+            const bestCity = analysis?.ciudad || paCity || '';
+
+            // Social links
+            const bestLinkedin = analysis?.linkedin ||
+                deepAnalysis?.socialLinks?.linkedin || webSocial?.linkedin || '';
+            const bestInstagram = analysis?.instagram ||
+                deepAnalysis?.socialLinks?.instagram || webSocial?.instagram || '';
+
+            // Logo
+            const bestLogo = deepAnalysis?.logo || webLogo || null;
+
+            // Tipo label para resumen genérico
+            const typeConfig = {
+                'arquitectura': 'arquitectura', 'ingenieria': 'ingeniería',
+                'constructora': 'construcción', 'promotora': 'promoción inmobiliaria',
+                'regantes': 'comunidades de regantes', 'aguas': 'gestión de aguas',
+                'aapp': 'administración pública', 'otros': 'servicios profesionales'
+            };
+            const typeLabel = typeConfig[studioType] || studioType;
+
             const studioData = {
-                name: analysis.nombreEstudio || name,
+                name: analysis?.nombreEstudio || name,
                 province: province,
-                city: analysis.ciudad || '',
+                city: bestCity,
                 type: studioType,
                 status: 'nuevo',
                 priority: 'Media',
                 data: {
                     contact: {
-                        email: analysis.email || '',
-                        phone: analysis.telefono || '',
-                        web: analysis.web || providedUrl || '',
-                        address: analysis.direccion || '',
-                        linkedin: analysis.linkedin || '',
-                        instagram: analysis.instagram || ''
+                        email: bestEmail,
+                        phone: bestPhone,
+                        web: analysis?.web || providedUrl || '',
+                        address: bestAddress,
+                        linkedin: bestLinkedin,
+                        instagram: bestInstagram
                     },
-                    team: analysis.equipo || [],
-                    projects: analysis.proyectos || [],
-                    specialties: analysis.especialidades || [],
+                    team: allTeam,
+                    projects: analysis?.proyectos || [],
+                    specialties: analysis?.especialidades || [],
                     analysis: {
-                        summary: analysis.resumen || '',
-                        strengths: analysis.fortalezas || [],
-                        approach: analysis.enfoque || '',
-                        salesStrategy: analysis.estrategiaVenta || ''
+                        summary: analysis?.resumen || `Estudio de ${typeLabel} en ${bestCity || province}.`,
+                        strengths: analysis?.fortalezas || [],
+                        approach: analysis?.enfoque || '',
+                        salesStrategy: analysis?.estrategiaVenta || ''
                     },
-                    logo: deepAnalysisData?.logo || null
+                    logo: bestLogo
                 },
                 created: new Date().toISOString(),
                 updated: new Date().toISOString()
             };
-            
+
             // Guardar en la base de datos
             await addStudio(studioData);
-            
-            debugLog('Estudio guardado: ' + studioData.name);
+
+            debugLog('Estudio guardado: ' + studioData.name +
+                (analysis ? ' (con IA)' : ' (fallback sin IA)') +
+                ` — email: ${bestEmail || 'N/A'}, tel: ${bestPhone || 'N/A'}, equipo: ${allTeam.length}`);
         }
 
 
@@ -14209,100 +14578,203 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             const studio = await getStudio(studioId);
             if (!studio) {
                 showNotification('❌ Estudio no encontrado', 'error');
-                return { success: false, emails: [] };
+                return { success: false, emails: [], noEmails: true };
             }
-            
-            // Obtener email del estudio
-            const email = studio.data?.contact?.email || '';
-            
-            if (!email) {
-                showNotification('⚠️ Este estudio no tiene email configurado', 'warning');
-                return { success: false, emails: [] };
+
+            // Recopilar TODOS los emails del estudio: principal + equipo
+            const emailMap = new Map(); // email → { email, contactName, contactRole, isPrimary }
+
+            // Email principal del estudio
+            const primaryEmail = (studio.data?.contact?.email || '').trim().toLowerCase();
+            if (primaryEmail) {
+                emailMap.set(primaryEmail, {
+                    email: primaryEmail,
+                    contactName: studio.name || 'Principal',
+                    contactRole: 'Email principal',
+                    isPrimary: true
+                });
             }
-            
+
+            // Emails de cada miembro del equipo
+            const team = studio.data?.team || [];
+            team.forEach(member => {
+                const memberEmail = (member.email || '').trim().toLowerCase();
+                if (memberEmail && !emailMap.has(memberEmail)) {
+                    emailMap.set(memberEmail, {
+                        email: memberEmail,
+                        contactName: member.name || 'Contacto',
+                        contactRole: member.role || '',
+                        isPrimary: false
+                    });
+                }
+            });
+
+            const emailEntries = Array.from(emailMap.values());
+
+            if (emailEntries.length === 0) {
+                showNotification('⚠️ Este estudio no tiene ningún email configurado (ni principal ni en equipo)', 'warning');
+                return { success: false, emails: [], noEmails: true, emailAddresses: [] };
+            }
+
             if (!useCloudStorage) {
                 showNotification('⚠️ La búsqueda de emails requiere sincronización cloud activa', 'warning');
-                return { success: false, emails: [] };
+                return { success: false, emails: [], emailAddresses: emailEntries.map(e => e.email) };
             }
-            
+
+            console.log(`📧 Buscando emails para ${emailEntries.length} direcciones:`, emailEntries.map(e => e.email));
+
             try {
-                const result = await callAPI('gmail', {
-                    gmailAction: 'getEmails',
-                    gmailParams: { email: email, maxResults: 30 }
-                });
-                
-                if (!result.success) {
-                    throw new Error(result.error || 'Error desconocido');
-                }
-                
-                // Combinar enviados y recibidos en una sola lista
+                // Llamar a la API en paralelo para cada dirección de email
+                const apiPromises = emailEntries.map(entry =>
+                    callAPI('gmail', {
+                        gmailAction: 'getEmails',
+                        gmailParams: { email: entry.email, maxResults: 30 }
+                    }).then(result => ({ ...result, matchedEntry: entry }))
+                      .catch(err => ({ success: false, error: err.message, matchedEntry: entry }))
+                );
+
+                const results = await Promise.allSettled(apiPromises);
+
+                // Combinar todos los emails de todas las direcciones
                 const allEmails = [];
-                
-                // Añadir emails enviados
-                if (result.data?.sent) {
-                    result.data.sent.forEach(e => {
-                        allEmails.push({
-                            ...e,
-                            isSent: true,
-                            direction: 'sent'
+                const seenThreads = new Set(); // Para deduplicar por threadId
+                let totalSent = 0;
+                let totalReceived = 0;
+
+                results.forEach(settled => {
+                    if (settled.status !== 'fulfilled') return;
+                    const result = settled.value;
+                    if (!result.success) {
+                        console.warn(`⚠️ Error buscando emails de ${result.matchedEntry.email}:`, result.error);
+                        return;
+                    }
+
+                    const entry = result.matchedEntry;
+
+                    // Emails enviados
+                    if (result.data?.sent) {
+                        result.data.sent.forEach(e => {
+                            const threadKey = e.threadId || (e.subject + e.date);
+                            if (!seenThreads.has(threadKey)) {
+                                seenThreads.add(threadKey);
+                                allEmails.push({
+                                    ...e,
+                                    isSent: true,
+                                    direction: 'sent',
+                                    matchedEmail: entry.email,
+                                    matchedContactName: entry.contactName,
+                                    matchedContactRole: entry.contactRole,
+                                    matchedIsPrimary: entry.isPrimary
+                                });
+                                totalSent++;
+                            }
                         });
-                    });
-                }
-                
-                // Añadir emails recibidos
-                if (result.data?.received) {
-                    result.data.received.forEach(e => {
-                        allEmails.push({
-                            ...e,
-                            isSent: false,
-                            direction: 'received'
+                    }
+
+                    // Emails recibidos
+                    if (result.data?.received) {
+                        result.data.received.forEach(e => {
+                            const threadKey = e.threadId || (e.subject + e.date);
+                            if (!seenThreads.has(threadKey)) {
+                                seenThreads.add(threadKey);
+                                allEmails.push({
+                                    ...e,
+                                    isSent: false,
+                                    direction: 'received',
+                                    matchedEmail: entry.email,
+                                    matchedContactName: entry.contactName,
+                                    matchedContactRole: entry.contactRole,
+                                    matchedIsPrimary: entry.isPrimary
+                                });
+                                totalReceived++;
+                            }
                         });
-                    });
-                }
-                
+                    }
+                });
+
                 // Ordenar por fecha descendente
                 allEmails.sort((a, b) => new Date(b.date) - new Date(a.date));
-                
-                return { 
-                    success: true, 
+
+                console.log(`📧 Total: ${allEmails.length} emails (${totalSent} enviados, ${totalReceived} recibidos) de ${emailEntries.length} direcciones`);
+
+                return {
+                    success: true,
                     emails: allEmails,
                     stats: {
-                        sent: result.data?.sent?.length || 0,
-                        received: result.data?.received?.length || 0,
+                        sent: totalSent,
+                        received: totalReceived,
                         total: allEmails.length
-                    }
+                    },
+                    emailAddresses: emailEntries
                 };
-                
+
             } catch (error) {
                 console.error('Error buscando emails:', error);
                 showNotification('❌ Error al buscar emails: ' + error.message, 'error');
-                return { success: false, emails: [] };
+                return { success: false, emails: [], emailAddresses: emailEntries };
             }
         }
 
         async function mostrarEmailsEstudio(studioId) {
             const container = document.getElementById('studio-emails-container');
             if (!container) return;
-            
-            container.innerHTML = '<div style="text-align:center;padding:30px;"><div class="spinner" style="margin:0 auto;"></div><p style="margin-top:10px;color:var(--muted);">🔍 Buscando emails en Gmail...</p></div>';
-            
+
+            // Obtener estudio para contar emails antes de buscar
+            const studioPreview = await getStudio(studioId);
+            const previewEmails = [];
+            if (studioPreview?.data?.contact?.email) previewEmails.push(studioPreview.data.contact.email);
+            (studioPreview?.data?.team || []).forEach(m => { if (m.email) previewEmails.push(m.email); });
+            const numDirecciones = [...new Set(previewEmails.map(e => e.trim().toLowerCase()).filter(Boolean))].length;
+
+            container.innerHTML = '<div style="text-align:center;padding:30px;"><div class="spinner" style="margin:0 auto;"></div><p style="margin-top:10px;color:var(--muted);">🔍 Buscando emails de ' + (numDirecciones || '?') + ' ' + (numDirecciones === 1 ? 'dirección' : 'direcciones') + ' en Gmail...</p></div>';
+
             const result = await buscarEmailsEstudio(studioId);
-            
+
+            // Estado vacío: sin emails configurados
+            if (result.noEmails) {
+                container.innerHTML = `
+                    <div style="text-align:center;padding:30px;color:var(--muted);">
+                        <div style="font-size:3rem;margin-bottom:16px;">📭</div>
+                        <p style="font-size:1.1rem;margin-bottom:8px;">Este estudio no tiene emails configurados</p>
+                        <p style="font-size:0.85rem;">Añade un email en la pestaña <strong>Info</strong> (email principal) o en <strong>Equipo</strong> (contactos) para ver el historial de correos.</p>
+                    </div>`;
+                return;
+            }
+
+            // Estado vacío: hay emails pero no se encontraron correos
             if (!result || !result.success || !result.emails || result.emails.length === 0) {
+                const addressChips = (result.emailAddresses || []).map(e =>
+                    '<span style="display:inline-block;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:2px 10px;font-size:0.75rem;color:var(--muted);">' + (e.email || e) + '</span>'
+                ).join(' ');
                 container.innerHTML = `
                     <div style="text-align:center;padding:30px;color:var(--muted);">
                         <div style="font-size:3rem;margin-bottom:16px;">📭</div>
                         <p style="font-size:1.1rem;margin-bottom:8px;">No se encontraron emails con este estudio</p>
-                        <p style="font-size:0.85rem;">Los emails aparecerán aquí cuando envíes o recibas correos del estudio</p>
+                        <p style="font-size:0.85rem;margin-bottom:12px;">Se buscaron correos de: ${addressChips || 'ninguna dirección'}</p>
+                        <p style="font-size:0.8rem;">Los emails aparecerán aquí cuando envíes o recibas correos de estas direcciones</p>
                     </div>`;
                 return;
             }
-            
+
             // Estadísticas
             const stats = result.stats || { sent: 0, received: 0, total: result.emails.length };
-            
+            const emailAddresses = result.emailAddresses || [];
+
+            // Badges de direcciones buscadas
+            const addressBadges = emailAddresses.map(function(entry) {
+                var isPrimary = entry.isPrimary;
+                var bgColor = isPrimary ? 'var(--primary-light)' : '#FEF3C7';
+                var textColor = isPrimary ? 'var(--primary)' : '#92400E';
+                var label = entry.email;
+                if (!isPrimary && entry.contactName) {
+                    label = entry.contactName + ' &lt;' + entry.email + '&gt;';
+                }
+                var icon = isPrimary ? '🏢' : '👤';
+                return '<span style="display:inline-flex;align-items:center;gap:4px;background:' + bgColor + ';color:' + textColor + ';border-radius:16px;padding:3px 10px;font-size:0.75rem;white-space:nowrap;">' + icon + ' ' + label + '</span>';
+            }).join(' ');
+
             container.innerHTML = `
-                <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+                <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
                     <div style="flex:1;min-width:100px;background:var(--primary-light);padding:12px 16px;border-radius:8px;text-align:center;">
                         <div style="font-size:1.5rem;font-weight:bold;color:var(--primary);">${stats.total}</div>
                         <div style="font-size:0.8rem;color:var(--muted);">Total emails</div>
@@ -14316,6 +14788,10 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                         <div style="font-size:0.8rem;color:var(--muted);">📥 Recibidos</div>
                     </div>
                 </div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;padding:8px 12px;background:var(--bg-secondary);border-radius:8px;">
+                    <span style="font-size:0.75rem;color:var(--muted);display:flex;align-items:center;margin-right:4px;">🔍 Buscando en:</span>
+                    ${addressBadges}
+                </div>
                 <div id="emails-list-container">
                     ${result.emails.map(function(email) {
                         var fecha = new Date(email.date);
@@ -14324,17 +14800,24 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                         var colorBorde = email.isSent ? 'var(--success)' : 'var(--info)';
                         var colorFondo = email.isRead ? 'var(--bg-secondary)' : 'white';
                         var attachIcon = email.hasAttachments ? '📎' : '';
-                        
+
+                        // Info del contacto asociado
+                        var contactTag = '';
+                        if (!email.matchedIsPrimary && email.matchedContactName) {
+                            contactTag = '<span style="display:inline-flex;align-items:center;gap:3px;background:#FEF3C7;color:#92400E;border-radius:10px;padding:1px 8px;font-size:0.7rem;margin-left:6px;">👤 ' + email.matchedContactName + '</span>';
+                        }
+
                         return '<div class="email-item" onclick="verDetalleEmail(\'' + email.threadId + '\')" style="' +
                             'background:' + colorFondo + ';border:1px solid var(--border);border-left:4px solid ' + colorBorde + ';border-radius:8px;padding:12px 16px;margin-bottom:10px;cursor:pointer;transition:all 0.2s;' +
                             '" onmouseover="this.style.transform=\'translateX(4px)\';this.style.boxShadow=\'0 2px 8px rgba(0,0,0,0.1)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'none\'">' +
                             '<div style="display:flex;justify-content:space-between;align-items:start;gap:12px;">' +
                                 '<div style="flex:1;min-width:0;">' +
-                                    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+                                    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">' +
                                         '<span style="font-size:1.1rem;">' + iconoTipo + '</span>' +
-                                        '<span style="font-weight:' + (email.isRead ? 'normal' : '600') + ';font-size:0.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);">' + 
+                                        '<span style="font-weight:' + (email.isRead ? 'normal' : '600') + ';font-size:0.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);">' +
                                             (email.subject || '(Sin asunto)') + ' ' + attachIcon +
                                         '</span>' +
+                                        contactTag +
                                     '</div>' +
                                     '<div style="font-size:0.8rem;color:var(--muted);margin-bottom:6px;">' +
                                         (email.isSent ? '<strong>Para:</strong> ' + email.to : '<strong>De:</strong> ' + email.from) +
@@ -16565,13 +17048,17 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             document.getElementById('new-studio-body').innerHTML = `
                 <div style="background:linear-gradient(135deg,#eff6ff,#eef2ff);border-radius:10px;padding:16px;margin-bottom:16px;">
                     <p style="margin:0 0 8px 0;font-size:0.9rem;color:#1e40af;">
-                        🌐 Busca estudios y empresas por internet. El CRM rastreará <strong>14 fuentes</strong> incluyendo colegios profesionales, directorios, DUNS 100000, portales especializados e IA.
+                        🌐 Busca estudios y empresas por internet. El CRM rastreará <strong>16 fuentes</strong> incluyendo Páginas Amarillas directo, colegios profesionales, DUNS 100000, Houzz, Habitissimo, portales especializados, enriquecimiento web e IA.
                     </p>
                     <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <span style="background:#fbbf24;color:#78350f;padding:2px 8px;border-radius:4px;font-size:0.72rem;">Páginas Amarillas</span>
                         <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:0.72rem;">DuckDuckGo</span>
                         <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:0.72rem;">DUNS 100000</span>
                         <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:0.72rem;">LinkedIn</span>
+                        <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:0.72rem;">Houzz</span>
+                        <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:0.72rem;">Habitissimo</span>
                         <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:0.72rem;">Portales sector</span>
+                        <span style="background:#34d399;color:#064e3b;padding:2px 8px;border-radius:4px;font-size:0.72rem;">Web scraping</span>
                         <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:0.72rem;">Claude IA</span>
                         <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:0.72rem;">Google Maps</span>
                     </div>
