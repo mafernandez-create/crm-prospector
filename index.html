@@ -4904,7 +4904,20 @@
             indicator.id = 'storage-indicator';
             indicator.style.cssText = 'position:fixed;bottom:10px;left:10px;padding:6px 12px;border-radius:20px;font-size:0.75rem;font-weight:600;z-index:9999;display:flex;align-items:center;gap:6px;cursor:pointer;';
             
-            if (type === 'cloud') {
+            if (type === 'firebase') {
+                indicator.style.background = '#fff3e0';
+                indicator.style.color = '#e65100';
+                indicator.innerHTML = '🔥 Firebase <span style="text-decoration:underline;">Sincronizar</span>';
+                indicator.onclick = async () => {
+                    indicator.innerHTML = '🔥 Sincronizando...';
+                    await syncFromFirebase();
+                    await loadStudios();
+                    indicator.innerHTML = '🔥 Firebase ✓';
+                    setTimeout(() => {
+                        indicator.innerHTML = '🔥 Firebase <span style="text-decoration:underline;">Sincronizar</span>';
+                    }, 2000);
+                };
+            } else if (type === 'cloud') {
                 indicator.style.background = '#e0f2fe';
                 indicator.style.color = '#0284c7';
                 indicator.innerHTML = '☁️ Google Drive <span style="text-decoration:underline;">Sincronizar</span>';
@@ -5237,8 +5250,8 @@
         }
 
         async function getStudio(id) {
-            // CLOUD: usar caché local
-            if (useCloudStorage) {
+            // CLOUD / FIREBASE: usar caché local
+            if (useCloudStorage || useFirebase) {
                 return cloudCache.studios.find(s => s.id == id) || null;
             }
             
