@@ -4619,7 +4619,91 @@
                 return false;
             }
         }
-        
+
+        // ─── FIREBASE FUNCTIONS ───────────────────────────────────
+
+        async function initFirebase() {
+            if (!FIREBASE_CONFIG) return false;
+            try {
+                if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+                firestoreDB = firebase.firestore();
+                try { await firestoreDB.enablePersistence({ synchronizeTabs: true }); }
+                catch(e) { console.warn('Firebase persistencia:', e.code); }
+                await firestoreDB.collection('_meta').doc('ping').set({ ts: Date.now() });
+                return true;
+            } catch(e) {
+                console.warn('Firebase no disponible:', e.message);
+                return false;
+            }
+        }
+
+        async function syncFromFirebase() {
+            try {
+                const [studiosSnap, activitiesSnap, countersSnap] = await Promise.all([
+                    firestoreDB.collection('studios').get(),
+                    firestoreDB.collection('activities').get(),
+                    firestoreDB.collection('_meta').doc('counters').get()
+                ]);
+                cloudCache.studios = studiosSnap.docs.map(d => d.data());
+                cloudCache.activities = activitiesSnap.docs.map(d => d.data());
+                cloudCache.lastSync = new Date().toISOString();
+                if (countersSnap.exists) {
+                    const c = countersSnap.data();
+                    localData.nextStudioId = c.nextStudioId || 1;
+                    localData.nextActivityId = c.nextActivityId || 1;
+                }
+                localData.studios = JSON.parse(JSON.stringify(cloudCache.studios));
+                localData.activities = JSON.parse(JSON.stringify(cloudCache.activities));
+                saveToLocalStorage();
+                console.log(`🔥 Firebase sync: ${cloudCache.studios.length} estudios, ${cloudCache.activities.length} actividades`);
+                return true;
+            } catch(e) {
+                console.error('Error sync Firebase:', e);
+                return false;
+            }
+        }
+
+        async function getNextFirebaseId(collection) {
+            const field = collection === 'studios' ? 'nextStudioId' : 'nextActivityId';
+            const counterRef = firestoreDB.collection('_meta').doc('counters');
+            return firestoreDB.runTransaction(async t => {
+                const doc = await t.get(counterRef);
+                const currentId = doc.exists ? (doc.data()[field] || 1) : 1;
+                t.set(counterRef, { [field]: currentId + 1 }, { merge: true });
+                return currentId;
+            });
+        }
+
+        async function migrarAFirebase() {
+            if (!useFirebase) {
+                showNotification('⚠️ Firebase no está activo. Configura FIREBASE_CONFIG primero.', 'warning');
+                return;
+            }
+            const studios = localData.studios.length > 0 ? localData.studios : await getAllStudios();
+            const activities = localData.activities.length > 0 ? localData.activities : await getAllActivities();
+            if (!confirm(`¿Migrar ${studios.length} estudios y ${activities.length} actividades a Firebase?\n\nEsto puede tardar 1-2 minutos.`)) return;
+
+            const BATCH = 400;
+            for (let i = 0; i < studios.length; i += BATCH) {
+                const batch = firestoreDB.batch();
+                studios.slice(i, i + BATCH).forEach(s => batch.set(firestoreDB.collection('studios').doc(String(s.id)), s));
+                await batch.commit();
+                showNotification(`🔥 Migrado ${Math.min(i + BATCH, studios.length)}/${studios.length} estudios...`, 'info');
+            }
+            for (let i = 0; i < activities.length; i += BATCH) {
+                const batch = firestoreDB.batch();
+                activities.slice(i, i + BATCH).forEach(a => batch.set(firestoreDB.collection('activities').doc(String(a.id)), a));
+                await batch.commit();
+            }
+            const maxS = Math.max(...studios.map(s => Number(s.id)), 0);
+            const maxA = Math.max(...activities.map(a => Number(a.id)), 0);
+            await firestoreDB.collection('_meta').doc('counters').set({ nextStudioId: maxS + 1, nextActivityId: maxA + 1 });
+            showNotification(`✅ Migración completa: ${studios.length} estudios y ${activities.length} actividades`, 'success');
+            await syncFromFirebase();
+        }
+
+        // ─────────────────────────────────────────────────────────
+
         // Normalizar studio del cloud: si las columnas individuales están vacías,
         // extraer datos del campo 'data' que contiene el objeto completo
         function normalizeCloudStudio(s) {
