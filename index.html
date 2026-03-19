@@ -4231,6 +4231,19 @@
         let localData = { studios: [], activities: [], nextStudioId: 1, nextActivityId: 1 };
         let cloudCache = { studios: [], activities: [], lastSync: null }; // Caché local para cloud
 
+        // ─── FIREBASE ────────────────────────────────────────────
+        const FIREBASE_CONFIG = {
+            apiKey: "AIzaSyCVxMjrIfB4MrYiUzvKzt8fJeKKNne-Cm0",
+            authDomain: "ferroplast-crm.firebaseapp.com",
+            projectId: "ferroplast-crm",
+            storageBucket: "ferroplast-crm.firebasestorage.app",
+            messagingSenderId: "90876822103",
+            appId: "1:90876822103:web:eb7acb645d7205bd0f1912",
+            measurementId: "G-4DM69WSWX9"
+        };
+        let useFirebase = false;
+        let firestoreDB = null; // Instancia Firestore (distinto a 'db' de IndexedDB)
+
         // ============================================
         // GOOGLE SHEETS API FUNCTIONS
         // ============================================
