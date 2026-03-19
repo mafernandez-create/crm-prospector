@@ -5332,6 +5332,16 @@
             console.log('📤 addActivity - Iniciando con:', activity);
             console.log('📤 addActivity - useCloudStorage:', useCloudStorage);
             
+            // FIREBASE
+            if (useFirebase) {
+                activity.id = await getNextFirebaseId('activities');
+                await firestoreDB.collection('activities').doc(String(activity.id)).set(activity);
+                cloudCache.activities.push(activity);
+                localData.activities.push(activity);
+                saveToLocalStorage();
+                return activity.id;
+            }
+
             // CLOUD: Google Sheets
             if (useCloudStorage) {
                 try {
@@ -11198,7 +11208,17 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
         // Función para actualizar una actividad
         async function updateActivity(activityId, updates) {
             console.log('📝 Actualizando actividad:', activityId, updates);
-            
+
+            // FIREBASE
+            if (useFirebase) {
+                await firestoreDB.collection('activities').doc(String(activityId)).update(updates);
+                const index = cloudCache.activities.findIndex(a => a.id == activityId);
+                if (index !== -1) Object.assign(cloudCache.activities[index], updates);
+                const localIndex = localData.activities.findIndex(a => a.id == activityId);
+                if (localIndex !== -1) { Object.assign(localData.activities[localIndex], updates); saveToLocalStorage(); }
+                return { success: true };
+            }
+
             if (useCloudStorage) {
                 try {
                     const result = await callAPI('updateActivity', { data: { id: activityId, updates: updates } });
