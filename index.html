@@ -5107,6 +5107,16 @@
                 studio.priorityCalculatedScore = autoPriority.calculatedScore;
             }
             
+            // FIREBASE
+            if (useFirebase) {
+                studio.id = await getNextFirebaseId('studios');
+                await firestoreDB.collection('studios').doc(String(studio.id)).set(studio);
+                cloudCache.studios.push(studio);
+                localData.studios.push(studio);
+                saveToLocalStorage();
+                return studio.id;
+            }
+
             // CLOUD: Google Sheets
             if (useCloudStorage) {
                 try {
@@ -5145,6 +5155,17 @@
         }
 
         async function updateStudio(id, updates) {
+            // FIREBASE
+            if (useFirebase) {
+                const updatesWithTs = { ...updates, updatedAt: new Date().toISOString() };
+                await firestoreDB.collection('studios').doc(String(id)).update(updatesWithTs);
+                const index = cloudCache.studios.findIndex(s => s.id == id);
+                if (index !== -1) Object.assign(cloudCache.studios[index], updatesWithTs);
+                const localIndex = localData.studios.findIndex(s => s.id == id);
+                if (localIndex !== -1) { Object.assign(localData.studios[localIndex], updatesWithTs); saveToLocalStorage(); }
+                return cloudCache.studios[index];
+            }
+
             // CLOUD: Google Sheets
             if (useCloudStorage) {
                 try {
