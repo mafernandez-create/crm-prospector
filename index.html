@@ -4824,9 +4824,18 @@
         }
 
         async function initDB() {
-            // Primero intentar Google Sheets (cloud)
+            // 1. Firebase (primera opción)
+            const firebaseAvailable = await initFirebase();
+            if (firebaseAvailable) {
+                useFirebase = true;
+                await syncFromFirebase();
+                console.log('🔥 Usando Firebase Firestore (sync offline activo)');
+                showStorageIndicator('firebase');
+                return;
+            }
+
+            // 2. Google Sheets (segunda opción)
             const cloudAvailable = await testCloudConnection();
-            
             if (cloudAvailable) {
                 useCloudStorage = true;
                 await syncFromCloud();
@@ -4834,8 +4843,8 @@
                 showStorageIndicator('cloud');
                 return;
             }
-            
-            // Segundo, intentar IndexedDB
+
+            // 3. IndexedDB
             if (isIndexedDBAvailable()) {
                 try {
                     await initIndexedDB();
@@ -4846,8 +4855,8 @@
                     console.warn('IndexedDB falló, usando localStorage:', e);
                 }
             }
-            
-            // Fallback a localStorage
+
+            // 4. localStorage (fallback)
             useLocalStorage = true;
             loadFromLocalStorage();
             console.log('📦 Usando localStorage (modo offline/archivo)');
