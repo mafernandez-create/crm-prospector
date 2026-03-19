@@ -5218,6 +5218,21 @@
         }
 
         async function deleteStudio(id) {
+            // FIREBASE
+            if (useFirebase) {
+                await firestoreDB.collection('studios').doc(String(id)).delete();
+                const relatedSnap = await firestoreDB.collection('activities').where('studioId', '==', id).get();
+                const batch = firestoreDB.batch();
+                relatedSnap.docs.forEach(d => batch.delete(d.ref));
+                await batch.commit();
+                cloudCache.studios = cloudCache.studios.filter(s => s.id != id);
+                cloudCache.activities = cloudCache.activities.filter(a => a.studioId != id);
+                localData.studios = localData.studios.filter(s => s.id != id);
+                localData.activities = localData.activities.filter(a => a.studioId != id);
+                saveToLocalStorage();
+                return;
+            }
+
             // CLOUD: Google Sheets
             if (useCloudStorage) {
                 try {
