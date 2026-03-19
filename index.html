@@ -4684,13 +4684,39 @@
             });
         }
 
+        // Leer todos los datos de IndexedDB directamente (para migración sin depender de db global)
+        function loadAllFromIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onerror = () => reject(req.error);
+                req.onsuccess = () => {
+                    const idb = req.result;
+                    const tx = idb.transaction(['studios', 'activities'], 'readonly');
+                    let studios = null, activities = null;
+                    const done = () => { if (studios !== null && activities !== null) { idb.close(); resolve({ studios, activities }); } };
+                    tx.objectStore('studios').getAll().onsuccess = e => { studios = e.target.result; done(); };
+                    tx.objectStore('activities').getAll().onsuccess = e => { activities = e.target.result; done(); };
+                    tx.onerror = () => reject(tx.error);
+                };
+                req.onupgradeneeded = () => resolve({ studios: [], activities: [] }); // DB nueva, sin datos
+            });
+        }
+
         async function migrarAFirebase() {
             if (!useFirebase) {
                 showNotification('⚠️ Firebase no está activo. Configura FIREBASE_CONFIG primero.', 'warning');
                 return;
             }
-            const studios = localData.studios.length > 0 ? localData.studios : await getAllStudios();
-            const activities = localData.activities.length > 0 ? localData.activities : await getAllActivities();
+            let studios = localData.studios.length > 0 ? localData.studios : await getAllStudios();
+            let activities = localData.activities.length > 0 ? localData.activities : await getAllActivities();
+            // Si no hay datos en memoria, intentar cargar directamente de IndexedDB
+            if (studios.length === 0) {
+                showNotification('📦 Cargando datos de IndexedDB para migración...', 'info');
+                try {
+                    const idbData = await loadAllFromIndexedDB();
+                    if (idbData.studios.length > 0) { studios = idbData.studios; activities = idbData.activities; }
+                } catch(e) { console.warn('No se pudo leer IndexedDB:', e); }
+            }
             if (!confirm(`¿Migrar ${studios.length} estudios y ${activities.length} actividades a Firebase?\n\nEsto puede tardar 1-2 minutos.`)) return;
 
             const BATCH = 400;
