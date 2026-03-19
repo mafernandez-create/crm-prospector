@@ -4656,9 +4656,15 @@
                     localData.nextStudioId = c.nextStudioId || 1;
                     localData.nextActivityId = c.nextActivityId || 1;
                 }
-                localData.studios = JSON.parse(JSON.stringify(cloudCache.studios));
-                localData.activities = JSON.parse(JSON.stringify(cloudCache.activities));
-                saveToLocalStorage();
+                // Solo sobreescribir localStorage si Firebase tiene datos.
+                // Si Firebase está vacío, conservar localStorage para poder migrar.
+                if (cloudCache.studios.length > 0 || cloudCache.activities.length > 0) {
+                    localData.studios = JSON.parse(JSON.stringify(cloudCache.studios));
+                    localData.activities = JSON.parse(JSON.stringify(cloudCache.activities));
+                    saveToLocalStorage();
+                } else {
+                    loadFromLocalStorage(); // Preservar datos locales para migración
+                }
                 console.log(`🔥 Firebase sync: ${cloudCache.studios.length} estudios, ${cloudCache.activities.length} actividades`);
                 return true;
             } catch(e) {
