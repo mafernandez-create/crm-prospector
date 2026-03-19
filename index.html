@@ -5440,8 +5440,8 @@
         }
 
         async function getAllActivities() {
-            // CLOUD: usar caché local
-            if (useCloudStorage) {
+            // CLOUD / FIREBASE: usar caché local
+            if (useCloudStorage || useFirebase) {
                 // Deduplicar por ID
                 const seen = new Set();
                 return (cloudCache.activities || []).filter(a => {
