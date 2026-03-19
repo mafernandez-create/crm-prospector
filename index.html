@@ -11276,7 +11276,16 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
         // Función para eliminar una actividad
         async function deleteActivity(activityId) {
             console.log('🗑️ Eliminando actividad:', activityId);
-            
+
+            // FIREBASE
+            if (useFirebase) {
+                await firestoreDB.collection('activities').doc(String(activityId)).delete();
+                cloudCache.activities = cloudCache.activities.filter(a => a.id != activityId);
+                localData.activities = localData.activities.filter(a => a.id != activityId);
+                saveToLocalStorage();
+                return { success: true };
+            }
+
             if (useCloudStorage) {
                 try {
                     const result = await callAPI('deleteActivity', { id: activityId });
