@@ -18244,7 +18244,7 @@ Notas:
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
                         <div style="flex:1;min-width:0;">
                             <p class="m-card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.name)}</p>
-                            <p class="m-card-sub">${escapeHtml([s.city||'',s.province||''].filter(Boolean).join(' · '))}</p>
+                            <p class="m-card-sub">${escapeHtml([mobileStudioCity(s),s.province||''].filter(Boolean).join(' · '))}</p>
                         </div>
                         <span class="m-badge s-${status}">${status}</span>
                     </div>
