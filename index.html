@@ -18575,7 +18575,7 @@ Notas:
             try {
                 const response = await callClaudeAPI([
                     { role: 'user', content: systemPrompt + '\n\nPetición del usuario:\n"' + userText + '"' }
-                ], 500, 'claude-haiku-4-20250514');
+                ], 500);
 
                 const rawText = response?.content?.[0]?.text || '';
                 statusDiv.textContent = '⚙️ Configurando filtros...';
