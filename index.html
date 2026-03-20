@@ -18226,9 +18226,9 @@ Notas:
             const ql = q.toLowerCase();
             const results = mobileGetStudios().filter(s =>
                 (s.name||'').toLowerCase().includes(ql) ||
-                (s.city||'').toLowerCase().includes(ql) ||
+                mobileStudioCity(s).toLowerCase().includes(ql) ||
                 (s.province||'').toLowerCase().includes(ql) ||
-                (s.phone||s.data?.phone||'').includes(ql)
+                mobileStudioPhone(s).includes(ql)
             ).slice(0, 15);
 
             if (results.length === 0) {
@@ -18236,7 +18236,7 @@ Notas:
                 return;
             }
             cont.innerHTML = results.map(s => {
-                const phone  = s.phone || s.data?.phone || '';
+                const phone  = mobileStudioPhone(s);
                 const status = s.status || 'nuevo';
                 const safeId   = escapeHtml(String(s.id));
                 const safeName = escapeHtml(s.name).replace(/'/g,"\\'");
