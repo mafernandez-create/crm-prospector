@@ -18173,8 +18173,8 @@ Notas:
             } else {
                 contVisitas.innerHTML = visitasHoy.map(v => {
                     const studio = studios.find(s => s.id === v.id);
-                    const phone  = studio?.phone || studio?.data?.phone || '';
-                    const city   = studio?.city  || v.data?.city || '';
+                    const phone  = mobileStudioPhone(studio || {});
+                    const city   = mobileStudioCity(studio || {});
                     const status = studio?.status || 'nuevo';
                     const safeId   = escapeHtml(String(v.id||''));
                     const safeName = escapeHtml(v.name || studio?.name || '').replace(/'/g,"\\'");
