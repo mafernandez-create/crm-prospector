@@ -17094,12 +17094,11 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
             document.getElementById('new-studio-body').innerHTML = `
                 <div style="background:linear-gradient(135deg,#eff6ff,#eef2ff);border-radius:10px;padding:16px;margin-bottom:16px;">
                     <p style="margin:0 0 8px 0;font-size:0.9rem;color:#1e40af;">
-                        🌐 Busca estudios y empresas por internet. El CRM rastreará <strong>16 fuentes</strong> incluyendo Páginas Amarillas directo, colegios profesionales, DUNS 100000, Houzz, Habitissimo, portales especializados, enriquecimiento web e IA.
+                        🌐 Busca estudios y empresas por internet. El CRM rastreará <strong>15 fuentes</strong> incluyendo Páginas Amarillas directo, colegios profesionales, Houzz, Habitissimo, portales especializados, enriquecimiento web e IA.
                     </p>
                     <div style="display:flex;flex-wrap:wrap;gap:6px;">
                         <span style="background:#fbbf24;color:#78350f;padding:2px 8px;border-radius:4px;font-size:0.72rem;">Páginas Amarillas</span>
                         <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:0.72rem;">DuckDuckGo</span>
-                        <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:0.72rem;">DUNS 100000</span>
                         <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:0.72rem;">LinkedIn</span>
                         <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:0.72rem;">Houzz</span>
                         <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:0.72rem;">Habitissimo</span>
@@ -17121,11 +17120,6 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                     <label class="form-label">Nombre espec\u00edfico <span style="color:var(--muted);font-weight:normal;font-size:0.85em;">(opcional)</span></label>
                     <input type="text" class="form-input" id="new-studio-name" placeholder="Dejar vac\u00edo para buscar todos los de la provincia">
                     <p style="font-size:0.75rem;color:var(--muted);margin-top:4px;">💡 Si lo dejas vac\u00edo, buscar\u00e1 todos los estudios del tipo seleccionado en la provincia</p>
-                </div>
-                <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;">
-                    <a href="https://www.duns100000.com" target="_blank" style="display:inline-flex;align-items:center;gap:6px;font-size:0.82rem;color:#6366f1;text-decoration:none;font-weight:600;">
-                        📊 Abrir DUNS 100000 <span style="font-size:0.7rem;color:var(--muted);">(acceso directo a la plataforma)</span>
-                    </a>
                 </div>
             `;
             populateTypeSelect('new-studio-type', null);
