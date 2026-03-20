@@ -18361,8 +18361,8 @@ Notas:
                     ? '<p style="color:#475569;font-size:0.82rem;padding:4px 0;">Sin visitas</p>'
                     : visitas.map(v => {
                         const studio = studios.find(s => s.id === v.id);
-                        const phone  = studio?.phone || studio?.data?.phone || '';
-                        const city   = studio?.city  || v.data?.city || '';
+                        const phone  = mobileStudioPhone(studio || {});
+                        const city   = mobileStudioCity(studio || {});
                         const safeId   = escapeHtml(String(v.id||''));
                         const safeName = escapeHtml(v.name||studio?.name||'').replace(/'/g,"\\'");
                         return `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;gap:8px;">
