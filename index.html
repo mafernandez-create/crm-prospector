@@ -13755,8 +13755,6 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                 try { gmailSettings = JSON.parse(localStorage.getItem('ferroplast_test_gmail_settings') || 'null'); } catch (e) {}
                 try { calendarSettings = JSON.parse(localStorage.getItem('ferroplast_test_calendar_settings') || 'null'); } catch (e) {}
                 try { planificadorData = JSON.parse(localStorage.getItem('crm_test_planificador') || 'null'); } catch (e) {}
-                let dunsSettingsBackup = null;
-                try { dunsSettingsBackup = JSON.parse(localStorage.getItem('ferroplast_test_duns_settings') || 'null'); } catch (e) {}
 
                 const backupData = {
                     version: '3.0',
