@@ -14574,6 +14574,11 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
 
                 console.log('✅ CRM inicializado correctamente');
                 console.log(`📱 Modo: ${deviceType}`);
+
+                // Activar interfaz simplificada en iPhone
+                if (specificDevice === 'iphone' || (isMobile && deviceType === 'mobile')) {
+                    initMobileApp();
+                }
             } catch (error) {
                 console.error('Error inicializando CRM:', error);
                 loadingMsg.innerHTML = `
