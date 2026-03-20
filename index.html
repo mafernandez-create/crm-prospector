@@ -18118,6 +18118,283 @@ Notas:
             input.click();
         }
 
+        // ============================================
+        // APP MÓVIL (iPhone)
+        // ============================================
+
+        let mobileSelectedType = '';
+        let mobileSelectedStudioId = null;
+
+        function initMobileApp() {
+            // Ocultar la app de escritorio y mostrar la móvil
+            const appContainer = document.querySelector('.app-container') || document.querySelector('#app');
+            if (appContainer) appContainer.style.display = 'none';
+            // Ocultar todos los hijos directos del body excepto mobile-app
+            document.querySelectorAll('body > *:not(#mobile-app)').forEach(el => {
+                if (el.id !== 'mobile-app') el.style.display = 'none';
+            });
+            document.getElementById('mobile-app').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+
+            // Cabecera con fecha
+            const hoy = new Date();
+            const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+            const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+            document.getElementById('mobile-header-date').textContent =
+                `${dias[hoy.getDay()]}, ${hoy.getDate()} de ${meses[hoy.getMonth()]}`;
+
+            loadMobileHoy();
+        }
+
+        function mobileSwitchTab(tab) {
+            document.querySelectorAll('.mobile-tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('mobile-tab-' + tab).classList.add('active');
+            document.getElementById('mnav-' + tab).classList.add('active');
+
+            if (tab === 'hoy')     loadMobileHoy();
+            if (tab === 'agenda')  loadMobileAgenda();
+            if (tab === 'buscar')  setTimeout(() => document.getElementById('mobile-search-input')?.focus(), 100);
+            if (tab === 'registrar') mobileResetRegistrar();
+        }
+
+        // ── TAB HOY ──────────────────────────────────────────
+        function loadMobileHoy() {
+            const hoy = new Date().toISOString().split('T')[0];
+            const schedule = planificadorData?.schedule || {};
+            const visitasHoy = schedule[hoy] || [];
+
+            // Visitas planificadas
+            const contVisitas = document.getElementById('mobile-hoy-visitas');
+            if (visitasHoy.length === 0) {
+                contVisitas.innerHTML = `<div class="m-empty">📅<p>Sin visitas planificadas para hoy</p></div>`;
+            } else {
+                contVisitas.innerHTML = visitasHoy.map(v => {
+                    const studio = (typeof studiosData !== 'undefined' ? studiosData : []).find(s => s.id === v.id);
+                    const phone = studio?.data?.phone || studio?.phone || '';
+                    const city  = v.data?.city || studio?.city || '';
+                    const status = studio?.status || 'nuevo';
+                    return `<div class="m-card">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                            <div style="flex:1;min-width:0;">
+                                <p class="m-card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(v.name || v.data?.name || '')}</p>
+                                <p class="m-card-sub">${escapeHtml(city)}</p>
+                            </div>
+                            <span class="m-badge s-${status}" style="white-space:nowrap;">${status}</span>
+                        </div>
+                        <div class="m-action-row" style="margin-top:10px;">
+                            ${phone ? `<a href="tel:${escapeHtml(phone)}" class="m-btn m-btn-ghost" style="text-decoration:none;">📞 ${escapeHtml(phone)}</a>` : ''}
+                            <button class="m-btn m-btn-primary" onclick="mobileIrARegistrar('${v.id}','${escapeHtml(v.name||'')}')">✍️ Registrar</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+
+            // Tareas pendientes de hoy
+            const contTareas = document.getElementById('mobile-hoy-tareas');
+            const acts = typeof activitiesData !== 'undefined' ? activitiesData : [];
+            const tareas = acts.filter(a => {
+                if (!a.dueDate || a.completed) return false;
+                const due = a.dueDate.split('T')[0];
+                return due <= hoy;
+            }).slice(0, 10);
+
+            if (tareas.length === 0) {
+                contTareas.innerHTML = `<div class="m-empty">✅<p>Sin tareas pendientes para hoy</p></div>`;
+            } else {
+                contTareas.innerHTML = tareas.map(t => {
+                    const studio = (typeof studiosData !== 'undefined' ? studiosData : []).find(s => s.id === t.studioId);
+                    const atrasada = t.dueDate && t.dueDate.split('T')[0] < hoy;
+                    return `<div class="m-card">
+                        <p class="m-card-title">${escapeHtml(t.title || t.type || 'Tarea')}</p>
+                        <p class="m-card-sub">${studio ? escapeHtml(studio.name) : ''} ${atrasada ? '· <span style="color:#f87171;">⚠️ Atrasada</span>' : ''}</p>
+                        <div class="m-action-row" style="margin-top:8px;">
+                            <button class="m-btn m-btn-success" onclick="mobileCompletarTarea('${t.id}')">✓ Completar</button>
+                            ${studio ? `<button class="m-btn m-btn-ghost" onclick="mobileIrARegistrar('${studio.id}','${escapeHtml(studio.name)}')">✍️ Registrar</button>` : ''}
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+        }
+
+        async function mobileCompletarTarea(actId) {
+            try {
+                await updateActivity(actId, { completed: true, completedAt: new Date().toISOString() });
+                showNotification('✅ Tarea completada', 'success');
+                loadMobileHoy();
+            } catch(e) { showNotification('Error: ' + e.message, 'error'); }
+        }
+
+        // ── TAB BUSCAR ────────────────────────────────────────
+        function mobileSearchStudios(q) {
+            const cont = document.getElementById('mobile-search-results');
+            if (!q || q.length < 2) { cont.innerHTML = ''; return; }
+            const studios = typeof studiosData !== 'undefined' ? studiosData : [];
+            const ql = q.toLowerCase();
+            const results = studios.filter(s =>
+                (s.name||'').toLowerCase().includes(ql) ||
+                (s.city||'').toLowerCase().includes(ql) ||
+                (s.province||'').toLowerCase().includes(ql) ||
+                (s.data?.phone||'').includes(ql)
+            ).slice(0, 15);
+
+            if (results.length === 0) {
+                cont.innerHTML = `<div class="m-empty">🔍<p>Sin resultados para "${escapeHtml(q)}"</p></div>`;
+                return;
+            }
+            cont.innerHTML = results.map(s => {
+                const phone = s.data?.phone || s.phone || '';
+                const status = s.status || 'nuevo';
+                return `<div class="m-card">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                        <div style="flex:1;min-width:0;">
+                            <p class="m-card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.name)}</p>
+                            <p class="m-card-sub">${escapeHtml([s.city||'', s.province||''].filter(Boolean).join(' · '))}</p>
+                        </div>
+                        <span class="m-badge s-${status}">${status}</span>
+                    </div>
+                    <div class="m-action-row" style="margin-top:10px;">
+                        ${phone ? `<a href="tel:${escapeHtml(phone)}" class="m-btn m-btn-ghost" style="text-decoration:none;">📞</a>` : ''}
+                        <button class="m-btn m-btn-primary" onclick="mobileIrARegistrar('${s.id}','${escapeHtml(s.name).replace(/'/g,"\\'")}')">✍️ Registrar</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // ── TAB REGISTRAR ────────────────────────────────────
+        function mobileResetRegistrar() {
+            mobileSelectedType = '';
+            mobileSelectedStudioId = null;
+            document.getElementById('mobile-reg-search').value = '';
+            document.getElementById('mobile-reg-studio-id').value = '';
+            document.getElementById('mobile-reg-studio-name').style.display = 'none';
+            document.getElementById('mobile-reg-notes').value = '';
+            document.getElementById('mobile-reg-suggestions').innerHTML = '';
+            document.querySelectorAll('.m-type-btn').forEach(b => b.classList.remove('selected'));
+        }
+
+        function mobileIrARegistrar(studioId, studioName) {
+            mobileSwitchTab('registrar');
+            setTimeout(() => {
+                mobileSelectedStudioId = studioId;
+                document.getElementById('mobile-reg-studio-id').value = studioId;
+                document.getElementById('mobile-reg-search').value = studioName;
+                const nameDiv = document.getElementById('mobile-reg-studio-name');
+                nameDiv.textContent = '✓ ' + studioName;
+                nameDiv.style.display = 'block';
+                document.getElementById('mobile-reg-suggestions').innerHTML = '';
+            }, 50);
+        }
+
+        function mobileSelectType(type, el) {
+            mobileSelectedType = type;
+            document.querySelectorAll('.m-type-btn').forEach(b => b.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        function mobileRegSearch(q) {
+            const cont = document.getElementById('mobile-reg-suggestions');
+            mobileSelectedStudioId = null;
+            document.getElementById('mobile-reg-studio-name').style.display = 'none';
+            if (!q || q.length < 2) { cont.innerHTML = ''; return; }
+            const studios = typeof studiosData !== 'undefined' ? studiosData : [];
+            const results = studios.filter(s => (s.name||'').toLowerCase().includes(q.toLowerCase())).slice(0, 6);
+            cont.innerHTML = results.map(s =>
+                `<div onclick="mobileRegSelectStudio('${s.id}','${escapeHtml(s.name).replace(/'/g,"\\'")}',this)"
+                    style="padding:11px 14px;background:#1e293b;border-radius:10px;margin-top:4px;color:#f1f5f9;font-size:0.88rem;cursor:pointer;border:1px solid rgba(255,255,255,0.06);">
+                    ${escapeHtml(s.name)} <span style="color:#64748b;font-size:0.78rem;">${escapeHtml(s.city||'')}</span>
+                </div>`
+            ).join('');
+        }
+
+        function mobileRegSelectStudio(id, name) {
+            mobileSelectedStudioId = id;
+            document.getElementById('mobile-reg-studio-id').value = id;
+            document.getElementById('mobile-reg-search').value = name;
+            document.getElementById('mobile-reg-suggestions').innerHTML = '';
+            const nameDiv = document.getElementById('mobile-reg-studio-name');
+            nameDiv.textContent = '✓ ' + name;
+            nameDiv.style.display = 'block';
+        }
+
+        async function mobileRegistrarActividad() {
+            if (!mobileSelectedStudioId) { showNotification('⚠️ Selecciona un estudio', 'warning'); return; }
+            if (!mobileSelectedType)     { showNotification('⚠️ Selecciona el tipo de actividad', 'warning'); return; }
+            const notes = document.getElementById('mobile-reg-notes').value.trim();
+            const tiposLabel = { llamada:'Llamada', visita:'Visita', email:'Email', whatsapp:'WhatsApp' };
+            try {
+                await addActivity({
+                    studioId: mobileSelectedStudioId,
+                    type: mobileSelectedType,
+                    title: tiposLabel[mobileSelectedType] || mobileSelectedType,
+                    notes: notes,
+                    date: new Date().toISOString(),
+                    completed: true
+                });
+                showNotification('✅ Actividad registrada', 'success');
+                mobileResetRegistrar();
+                mobileSwitchTab('hoy');
+            } catch(e) { showNotification('Error: ' + e.message, 'error'); }
+        }
+
+        // ── TAB AGENDA ────────────────────────────────────────
+        function loadMobileAgenda() {
+            const cont = document.getElementById('mobile-agenda-content');
+            const schedule = planificadorData?.schedule || {};
+            const hoy = new Date();
+
+            // Generar los próximos 14 días
+            const dias = [];
+            for (let i = 0; i < 14; i++) {
+                const d = new Date(hoy); d.setDate(hoy.getDate() + i);
+                // Saltar fines de semana
+                if (d.getDay() === 0 || d.getDay() === 6) continue;
+                dias.push(d);
+            }
+
+            const nombresD = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+            const nombresMes = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+            const html = dias.map(d => {
+                const key = d.toISOString().split('T')[0];
+                const visitas = schedule[key] || [];
+                const esHoy = key === hoy.toISOString().split('T')[0];
+                const label = esHoy ? 'Hoy' : `${nombresD[d.getDay()]} ${d.getDate()} ${nombresMes[d.getMonth()]}`;
+
+                const visitasHtml = visitas.length === 0
+                    ? '<p style="color:#475569;font-size:0.82rem;padding:4px 0;">Sin visitas</p>'
+                    : visitas.map(v => {
+                        const studio = (typeof studiosData !== 'undefined' ? studiosData : []).find(s => s.id === v.id);
+                        const phone = studio?.data?.phone || '';
+                        return `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                            <div style="flex:1;min-width:0;">
+                                <p style="margin:0;font-size:0.83rem;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(v.name||'')}</p>
+                                <p style="margin:1px 0 0;font-size:0.72rem;color:#64748b;">${escapeHtml(v.data?.city||studio?.city||'')}</p>
+                            </div>
+                            <div style="display:flex;gap:6px;flex-shrink:0;">
+                                ${phone ? `<a href="tel:${escapeHtml(phone)}" style="font-size:1.1rem;text-decoration:none;">📞</a>` : ''}
+                                <button onclick="mobileIrARegistrar('${v.id}','${escapeHtml(v.name||'').replace(/'/g,"\\'")}','${key}')" style="font-size:1.1rem;background:none;border:none;cursor:pointer;">✍️</button>
+                            </div>
+                        </div>`;
+                    }).join('');
+
+                return `<div class="m-agenda-day" ${esHoy ? 'style="border-color:rgba(99,102,241,0.4);"' : ''}>
+                    <div class="m-agenda-day-header" onclick="mobileToggleAgendaDay(this)">
+                        <span class="m-agenda-day-title" ${esHoy ? 'style="color:#818cf8;"' : ''}>${label}</span>
+                        <span class="m-agenda-day-count">${visitas.length} visita${visitas.length !== 1 ? 's' : ''} ${visitas.length > 0 ? '▾' : ''}</span>
+                    </div>
+                    <div class="m-agenda-day-body ${esHoy && visitas.length > 0 ? 'open' : ''}">${visitasHtml}</div>
+                </div>`;
+            }).join('');
+
+            cont.innerHTML = html || `<div class="m-empty">📅<p>No hay visitas planificadas</p></div>`;
+        }
+
+        function mobileToggleAgendaDay(header) {
+            const body = header.nextElementSibling;
+            body.classList.toggle('open');
+        }
+
         init();
     </script>
     <!-- Modal Detalle Email -->
