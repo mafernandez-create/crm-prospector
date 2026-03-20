@@ -9113,7 +9113,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                 // 14. Enriquecimiento web — visitar webs de los estudios encontrados
                 updateProgress('🌐 Enriqueciendo datos visitando webs...', 'Extrayendo emails, teléfonos y equipo');
                 try {
-                    // Filtrar estudios con URL válida (excluir LinkedIn, Instagram, PA, DUNS)
+                    // Filtrar estudios con URL válida (excluir LinkedIn, Instagram, PA)
                     const studiosWithUrl = Array.from(foundStudios.values())
                         .filter(s => s.url && s.url.length > 5 &&
                             !s.url.includes('linkedin.com') &&
@@ -9447,8 +9447,6 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                                 ${studio.sources.map(src => {
                                     let bg = 'var(--primary-light)', fg = 'var(--primary)';
                                     if (src.includes('IA')) { bg = '#f3e8ff'; fg = '#7c3aed'; }
-                                    else if (src.includes('DUNS') && src.includes('directo')) { bg = '#d97706'; fg = '#fff'; }
-                                    else if (src.includes('DUNS')) { bg = '#fef3c7'; fg = '#b45309'; }
                                     else if (src.includes('Páginas Amarillas')) { bg = '#fbbf24'; fg = '#78350f'; }
                                     else if (src.includes('Web (enriquecido)')) { bg = '#34d399'; fg = '#064e3b'; }
                                     return `<span style="background:${bg};color:${fg};padding:2px 8px;border-radius:4px;font-size:0.75rem;">${escapeHtml(src)}</span>`;
