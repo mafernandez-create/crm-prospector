@@ -18657,15 +18657,7 @@ Notas:
         }
 
         async function syncPlanToCalendar() {
-            // 1. Verificar token de Calendar válido
-            if (!calendarSettings.accessToken || calendarSettings.tokenExpiry < Date.now()) {
-                if (confirm('⚠️ Primero debes conectar Google Calendar.\n\n¿Abrir la configuración ahora?')) {
-                    openCalendarSettingsModal();
-                }
-                return;
-            }
-
-            // 2. Recopilar visitas principales por día
+            // 1. Recopilar visitas principales por día
             const schedule = planificadorData.schedule || {};
             if (Object.keys(schedule).length === 0) {
                 showNotification('⚠️ No hay visitas planificadas', 'warning');
@@ -18687,11 +18679,11 @@ Notas:
                 return;
             }
 
-            // 3. Confirmar
+            // 2. Confirmar
             const daysCount = Object.keys(visitsByDay).length;
             if (!confirm(`📅 Crear eventos en Google Calendar\n\n📆 ${daysCount} días · 🏢 ${totalVisits} visitas\n\nCada evento incluirá:\n• Nombre y tipo de empresa\n• Dirección con enlace a Waze\n• Teléfono y email\n• Descripción del estudio\n• Enlace al CRM\n\n¿Continuar?`)) return;
 
-            // 4. Crear eventos con horarios escalonados
+            // 3. Crear eventos con horarios escalonados vía proxy Apps Script
             showNotification('📅 Creando eventos en Google Calendar...', 'info');
             let created = 0, errors = 0;
 
@@ -18736,37 +18728,22 @@ Notas:
                     description += `\n\n🔗 Ver en CRM: ${crmLink}`;
                     description += `\n\n🎯 Ferroplast CRM · Ruta de Visitas`;
 
-                    const event = {
-                        summary: `🏢 ${s.name}${city ? ' · ' + city : ''}`,
+                    const eventData = {
+                        title:       `🏢 ${s.name}${city ? ' · ' + city : ''}`,
                         description: description,
-                        location: address ? `${address}, ${city}` : city,
-                        start: { dateTime: startTime.toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
-                        end:   { dateTime: endTime.toISOString(),   timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
-                        colorId: '10', // Verde = visita presencial
-                        reminders: {
-                            useDefault: false,
-                            overrides: [
-                                { method: 'popup', minutes: 60 },
-                                { method: 'popup', minutes: 15 }
-                            ]
-                        }
+                        location:    address ? `${address}, ${city}` : city,
+                        start:       startTime.toISOString(),
+                        end:         endTime.toISOString()
                     };
 
                     try {
-                        const resp = await fetch(
-                            `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarSettings.calendarId)}/events`,
-                            {
-                                method: 'POST',
-                                headers: { 'Authorization': `Bearer ${calendarSettings.accessToken}`, 'Content-Type': 'application/json' },
-                                body: JSON.stringify(event)
-                            }
-                        );
-                        if (resp.ok) {
+                        const result = await callAPI('createCalendarEvent', { data: eventData });
+                        if (result.success) {
                             created++;
                             showNotification(`📅 ${created}/${totalVisits} eventos creados...`, 'info');
                         } else {
                             errors++;
-                            console.error('Error evento Calendar:', await resp.text());
+                            console.error('Error evento Calendar:', result.error);
                         }
                     } catch(e) {
                         errors++;
@@ -18775,7 +18752,7 @@ Notas:
                 }
             }
 
-            // 5. Resultado final
+            // 4. Resultado final
             if (errors === 0) {
                 showNotification(`✅ ${created} eventos creados en Google Calendar`, 'success');
                 alert(`✅ Sincronización completada\n\n📅 ${created} eventos creados en Google Calendar\n\nAparecerán con recordatorio 1h y 15min antes de cada visita.`);
