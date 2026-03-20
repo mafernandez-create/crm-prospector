@@ -14293,11 +14293,6 @@ ${noEncontrados.slice(0, 10).join('\n')}`;
                         settingsRestored.push('Planificador');
                         console.log('📋 Datos del Planificador restaurados');
                     }
-                    if (backup.data.settings.duns) {
-                        localStorage.setItem('ferroplast_test_duns_settings', JSON.stringify(backup.data.settings.duns));
-                        settingsRestored.push('DUNS 100000');
-                        console.log('📊 Configuración DUNS 100000 restaurada');
-                    }
                 }
 
                 // Recargar datos
