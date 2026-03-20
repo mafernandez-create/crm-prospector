@@ -18132,6 +18132,9 @@ Notas:
 
         function mobileGetStudios() { return allStudios || cloudCache?.studios || []; }
         function mobileGetActivities() { return cloudCache?.activities || []; }
+        // Helpers para acceder a los campos reales del estudio
+        function mobileStudioPhone(s) { return s.data?.contact?.phone || s.phone || ''; }
+        function mobileStudioCity(s)  { return s.data?.contact?.city  || s.city  || s.province || ''; }
 
         function initMobileApp() {
             document.querySelectorAll('body > *:not(#mobile-app)').forEach(el => el.style.display = 'none');
