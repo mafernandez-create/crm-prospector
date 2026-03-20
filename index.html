@@ -18659,7 +18659,9 @@ Notas:
         async function syncPlanToCalendar() {
             // 1. Verificar token de Calendar válido
             if (!calendarSettings.accessToken || calendarSettings.tokenExpiry < Date.now()) {
-                alert('⚠️ Primero debes conectar Google Calendar.\n\nVe a Configuración → Config. Gmail / Calendar y autoriza el acceso.');
+                if (confirm('⚠️ Primero debes conectar Google Calendar.\n\n¿Abrir la configuración ahora?')) {
+                    openCalendarSettingsModal();
+                }
                 return;
             }
 
