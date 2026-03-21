@@ -21246,6 +21246,84 @@ Notas:
             }, 50);
         }
 
+        // Registro ultra-rápido post-visita (modal de 3 botones desde pestaña Hoy)
+        function mobileRegistroRapido(studioId, studioName) {
+            const root = document.getElementById('mobile-modal-root') || document.getElementById('mobile-app') || document.body;
+            root.style.pointerEvents = 'auto';
+
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:20000;display:flex;align-items:flex-end;justify-content:center;';
+            const close = () => { modal.remove(); if (root.children.length === 0) root.style.pointerEvents = 'none'; };
+            modal.onclick = e => { if (e.target === modal) close(); };
+
+            modal.innerHTML = `
+                <div style="background:#1e293b;border-radius:20px 20px 0 0;width:100%;padding:20px 16px 32px;max-height:90vh;overflow-y:auto;">
+                    <div style="width:36px;height:4px;background:#334155;border-radius:2px;margin:0 auto 16px;"></div>
+                    <p style="margin:0 0 4px;font-size:0.7rem;color:#6366f1;font-weight:700;text-transform:uppercase;">⚡ Registro rápido</p>
+                    <h3 style="margin:0 0 16px;color:#f1f5f9;font-size:1rem;">${escapeHtml(studioName)}</h3>
+
+                    <p style="margin:0 0 10px;font-size:0.8rem;color:#94a3b8;font-weight:600;">¿Cómo fue la visita?</p>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
+                        <button onclick="mobileRRSetResult(this,'positivo')" data-val="positivo"
+                            style="padding:12px 6px;border-radius:12px;border:2px solid #334155;background:#0f172a;color:#86efac;font-size:0.82rem;font-weight:600;cursor:pointer;">
+                            👍<br>Positivo
+                        </button>
+                        <button onclick="mobileRRSetResult(this,'neutro')" data-val="neutro"
+                            style="padding:12px 6px;border-radius:12px;border:2px solid #334155;background:#0f172a;color:#fbbf24;font-size:0.82rem;font-weight:600;cursor:pointer;">
+                            🤷<br>Neutro
+                        </button>
+                        <button onclick="mobileRRSetResult(this,'negativo')" data-val="negativo"
+                            style="padding:12px 6px;border-radius:12px;border:2px solid #334155;background:#0f172a;color:#f87171;font-size:0.82rem;font-weight:600;cursor:pointer;">
+                            👎<br>Negativo
+                        </button>
+                    </div>
+
+                    <p style="margin:0 0 6px;font-size:0.8rem;color:#94a3b8;font-weight:600;">Nota rápida (opcional)</p>
+                    <textarea id="mrr-nota" style="width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;border-radius:10px;color:#f1f5f9;padding:10px;font-size:0.85rem;resize:none;min-height:70px;" placeholder="Qué ha dicho, qué producto le interesa, próximo paso..."></textarea>
+
+                    <div style="display:flex;gap:8px;margin-top:14px;">
+                        <button onclick="this.closest('[style*=absolute]').remove()" style="flex:1;padding:12px;border-radius:10px;border:1px solid #334155;background:transparent;color:#94a3b8;font-size:0.9rem;cursor:pointer;">Cancelar</button>
+                        <button onclick="mobileRRGuardar('${String(studioId).replace(/'/g,"\\'")}','${studioName.replace(/'/g,"\\'")}')" style="flex:2;padding:12px;border-radius:10px;border:none;background:#6366f1;color:white;font-size:0.9rem;font-weight:700;cursor:pointer;">✅ Guardar</button>
+                    </div>
+                </div>`;
+
+            root.appendChild(modal);
+        }
+
+        let _mrrResult = null;
+        function mobileRRSetResult(btn, val) {
+            _mrrResult = val;
+            btn.closest('div').querySelectorAll('button').forEach(b => b.style.borderColor = '#334155');
+            const colors = { positivo: '#86efac', neutro: '#fbbf24', negativo: '#f87171' };
+            btn.style.borderColor = colors[val] || '#6366f1';
+        }
+
+        async function mobileRRGuardar(studioId, studioName) {
+            const resultado = _mrrResult;
+            const nota = document.getElementById('mrr-nota')?.value.trim() || '';
+            if (!resultado) { showNotification('⚠️ Selecciona cómo fue la visita', 'warning'); return; }
+
+            const resultLabels = { positivo: '👍 Visita positiva', neutro: '🤷 Visita neutra', negativo: '👎 Visita negativa' };
+            const fullText = `${resultLabels[resultado]}${nota ? '. ' + nota : ''}`;
+
+            await addActivity({
+                studioId,
+                type: 'meeting',
+                text: fullText,
+                visitaOrigen: 'prescriptor',
+                visitaConjunta: false
+            });
+            _mrrResult = null;
+
+            // Close modal
+            document.querySelectorAll('#mobile-modal-root > div, #mobile-app > div[style*="absolute"]').forEach(m => m.remove());
+            const root = document.getElementById('mobile-modal-root');
+            if (root) root.style.pointerEvents = 'none';
+
+            showNotification('✅ Visita registrada', 'success');
+            loadMobileHoy();
+        }
+
         function mobileSelectType(type, el) {
             mobileSelectedType = type;
             document.querySelectorAll('.m-type-btn').forEach(b => b.classList.remove('selected'));
