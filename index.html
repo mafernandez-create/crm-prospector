@@ -587,68 +587,6 @@
         .action-badge.today { background: var(--warning); color: white; }
         .action-badge.upcoming { background: var(--accent); color: white; }
 
-        /* Panel BANT */
-        .bant-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-        }
-        .bant-item {
-            background: var(--surface);
-            padding: 16px;
-            border-radius: 12px;
-            border: 2px solid var(--border);
-            transition: all 0.2s;
-        }
-        .bant-item.confirmed {
-            border-color: var(--success);
-            background: var(--success-light);
-        }
-        .bant-item.negative {
-            border-color: var(--danger);
-            background: var(--danger-light);
-        }
-        .bant-item.unknown {
-            border-color: var(--border);
-        }
-        .bant-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 8px;
-        }
-        .bant-icon {
-            font-size: 24px;
-        }
-        .bant-title {
-            font-weight: 600;
-        }
-        .bant-subtitle {
-            font-size: 0.8rem;
-            color: var(--muted);
-        }
-        .bant-actions {
-            display: flex;
-            gap: 6px;
-            margin-top: 12px;
-        }
-        .bant-btn {
-            flex: 1;
-            padding: 8px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        .bant-btn.yes { background: var(--success-light); color: var(--success); }
-        .bant-btn.yes:hover { background: var(--success); color: white; }
-        .bant-btn.no { background: var(--danger-light); color: var(--danger); }
-        .bant-btn.no:hover { background: var(--danger); color: white; }
-        .bant-btn.unknown { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
-        .bant-btn.unknown:hover { background: var(--border); }
-        .bant-btn.active { transform: scale(1.05); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-
         /* Triggers de Reunión */
         .triggers-grid {
             display: grid;
