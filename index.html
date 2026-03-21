@@ -17746,6 +17746,23 @@ Notas:
             }
         }
 
+        async function syncPlanificadorFirebase() {
+            if (!useFirebase || !firestoreDB) {
+                showNotification('⚠️ Firebase no está conectado', 'warning'); return;
+            }
+            if (!planificadorData?.schedule || Object.keys(planificadorData.schedule).length === 0) {
+                showNotification('⚠️ No hay visitas planificadas que sincronizar', 'warning'); return;
+            }
+            try {
+                await firestoreDB.collection('_meta').doc('planificador').set(planificadorData);
+                const dias = Object.keys(planificadorData.schedule).length;
+                const visitas = Object.values(planificadorData.schedule).reduce((acc, v) => acc + v.length, 0);
+                showNotification(`✅ Sincronizado: ${visitas} visitas en ${dias} días → iPhone`, 'success');
+            } catch(e) {
+                showNotification('❌ Error al sincronizar: ' + e.message, 'error');
+            }
+        }
+
         async function syncPlanToCalendar() {
             // 1. Recopilar visitas principales por día
             const schedule = planificadorData.schedule || {};
