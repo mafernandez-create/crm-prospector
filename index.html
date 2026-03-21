@@ -14575,6 +14575,11 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 console.log('✅ CRM inicializado correctamente');
                 console.log(`📱 Modo: ${deviceType}`);
 
+                // Sincronizar planificador con Firebase (migra localStorage si Firebase está vacío)
+                if (typeof loadPlanificadorFromFirebase === 'function') {
+                    loadPlanificadorFromFirebase().catch(e => console.warn('Sync planificador:', e));
+                }
+
                 // Activar interfaz simplificada en iPhone
                 if (specificDevice === 'iphone' || (isMobile && deviceType === 'mobile')) {
                     initMobileApp();
