@@ -21719,6 +21719,83 @@ Notas:
             mobileRegistroRapido(id, name);
         }
 
+        // ── Funciones para el modo rápido inline en pestaña Registrar ──
+        let _mrrInlineStudioId = null, _mrrInlineResult = null;
+
+        function mobileRRSearch(q) {
+            const cont = document.getElementById('mrr-suggestions');
+            _mrrInlineStudioId = null;
+            if (!q || q.length < 2) { if(cont) cont.innerHTML = ''; return; }
+            const results = mobileGetStudios()
+                .filter(s => (s.name||'').toLowerCase().includes(q.toLowerCase()))
+                .slice(0, 5);
+            if (!cont) return;
+            cont.innerHTML = results.map(s => {
+                const safeId = String(s.id).replace(/'/g,"\'");
+                const safeName = (s.name||'').replace(/'/g,"\'");
+                return `<button onclick="mobileRRSelectEmpresa('${safeId}','${safeName.replace(/\/g,'\\')}')"
+                    style="display:block;width:100%;text-align:left;padding:10px 12px;background:#1e293b;border:1px solid #334155;border-radius:8px;margin-bottom:4px;color:#f1f5f9;font-size:0.85rem;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+                    ${escapeHtml(s.name)} <span style="color:#64748b;font-size:0.75rem;">${escapeHtml(s.province||s.city||'')}</span>
+                </button>`;
+            }).join('');
+        }
+
+        function mobileRRSelectEmpresa(id, name) {
+            _mrrInlineStudioId = id;
+            _mrrInlineResult = null;
+            const sugg = document.getElementById('mrr-suggestions');
+            const input = document.getElementById('mrr-search');
+            const sel = document.getElementById('mrr-empresa-selected');
+            const nameEl = document.getElementById('mrr-empresa-name');
+            const btns = document.getElementById('mrr-result-btns');
+            if (sugg) sugg.innerHTML = '';
+            if (input) input.value = name;
+            if (nameEl) nameEl.textContent = '✓ ' + name;
+            if (sel) { sel.style.display = 'flex'; }
+            if (btns) { btns.style.display = 'flex'; }
+            // Reset result buttons
+            document.querySelectorAll('#mrr-result-btns button[onclick*="mobileRRInline"]').forEach(b => b.style.borderColor = '#334155');
+            const nota = document.getElementById('mrr-nota-inline');
+            if (nota) nota.value = '';
+        }
+
+        function mobileRRClearEmpresa() {
+            _mrrInlineStudioId = null;
+            _mrrInlineResult = null;
+            const sel = document.getElementById('mrr-empresa-selected');
+            const btns = document.getElementById('mrr-result-btns');
+            const input = document.getElementById('mrr-search');
+            if (sel) sel.style.display = 'none';
+            if (btns) btns.style.display = 'none';
+            if (input) { input.value = ''; input.focus(); }
+        }
+
+        function mobileRRInline(btn, val) {
+            _mrrInlineResult = val;
+            document.querySelectorAll('#mrr-result-btns button[onclick*="mobileRRInline"]').forEach(b => b.style.borderColor = '#334155');
+            const colors = { positivo: '#86efac', neutro: '#fbbf24', negativo: '#f87171' };
+            btn.style.borderColor = colors[val] || '#6366f1';
+        }
+
+        async function mobileRRGuardarInline() {
+            if (!_mrrInlineStudioId) { showNotification('⚠️ Selecciona una empresa', 'warning'); return; }
+            if (!_mrrInlineResult) { showNotification('⚠️ Selecciona cómo fue la visita', 'warning'); return; }
+            const nota = document.getElementById('mrr-nota-inline')?.value.trim() || '';
+            const resultLabels = { positivo: '👍 Visita positiva', neutro: '🤷 Visita neutra', negativo: '👎 Visita negativa' };
+            const fullText = `${resultLabels[_mrrInlineResult]}${nota ? '. ' + nota : ''}`;
+            const btn = document.getElementById('mrr-save-btn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+            try {
+                await addActivity({ studioId: _mrrInlineStudioId, type: 'meeting', text: fullText, visitaOrigen: 'prescriptor', visitaConjunta: false });
+                showNotification('✅ Visita registrada', 'success');
+                mobileRRClearEmpresa();
+            } catch(e) {
+                showNotification('Error: ' + e.message, 'error');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = '✅ Guardar visita'; }
+            }
+        }
+
         // Registro ultra-rápido post-visita (modal de 3 botones desde pestaña Hoy)
         function mobileRegistroRapido(studioId, studioName) {
             const root = document.getElementById('mobile-modal-root') || document.getElementById('mobile-app') || document.body;
@@ -22117,11 +22194,44 @@ Notas:
 
         <!-- Tab: REGISTRAR -->
         <div id="mobile-tab-registrar" class="mobile-tab-content">
-            <div id="mobile-quick-reg-banner" style="background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:12px 14px;margin-bottom:14px;display:none;">
-                <p style="margin:0 0 8px;font-size:0.82rem;color:#a5b4fc;font-weight:600;">⚡ Empresa seleccionada — registro rápido</p>
-                <p id="mobile-quick-reg-name" style="margin:0 0 10px;font-size:0.9rem;color:#f1f5f9;font-weight:700;"></p>
-                <button onclick="mobileRegistroRapidoFromReg()" style="width:100%;padding:12px;border-radius:10px;border:none;background:#6366f1;color:white;font-size:0.9rem;font-weight:700;cursor:pointer;">⚡ Abrir registro rápido</button>
+
+            <!-- MODO RÁPIDO -->
+            <div style="background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3);border-radius:14px;padding:14px;margin-bottom:16px;">
+                <p style="margin:0 0 10px;font-size:0.78rem;color:#a5b4fc;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;">⚡ Registro rápido post-visita</p>
+                <input id="mrr-search" type="text" autocomplete="off"
+                    style="width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;border-radius:10px;color:#f1f5f9;padding:11px 14px;font-size:0.9rem;margin-bottom:6px;"
+                    placeholder="Buscar empresa..." oninput="mobileRRSearch(this.value)">
+                <div id="mrr-suggestions" style="margin-bottom:4px;"></div>
+                <div id="mrr-empresa-selected" style="display:none;margin-bottom:10px;padding:8px 12px;background:#0f172a;border-radius:8px;display:none;align-items:center;justify-content:space-between;">
+                    <span id="mrr-empresa-name" style="color:#a5b4fc;font-weight:600;font-size:0.88rem;"></span>
+                    <button onclick="mobileRRClearEmpresa()" style="background:none;border:none;color:#64748b;font-size:1rem;cursor:pointer;">✕</button>
+                </div>
+                <div id="mrr-result-btns" style="display:none;flex-direction:column;gap:8px;">
+                    <p style="margin:0 0 6px;font-size:0.8rem;color:#94a3b8;font-weight:600;">¿Cómo fue la visita?</p>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                        <button onclick="mobileRRInline(this,'positivo')"
+                            style="padding:14px 6px;border-radius:12px;border:2px solid #334155;background:#0f172a;color:#86efac;font-size:0.85rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+                            👍<br>Positivo
+                        </button>
+                        <button onclick="mobileRRInline(this,'neutro')"
+                            style="padding:14px 6px;border-radius:12px;border:2px solid #334155;background:#0f172a;color:#fbbf24;font-size:0.85rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+                            🤷<br>Neutro
+                        </button>
+                        <button onclick="mobileRRInline(this,'negativo')"
+                            style="padding:14px 6px;border-radius:12px;border:2px solid #334155;background:#0f172a;color:#f87171;font-size:0.85rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+                            👎<br>Negativo
+                        </button>
+                    </div>
+                    <textarea id="mrr-nota-inline" autocomplete="off"
+                        style="width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;border-radius:10px;color:#f1f5f9;padding:10px;font-size:0.85rem;resize:none;min-height:60px;margin-top:4px;"
+                        placeholder="Nota rápida (opcional)..."></textarea>
+                    <button id="mrr-save-btn" onclick="mobileRRGuardarInline()"
+                        style="width:100%;padding:13px;border-radius:12px;border:none;background:#6366f1;color:white;font-size:0.9rem;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+                        ✅ Guardar visita
+                    </button>
+                </div>
             </div>
+
             <div class="m-section-title">Empresa</div>
             <input id="mobile-reg-search" type="text" class="m-textarea" style="min-height:auto;padding:12px;border-radius:12px;" placeholder="Buscar y seleccionar estudio..." oninput="mobileRegSearch(this.value)" autocomplete="off">
             <div id="mobile-reg-suggestions" style="margin-top:4px;"></div>
