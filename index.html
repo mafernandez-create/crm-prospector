@@ -18379,6 +18379,22 @@ Notas:
                         ${row('🌐', 'Web', web, web ? (web.startsWith('http') ? web : 'https://'+web) : '')}
                         ${row('📍', 'Dirección', s.address || '')}
                     </div>
+                    ${team.length > 0 ? `
+                    <p style="margin:16px 0 8px;font-size:0.7rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">👥 Personas de contacto</p>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        ${team.map(p => `
+                        <div style="background:#0f172a;border-radius:10px;padding:12px 14px;">
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                                <div style="flex:1;min-width:0;">
+                                    <p style="margin:0;font-size:0.88rem;color:#f1f5f9;font-weight:600;">${escapeHtml(p.name||'')}</p>
+                                    <p style="margin:2px 0 0;font-size:0.75rem;color:#94a3b8;">${escapeHtml(p.role||'')}</p>
+                                </div>
+                                ${p.isDecisionMaker ? '<span style="font-size:0.65rem;background:rgba(99,102,241,0.2);color:#a5b4fc;padding:2px 7px;border-radius:99px;flex-shrink:0;">Decision maker</span>' : ''}
+                            </div>
+                            ${p.email ? `<a href="mailto:${escapeHtml(p.email)}" style="display:inline-block;margin-top:6px;font-size:0.75rem;color:#818cf8;text-decoration:none;">✉️ ${escapeHtml(p.email)}</a>` : ''}
+                            ${p.insight ? `<p style="margin:6px 0 0;font-size:0.73rem;color:#64748b;font-style:italic;line-height:1.4;">"${escapeHtml(p.insight)}"</p>` : ''}
+                        </div>`).join('')}
+                    </div>` : ''}
                     <div class="m-action-row" style="margin-top:16px;" onclick="event.stopPropagation();">
                         ${phone ? `<a href="tel:${escapeHtml(phone.replace(/\s/g,''))}" class="m-btn m-btn-ghost" style="text-decoration:none;flex:1;">📞 Llamar</a>` : ''}
                         <button class="m-btn m-btn-primary" style="flex:1;" onclick="this.closest('[id=mobile-estudio-modal]')?.remove();const r=document.getElementById('mobile-modal-root');if(r&&!r.children.length)r.style.pointerEvents='none';mobileIrARegistrar('${safeId}','${safeName}')">✍️ Registrar</button>
