@@ -12166,6 +12166,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 const acts = (cloudCache?.activities || localData?.activities || []).filter(a => String(a.studioId) === String(removeId));
                 for (const act of acts) await updateActivity(act.id, { studioId: keepId });
                 await deleteStudio(removeId);
+                allStudios = (allStudios || []).filter(s => String(s.id) !== String(removeId));
                 document.getElementById(`dup-pair-${idx}`)?.remove();
                 _updateDupCount();
                 showNotification(`✅ "${s.name}" eliminado. ${acts.length} actividades reasignadas.`, 'success');
@@ -12205,6 +12206,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 for (const act of acts) await updateActivity(act.id, { studioId: keepId });
 
                 await deleteStudio(removeId);
+                allStudios = (allStudios || []).filter(s => String(s.id) !== String(removeId));
                 document.getElementById(`dup-pair-${idx}`)?.remove();
                 _updateDupCount();
                 showNotification(`✅ Fusionados. ${acts.length} actividades reasignadas a "${keep.name}".`, 'success');
