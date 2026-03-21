@@ -12102,13 +12102,14 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 const rows = FIELDS.map(f => {
                     const va = f.get(a), vb = f.get(b);
                     const diff = va !== vb;
-                    const style = diff ? 'color:#fcd34d;' : 'color:#e2e8f0;';
-                    return `<tr style="${diff ? 'background:rgba(245,158,11,0.06);' : ''}">
-                        <td style="padding:5px 10px;color:#64748b;font-size:0.76rem;white-space:nowrap;width:90px;">${f.label}</td>
-                        <td style="padding:5px 10px;font-size:0.82rem;${style}">${escapeHtml(va) || '<span style="color:#334155;">—</span>'}</td>
-                        <td style="padding:5px 12px;font-size:0.7rem;color:#475569;text-align:center;">${diff ? '≠' : '='}</td>
-                        <td style="padding:5px 10px;font-size:0.82rem;${style}">${escapeHtml(vb) || '<span style="color:#334155;">—</span>'}</td>
-                    </tr>`;
+                    const vc = diff ? 'color:#fcd34d;' : 'color:#e2e8f0;';
+                    const bg = diff ? 'background:rgba(245,158,11,0.06);' : '';
+                    return `<div style="display:grid;grid-template-columns:90px 1fr 24px 1fr;${bg}padding:4px 0;">
+                        <div style="padding:4px 10px;color:#64748b;font-size:0.76rem;white-space:nowrap;align-self:center;">${f.label}</div>
+                        <div style="padding:4px 10px;font-size:0.82rem;${vc}word-break:break-all;">${escapeHtml(va) || '<span style="color:#334155;">—</span>'}</div>
+                        <div style="padding:4px 0;font-size:0.7rem;color:#475569;text-align:center;align-self:center;">${diff ? '≠' : '='}</div>
+                        <div style="padding:4px 10px;font-size:0.82rem;${vc}word-break:break-all;">${escapeHtml(vb) || '<span style="color:#334155;">—</span>'}</div>
+                    </div>`;
                 }).join('');
 
                 return `<div id="dup-pair-${idx}" style="background:#1e293b;border-radius:12px;margin-bottom:14px;border:1px solid rgba(255,255,255,0.06);overflow:hidden;">
@@ -12125,13 +12126,13 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                         </div>
                     </div>
                     <div style="padding:10px 16px;">
-                        <div style="display:grid;grid-template-columns:90px 1fr 24px 1fr;gap:0;margin-bottom:4px;">
+                        <div style="display:grid;grid-template-columns:90px 1fr 24px 1fr;padding:4px 0;margin-bottom:4px;">
                             <div></div>
                             <div style="font-size:0.72rem;color:#6366f1;font-weight:700;padding:0 10px;">A: ${escapeHtml(a.name)}</div>
                             <div></div>
                             <div style="font-size:0.72rem;color:#6366f1;font-weight:700;padding:0 10px;">B: ${escapeHtml(b.name)}</div>
                         </div>
-                        <table style="width:100%;border-collapse:collapse;">${rows}</table>
+                        <div>${rows}</div>
                     </div>
                 </div>`;
             }).join('');
