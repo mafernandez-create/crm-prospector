@@ -18347,7 +18347,8 @@ Notas:
             const modal = document.createElement('div');
             modal.id = 'mobile-estudio-modal';
             modal.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:20000;display:flex;align-items:flex-end;justify-content:center;';
-            modal.onclick = e => { if (e.target === modal) modal.remove(); };
+            const closeEstudio = () => { modal.remove(); const r = document.getElementById('mobile-modal-root'); if(r && !r.children.length) r.style.pointerEvents='none'; };
+            modal.onclick = e => { if (e.target === modal) closeEstudio(); };
 
             const row = (icon, label, val, href) => val ? `
                 <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
