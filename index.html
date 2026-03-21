@@ -12113,7 +12113,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                             <button onclick="_deleteDup(${a.id},${b.id},${idx})" style="background:rgba(239,68,68,0.12);color:#fca5a5;border:1px solid rgba(239,68,68,0.25);padding:6px 12px;border-radius:7px;cursor:pointer;font-size:0.78rem;font-weight:600;">🗑️ Eliminar A</button>
                             <button onclick="_mergeDup(${a.id},${b.id},${idx})" style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);padding:6px 12px;border-radius:7px;cursor:pointer;font-size:0.78rem;font-weight:600;">🔀 Fusionar → A</button>
                             <button onclick="_deleteDup(${b.id},${a.id},${idx})" style="background:rgba(239,68,68,0.12);color:#fca5a5;border:1px solid rgba(239,68,68,0.25);padding:6px 12px;border-radius:7px;cursor:pointer;font-size:0.78rem;font-weight:600;">🗑️ Eliminar B</button>
-                            <button onclick="_ignoreDup(${idx})" style="background:#334155;color:#64748b;border:none;padding:6px 12px;border-radius:7px;cursor:pointer;font-size:0.78rem;">Ignorar</button>
+                            <button onclick="_ignoreDup(${idx},'${pairKey}')" style="background:#334155;color:#64748b;border:none;padding:6px 12px;border-radius:7px;cursor:pointer;font-size:0.78rem;">Ignorar</button>
                         </div>
                     </div>
                     <div style="padding:10px 16px;">
