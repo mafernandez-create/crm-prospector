@@ -18159,7 +18159,7 @@ Notas:
         function mobileStudioPhone(s) { return s.data?.contact?.phone || s.phone || ''; }
         function mobileStudioCity(s)  { return s.data?.contact?.city  || s.city  || s.province || ''; }
 
-        function initMobileApp() {
+        async function initMobileApp() {
             document.querySelectorAll('body > *:not(#mobile-app)').forEach(el => el.style.display = 'none');
             document.getElementById('mobile-app').style.display = 'flex';
             document.body.style.overflow = 'hidden';
@@ -18168,6 +18168,8 @@ Notas:
             const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
             document.getElementById('mobile-header-date').textContent =
                 `${dias[hoy.getDay()]}, ${hoy.getDate()} de ${meses[hoy.getMonth()]}`;
+            // Sincronizar planificador desde Firebase antes de renderizar
+            await loadPlanificadorFromFirebase();
             loadMobileHoy();
         }
 
@@ -18185,9 +18187,7 @@ Notas:
         // ── TAB HOY ──────────────────────────────────────────
         function loadMobileHoy() {
             const hoy = new Date().toISOString().split('T')[0];
-            let _planData = null;
-            try { _planData = JSON.parse(localStorage.getItem('crm_test_planificador') || 'null'); } catch(e) {}
-            const schedule = _planData?.schedule || {};
+            const schedule = (typeof planificadorData !== 'undefined' && planificadorData?.schedule) ? planificadorData.schedule : (() => { try { return JSON.parse(localStorage.getItem('crm_test_planificador') || '{}').schedule || {}; } catch(e) { return {}; } })();
             const visitasHoy = schedule[hoy] || [];
             const studios = mobileGetStudios();
 
