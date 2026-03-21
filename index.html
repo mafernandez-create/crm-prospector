@@ -16484,8 +16484,11 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const existingModal = document.getElementById('planificador-modal');
             if (existingModal) existingModal.remove();
             
-            // Recargar datos
-            planificadorData = JSON.parse(localStorage.getItem('crm_test_planificador') || '{"schedule":{}}');
+            // Recargar datos (Firebase tiene prioridad)
+            await loadPlanificadorFromFirebase();
+            if (!planificadorData || !planificadorData.schedule) {
+                planificadorData = JSON.parse(localStorage.getItem('crm_test_planificador') || '{"schedule":{}}');
+            }
             
             const modal = document.createElement('div');
             modal.id = 'planificador-modal';
