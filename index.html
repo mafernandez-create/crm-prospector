@@ -12028,6 +12028,8 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const studios = allStudios || cloudCache?.studios || [];
             if (studios.length < 2) { showNotification('No hay estudios suficientes', 'info'); return; }
 
+            if (!window._dupIgnoredPairs) window._dupIgnoredPairs = new Set();
+
             showNotification(`🔍 Analizando ${studios.length} estudios...`, 'info');
             await new Promise(r => setTimeout(r, 60));
 
