@@ -12098,7 +12098,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 { label: 'Dirección', get: s => s.data?.contact?.address || '' },
             ];
 
-            const pairCards = pairs.map(({ a, b, score, reason }, idx) => {
+            const pairCards = pairs.map(({ a, b, score, reason, pairKey }, idx) => {
                 const rows = FIELDS.map(f => {
                     const va = f.get(a), vb = f.get(b);
                     const diff = va !== vb;
