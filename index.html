@@ -3168,11 +3168,12 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label class="form-label">Tipo de Actividad</label>
-                    <select class="form-select" id="activity-type" onchange="toggleProductosSection()">
+                    <select class="form-select" id="activity-type" onchange="toggleActivityFields()">
                         <option value="note">📝 Nota</option>
                         <option value="call">📞 Llamada</option>
                         <option value="email">✉️ Email</option>
-                        <option value="meeting">📅 Reunión</option>
+                        <option value="meeting">📅 Visita / Reunión</option>
+                        <option value="comercial">🤝 Llamada con comercial</option>
                     </select>
                 </div>
                 <div class="form-group" id="productos-section" style="display:none;">
@@ -3212,6 +3213,42 @@
                             <input type="checkbox" class="producto-check" value="Pozos" style="width:16px;height:16px;"> Pozos
                         </label>
                     </div>
+                </div>
+                <!-- Origen visita (solo para meetings) -->
+                <div class="form-group" id="meeting-origin-section" style="display:none;">
+                    <label class="form-label">Origen de la visita</label>
+                    <div style="display:flex;gap:10px;">
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;padding:10px;border:2px solid var(--border);border-radius:8px;" id="origin-label-me">
+                            <input type="radio" name="visit-origin" value="prescriptor" checked> 🙋 Propuesta por mí
+                        </label>
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;padding:10px;border:2px solid var(--border);border-radius:8px;" id="origin-label-comercial">
+                            <input type="radio" name="visit-origin" value="comercial"> 💼 Propuesta por el comercial
+                        </label>
+                    </div>
+                    <div style="margin-top:8px;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.9rem;">
+                            <input type="checkbox" id="visit-conjunta"> Visita conjunta con el comercial
+                        </label>
+                    </div>
+                </div>
+                <!-- Llamada con comercial -->
+                <div class="form-group" id="comercial-call-section" style="display:none;">
+                    <label class="form-label">Datos de la llamada</label>
+                    <div style="display:flex;gap:10px;margin-bottom:10px;">
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;padding:10px;border:2px solid var(--border);border-radius:8px;">
+                            <input type="radio" name="call-direction" value="yo-llame" checked> 📲 Yo llamé
+                        </label>
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;padding:10px;border:2px solid var(--border);border-radius:8px;">
+                            <input type="radio" name="call-direction" value="comercial-llamo"> 📥 El comercial llamó
+                        </label>
+                    </div>
+                    <input type="text" class="form-input" id="comercial-name" placeholder="Nombre del comercial" style="margin-bottom:8px;">
+                    <select class="form-select" id="comercial-motivo">
+                        <option value="concertar-cita">Concertar cita / visita conjunta</option>
+                        <option value="seguimiento">Seguimiento de prescripción</option>
+                        <option value="resultado">Comunicar resultado de venta</option>
+                        <option value="otro">Otro</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Descripción</label>
@@ -10889,9 +10926,20 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             
             // Obtener productos seleccionados si es una reunión
             let productos = [];
+            let visitaOrigen = null, visitaConjunta = false;
+            let comercialCallData = null;
             if (type === 'meeting') {
                 const checkboxes = document.querySelectorAll('.producto-check:checked');
                 productos = Array.from(checkboxes).map(cb => cb.value);
+                visitaOrigen = document.querySelector('input[name="visit-origin"]:checked')?.value || 'prescriptor';
+                visitaConjunta = document.getElementById('visit-conjunta')?.checked || false;
+            }
+            if (type === 'comercial') {
+                comercialCallData = {
+                    direccion: document.querySelector('input[name="call-direction"]:checked')?.value || 'yo-llame',
+                    comercial: document.getElementById('comercial-name')?.value.trim() || '',
+                    motivo: document.getElementById('comercial-motivo')?.value || 'otro'
+                };
             }
             
             // Deshabilitar botón para evitar doble clic
@@ -10916,7 +10964,10 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     type: type,
                     text: fullText,
                     followupDate: followup || null,
-                    productos: productos
+                    productos: productos,
+                    visitaOrigen: visitaOrigen,
+                    visitaConjunta: visitaConjunta,
+                    comercialCall: comercialCallData
                 };
                 
                 console.log('📝 Datos de actividad:', activityData);
@@ -10946,12 +10997,39 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             }
         }
         
-        function toggleProductosSection() {
-            const type = document.getElementById('activity-type').value;
-            const section = document.getElementById('productos-section');
-            if (section) {
-                section.style.display = type === 'meeting' ? 'block' : 'none';
+
+        function getActivityOriginBadge(activity) {
+            let badges = '';
+            if (activity.type === 'meeting' && activity.visitaOrigen) {
+                const label = activity.visitaOrigen === 'comercial' ? '💼 Propuesta por comercial' : '🙋 Propuesta por mí';
+                const bg = activity.visitaOrigen === 'comercial' ? '#ede9fe' : '#dbeafe';
+                const color = activity.visitaOrigen === 'comercial' ? '#7c3aed' : '#1d4ed8';
+                badges += `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:600;background:${bg};color:${color};margin-right:4px;">${label}</span>`;
             }
+            if (activity.type === 'meeting' && activity.visitaConjunta) {
+                badges += `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:600;background:#d1fae5;color:#065f46;margin-right:4px;">👥 Visita conjunta</span>`;
+            }
+            if (activity.type === 'comercial' && activity.comercialCall) {
+                const c = activity.comercialCall;
+                const dir = c.direccion === 'yo-llame' ? '📲 Yo llamé' : '📥 Llamó el comercial';
+                const motivos = { 'concertar-cita': 'Concertar cita', 'seguimiento': 'Seguimiento', 'resultado': 'Resultado venta', 'otro': 'Otro' };
+                badges += `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:600;background:#ede9fe;color:#7c3aed;margin-right:4px;">${dir}</span>`;
+                if (c.comercial) badges += `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;background:#f3f4f6;color:#374151;margin-right:4px;">👤 ${escapeHtml(c.comercial)}</span>`;
+                badges += `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;background:#f3f4f6;color:#374151;">${motivos[c.motivo] || c.motivo}</span>`;
+            }
+            return badges ? `<div style="margin-top:4px;">${badges}</div>` : '';
+        }
+
+        function toggleProductosSection() { toggleActivityFields(); }
+
+        function toggleActivityFields() {
+            const type = document.getElementById('activity-type').value;
+            const productos = document.getElementById('productos-section');
+            const meetingOrigin = document.getElementById('meeting-origin-section');
+            const comercialCall = document.getElementById('comercial-call-section');
+            if (productos) productos.style.display = type === 'meeting' ? 'block' : 'none';
+            if (meetingOrigin) meetingOrigin.style.display = type === 'meeting' ? 'block' : 'none';
+            if (comercialCall) comercialCall.style.display = type === 'comercial' ? 'block' : 'none';
         }
         
         function toggleEditProductosSection() {
