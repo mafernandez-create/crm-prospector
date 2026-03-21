@@ -17748,18 +17748,23 @@ Notas:
 
         async function syncPlanificadorFirebase() {
             if (!useFirebase || !firestoreDB) {
-                showNotification('⚠️ Firebase no está conectado', 'warning'); return;
+                alert('⚠️ Firebase no está conectado'); return;
             }
-            if (!planificadorData?.schedule || Object.keys(planificadorData.schedule).length === 0) {
-                showNotification('⚠️ No hay visitas planificadas que sincronizar', 'warning'); return;
+            // Leer siempre del localStorage para garantizar datos actuales
+            let dataToSync = null;
+            try { dataToSync = JSON.parse(localStorage.getItem('crm_test_planificador') || 'null'); } catch(e) {}
+            if (!dataToSync) dataToSync = planificadorData;
+            if (!dataToSync?.schedule || Object.keys(dataToSync.schedule).length === 0) {
+                alert('⚠️ No hay visitas planificadas que sincronizar'); return;
             }
             try {
-                await firestoreDB.collection('_meta').doc('planificador').set(planificadorData);
-                const dias = Object.keys(planificadorData.schedule).length;
-                const visitas = Object.values(planificadorData.schedule).reduce((acc, v) => acc + v.length, 0);
-                showNotification(`✅ Sincronizado: ${visitas} visitas en ${dias} días → iPhone`, 'success');
+                await firestoreDB.collection('_meta').doc('planificador').set(dataToSync);
+                planificadorData = dataToSync;
+                const dias = Object.keys(dataToSync.schedule).length;
+                const visitas = Object.values(dataToSync.schedule).reduce((acc, v) => acc + v.length, 0);
+                alert(`✅ Sincronizado con iPhone:\n${visitas} visitas en ${dias} días`);
             } catch(e) {
-                showNotification('❌ Error al sincronizar: ' + e.message, 'error');
+                alert('❌ Error: ' + e.message);
             }
         }
 
