@@ -2606,6 +2606,14 @@
                             <span class="nav-item-icon">📅</span>
                             <span>Sincronizar Calendar</span>
                         </div>
+                                                <div class="nav-item" onclick="showRouteFilter()">
+                            <span class="nav-item-icon">🗺️</span>
+                            <span>Planificar Ruta</span>
+                        </div>
+                        <div class="nav-item" onclick="showTemplatesPanel()">
+                            <span class="nav-item-icon">📝</span>
+                            <span>Plantillas</span>
+                        </div>
                         <div class="nav-item" onclick="generateWeeklyReport()">
     <span class="nav-item-icon">📊</span>
     <span>Informe Semanal</span>
@@ -2709,7 +2717,8 @@
                     </div>
                 </div>
 
-                <!-- Dashboard Charts Row -->
+                <div id="inactivity-alerts"></div>
+<!-- Dashboard Charts Row -->
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;" id="dashboard-charts-row">
     <div class="card">
         <div class="card-header"><h3 class="card-title">📊 Pipeline de empresas</h3></div>
@@ -5674,6 +5683,112 @@
 
 
         // ============================================
+        // PLANTILLAS DE COMUNICACIÓN
+        // ============================================
+        const DEFAULT_TEMPLATES = {
+            arquitectura: [
+                { id: 't_arq_1', name: 'Primer contacto - Arquitectura', type: 'email', subject: 'Ferroplast — Soluciones para proyectos de arquitectura', body: 'Estimado/a [nombre],\n\nMe dirijo a usted desde Ferroplast, empresa fabricante de sistemas de tuberías y saneamiento. Hemos observado el trabajo de [empresa] y nos gustaría presentarles nuestras soluciones técnicas, especialmente las líneas Mute (saneamiento silencioso) y Ecosan, muy utilizadas en arquitectura residencial y de oficinas.\n\n¿Tendría disponibilidad para una reunión de 20 minutos?\n\nQuedo a su disposición.\n\nSaludos,\n[tu_nombre]' },
+                { id: 't_arq_2', name: 'Seguimiento visita - Arquitectura', type: 'email', subject: 'Seguimiento visita Ferroplast — [empresa]', body: 'Estimado/a [nombre],\n\nGracias por recibirme el pasado [fecha]. Como comentamos, adjunto la ficha técnica de los productos que pueden encajar en sus próximos proyectos.\n\nQuedo disponible para cualquier consulta técnica o para organizar una visita conjunta con nuestro comercial.\n\nSaludos,\n[tu_nombre]' },
+                { id: 't_arq_3', name: 'Prescripción en pliego', type: 'note', subject: '', body: 'Acordado incluir Ferroplast (Mute / Ecosan) en especificaciones del proyecto. Contactar instalador recomendado: [instalador]. Próximo paso: confirmar con comercial [comercial] para seguimiento de pedido.' },
+            ],
+            ingenieria: [
+                { id: 't_ing_1', name: 'Primer contacto - Ingeniería', type: 'email', subject: 'Ferroplast — Sistemas para proyectos de ingeniería civil', body: 'Estimado/a [nombre],\n\nMe pongo en contacto desde Ferroplast para presentarles nuestros sistemas de tuberías para proyectos de infraestructura: presión PE, PVC biorientado, saneamiento y drenaje.\n\nNos especializamos en proyectos de abastecimiento, riego y saneamiento urbano. ¿Podríamos concertar una reunión técnica?\n\nSaludos,\n[tu_nombre]' },
+                { id: 't_ing_2', name: 'Prescripción en pliego técnico', type: 'note', subject: '', body: 'Objetivo: incluir Ferroplast en el PPT del proyecto [proyecto]. Especificación: sistema de presión PE / PVC biorientado. Técnico responsable: [nombre]. Fecha prevista de licitación: [fecha].' },
+            ],
+            promotora: [
+                { id: 't_pro_1', name: 'Primer contacto - Promotora activa', type: 'email', subject: 'Ferroplast — Soluciones para su promoción en curso', body: 'Estimado/a [nombre],\n\nHemos sabido de la promoción en curso de [empresa] en [localidad]. Desde Ferroplast ofrecemos sistemas de saneamiento silencioso Mute, especialmente valorados en residencial de calidad.\n\n¿Podríamos presentarles nuestra solución esta semana?\n\nSaludos,\n[tu_nombre]' },
+                { id: 't_pro_2', name: 'Seguimiento promotora sin promoción activa', type: 'email', subject: 'Ferroplast — Quedamos en contacto para próximos proyectos', body: 'Estimado/a [nombre],\n\nTras nuestra conversación, me gustaría quedar en contacto para cuando retomen actividad promotora. Estaré encantado de presentarles las soluciones de Ferroplast adaptadas a su perfil de proyecto.\n\nSaludos,\n[tu_nombre]' },
+            ],
+            constructora: [
+                { id: 't_con_1', name: 'Primer contacto - Constructora', type: 'email', subject: 'Ferroplast — Homologación como proveedor GPF', body: 'Estimado/a [nombre],\n\nMe dirijo a ustedes desde Ferroplast para iniciar el proceso de homologación como proveedor de sistemas de saneamiento y fontanería para [empresa].\n\nOfrecemos condiciones especiales para constructoras con volumen. ¿Podríamos reunirnos para presentar nuestra gama?\n\nSaludos,\n[tu_nombre]' },
+                { id: 't_con_2', name: 'Visita en obra', type: 'note', subject: '', body: 'Visita en obra [dirección]. Estado de la obra: [estado]. Productos instalados actualmente: [productos]. Oportunidad identificada: [oportunidad]. Próximo paso: [paso].' },
+            ],
+            aapp: [
+                { id: 't_aapp_1', name: 'Contacto técnico AAPP', type: 'email', subject: 'Ferroplast — Especificaciones técnicas para pliego', body: 'Estimado/a [nombre],\n\nDesde Ferroplast nos dirigimos a [organismo] para ofrecerles colaboración técnica en la definición de especificaciones para licitaciones de infraestructura hidráulica.\n\nPodemos aportar fichas técnicas, referencias y apoyo para la redacción del PPT.\n\nSaludos,\n[tu_nombre]' },
+            ],
+            aguas: [
+                { id: 't_agu_1', name: 'Primer contacto - Empresa de aguas', type: 'email', subject: 'Ferroplast — Homologación sistemas presión y saneamiento', body: 'Estimado/a [nombre],\n\nMe dirijo a [empresa] para iniciar conversaciones sobre la homologación de Ferroplast como proveedor de sistemas de presión PE y PVC para redes de distribución y saneamiento.\n\nContamos con referencias en múltiples mancomunidades y empresas municipales de agua.\n\nSaludos,\n[tu_nombre]' },
+            ],
+            regantes: [
+                { id: 't_reg_1', name: 'Contacto comunidad de regantes', type: 'email', subject: 'Ferroplast — Sistemas de presión para riego', body: 'Estimado/a [nombre],\n\nDesde Ferroplast nos especializamos en sistemas de tubería de presión para comunidades de regantes. Ofrecemos PE y PVC biorientado con condiciones adaptadas a campañas de renovación.\n\nLa ventana óptima de compra suele ser enero-marzo. ¿Podríamos reunirnos antes?\n\nSaludos,\n[tu_nombre]' },
+            ],
+        };
+
+        function getTemplatesForType(type) {
+            return DEFAULT_TEMPLATES[type] || DEFAULT_TEMPLATES['arquitectura'];
+        }
+
+        function showTemplatesPanel() {
+            const overlay = document.createElement('div');
+            overlay.id = 'templates-panel';
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9000;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;';
+            overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+
+            const types = Object.keys(DEFAULT_TEMPLATES);
+            const typeLabels = { arquitectura:'Arquitectura', ingenieria:'Ingeniería', promotora:'Promotora', constructora:'Constructora', aapp:'AAPP', aguas:'Aguas', regantes:'Regantes' };
+
+            overlay.innerHTML = `
+                <div style="background:var(--bg-primary);border-radius:14px;width:100%;max-width:800px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                    <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+                        <h2 style="margin:0;font-size:1.2rem;">📝 Plantillas de comunicación</h2>
+                        <button onclick="document.getElementById('templates-panel').remove()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted);">×</button>
+                    </div>
+                    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);overflow-x:auto;">
+                        ${types.map((t,i) => `<button onclick="showTemplatesTab('${t}')" id="ttab-${t}" style="padding:10px 16px;background:${i===0?'var(--primary)':'none'};color:${i===0?'white':'var(--text-primary)'};border:none;border-bottom:${i===0?'none':'2px solid transparent'};cursor:pointer;font-size:0.82rem;font-weight:600;white-space:nowrap;">${typeLabels[t]||t}</button>`).join('')}
+                    </div>
+                    <div id="templates-tab-content" style="padding:20px 24px;">
+                        ${renderTemplatesForType(types[0])}
+                    </div>
+                </div>`;
+
+            document.body.appendChild(overlay);
+        }
+
+        function showTemplatesTab(type) {
+            document.querySelectorAll('[id^="ttab-"]').forEach(b => {
+                const active = b.id === 'ttab-' + type;
+                b.style.background = active ? 'var(--primary)' : 'none';
+                b.style.color = active ? 'white' : 'var(--text-primary)';
+            });
+            document.getElementById('templates-tab-content').innerHTML = renderTemplatesForType(type);
+        }
+
+        function renderTemplatesForType(type) {
+            const templates = getTemplatesForType(type);
+            if (!templates.length) return '<p style="color:var(--muted);">No hay plantillas para este tipo.</p>';
+            return templates.map(t => `
+                <div style="border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                        <div>
+                            <div style="font-weight:700;font-size:0.95rem;">${t.name}</div>
+                            <div style="font-size:0.78rem;color:var(--muted);margin-top:2px;">${t.type === 'email' ? '✉️ Email' : t.type === 'note' ? '📝 Nota interna' : t.type}</div>
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn btn-sm btn-secondary" onclick="previewTemplate('${t.id}','${type}')">👁 Ver</button>
+                            <button class="btn btn-sm btn-primary" onclick="copyTemplate('${t.id}','${type}')">📋 Copiar</button>
+                        </div>
+                    </div>
+                    <div id="tpreview-${t.id}" style="display:none;margin-top:12px;background:var(--bg-secondary);border-radius:8px;padding:12px;">
+                        ${t.subject ? `<div style="font-size:0.8rem;font-weight:600;color:var(--muted);margin-bottom:4px;">Asunto: ${t.subject}</div>` : ''}
+                        <pre style="white-space:pre-wrap;font-family:inherit;font-size:0.82rem;margin:0;color:var(--text-primary);">${t.body}</pre>
+                    </div>
+                </div>`).join('');
+        }
+
+        function previewTemplate(id, type) {
+            const el = document.getElementById('tpreview-' + id);
+            if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function copyTemplate(id, type) {
+            const templates = getTemplatesForType(type);
+            const t = templates.find(x => x.id === id);
+            if (!t) return;
+            const text = (t.subject ? 'Asunto: ' + t.subject + '\n\n' : '') + t.body;
+            navigator.clipboard.writeText(text).then(() => showNotification('✅ Plantilla copiada al portapapeles', 'success'));
+        }
+
+        // ============================================
         // VISTA KANBAN
         // ============================================
         async function renderKanban() {
@@ -6068,6 +6183,7 @@
 
             // Render dashboard charts
             renderDashboardCharts();
+            checkInactivityAlerts();
         }
 
         // ============================================
