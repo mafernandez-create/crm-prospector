@@ -5726,7 +5726,7 @@
                     </div>
                     <div class="card-body" style="padding:12px;">
                         ${alerts.map(s => `
-                            <div onclick="showStudioDetail(${s.id})" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;cursor:pointer;margin-bottom:4px;border:1px solid var(--border);" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''">
+                            <div onclick="showStudioDetail(${s.id})" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;cursor:pointer;margin-bottom:4px;border:1px solid var(--border);" onmouseover="this.style.background='#f7f9fc'" onmouseout="this.style.background=''">
                                 <div style="flex:1;min-width:0;">
                                     <div style="font-weight:600;font-size:0.875rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.name || '')}</div>
                                     <div style="font-size:0.75rem;color:var(--muted);">${escapeHtml(s.province || s.city || '')} · <span style="color:${statusColors[s.status||'nuevo']};font-weight:600;">${s.status||'nuevo'}</span></div>
@@ -5749,16 +5749,16 @@
 
             const overlay = document.createElement('div');
             overlay.id = 'route-panel';
-            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9000;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;';
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9000;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;';
             overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
 
             overlay.innerHTML = `
-                <div style="background:var(--bg-primary);border-radius:14px;width:100%;max-width:860px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-                    <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-                        <h2 style="margin:0;font-size:1.2rem;">🗺️ Planificador de ruta</h2>
-                        <button onclick="document.getElementById('route-panel').remove()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted);">×</button>
+                <div style="background:#ffffff;border-radius:14px;width:100%;max-width:860px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                    <div style="padding:20px 24px;border-bottom:1px solid #d9e2ec;display:flex;align-items:center;justify-content:space-between;">
+                        <h2 style="margin:0;font-size:1.2rem;color:#1a1a2e;">🗺️ Planificador de ruta</h2>
+                        <button onclick="document.getElementById('route-panel').remove()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#6b7c93;">×</button>
                     </div>
-                    <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+                    <div style="padding:16px 24px;border-bottom:1px solid #d9e2ec;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
                         <div>
                             <label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Provincia / Ciudad</label>
                             <select id="route-province" class="filter-select" onchange="filterRouteStudios()">
@@ -5787,7 +5787,7 @@
                         <button class="btn btn-secondary btn-sm" onclick="exportRouteToCSV()">⬇️ Exportar lista</button>
                     </div>
                     <div id="route-list" style="padding:16px 24px;max-height:60vh;overflow-y:auto;"></div>
-                    <div style="padding:12px 24px;border-top:1px solid var(--border);font-size:0.8rem;color:var(--muted);" id="route-count"></div>
+                    <div style="padding:12px 24px;border-top:1px solid #d9e2ec;font-size:0.8rem;color:#6b7c93;" id="route-count"></div>
                 </div>`;
 
             document.body.appendChild(overlay);
@@ -5825,7 +5825,7 @@
             const statusLabels = { nuevo:'Nuevo', contactado:'Contactado', standby:'Standby', reunion:'Reunión', negociacion:'Negociación', traspasado:'Traspasado', prescripcion:'Prescripción', venta:'Venta', ganado:'Ganado', perdido:'Perdido' };
 
             listEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
-                <thead><tr style="background:var(--bg-secondary);">
+                <thead><tr style="background:#f7f9fc;">
                     <th style="padding:8px 10px;text-align:left;font-weight:600;">Empresa</th>
                     <th style="padding:8px 10px;text-align:left;font-weight:600;">Tipo</th>
                     <th style="padding:8px 10px;text-align:left;font-weight:600;">Estado</th>
@@ -5918,15 +5918,15 @@
             const typeLabels = { arquitectura:'Arquitectura', ingenieria:'Ingeniería', promotora:'Promotora', constructora:'Constructora', aapp:'AAPP', aguas:'Aguas', regantes:'Regantes' };
 
             overlay.innerHTML = `
-                <div style="background:var(--bg-primary);border-radius:14px;width:100%;max-width:800px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-                    <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-                        <h2 style="margin:0;font-size:1.2rem;">📝 Plantillas de comunicación</h2>
-                        <button onclick="document.getElementById('templates-panel').remove()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted);">×</button>
+                <div style="background:#ffffff;border-radius:14px;width:100%;max-width:800px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                    <div style="padding:20px 24px;border-bottom:1px solid #d9e2ec;display:flex;align-items:center;justify-content:space-between;">
+                        <h2 style="margin:0;font-size:1.2rem;color:#1a1a2e;">📝 Plantillas de comunicación</h2>
+                        <button onclick="document.getElementById('templates-panel').remove()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#6b7c93;">×</button>
                     </div>
-                    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);overflow-x:auto;">
+                    <div style="display:flex;gap:0;border-bottom:1px solid #d9e2ec;overflow-x:auto;">
                         ${types.map((t,i) => `<button onclick="showTemplatesTab('${t}')" id="ttab-${t}" style="padding:10px 16px;background:${i===0?'var(--primary)':'none'};color:${i===0?'white':'var(--text-primary)'};border:none;border-bottom:${i===0?'none':'2px solid transparent'};cursor:pointer;font-size:0.82rem;font-weight:600;white-space:nowrap;">${typeLabels[t]||t}</button>`).join('')}
                     </div>
-                    <div id="templates-tab-content" style="padding:20px 24px;">
+                    <div id="templates-tab-content" style="padding:20px 24px;color:#1a1a2e;">
                         ${renderTemplatesForType(types[0])}
                     </div>
                 </div>`;
@@ -5947,7 +5947,7 @@
             const templates = getTemplatesForType(type);
             if (!templates.length) return '<p style="color:var(--muted);">No hay plantillas para este tipo.</p>';
             return templates.map(t => `
-                <div style="border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;">
+                <div style="border:1px solid #d9e2ec;border-radius:10px;padding:16px;margin-bottom:12px;background:#ffffff;">
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
                         <div>
                             <div style="font-weight:700;font-size:0.95rem;">${t.name}</div>
@@ -5958,7 +5958,7 @@
                             <button class="btn btn-sm btn-primary" onclick="copyTemplate('${t.id}','${type}')">📋 Copiar</button>
                         </div>
                     </div>
-                    <div id="tpreview-${t.id}" style="display:none;margin-top:12px;background:var(--bg-secondary);border-radius:8px;padding:12px;">
+                    <div id="tpreview-${t.id}" style="display:none;margin-top:12px;background:#f7f9fc;border-radius:8px;padding:12px;">
                         ${t.subject ? `<div style="font-size:0.8rem;font-weight:600;color:var(--muted);margin-bottom:4px;">Asunto: ${t.subject}</div>` : ''}
                         <pre style="white-space:pre-wrap;font-family:inherit;font-size:0.82rem;margin:0;color:var(--text-primary);">${t.body}</pre>
                     </div>
