@@ -18338,7 +18338,9 @@ Notas:
         // ── TAB AGENDA ────────────────────────────────────────
         function loadMobileAgenda() {
             const cont = document.getElementById('mobile-agenda-content');
-            const schedule = planificadorData?.schedule || {};
+            let _planData = null;
+            try { _planData = JSON.parse(localStorage.getItem('crm_test_planificador') || 'null'); } catch(e) {}
+            const schedule = _planData?.schedule || {};
             const hoy = new Date();
             const hoyKey = hoy.toISOString().split('T')[0];
             const studios = mobileGetStudios();
