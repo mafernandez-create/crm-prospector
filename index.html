@@ -18393,7 +18393,7 @@ Notas:
                         ${row('📞', 'Teléfono', phone, phone ? 'tel:' + phone.replace(/\s/g,'') : '')}
                         ${row('✉️', 'Email', email, email ? 'mailto:' + email : '')}
                         ${row('🌐', 'Web', web, web ? (web.startsWith('http') ? web : 'https://'+web) : '')}
-                        ${row('📍', 'Dirección', s.address || '')}
+                        ${row('📍', 'Dirección', address)}
                     </div>
                     ${team.length > 0 ? `
                     <p style="margin:16px 0 8px;font-size:0.7rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">👥 Personas de contacto</p>
