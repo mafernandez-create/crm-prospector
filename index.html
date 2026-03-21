@@ -18399,12 +18399,14 @@ Notas:
         }
 
         // ── TAB AGENDA ────────────────────────────────────────
-        function loadMobileAgenda() {
+        async function loadMobileAgenda() {
             const cont = document.getElementById('mobile-agenda-content');
-            const schedule = (typeof planificadorData !== 'undefined' && planificadorData?.schedule) ? planificadorData.schedule : (() => { try { return JSON.parse(localStorage.getItem('crm_test_planificador') || '{}').schedule || {}; } catch(e) { return {}; } })();
+            cont.innerHTML = `<div class="m-empty">⏳<p>Cargando agenda...</p></div>`;
+
             const hoy = new Date();
             const hoyKey = hoy.toISOString().split('T')[0];
-            const studios = mobileGetStudios();
+            const nombresD   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+            const nombresMes = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 
             const dias = [];
             for (let i = 0; i < 14; i++) {
@@ -18413,45 +18415,82 @@ Notas:
                 dias.push(d);
             }
 
-            const nombresD   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-            const nombresMes = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+            // Intentar cargar desde Google Calendar via proxy
+            let gcalEvents = [];
+            try {
+                const dateMin = hoy.toISOString();
+                const dateMax = new Date(hoy.getTime() + 14*24*60*60*1000).toISOString();
+                const res = await callAPI('getCalendarEvents', { dateMin, dateMax });
+                if (res.success && res.events) gcalEvents = res.events;
+            } catch(e) { console.warn('No se pudo cargar Google Calendar:', e); }
+
+            // Agrupar eventos por día
+            const eventsByDay = {};
+            gcalEvents.forEach(ev => {
+                const day = ev.start.split('T')[0];
+                if (!eventsByDay[day]) eventsByDay[day] = [];
+                eventsByDay[day].push(ev);
+            });
+
+            // Si no hay eventos de Calendar, usar planificadorData como fallback
+            const hasCal = gcalEvents.length > 0;
+            const schedule = hasCal ? {} : ((typeof planificadorData !== 'undefined' && planificadorData?.schedule) ? planificadorData.schedule : (() => { try { return JSON.parse(localStorage.getItem('crm_test_planificador') || '{}').schedule || {}; } catch(e) { return {}; } })());
 
             const html = dias.map(d => {
-                const key     = d.toISOString().split('T')[0];
-                const visitas = schedule[key] || [];
-                const esHoy   = key === hoyKey;
-                const label   = esHoy ? 'Hoy' : `${nombresD[d.getDay()]} ${d.getDate()} ${nombresMes[d.getMonth()]}`;
+                const key   = d.toISOString().split('T')[0];
+                const esHoy = key === hoyKey;
+                const label = esHoy ? 'Hoy' : `${nombresD[d.getDay()]} ${d.getDate()} ${nombresMes[d.getMonth()]}`;
 
-                const visitasHtml = visitas.length === 0
-                    ? '<p style="color:#475569;font-size:0.82rem;padding:4px 0;">Sin visitas</p>'
-                    : visitas.map(v => {
-                        const studio = studios.find(s => s.id === v.id);
-                        const phone  = mobileStudioPhone(studio || {});
-                        const city   = mobileStudioCity(studio || {});
-                        const safeId   = escapeHtml(String(v.id||''));
-                        const safeName = escapeHtml(v.name||studio?.name||'').replace(/'/g,"\\'");
-                        return `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                            <div style="flex:1;min-width:0;">
-                                <p style="margin:0;font-size:0.83rem;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(v.name||studio?.name||'')}</p>
-                                <p style="margin:1px 0 0;font-size:0.72rem;color:#64748b;">${escapeHtml(city)}</p>
-                            </div>
-                            <div style="display:flex;gap:6px;flex-shrink:0;">
-                                ${phone ? `<a href="tel:${escapeHtml(phone)}" style="font-size:1.2rem;text-decoration:none;">📞</a>` : ''}
-                                <button onclick="mobileIrARegistrar('${safeId}','${safeName}')" style="font-size:1.2rem;background:none;border:none;cursor:pointer;">✍️</button>
-                            </div>
-                        </div>`;
-                    }).join('');
+                let visitasHtml = '';
+                let count = 0;
+
+                if (hasCal) {
+                    const evs = eventsByDay[key] || [];
+                    count = evs.length;
+                    visitasHtml = evs.length === 0
+                        ? '<p style="color:#475569;font-size:0.82rem;padding:4px 0;">Sin eventos</p>'
+                        : evs.map(ev => {
+                            const hora = new Date(ev.start).toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
+                            return `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                                <p style="margin:0;font-size:0.83rem;color:#e2e8f0;">${escapeHtml(ev.title)}</p>
+                                <p style="margin:2px 0 0;font-size:0.72rem;color:#64748b;">🕐 ${hora}${ev.description ? ' · ' + escapeHtml(ev.description.slice(0,60)) : ''}</p>
+                            </div>`;
+                        }).join('');
+                } else {
+                    const visitas = schedule[key] || [];
+                    count = visitas.length;
+                    const studios = mobileGetStudios();
+                    visitasHtml = visitas.length === 0
+                        ? '<p style="color:#475569;font-size:0.82rem;padding:4px 0;">Sin visitas</p>'
+                        : visitas.map(v => {
+                            const studio = studios.find(s => s.id === v.id);
+                            const phone  = mobileStudioPhone(studio || {});
+                            const city   = mobileStudioCity(studio || {});
+                            const safeId   = escapeHtml(String(v.id||''));
+                            const safeName = escapeHtml(v.name||studio?.name||'').replace(/'/g,"\\'");
+                            return `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                                <div style="flex:1;min-width:0;">
+                                    <p style="margin:0;font-size:0.83rem;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(v.name||studio?.name||'')}</p>
+                                    <p style="margin:1px 0 0;font-size:0.72rem;color:#64748b;">${escapeHtml(city)}</p>
+                                </div>
+                                <div style="display:flex;gap:6px;flex-shrink:0;">
+                                    ${phone ? `<a href="tel:${escapeHtml(phone)}" style="font-size:1.2rem;text-decoration:none;">📞</a>` : ''}
+                                    <button onclick="mobileIrARegistrar('${safeId}','${safeName}')" style="font-size:1.2rem;background:none;border:none;cursor:pointer;">✍️</button>
+                                </div>
+                            </div>`;
+                        }).join('');
+                }
 
                 return `<div class="m-agenda-day" ${esHoy ? 'style="border-color:rgba(99,102,241,0.4);"' : ''}>
                     <div class="m-agenda-day-header" onclick="mobileToggleAgendaDay(this)">
                         <span class="m-agenda-day-title" ${esHoy ? 'style="color:#818cf8;"' : ''}>${label}</span>
-                        <span class="m-agenda-day-count">${visitas.length} visita${visitas.length!==1?'s':''} ${visitas.length>0?'▾':''}</span>
+                        <span class="m-agenda-day-count">${count} ${hasCal ? 'evento' : 'visita'}${count!==1?'s':''} ${count>0?'▾':''}</span>
                     </div>
-                    <div class="m-agenda-day-body ${esHoy && visitas.length > 0 ? 'open' : ''}">${visitasHtml}</div>
+                    <div class="m-agenda-day-body ${esHoy && count > 0 ? 'open' : ''}">${visitasHtml}</div>
                 </div>`;
             }).join('');
 
-            cont.innerHTML = html || `<div class="m-empty">📅<p>No hay visitas planificadas</p></div>`;
+            cont.innerHTML = html || `<div class="m-empty">📅<p>No hay eventos en los próximos 14 días</p></div>`;
         }
 
         function mobileToggleAgendaDay(header) {
