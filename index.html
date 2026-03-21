@@ -16339,6 +16339,14 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                         planificadorData = data;
                         localStorage.setItem('crm_test_planificador', JSON.stringify(planificadorData));
                     }
+                } else {
+                    // Firebase vacío: migrar datos de localStorage a Firebase
+                    const local = JSON.parse(localStorage.getItem('crm_test_planificador') || 'null');
+                    if (local && local.schedule && Object.keys(local.schedule).length > 0) {
+                        planificadorData = local;
+                        await firestoreDB.collection('_meta').doc('planificador').set(planificadorData);
+                        console.log('✅ Planificador migrado a Firebase:', Object.keys(local.schedule).length, 'días');
+                    }
                 }
             } catch(e) {
                 console.warn('No se pudo cargar planificador de Firebase:', e);
