@@ -2497,7 +2497,7 @@
                 </div>
                 <div class="nav-item" onclick="showView('studios')">
                     <span class="nav-item-icon">🏢</span>
-                    <span>Estudios</span>
+                    <span>Empresas</span>
                     <span class="nav-item-badge" id="nav-total">0</span>
                 </div>
             </div>
@@ -2543,7 +2543,7 @@
                 </div>
             </div>
             <div class="nav-section">
-                <div class="nav-section-title">Añadir Estudio</div>
+                <div class="nav-section-title">Añadir Empresa</div>
                 <div style="display:flex;gap:8px;padding:0 12px;margin-bottom:8px;">
                     <button onclick="openManualStudioModal()" style="flex:1;padding:10px 8px;border:none;border-radius:8px;background:var(--success);color:white;cursor:pointer;font-size:0.8rem;font-weight:600;">
                         ✏️ Manual
@@ -2577,7 +2577,7 @@
                 </div>
                 <div class="nav-item" onclick="openBuscarEstudios()">
                     <span class="nav-item-icon">🌐</span>
-                    <span>Buscar Estudios</span>
+                    <span>Buscar Empresas</span>
                 </div>
 
                 <!-- Desplegable Configuración -->
@@ -2649,7 +2649,7 @@
             <div class="topbar-actions">
                 <div class="search-box">
                     <span>🔍</span>
-                    <input type="text" id="global-search" placeholder="Buscar estudios..." oninput="handleSearch()">
+                    <input type="text" id="global-search" placeholder="Buscar empresas..." oninput="handleSearch()">
                 </div>
                 <button class="btn btn-secondary" onclick="openGoogleCalendar()" title="Abrir Google Calendar">
                     <span>📅</span> Calendario
@@ -2667,7 +2667,7 @@
                     <div class="stat-card">
                         <div class="stat-card-icon blue">🏢</div>
                         <div class="stat-card-value" id="stat-total">0</div>
-                        <div class="stat-card-label">Total Estudios</div>
+                        <div class="stat-card-label">Total Empresas</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-card-icon green">✅</div>
@@ -2786,7 +2786,7 @@
 
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="card-title">🏢 Estudios</h2>
+                        <h2 class="card-title">🏢 Empresas</h2>
                         <span id="studios-count" style="font-size:0.85rem;color:var(--muted);">0 resultados</span>
                     </div>
                     <div class="table-container">
@@ -2833,9 +2833,9 @@
             <div class="modal-body" id="new-studio-body">
                 <div class="form-group">
                     <label class="form-label">Nombre del Estudio o URL <span style="color:var(--muted);font-weight:normal;font-size:0.85em;">(opcional)</span></label>
-                    <input type="text" class="form-input" id="new-studio-name" placeholder="Dejar vacío para buscar todos los estudios de la provincia">
+                    <input type="text" class="form-input" id="new-studio-name" placeholder="Dejar vacío para buscar todos las empresas de la provincia">
                     <p style="font-size:0.75rem;color:var(--muted);margin-top:6px;">
-                        💡 Puedes introducir el <strong>nombre del estudio</strong> (ej: "Coboros Arquitectos") o directamente la <strong>URL de su web</strong> (ej: "https://www.coborosarquitectos.com")
+                        💡 Puedes introducir el <strong>nombre dla empresa</strong> (ej: "Coboros Arquitectos") o directamente la <strong>URL de su web</strong> (ej: "https://www.coborosarquitectos.com")
                     </p>
                 </div>
                 <div class="form-group">
@@ -2871,11 +2871,11 @@
         </div>
     </div>
 
-    <!-- Modal Añadir Estudio Manual -->
+    <!-- Modal Añadir Empresa Manual -->
     <div class="modal-overlay" id="modal-manual-studio">
         <div class="modal" style="max-width:700px;">
             <div class="modal-header">
-                <h3 class="modal-title">➕ Añadir Estudio Manualmente</h3>
+                <h3 class="modal-title">➕ Añadir Empresa Manualmente</h3>
                 <button class="modal-close" onclick="closeModal('modal-manual-studio')">&times;</button>
             </div>
             <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
@@ -2945,7 +2945,7 @@
                 <!-- Notas -->
                 <h4 style="margin:20px 0 12px;color:var(--primary);">📝 Notas</h4>
                 <div class="form-group">
-                    <textarea class="form-input" id="manual-notes" rows="3" placeholder="Notas adicionales sobre el estudio..."></textarea>
+                    <textarea class="form-input" id="manual-notes" rows="3" placeholder="Notas adicionales sobre la empresa..."></textarea>
                 </div>
             </div>
             <div class="modal-footer">
@@ -3076,7 +3076,7 @@
             </div>
             <div class="modal-footer" style="border-top:1px solid var(--border);padding-top:16px;">
                 <div style="flex:1;text-align:left;">
-                    <span id="bulk-selected-count" style="color:var(--muted);">0 estudios seleccionados</span>
+                    <span id="bulk-selected-count" style="color:var(--muted);">0 empresas seleccionadas</span>
                 </div>
                 <button class="btn btn-secondary" onclick="closeModal('modal-bulk-results')">Cancelar</button>
                 <button class="btn btn-primary" id="btn-import-selected" onclick="importSelectedStudios()" disabled>
@@ -3817,7 +3817,7 @@
                 <div style="background:#f0f7ff;border-radius:8px;padding:12px;margin-top:12px;">
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.9rem;">
                         <input type="checkbox" id="email-save-template">
-                        <span>💾 Guardar como plantilla predeterminada para este estudio</span>
+                        <span>💾 Guardar como plantilla predeterminada para esta empresa</span>
                     </label>
                 </div>
             </div>
@@ -3923,8 +3923,8 @@
         // TIPOS DE ESTUDIO - Fuente única de verdad
         // ============================================
         const TIPOS_ESTUDIO = {
-            'arquitectura':   { icon: '🏛️', label: 'Arquitectura',          labelLargo: 'Estudio de Arquitectura' },
-            'ingenieria':     { icon: '⚙️', label: 'Ingeniería',            labelLargo: 'Estudio de Ingeniería' },
+            'arquitectura':   { icon: '🏛️', label: 'Arquitectura',          labelLargo: 'Empresa de Arquitectura' },
+            'ingenieria':     { icon: '⚙️', label: 'Ingeniería',            labelLargo: 'Empresa de Ingeniería' },
             'promotora':      { icon: '🏗️', label: 'Promotora',             labelLargo: 'Promotora' },
             'constructora':   { icon: '🔨', label: 'Constructora',          labelLargo: 'Constructora' },
             'aapp':           { icon: '🏛️', label: 'AAPP',                  labelLargo: 'Administración Pública' },
@@ -4165,7 +4165,7 @@
         }
 
         /**
-         * Crea todos los eventos del timeline B2B para un estudio vía Apps Script
+         * Crea todos los eventos del timeline B2B para una empresa vía Apps Script
          */
         async function createB2BCalendarEventsViaAPI(studioId) {
             if (!useCloudStorage) {
@@ -4280,7 +4280,7 @@
             // Generar enlace al CRM para incluir en los eventos
             const crmLink = `${API_URL}?view=studio&id=${studioId}`;
             
-            // Obtener datos de contacto del estudio
+            // Obtener datos de contacto dla empresa
             const studio = await getStudio(studioId);
             
             try {
@@ -4327,7 +4327,7 @@
                 return;
             }
             
-            const confirmed = confirm(`¿Crear eventos en Google Calendar?\n\n📅 Se crearán ${pendingActions.length} eventos para las tareas B2B pendientes.\n\nCada evento incluirá:\n• Nombre del estudio\n• Descripción de la tarea\n• Enlace directo al estudio en el CRM\n• Recordatorios (1h y 15min antes)\n• Color según tipo de acción`);
+            const confirmed = confirm(`¿Crear eventos en Google Calendar?\n\n📅 Se crearán ${pendingActions.length} eventos para las tareas B2B pendientes.\n\nCada evento incluirá:\n• Nombre dla empresa\n• Descripción de la tarea\n• Enlace directo a la empresa en el CRM\n• Recordatorios (1h y 15min antes)\n• Color según tipo de acción`);
             
             if (!confirmed) return;
             
@@ -5650,7 +5650,7 @@
             const titles = {
                 'dashboard': 'Dashboard',
                 'studios': 'Estudios de Arquitectura',
-                'detail': 'Detalle del Estudio'
+                'detail': 'Detalle de Empresa'
             };
             document.getElementById('topbar-title').textContent = titles[view] || view;
             
@@ -5706,7 +5706,7 @@
                                 <div class="timeline-dot ${act.type}"></div>
                                 <div class="timeline-date">${formatDateTime(act.createdAt)}</div>
                                 <div class="timeline-content">
-                                    <div class="timeline-type">${escapeHtml(act.type.toUpperCase())} - ${escapeHtml(studio?.name || 'Estudio eliminado')}</div>
+                                    <div class="timeline-type">${escapeHtml(act.type.toUpperCase())} - ${escapeHtml(studio?.name || 'Empresa eliminada')}</div>
                                     <div class="timeline-text">${escapeHtml(act.text)}</div>
                                 </div>
                             </div>
@@ -5820,7 +5820,7 @@
                 });
             }
             
-            // Extraer CPs de las direcciones de los estudios filtrados
+            // Extraer CPs de las direcciones de las empresas filtrados
             const cps = [...new Set(studiosToFilter.map(s => {
                 const address = s.data?.contact?.address || '';
                 return extractCP(address);
@@ -6515,8 +6515,8 @@
             document.getElementById('new-studio-body').innerHTML = `
                 <div class="form-group">
                     <label class="form-label">Nombre del Estudio o URL</label>
-                    <input type="text" class="form-input" id="new-studio-name" placeholder="Dejar vacío para buscar todos los estudios de la provincia">
-                    <p style="font-size:0.75rem;color:var(--muted);margin-top:4px;">💡 Introduce el nombre/URL de un estudio, o <strong>déjalo vacío</strong> para buscar todos los estudios en la provincia seleccionada</p>
+                    <input type="text" class="form-input" id="new-studio-name" placeholder="Dejar vacío para buscar todos las empresas de la provincia">
+                    <p style="font-size:0.75rem;color:var(--muted);margin-top:4px;">💡 Introduce el nombre/URL de una empresa, o <strong>déjalo vacío</strong> para buscar todos las empresas en la provincia seleccionada</p>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Tipo de Estudio *</label>
@@ -6556,7 +6556,7 @@
         
         async function searchStudiosInProvince(province, studioType) {
             clearDebug();
-            debugLog('Iniciando búsqueda masiva de estudios en ' + province + ' (tipo: ' + studioType + ')');
+            debugLog('Iniciando búsqueda masiva de empresas en ' + province + ' (tipo: ' + studioType + ')');
             
             closeModal('modal-new-studio');
             openModal('modal-progress');
@@ -6605,7 +6605,7 @@
                 
                 document.getElementById('progress-text').textContent = '🧠 Procesando resultados...';
                 
-                // Extraer nombres de estudios de los resultados
+                // Extraer nombres de empresas de los resultados
                 const studioPatterns = [
                     /(?:estudio|despacho|gabinete)\s+(?:de\s+)?(?:arquitectura|ingeniería)?\s*[:\-]?\s*([A-ZÁÉÍÓÚÑ][a-záéíóúñA-ZÁÉÍÓÚÑ\s&\-\.]+)/gi,
                     /([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)*)\s+(?:Arquitectos?|Arquitectura|Ingenieros?|Ingeniería)/gi,
@@ -6692,7 +6692,7 @@
                 closeModal('modal-progress');
                 
                 if (foundStudiosInProvince.length === 0) {
-                    alert(`No se encontraron nuevos ${tipoPlural} en ${province}.\n\nTodos los estudios encontrados ya están en tu base de datos o no se pudieron identificar nombres válidos.`);
+                    alert(`No se encontraron nuevos ${tipoPlural} en ${province}.\n\nTodos las empresas encontrados ya están en tu base de datos o no se pudieron identificar nombres válidos.`);
                     return;
                 }
                 
@@ -6753,7 +6753,7 @@
             // Actualizar título del modal
             const modalTitle = document.querySelector('#modal-new-studio .modal-title');
             if (modalTitle) {
-                modalTitle.textContent = `🔍 Estudios encontrados en ${province}`;
+                modalTitle.textContent = `🔍 Empresas encontradas en ${province}`;
             }
             
             openModal('modal-new-studio');
@@ -6772,13 +6772,13 @@
             });
             
             if (selectedIndexes.length === 0) {
-                alert('Selecciona al menos un estudio para analizar');
+                alert('Selecciona al menos una empresa para analizar');
                 return;
             }
             
             const selectedStudios = selectedIndexes.map(i => foundStudiosInProvince[i]);
             
-            debugLog(`Analizando ${selectedStudios.length} estudios seleccionados`);
+            debugLog(`Analizando ${selectedStudios.length} empresas seleccionadas`);
             
             closeModal('modal-new-studio');
             openModal('modal-progress');
@@ -6810,7 +6810,7 @@
             
             closeModal('modal-progress');
             
-            // Refrescar la lista de estudios
+            // Refrescar la lista de empresas
             await loadStudios();
             
             alert(`✅ Análisis completado:\n\n` +
@@ -6822,7 +6822,7 @@
             document.getElementById('btn-generate').onclick = generateAndSaveStudio;
         }
         
-        // Función para analizar y guardar un estudio individual (usada por búsqueda masiva)
+        // Función para analizar y guardar una empresa individual (usada por búsqueda masiva)
         async function analyzeAndSaveStudio(name, province, studioType, providedUrl) {
             debugLog('Analizando estudio: ' + name);
             
@@ -6915,7 +6915,7 @@
             };
             
             await addStudio(studioData);
-            debugLog('Estudio guardado: ' + studioData.name);
+            debugLog('Empresa guardada: ' + studioData.name);
         }
         
         // Función para parsear la respuesta de análisis de Claude
@@ -6952,7 +6952,7 @@
         function buildAnalysisPrompt(name, province, studioType, webData, directWebContent) {
             const tipoTexto = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).label.toLowerCase();
 
-            return `Analiza la siguiente información sobre el estudio de ${tipoTexto} "${name}" ubicado en ${province}, España.
+            return `Analiza la siguiente información sobre la empresa de ${tipoTexto} "${name}" ubicado en ${province}, España.
 
 INFORMACIÓN RECOPILADA DE LA WEB:
 ${webData}
@@ -6962,11 +6962,11 @@ INSTRUCCIONES:
 2. Identifica a los miembros del equipo con sus cargos
 3. Lista los proyectos más relevantes
 4. Identifica especialidades y áreas de trabajo
-5. Proporciona un resumen del estudio y estrategia de venta
+5. Proporciona un resumen dla empresa y estrategia de venta
 
 Responde SOLO en formato JSON válido con esta estructura exacta:
 {
-    "nombreEstudio": "nombre oficial del estudio",
+    "nombreEstudio": "nombre oficial dla empresa",
     "ciudad": "ciudad donde está ubicado",
     "email": "email principal de contacto",
     "telefono": "teléfono principal",
@@ -6981,9 +6981,9 @@ Responde SOLO en formato JSON válido con esta estructura exacta:
         {"nombre": "Nombre del proyecto", "tipo": "Tipo", "descripcion": "Breve descripción"}
     ],
     "especialidades": ["especialidad1", "especialidad2"],
-    "resumen": "Resumen breve del estudio",
+    "resumen": "Resumen breve dla empresa",
     "fortalezas": ["fortaleza1", "fortaleza2"],
-    "enfoque": "Enfoque y filosofía del estudio",
+    "enfoque": "Enfoque y filosofía dla empresa",
     "estrategiaVenta": "Estrategia recomendada para abordar comercialmente"
 }
 
@@ -7058,7 +7058,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             const name = document.getElementById('manual-name').value.trim();
             
             if (!name) {
-                alert('⚠️ El nombre del estudio es obligatorio');
+                alert('⚠️ El nombre dla empresa es obligatorio');
                 return;
             }
             
@@ -7095,7 +7095,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 }
             });
             
-            // Crear objeto del estudio
+            // Crear objeto dla empresa
             const studioRecord = {
                 name: name,
                 shortName: name.split(' ').map(w => w[0]).join('').toUpperCase().substring(0, 3),
@@ -7140,7 +7140,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 await loadStudios();
                 showStudioDetail(id);
                 
-                alert('✅ Estudio guardado correctamente');
+                alert('✅ Empresa guardada correctamente');
                 
             } catch (error) {
                 console.error('Error guardando estudio:', error);
@@ -7192,10 +7192,10 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             };
             
             try {
-                // Obtener el estudio actual
+                // Obtener la empresa actual
                 const studio = await getStudio(currentStudioId);
                 if (!studio) {
-                    alert('❌ No se encontró el estudio');
+                    alert('❌ No se encontró la empresa');
                     return;
                 }
                 
@@ -7216,7 +7216,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 
                 closeModal('modal-add-team-member');
                 
-                // Refrescar la vista del estudio
+                // Refrescar la vista dla empresa
                 await showStudioDetail(currentStudioId);
                 
                 // Cambiar a la pestaña de equipo
@@ -7256,7 +7256,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                     text: `🗑️ Eliminado contacto: ${memberName}`
                 });
                 
-                // Refrescar la vista del estudio
+                // Refrescar la vista dla empresa
                 await showStudioDetail(currentStudioId);
                 
                 // Cambiar a la pestaña de equipo
@@ -7345,7 +7345,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 closeModal('modal-edit-team-member');
                 showNotification('✅ Contacto actualizado correctamente', 'success');
                 
-                // Refrescar la vista del estudio
+                // Refrescar la vista dla empresa
                 await showStudioDetail(currentStudioId);
                 
                 // Cambiar a la pestaña de equipo
@@ -7473,10 +7473,10 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                     createdAt: new Date().toISOString()
                 };
                 
-                // Obtener el estudio actual
+                // Obtener la empresa actual
                 const studio = await getStudio(currentStudioId);
                 if (!studio) {
-                    alert('❌ No se encontró el estudio');
+                    alert('❌ No se encontró la empresa');
                     return;
                 }
                 
@@ -7497,7 +7497,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 
                 closeModal('modal-add-report');
                 
-                // Refrescar la vista del estudio
+                // Refrescar la vista dla empresa
                 await showStudioDetail(currentStudioId);
                 
                 // Cambiar a la pestaña de informes
@@ -7573,7 +7573,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                     text: `🗑️ Eliminado informe: ${reportTitle}`
                 });
                 
-                // Refrescar la vista del estudio
+                // Refrescar la vista dla empresa
                 await showStudioDetail(currentStudioId);
                 
                 // Cambiar a la pestaña de informes
@@ -7778,7 +7778,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                     baseUrl + '/colaboradores',
                     baseUrl + '/quienes-somos/equipo',
                     baseUrl + '/estudio/equipo',
-                    baseUrl + '/el-estudio',  // A veces el equipo está en la página del estudio
+                    baseUrl + '/el-estudio',  // A veces el equipo está en la página dla empresa
                     baseUrl + '/fundadores'
                 ];
                 
@@ -8412,7 +8412,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 const siteSearchTeam = await searchWeb(`site:${domain} equipo OR team OR arquitectos OR "nuestro equipo" OR staff`);
                 debugLog(`Búsqueda equipo en ${domain}: ${siteSearchTeam.length} resultados`);
                 
-                // Buscar página del estudio
+                // Buscar página dla empresa
                 const siteSearchStudio = await searchWeb(`site:${domain} estudio OR about OR "sobre nosotros" OR "quienes somos"`);
                 debugLog(`Búsqueda estudio en ${domain}: ${siteSearchStudio.length} resultados`);
                 
@@ -8861,7 +8861,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                     await processSearchResults(results, foundStudios, province, 'Colegio Profesional', 85);
                 }
                 
-                // 2. Búsqueda general de estudios
+                // 2. Búsqueda general de empresas
                 updateProgress('🔍 Buscando estudios de ' + typeLabel + '...', 'Búsqueda general');
                 for (const term of typeSearchTerms.slice(0, 2)) {
                     const results = await searchWeb(`${term} ${province} España`);
@@ -9057,7 +9057,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                     // No bloquear la búsqueda si la IA falla (ej: sin créditos)
                 }
 
-                // 14. Enriquecimiento web — visitar webs de los estudios encontrados
+                // 14. Enriquecimiento web — visitar webs de las empresas encontrados
                 updateProgress('🌐 Enriqueciendo datos visitando webs...', 'Extrayendo emails, teléfonos y equipo');
                 try {
                     // Filtrar estudios con URL válida (excluir LinkedIn, Instagram, PA)
@@ -9107,7 +9107,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                 }
 
                 // 15. Procesar y ordenar resultados
-                updateProgress('✨ Procesando resultados...', `${foundStudios.size} estudios encontrados`);
+                updateProgress('✨ Procesando resultados...', `${foundStudios.size} empresas encontradas`);
 
                 // Convertir Map a array y ordenar por relevancia
                 bulkSearchResults = Array.from(foundStudios.values())
@@ -9127,7 +9127,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
         
         async function processSearchResults(results, foundStudios, province, source, baseRelevance) {
             for (const result of results) {
-                // Extraer nombre del estudio del título
+                // Extraer nombre dla empresa del título
                 const studioName = extractStudioName(result.title, result.snippet);
                 if (!studioName || studioName.length < 3) continue;
                 
@@ -9196,7 +9196,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                 .replace(/\(@[^)]+\)/g, '')
                 .trim();
             
-            // Buscar patrones comunes de nombres de estudios
+            // Buscar patrones comunes de nombres de empresas
             const patterns = [
                 /^([A-ZÁÉÍÓÚÑ][a-záéíóúñA-ZÁÉÍÓÚÑ\s&.]+(?:Arquitectos?|Arquitectura|Ingenieros?|Ingeniería|Studio|Estudio|SLP|SL|SA|SC))/i,
                 /^(Estudio\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñA-ZÁÉÍÓÚÑ\s&.]+)/i,
@@ -9354,7 +9354,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                         <div style="font-size:3rem;margin-bottom:16px;">🔍</div>
                         <h4>No se encontraron estudios</h4>
                         <p>No se han encontrado estudios de ${typeLabel} en ${province}.</p>
-                        <p style="font-size:0.85rem;">Intenta con otra provincia o introduce el nombre de un estudio específico.</p>
+                        <p style="font-size:0.85rem;">Intenta con otra provincia o introduce el nombre de una empresa específico.</p>
                     </div>
                 `;
                 document.getElementById('bulk-results-count').textContent = 'No se encontraron resultados';
@@ -9478,7 +9478,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
         async function importSelectedStudios() {
             const checkboxes = document.querySelectorAll('.bulk-checkbox:checked');
             if (checkboxes.length === 0) {
-                alert('Selecciona al menos un estudio para importar');
+                alert('Selecciona al menos una empresa para importar');
                 return;
             }
             
@@ -9487,13 +9487,13 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
             
             closeModal('modal-bulk-results');
             
-            // Obtener tipo de estudio del formulario original
+            // Obtener tipo de empresa del formulario original
             const studioType = document.getElementById('new-studio-type')?.value || 'arquitectura';
             const province = document.getElementById('new-studio-province')?.value || selectedStudios[0]?.province;
             
             // Confirmar importación
             const confirmMsg = selectedStudios.length === 1
-                ? `¿Importar "${selectedStudios[0].name}"?\n\nSe generará un análisis completo del estudio.`
+                ? `¿Importar "${selectedStudios[0].name}"?\n\nSe generará un análisis completo dla empresa.`
                 : `¿Importar ${selectedStudios.length} estudios?\n\nSe generará un análisis completo para cada uno.\n\n⚠️ Este proceso puede tardar varios minutos.`;
             
             if (!confirm(confirmMsg)) {
@@ -9514,7 +9514,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                     // Usar la URL si está disponible, si no el nombre
                     const inputValue = studio.url || studio.name;
                     
-                    // Llamar a la función de generación existente con los datos del estudio
+                    // Llamar a la función de generación existente con los datos dla empresa
                     await generateStudioFromBulk(studio.name, studio.url, province, studioType);
                     
                     imported++;
@@ -9534,12 +9534,12 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
             
             // Mostrar resumen
             if (errors > 0) {
-                alert(`Importación completada:\n\n✅ ${imported} estudios importados correctamente\n❌ ${errors} errores\n\nRevisa la lista de estudios para ver los resultados.`);
+                alert(`Importación completada:\n\n✅ ${imported} estudios importados correctamente\n❌ ${errors} errores\n\nRevisa la lista de empresas para ver los resultados.`);
             } else {
                 alert(`✅ ${imported} estudio${imported !== 1 ? 's' : ''} importado${imported !== 1 ? 's' : ''} correctamente`);
             }
             
-            // Recargar lista de estudios
+            // Recargar lista de empresas
             await loadStudiosFromServer();
         }
         
@@ -9740,7 +9740,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                     projects: analysis?.proyectos || [],
                     specialties: analysis?.especialidades || [],
                     analysis: {
-                        summary: analysis?.resumen || `Estudio de ${typeLabel} en ${bestCity || province}.`,
+                        summary: analysis?.resumen || `Empresa de ${typeLabel} en ${bestCity || province}.`,
                         strengths: analysis?.fortalezas || [],
                         approach: analysis?.enfoque || '',
                         salesStrategy: analysis?.estrategiaVenta || ''
@@ -9754,7 +9754,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
             // Guardar en la base de datos
             await addStudio(studioData);
 
-            debugLog('Estudio guardado: ' + studioData.name +
+            debugLog('Empresa guardada: ' + studioData.name +
                 (analysis ? ' (con IA)' : ' (fallback sin IA)') +
                 ` — email: ${bestEmail || 'N/A'}, tel: ${bestPhone || 'N/A'}, equipo: ${allTeam.length}`);
         }
@@ -9784,8 +9784,8 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
             const studioType = typeInput?.value || 'arquitectura';
             
             if (!inputValue) {
-                // Si no hay nombre, buscar estudios en la provincia
-                debugLog('Campo vacío - Iniciando búsqueda de estudios en ' + province);
+                // Si no hay nombre, buscar empresas en la provincia
+                debugLog('Campo vacío - Iniciando búsqueda de empresas en ' + province);
                 closeModal('modal-new-studio');
                 await searchStudiosInProvince(province, studioType);
                 return;
@@ -9859,12 +9859,12 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
             
             if (existingStudio) {
                 const confirmUpdate = confirm(
-                    `⚠️ Ya existe un estudio similar en la base de datos:\n\n` +
+                    `⚠️ Ya existe una empresa similar en la base de datos:\n\n` +
                     `📋 "${existingStudio.name}"\n` +
                     `📍 ${existingStudio.province}\n` +
                     `📊 Estado: ${getStatusLabel(existingStudio.status)}\n\n` +
-                    `¿Deseas ACTUALIZAR este estudio con los nuevos datos?\n\n` +
-                    `• Pulsa "Aceptar" para ACTUALIZAR el estudio existente\n` +
+                    `¿Deseas ACTUALIZAR esta empresa con los nuevos datos?\n\n` +
+                    `• Pulsa "Aceptar" para ACTUALIZAR la empresa existente\n` +
                     `• Pulsa "Cancelar" para CREAR uno nuevo`
                 );
                 
@@ -9873,7 +9873,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                     existingId = existingStudio.id;
                     debugLog('Usuario eligió actualizar estudio existente ID: ' + existingId);
                 } else {
-                    debugLog('Usuario eligió crear nuevo estudio');
+                    debugLog('Usuario eligió crear nueva empresa');
                 }
             }
             
@@ -9917,10 +9917,10 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                                 deepAnalysisData = { logo: pageContent.logo };
                             }
                             
-                            // Extraer nombre real del estudio si está disponible
+                            // Extraer nombre real dla empresa si está disponible
                             if (pageContent.structuredData?.name) {
                                 name = pageContent.structuredData.name;
-                                debugLog('Nombre del estudio encontrado: ' + name);
+                                debugLog('Nombre dla empresa encontrado: ' + name);
                             }
                             
                             // Construir datos de contacto encontrados de forma prominente
@@ -10153,8 +10153,8 @@ ${domainContactSearch.map(r => `• ${r.title}\n  URL: ${r.url}\n  ${r.snippet}`
                     webData += colegioResults.map(r => `• ${r.title}\n  URL: ${r.url}\n  ${r.snippet}${r.source ? '\n  Fuente: ' + r.source : ''}`).join('\n\n');
                 }
 
-                // Identificar la web oficial del estudio para análisis profundo
-                document.getElementById('progress-text').textContent = '🌐 Identificando web oficial del estudio...';
+                // Identificar la web oficial dla empresa para análisis profundo
+                document.getElementById('progress-text').textContent = '🌐 Identificando web oficial dla empresa...';
                 
                 const allResults = [...mainSearch, ...contactSearch, ...webSearch, ...projectSearch];
                 const possibleWebsites = allResults.filter(r => 
@@ -10180,7 +10180,7 @@ ${domainContactSearch.map(r => `• ${r.title}\n  URL: ${r.url}\n  ${r.snippet}`
                     uniqueWebsites.unshift({ url: providedUrl, title: name });
                 }
                 
-                // ANÁLISIS PROFUNDO de la web oficial del estudio
+                // ANÁLISIS PROFUNDO de la web oficial dla empresa
                 deepAnalysisData = null;  // Reiniciar
                 // Usar URL proporcionada o la primera encontrada
                 const websiteToAnalyze = providedUrl || (uniqueWebsites.length > 0 ? uniqueWebsites[0].url : null);
@@ -10409,7 +10409,7 @@ ${domainContactSearch.map(r => `• ${r.title}\n  URL: ${r.url}\n  ${r.snippet}`
                             if (person.linkedin) webData += `\n   LinkedIn: ${person.linkedin}`;
                             webData += `\n`;
                         });
-                        debugLog(`Encontradas ${allPeopleFromWeb.length} personas en la web del estudio`);
+                        debugLog(`Encontradas ${allPeopleFromWeb.length} personas en la web dla empresa`);
                     }
                     
                     // Añadir personas encontradas en deepAnalysisData.allPeople
@@ -10574,7 +10574,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     score: data.sales?.score || 5,
                     data: data,
                     logo: logoToSave,
-                    type: studioType  // Tipo de estudio: arquitectura o ingenieria
+                    type: studioType  // Tipo de empresa: arquitectura o ingenieria
                 };
                 
                 let id;
@@ -10583,7 +10583,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     // ACTUALIZAR estudio existente
                     debugLog('Actualizando estudio existente ID: ' + existingId);
                     
-                    // Preservar algunos datos del estudio existente
+                    // Preservar algunos datos dla empresa existente
                     const existingData = await getStudio(existingId);
                     studioRecord.status = existingData.status; // Mantener estado actual
                     studioRecord.createdAt = existingData.createdAt; // Mantener fecha de creación
@@ -10595,13 +10595,13 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     await addActivity({
                         studioId: id,
                         type: 'note',
-                        text: '🔄 Estudio actualizado con nuevo análisis web.'
+                        text: '🔄 Empresa actualizada con nuevo análisis web.'
                     });
                     
-                    debugLog('✅ Estudio actualizado con ID: ' + id);
+                    debugLog('✅ Empresa actualizada con ID: ' + id);
                 } else {
-                    // CREAR nuevo estudio
-                    debugLog('Guardando nuevo estudio en base de datos...');
+                    // CREAR nueva empresa
+                    debugLog('Guardando nueva empresa en base de datos...');
                     
                     id = await addStudio(studioRecord);
                     
@@ -10612,7 +10612,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                         text: 'Estudio añadido al CRM. Análisis con búsqueda web completado.'
                     });
                     
-                    debugLog('✅ Estudio guardado con ID: ' + id);
+                    debugLog('✅ Empresa guardada con ID: ' + id);
                 }
                 
                 closeModal('modal-progress');
@@ -10744,9 +10744,9 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 const activityId = await addActivity(activityData);
                 console.log('✅ Actividad guardada con ID:', activityId);
                 
-                // Actualizar timestamp del estudio
+                // Actualizar timestamp dla empresa
                 await updateStudio(currentStudioId, {});
-                console.log('✅ Estudio actualizado');
+                console.log('✅ Empresa actualizada');
                 
                 // Limpiar checkboxes
                 document.querySelectorAll('.producto-check').forEach(cb => cb.checked = false);
@@ -10788,7 +10788,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
         let editingContactStudioId = null;
         
         async function openEditContactModal(studioId) {
-            editingContactStudioId = studioId; // Guardar el ID del estudio que estamos editando
+            editingContactStudioId = studioId; // Guardar el ID dla empresa que estamos editando
             const studio = await getStudio(studioId);
             if (!studio) {
                 alert('Estudio no encontrado');
@@ -10822,7 +10822,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const studioIdToUpdate = editingContactStudioId || currentStudioId;
             
             if (!studioIdToUpdate) {
-                alert('Error: No se pudo identificar el estudio a actualizar');
+                alert('Error: No se pudo identificar la empresa a actualizar');
                 if (saveBtn) {
                     saveBtn.disabled = false;
                     saveBtn.textContent = 'Guardar';
@@ -10848,7 +10848,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 const newCity = document.getElementById('edit-contact-city').value.trim();
                 const newProvince = document.getElementById('edit-contact-province').value;
                 
-                // Actualizar datos del estudio
+                // Actualizar datos dla empresa
                 data.studio = data.studio || {};
                 data.studio.founded = document.getElementById('edit-contact-founded').value.trim();
                 
@@ -11220,7 +11220,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     let directWebContent = null;
 
                     if (providedUrl) {
-                        document.getElementById('progress-text').textContent = '🌐 Analizando web del estudio...';
+                        document.getElementById('progress-text').textContent = '🌐 Analizando web dla empresa...';
                         debugLog('Analizando URL: ' + providedUrl);
                         try {
                             const pageContent = await fetchPageContentDeep(providedUrl);
@@ -11948,7 +11948,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
         // DELETE
         // ============================================
         async function confirmDeleteStudio(id) {
-            if (confirm('¿Estás seguro de que quieres eliminar este estudio? Esta acción no se puede deshacer.')) {
+            if (confirm('¿Estás seguro de que quieres eliminar esta empresa? Esta acción no se puede deshacer.')) {
                 await deleteStudio(id);
                 await loadStudios();
                 if (currentView === 'detail') {
@@ -12146,7 +12146,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 <div style="max-width:1100px;margin:0 auto;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
                         <div>
-                            <h2 style="margin:0;color:#f1f5f9;font-size:1.3rem;">🔍 Posibles estudios duplicados</h2>
+                            <h2 style="margin:0;color:#f1f5f9;font-size:1.3rem;">🔍 Posibles empresas duplicadas</h2>
                             <p id="dup-count" style="margin:4px 0 0;color:#64748b;font-size:0.85rem;">${pairs.length} posibles coincidencias encontradas</p>
                         </div>
                         <button onclick="document.getElementById('duplicates-panel').remove()" style="background:#334155;border:none;color:#cbd5e1;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:0.9rem;">✕ Cerrar</button>
@@ -12189,7 +12189,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const keep   = studios.find(x => x.id === keepId);
             const remove = studios.find(x => x.id === removeId);
             if (!keep || !remove) return;
-            if (!confirm(`¿Fusionar "${remove.name}" en "${keep.name}"?\n\n• El estudio A (${keep.name}) se mantendrá con datos combinados.\n• El estudio B se eliminará.\n• Las actividades de B pasarán a A.`)) return;
+            if (!confirm(`¿Fusionar "${remove.name}" en "${keep.name}"?\n\n• La empresa A (${keep.name}) se mantendrá con datos combinados.\n• La empresa B se eliminará.\n• Las actividades de B pasarán a A.`)) return;
             try {
                 // Fusionar campos de contacto (preferir el no vacío)
                 const kc = keep.data?.contact || {}, rc = remove.data?.contact || {};
@@ -12224,7 +12224,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             } catch(e) { showNotification('Error al fusionar: ' + e.message, 'error'); }
         }
 
-        // Recalcular prioridades de todos los estudios
+        // Recalcular prioridades de todos las empresas
         async function recalculateAllPriorities() {
             const criteriosInfo = `
 📊 CRITERIOS DE PRIORIDAD AUTOMÁTICA
@@ -12262,7 +12262,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
 • Baja: <5 puntos
 `;
             
-            if (!confirm(criteriosInfo + '\n\n¿Recalcular la prioridad de todos los estudios?')) {
+            if (!confirm(criteriosInfo + '\n\n¿Recalcular la prioridad de todos las empresas?')) {
                 return;
             }
             
@@ -12648,7 +12648,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 '<thead style="position:sticky;top:0;background:var(--surface);">' +
                 '<tr>' +
                 '<th style="padding:8px;text-align:left;width:30px;"><input type="checkbox" id="import-select-all" onchange="toggleAllImport(this.checked)" checked></th>' +
-                '<th style="padding:8px;text-align:left;">Estudio</th>' +
+                '<th style="padding:8px;text-align:left;">Empresa</th>' +
                 '<th style="padding:8px;text-align:left;">Provincia</th>' +
                 '<th style="padding:8px;text-align:left;">Contacto</th>' +
                 '<th style="padding:8px;text-align:left;">Estado</th>' +
@@ -12742,7 +12742,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             var toImport = excelImportData.studios.filter(function(s) { return s.selected; });
 
             if (toImport.length === 0) {
-                alert('No hay estudios seleccionados para importar');
+                alert('No hay empresas seleccionadas para importar');
                 return;
             }
 
@@ -13530,11 +13530,11 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                     // Esperar un momento para que los datos se carguen
                     await new Promise(resolve => setTimeout(resolve, 500));
                     
-                    // Buscar el estudio
+                    // Buscar la empresa
                     const studio = await getStudio(parseInt(studioId));
                     
                     if (studio) {
-                        // Mostrar el detalle del estudio
+                        // Mostrar el detalle de empresa
                         await showStudioDetail(parseInt(studioId));
                         
                         // Limpiar la URL para que quede más limpia (solo si es posible)
@@ -13548,7 +13548,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                         console.log(`✅ Estudio "${studio.name}" cargado desde enlace directo`);
                     } else {
                         console.warn(`⚠️ Estudio con ID ${studioId} no encontrado`);
-                        alert(`No se encontró el estudio con ID ${studioId}.\n\nEs posible que el estudio haya sido eliminado o que los datos no estén sincronizados.`);
+                        alert(`No se encontró la empresa con ID ${studioId}.\n\nEs posible que la empresa haya sido eliminado o que los datos no estén sincronizados.`);
                     }
                 }
             } catch (error) {
@@ -14175,7 +14175,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                         <div class="restore-info-grid">
                             <div class="restore-info-item">
                                 <div class="restore-info-value">${studiosCount}</div>
-                                <div class="restore-info-label">Estudios</div>
+                                <div class="restore-info-label">Empresas</div>
                             </div>
                             <div class="restore-info-item">
                                 <div class="restore-info-value">${activitiesCount}</div>
@@ -14314,10 +14314,10 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 return { success: false, emails: [], noEmails: true };
             }
 
-            // Recopilar TODOS los emails del estudio: principal + equipo
+            // Recopilar TODOS los emails dla empresa: principal + equipo
             const emailMap = new Map(); // email → { email, contactName, contactRole, isPrimary }
 
-            // Email principal del estudio
+            // Email principal dla empresa
             const primaryEmail = (studio.data?.contact?.email || '').trim().toLowerCase();
             if (primaryEmail) {
                 emailMap.set(primaryEmail, {
@@ -14345,7 +14345,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const emailEntries = Array.from(emailMap.values());
 
             if (emailEntries.length === 0) {
-                showNotification('⚠️ Este estudio no tiene ningún email configurado (ni principal ni en equipo)', 'warning');
+                showNotification('⚠️ Esta empresa no tiene ningún email configurado (ni principal ni en equipo)', 'warning');
                 return { success: false, emails: [], noEmails: true, emailAddresses: [] };
             }
 
@@ -14468,7 +14468,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 container.innerHTML = `
                     <div style="text-align:center;padding:30px;color:var(--muted);">
                         <div style="font-size:3rem;margin-bottom:16px;">📭</div>
-                        <p style="font-size:1.1rem;margin-bottom:8px;">Este estudio no tiene emails configurados</p>
+                        <p style="font-size:1.1rem;margin-bottom:8px;">Esta empresa no tiene emails configurados</p>
                         <p style="font-size:0.85rem;">Añade un email en la pestaña <strong>Info</strong> (email principal) o en <strong>Equipo</strong> (contactos) para ver el historial de correos.</p>
                     </div>`;
                 return;
@@ -14482,7 +14482,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 container.innerHTML = `
                     <div style="text-align:center;padding:30px;color:var(--muted);">
                         <div style="font-size:3rem;margin-bottom:16px;">📭</div>
-                        <p style="font-size:1.1rem;margin-bottom:8px;">No se encontraron emails con este estudio</p>
+                        <p style="font-size:1.1rem;margin-bottom:8px;">No se encontraron emails con esta empresa</p>
                         <p style="font-size:0.85rem;margin-bottom:12px;">Se buscaron correos de: ${addressChips || 'ninguna dirección'}</p>
                         <p style="font-size:0.8rem;">Los emails aparecerán aquí cuando envíes o recibas correos de estas direcciones</p>
                     </div>`;
@@ -15192,7 +15192,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const to = data.contact?.email;
             
             if (!to) {
-                alert('Este estudio no tiene email de contacto');
+                alert('Esta empresa no tiene email de contacto');
                 return;
             }
             
@@ -15410,7 +15410,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 endTime.setMinutes(endTime.getMinutes() + 30);
             }
             
-            // Generar enlace al estudio en el CRM
+            // Generar enlace a la empresa en el CRM
             const crmLink = `${API_URL}?view=studio&id=${studio.id}`;
             
             const event = {
@@ -15537,7 +15537,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 if (!step) return;
                 const plannedDate = getPlannedDate(studio.b2bTimeline.startDate, step.day);
 
-                // Generar enlace al estudio en el CRM
+                // Generar enlace a la empresa en el CRM
                 const crmLink = `${API_URL}?view=studio&id=${studioId}`;
                 
                 showNotification('🔄 Creando evento...', 'info');
@@ -15660,7 +15660,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
 
         const CYCLE_INFO = {
           arquitectura: {
-            label: 'Estudio de Arquitectura',
+            label: 'Empresa de Arquitectura',
             cycleDays: '21–28 días hábiles',
             decisionType: 'Individual (socio/director)',
             mainContacts: ['Arquitecto socio/titular', 'Project manager'],
@@ -15668,7 +15668,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             note: 'Ciclo estándar. Decisión individual. LinkedIn muy activo en este perfil.'
           },
           ingenieria: {
-            label: 'Estudio de Ingeniería',
+            label: 'Empresa de Ingeniería',
             cycleDays: '21–35 días hábiles',
             decisionType: 'Individual o dupla técnica',
             mainContacts: ['Ingeniero socio/director técnico', 'Responsable de proyectos'],
@@ -15959,7 +15959,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             name: 'Email — propuesta de visita técnica',
             channel: 'email',
             icon: '✉️',
-            description: 'Proponer visita al estudio con muestras físicas y documentación lista para proyecto.',
+            description: 'Proponer visita a la empresa con muestras físicas y documentación lista para proyecto.',
             script: `ASUNTO: "Visita técnica sin compromiso — muestras + texto de especificación para sus proyectos"
 
         CUERPO:
@@ -15986,7 +15986,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
           },
           {
             day: 21,
-            name: 'Visita técnica al estudio',
+            name: 'Visita técnica a la empresa',
             channel: 'meeting',
             icon: '🤝',
             description: 'Visita presencial con muestras. Conseguir prescripción y/o datos del instalador.',
@@ -16023,7 +16023,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             script: `ESCENARIO A — Prescripción conseguida:
         El arquitecto acepta especificar el sistema en su próxima memoria de proyecto.
         → Enviar texto de especificación técnica definitivo por email.
-        → Notificar al comercial de zona: nombre del estudio, contacto, proyecto previsto,
+        → Notificar al comercial de zona: nombre dla empresa, contacto, proyecto previsto,
           nombre del instalador si se ha obtenido.
         → Registrar en CRM: "Prescripción confirmada. Comercial [nombre] notificado. Fecha: [X]."
 
@@ -16237,7 +16237,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             name: 'Email — propuesta de visita técnica',
             channel: 'email',
             icon: '✉️',
-            description: 'Concretar la visita al estudio de ingeniería con agenda técnica clara.',
+            description: 'Concretar la visita a la empresa de ingeniería con agenda técnica clara.',
             script: `ASUNTO: "Visita técnica — muestras + texto de pliego listo para su próximo proyecto"
 
         CUERPO:
@@ -16263,7 +16263,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
           },
           {
             day: 24,
-            name: 'Visita técnica al estudio',
+            name: 'Visita técnica a la empresa',
             channel: 'meeting',
             icon: '🤝',
             description: 'Visita presencial. Conseguir prescripción y/o contacto del instalador.',
@@ -17567,7 +17567,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
          * Combina pasos completados + triggers activos.
          * No usa BANT.
          *
-         * @param {Object} b2bTimeline - Objeto b2bTimeline del estudio en el CRM
+         * @param {Object} b2bTimeline - Objeto b2bTimeline dla empresa en el CRM
          * @param {string} studioType
          * @returns {{ score: number, total: number, percentage: number, readyForHandoff: boolean, triggersActive: number, triggersRequired: number }}
          */
@@ -17680,7 +17680,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 }
             }
 
-            const cambiarAContactado = confirm(`¿Deseas marcar "${studio.name}" como "Contactado"?\n\nEsto actualizará el estado del estudio además de iniciar el proceso.`);
+            const cambiarAContactado = confirm(`¿Deseas marcar "${studio.name}" como "Contactado"?\n\nEsto actualizará el estado dla empresa además de iniciar el proceso.`);
 
             const triggerConfig = getTriggersByType(studioType);
             const now = new Date();
@@ -18078,7 +18078,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 filteredStudios = studios.filter(s => urgentIds.includes(s.id));
             }
             
-            // Si hay solo un estudio, ir directamente a su detalle
+            // Si hay solo una empresa, ir directamente a su detalle
             if (filteredStudios.length === 1) {
                 showStudioDetail(filteredStudios[0].id);
                 return;
@@ -18090,7 +18090,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 return;
             }
             
-            // Cambiar a vista de estudios sin aplicar filtros del formulario
+            // Cambiar a vista de empresas sin aplicar filtros del formulario
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById('view-studios').classList.add('active');
             currentView = 'studios';
@@ -18112,7 +18112,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             document.getElementById('filter-cp').value = '';
             document.getElementById('global-search').value = '';
             
-            // Renderizar solo los estudios filtrados
+            // Renderizar solo las empresas filtrados
             renderStudiosTable(filteredStudios);
         }
 
@@ -18243,13 +18243,13 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             }
         }
 
-        // Ver estudio desde el modal
+        // Ver empresa desde el modal
         function viewStudioFromModal(studioId) {
             closeModal('modal-pending-tasks');
             showStudioDetail(studioId);
         }
 
-        // Obtener la próxima acción B2B de un estudio específico
+        // Obtener la próxima acción B2B de una empresa específico
         function getStudioNextAction(studio) {
             if (!studio.b2bTimeline || typeof studio.b2bTimeline !== 'object' || studio.status === 'ganado' || studio.status === 'perdido' || studio.status === 'standby') {
                 return null;
@@ -18318,7 +18318,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             }
         }
 
-        // Renderizar banner de acción en el detalle del estudio
+        // Renderizar banner de acción en el detalle de empresa
         function renderActionBanner(studio) {
             const action = getStudioNextAction(studio);
             
@@ -18533,14 +18533,14 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 <div class="form-group">
                     <label class="form-label">Nombre espec\u00edfico <span style="color:var(--muted);font-weight:normal;font-size:0.85em;">(opcional)</span></label>
                     <input type="text" class="form-input" id="new-studio-name" placeholder="Dejar vac\u00edo para buscar todos los de la provincia">
-                    <p style="font-size:0.75rem;color:var(--muted);margin-top:4px;">💡 Si lo dejas vac\u00edo, buscar\u00e1 todos los estudios del tipo seleccionado en la provincia</p>
+                    <p style="font-size:0.75rem;color:var(--muted);margin-top:4px;">💡 Si lo dejas vac\u00edo, buscar\u00e1 todos las empresas del tipo seleccionado en la provincia</p>
                 </div>
             `;
             populateTypeSelect('new-studio-type', null);
             populateProvinceSelect('new-studio-province', null);
 
             const modalTitle = document.querySelector('#modal-new-studio .modal-title');
-            if (modalTitle) modalTitle.textContent = '🌐 Buscar Estudios en Internet';
+            if (modalTitle) modalTitle.textContent = '🌐 Buscar Empresas en Internet';
 
             document.getElementById('btn-generate-text').textContent = 'Buscar';
             document.getElementById('btn-generate-icon').textContent = '🔍';
@@ -18729,10 +18729,10 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                             <div style="border-top:2px solid #e2e8f0;margin:20px 0;padding-top:16px;">
                                 <label class="filter-label">🔎 Búsqueda Directa (sin filtros)</label>
                                 <input type="text" class="filter-input" id="plan-busqueda-directa" 
-                                       placeholder="Nombre del estudio..."
+                                       placeholder="Nombre dla empresa..."
                                        onkeyup="if(event.key==='Enter')buscarEstudioDirecto()">
                                 <button class="btn-filter" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);margin-top:8px;" onclick="buscarEstudioDirecto()">
-                                    🔍 Buscar Estudio
+                                    🔍 Buscar Empresa
                                 </button>
                             </div>
                         </div>
@@ -18740,7 +18740,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                         <!-- Panel Lista Estudios -->
                         <div class="planner-studios">
                             <div class="planner-studios-header">
-                                🏢 Estudios Disponibles
+                                🏢 Empresas Disponibles
                                 <span class="badge" id="studios-count" style="background:#7c3aed;color:white;padding:2px 8px;border-radius:10px;font-size:0.75rem;">0</span>
                             </div>
                             <div class="planner-studios-list" id="studios-drag-list">
@@ -19119,7 +19119,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const unassigned = studiosToAssign.filter(s => !assignedIds.has(s.id));
 
             if (unassigned.length === 0) {
-                showNotification('Todos los estudios ya están asignados', 'info');
+                showNotification('Todos las empresas ya están asignados', 'info');
                 return;
             }
 
@@ -19314,7 +19314,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             
             const studiosData = window.plannerStudiosData || [];
             
-            // Buscar en TODOS los estudios sin filtros
+            // Buscar en TODOS las empresas sin filtros
             let filtered = studiosData.filter(s => {
                 const name = (s.name || '').toLowerCase();
                 const shortName = (s.shortName || '').toLowerCase();
@@ -19552,7 +19552,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const studioId = draggedStudioId || parseInt(event.dataTransfer.getData('text/plain'));
             if (!studioId) return;
             
-            // Buscar el estudio
+            // Buscar la empresa
             const studiosData = window.plannerStudiosData || [];
             const studio = studiosData.find(s => s.id === studioId);
             if (!studio) return;
@@ -19562,7 +19562,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             if (!planificadorData.schedule[dateStr]) planificadorData.schedule[dateStr] = [];
             
             if (planificadorData.schedule[dateStr].some(s => s.id === studioId)) {
-                showNotification('Este estudio ya está asignado a este día', 'warning');
+                showNotification('Esta empresa ya está asignado a este día', 'warning');
                 return;
             }
             
@@ -19582,7 +19582,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             savePlanificadorData();
             updateCalendarDays();
             
-            // Actualizar lista de estudios para marcar como asignado
+            // Actualizar lista de empresas para marcar como asignado
             if (window.filteredStudios) {
                 renderStudiosDragList(window.filteredStudios);
             }
@@ -19937,7 +19937,7 @@ Notas:
 
             // 2. Confirmar
             const daysCount = Object.keys(visitsByDay).length;
-            if (!confirm(`📅 Crear eventos en Google Calendar\n\n📆 ${daysCount} días · 🏢 ${totalVisits} visitas\n\nCada evento incluirá:\n• Nombre y tipo de empresa\n• Dirección con enlace a Waze\n• Teléfono y email\n• Descripción del estudio\n• Enlace al CRM\n\n¿Continuar?`)) return;
+            if (!confirm(`📅 Crear eventos en Google Calendar\n\n📆 ${daysCount} días · 🏢 ${totalVisits} visitas\n\nCada evento incluirá:\n• Nombre y tipo de empresa\n• Dirección con enlace a Waze\n• Teléfono y email\n• Descripción dla empresa\n• Enlace al CRM\n\n¿Continuar?`)) return;
 
             // 3. Crear eventos con horarios escalonados vía proxy Apps Script
             showNotification('📅 Creando eventos en Google Calendar...', 'info');
@@ -20194,7 +20194,7 @@ Notas:
                         html += '<div class="visit-detail">\uD83C\uDF10 Web: ' + s.data.contact.web + '</div>';
                     }
 
-                    // Nota: descripción del estudio
+                    // Nota: descripción dla empresa
                     const desc = s.data?.studio?.description;
                     if (desc && !isNoData(desc)) {
                         html += '<div class="visit-note">' + desc + '</div>';
@@ -20335,7 +20335,7 @@ Notas:
 
         function mobileGetStudios() { return allStudios || cloudCache?.studios || []; }
         function mobileGetActivities() { return cloudCache?.activities || []; }
-        // Helpers para acceder a los campos reales del estudio
+        // Helpers para acceder a los campos reales dla empresa
         function mobileStudioPhone(s) { return s.data?.contact?.phone || s.phone || ''; }
         function mobileStudioCity(s)  { return s.data?.contact?.city  || s.city  || s.province || ''; }
 
@@ -20648,7 +20648,7 @@ Notas:
         }
 
         async function mobileRegistrarActividad() {
-            if (!mobileSelectedStudioId) { showNotification('⚠️ Selecciona un estudio', 'warning'); return; }
+            if (!mobileSelectedStudioId) { showNotification('⚠️ Selecciona una empresa', 'warning'); return; }
             if (!mobileSelectedType)     { showNotification('⚠️ Selecciona el tipo de actividad', 'warning'); return; }
             const text = document.getElementById('mobile-reg-notes').value.trim();
             if (!text) { showNotification('⚠️ Añade una descripción', 'warning'); return; }
@@ -20927,13 +20927,13 @@ Notas:
 
         <!-- Tab: BUSCAR -->
         <div id="mobile-tab-buscar" class="mobile-tab-content">
-            <input id="mobile-search-input" type="search" placeholder="🔍  Buscar estudio o empresa..." oninput="mobileSearchStudios(this.value)">
+            <input id="mobile-search-input" type="search" placeholder="🔍  Buscar empresa o empresa..." oninput="mobileSearchStudios(this.value)">
             <div id="mobile-search-results" style="margin-top:12px;"></div>
         </div>
 
         <!-- Tab: REGISTRAR -->
         <div id="mobile-tab-registrar" class="mobile-tab-content">
-            <div class="m-section-title">Estudio</div>
+            <div class="m-section-title">Empresa</div>
             <input id="mobile-reg-search" type="text" class="m-textarea" style="min-height:auto;padding:12px;border-radius:12px;" placeholder="Buscar y seleccionar estudio..." oninput="mobileRegSearch(this.value)" autocomplete="off">
             <div id="mobile-reg-suggestions" style="margin-top:4px;"></div>
             <input type="hidden" id="mobile-reg-studio-id">
