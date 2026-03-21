@@ -12057,22 +12057,19 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             for (const [, g] of byEmail) for (let i=0;i<g.length;i++) for (let j=i+1;j<g.length;j++) addPair(g[i],g[j],0.95,'Mismo email');
             for (const [, g] of byWeb)   for (let i=0;i<g.length;i++) for (let j=i+1;j<g.length;j++) addPair(g[i],g[j],0.90,'Misma web');
 
-            // FASE 2: similitud de nombre dentro de la misma provincia (evita O(n²) global)
-            const byProvince = new Map();
-            studios.forEach(s => {
-                const prov = (s.province || '').toLowerCase().trim() || 'sin_prov';
-                if (!byProvince.has(prov)) byProvince.set(prov, []);
-                byProvince.get(prov).push(s);
-            });
-            let compCount = 0;
-            for (const [, group] of byProvince) {
-                for (let i = 0; i < group.length; i++) {
-                    if (compCount % 500 === 0) await new Promise(r => setTimeout(r, 0));
-                    for (let j = i + 1; j < group.length; j++) {
-                        compCount++;
-                        const a = group[i], b = group[j];
-                        const sim = _wordSim(_normStudioName(a.name), _normStudioName(b.name));
-                        if (sim >= 0.55) addPair(a, b, sim, `Nombre similar (${Math.round(sim*100)}%)`);
+            // FASE 2: similitud de nombre — ordenar por nombre normalizado + ventana deslizante (O(n log n))
+            // Nombres similares quedan adyacentes al ordenar → solo comparar con los 10 vecinos
+            const sorted = studios
+                .map(s => ({ s, norm: _normStudioName(s.name) }))
+                .filter(x => x.norm.length > 1)
+                .sort((a, b) => a.norm < b.norm ? -1 : a.norm > b.norm ? 1 : 0);
+
+            for (let i = 0; i < sorted.length; i++) {
+                if (i % 500 === 0) await new Promise(r => setTimeout(r, 0));
+                for (let j = i + 1; j < Math.min(i + 10, sorted.length); j++) {
+                    const sim = _wordSim(sorted[i].norm, sorted[j].norm);
+                    if (sim >= 0.55) {
+                        addPair(sorted[i].s, sorted[j].s, sim, `Nombre similar (${Math.round(sim*100)}%)`);
                     }
                 }
             }
