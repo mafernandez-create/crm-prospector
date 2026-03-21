@@ -6638,6 +6638,7 @@
                                                     <div class="timeline-content">
                                                         <div class="timeline-type">${escapeHtml(act.type.toUpperCase())}</div>
                                                         <div class="timeline-text">${escapeHtml(act.text)}</div>
+                                                        ${getActivityOriginBadge(act)}
                                                     </div>
                                                     <button class="btn btn-sm btn-secondary" onclick="openEditActivityModal(${act.id})" style="position:absolute;top:0;right:0;padding:4px 8px;font-size:0.7rem;">✏️</button>
                                                 </div>
