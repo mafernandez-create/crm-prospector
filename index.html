@@ -12060,7 +12060,9 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     if (sameEmail) { score = Math.max(score, 0.95); reasons.push('Mismo email'); }
                     if (sameWeb)   { score = Math.max(score, 0.90); reasons.push('Misma web'); }
 
-                    if (score >= 0.55) pairs.push({ a, b, score, reason: reasons.join(' · ') });
+                    const pairKey = [Math.min(a.id,b.id), Math.max(a.id,b.id)].join('_');
+                    if (score >= 0.55 && !window._dupIgnoredPairs.has(pairKey))
+                        pairs.push({ a, b, score, reason: reasons.join(' · '), pairKey });
                 }
             }
 
@@ -12149,7 +12151,8 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             if (el) el.textContent = `${remaining} posibles coincidencias restantes`;
         }
 
-        function _ignoreDup(idx) {
+        function _ignoreDup(idx, pairKey) {
+            if (pairKey) { if (!window._dupIgnoredPairs) window._dupIgnoredPairs = new Set(); window._dupIgnoredPairs.add(pairKey); }
             document.getElementById(`dup-pair-${idx}`)?.remove();
             _updateDupCount();
         }
