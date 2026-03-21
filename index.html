@@ -18306,7 +18306,7 @@ Notas:
                 const status = s.status || 'nuevo';
                 const safeId   = escapeHtml(String(s.id));
                 const safeName = escapeHtml(s.name).replace(/'/g,"\\'");
-                return `<div class="m-card">
+                return `<div class="m-card" onclick="mobileOpenEstudio('${safeId}')" style="cursor:pointer;">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
                         <div style="flex:1;min-width:0;">
                             <p class="m-card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.name)}</p>
@@ -18314,7 +18314,7 @@ Notas:
                         </div>
                         <span class="m-badge s-${status}">${status}</span>
                     </div>
-                    <div class="m-action-row" style="margin-top:10px;">
+                    <div class="m-action-row" style="margin-top:10px;" onclick="event.stopPropagation();">
                         ${phone ? `<a href="tel:${escapeHtml(phone)}" class="m-btn m-btn-ghost" style="text-decoration:none;">📞 ${escapeHtml(phone)}</a>` : ''}
                         <button class="m-btn m-btn-primary" onclick="mobileIrARegistrar('${safeId}','${safeName}')">✍️ Registrar</button>
                     </div>
