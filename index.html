@@ -15471,26 +15471,6 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             showStudioDetail(studioId);
         }
 
-        // Actualizar calificación BANT
-        async function updateBANT(studioId, field, value) {
-            const studio = await getStudio(studioId);
-            if (!studio) return;
-
-            if (!studio.b2bTimeline) {
-                studio.b2bTimeline = {
-                    startDate: new Date().toISOString(),
-                    currentStep: 0,
-                    steps: [],
-
-                    triggers: { activeInterest: false, definedProject: false, decisionMaker: false, specificQuestions: false, activeBenchmark: false }
-                };
-            }
-
-            studio.b2bTimeline.bant[field] = value;
-            await updateStudio(studioId, { b2bTimeline: studio.b2bTimeline });
-            showStudioDetail(studioId);
-        }
-
         // Actualizar trigger de reunión
         async function updateTrigger(studioId, trigger) {
             const studio = await getStudio(studioId);
@@ -15521,17 +15501,10 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
 
         // Calcular el score de preparación para reunión
         function calculateReadinessScore(b2bTimeline) {
-            if (!b2bTimeline) return { score: 0, total: 9, percentage: 0 };
+            if (!b2bTimeline) return { score: 0, total: 5, percentage: 0 };
 
             let score = 0;
-            const bant = b2bTimeline.bant || {};
             const triggers = b2bTimeline.triggers || {};
-
-            // BANT (4 puntos)
-            if (bant.budget === true) score++;
-            if (bant.authority === true) score++;
-            if (bant.need === true) score++;
-            if (bant.timeline === true) score++;
 
             // Triggers (5 puntos)
             if (triggers.activeInterest) score++;
@@ -15539,8 +15512,8 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             if (triggers.decisionMaker) score++;
             if (triggers.specificQuestions) score++;
             if (triggers.activeBenchmark) score++;
-            
-            return { score, total: 9, percentage: Math.round((score / 9) * 100) };
+
+            return { score, total: 5, percentage: Math.round((score / 5) * 100) };
         }
 
         // Renderizar el panel B2B completo
