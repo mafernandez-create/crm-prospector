@@ -15590,67 +15590,6 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 `;
             });
 
-            // HTML para BANT
-            const bantHtml = `
-                <div class="bant-grid">
-                    <div class="bant-item ${b2b.bant.budget === true ? 'confirmed' : (b2b.bant.budget === false ? 'negative' : 'unknown')}">
-                        <div class="bant-header">
-                            <span class="bant-icon">💰</span>
-                            <div>
-                                <div class="bant-title">Budget</div>
-                                <div class="bant-subtitle">¿Tienen presupuesto?</div>
-                            </div>
-                        </div>
-                        <div class="bant-actions">
-                            <button class="bant-btn yes ${b2b.bant.budget === true ? 'active' : ''}" onclick="updateBANT(${studio.id}, 'budget', true)">✓ Sí</button>
-                            <button class="bant-btn no ${b2b.bant.budget === false ? 'active' : ''}" onclick="updateBANT(${studio.id}, 'budget', false)">✗ No</button>
-                            <button class="bant-btn unknown ${b2b.bant.budget === null ? 'active' : ''}" onclick="updateBANT(${studio.id}, 'budget', null)">?</button>
-                        </div>
-                    </div>
-                    <div class="bant-item ${b2b.bant.authority === true ? 'confirmed' : (b2b.bant.authority === false ? 'negative' : 'unknown')}">
-                        <div class="bant-header">
-                            <span class="bant-icon">👤</span>
-                            <div>
-                                <div class="bant-title">Authority</div>
-                                <div class="bant-subtitle">¿Hablas con el decisor?</div>
-                            </div>
-                        </div>
-                        <div class="bant-actions">
-                            <button class="bant-btn yes ${b2b.bant.authority === true ? 'active' : ''}" onclick="updateBANT(${studio.id}, 'authority', true)">✓ Sí</button>
-                            <button class="bant-btn no ${b2b.bant.authority === false ? 'active' : ''}" onclick="updateBANT(${studio.id}, 'authority', false)">✗ No</button>
-                            <button class="bant-btn unknown ${b2b.bant.authority === null ? 'active' : ''}" onclick="updateBANT(${studio.id}, 'authority', null)">?</button>
-                        </div>
-                    </div>
-                    <div class="bant-item ${b2b.bant.need === true ? 'confirmed' : (b2b.bant.need === false ? 'negative' : 'unknown')}">
-                        <div class="bant-header">
-                            <span class="bant-icon">🎯</span>
-                            <div>
-                                <div class="bant-title">Need</div>
-                                <div class="bant-subtitle">¿Hay proyecto concreto?</div>
-                            </div>
-                        </div>
-                        <div class="bant-actions">
-                            <button class="bant-btn yes ${b2b.bant.need === true ? 'active' : ''}" onclick="updateBANT(${studio.id}, 'need', true)">✓ Sí</button>
-                            <button class="bant-btn no ${b2b.bant.need === false ? 'active' : ''}" onclick="updateBANT(${studio.id}, 'need', false)">✗ No</button>
-                            <button class="bant-btn unknown ${b2b.bant.need === null ? 'active' : ''}" onclick="updateBANT(${studio.id}, 'need', null)">?</button>
-                        </div>
-                    </div>
-                    <div class="bant-item ${b2b.bant.timeline === true ? 'confirmed' : (b2b.bant.timeline === false ? 'negative' : 'unknown')}">
-                        <div class="bant-header">
-                            <span class="bant-icon">⏰</span>
-                            <div>
-                                <div class="bant-title">Timeline</div>
-                                <div class="bant-subtitle">¿Cuándo actuarían?</div>
-                            </div>
-                        </div>
-                        <div class="bant-actions">
-                            <button class="bant-btn yes ${b2b.bant.timeline === true ? 'active' : ''}" onclick="updateBANT(${studio.id}, 'timeline', true)">✓ Sí</button>
-                            <button class="bant-btn no ${b2b.bant.timeline === false ? 'active' : ''}" onclick="updateBANT(${studio.id}, 'timeline', false)">✗ No</button>
-                            <button class="bant-btn unknown ${b2b.bant.timeline === null ? 'active' : ''}" onclick="updateBANT(${studio.id}, 'timeline', null)">?</button>
-                        </div>
-                    </div>
-                </div>
-            `;
 
             // HTML para Triggers
             const triggersHtml = `
