@@ -12033,36 +12033,47 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             showNotification(`🔍 Analizando ${studios.length} estudios...`, 'info');
             await new Promise(r => setTimeout(r, 60));
 
+            const addedPairs = new Set();
             const pairs = [];
-            for (let i = 0; i < studios.length; i++) {
-                if (i % 200 === 0) await new Promise(r => setTimeout(r, 0)); // yield al UI
-                for (let j = i + 1; j < studios.length; j++) {
-                    const a = studios[i], b = studios[j];
-                    const normA = _normStudioName(a.name);
-                    const normB = _normStudioName(b.name);
-                    const nameSim = _wordSim(normA, normB);
 
-                    const phoneA = (a.data?.contact?.phone || '').replace(/[\s\-\(\)\.]/g,'');
-                    const phoneB = (b.data?.contact?.phone || '').replace(/[\s\-\(\)\.]/g,'');
-                    const emailA = (a.data?.contact?.email || '').toLowerCase().trim();
-                    const emailB = (b.data?.contact?.email || '').toLowerCase().trim();
-                    const webA   = (a.data?.contact?.web || '').replace(/https?:\/\/(www\.)?/,'').replace(/\/.*$/,'').toLowerCase();
-                    const webB   = (b.data?.contact?.web || '').replace(/https?:\/\/(www\.)?/,'').replace(/\/.*$/,'').toLowerCase();
+            const addPair = (a, b, score, reason) => {
+                const k = [Math.min(a.id,b.id), Math.max(a.id,b.id)].join('_');
+                if (addedPairs.has(k) || window._dupIgnoredPairs.has(k)) return;
+                addedPairs.add(k);
+                pairs.push({ a, b, score, reason, pairKey: k });
+            };
 
-                    const samePhone = phoneA.length > 6 && phoneA === phoneB;
-                    const sameEmail = emailA.length > 4 && emailA === emailB;
-                    const sameWeb   = webA.length > 4   && webA   === webB;
+            // FASE 1: coincidencias exactas por teléfono / email / web (O(n) con mapas hash)
+            const byPhone = new Map(), byEmail = new Map(), byWeb = new Map();
+            studios.forEach(s => {
+                const phone = (s.data?.contact?.phone || '').replace(/[\s\-\(\)\.]/g,'');
+                const email = (s.data?.contact?.email || '').toLowerCase().trim();
+                const web   = (s.data?.contact?.web   || '').replace(/https?:\/\/(www\.)?/,'').replace(/\/.*$/,'').toLowerCase();
+                if (phone.length > 6) { if (!byPhone.has(phone)) byPhone.set(phone, []); byPhone.get(phone).push(s); }
+                if (email.length > 4) { if (!byEmail.has(email)) byEmail.set(email, []); byEmail.get(email).push(s); }
+                if (web.length   > 4) { if (!byWeb.has(web))     byWeb.set(web,     []); byWeb.get(web).push(s);     }
+            });
+            for (const [, g] of byPhone) for (let i=0;i<g.length;i++) for (let j=i+1;j<g.length;j++) addPair(g[i],g[j],0.95,'Mismo teléfono');
+            for (const [, g] of byEmail) for (let i=0;i<g.length;i++) for (let j=i+1;j<g.length;j++) addPair(g[i],g[j],0.95,'Mismo email');
+            for (const [, g] of byWeb)   for (let i=0;i<g.length;i++) for (let j=i+1;j<g.length;j++) addPair(g[i],g[j],0.90,'Misma web');
 
-                    let score = nameSim;
-                    const reasons = [];
-                    if (nameSim >= 0.5) reasons.push(`Nombre similar (${Math.round(nameSim*100)}%)`);
-                    if (samePhone) { score = Math.max(score, 0.95); reasons.push('Mismo teléfono'); }
-                    if (sameEmail) { score = Math.max(score, 0.95); reasons.push('Mismo email'); }
-                    if (sameWeb)   { score = Math.max(score, 0.90); reasons.push('Misma web'); }
-
-                    const pairKey = [Math.min(a.id,b.id), Math.max(a.id,b.id)].join('_');
-                    if (score >= 0.55 && !window._dupIgnoredPairs.has(pairKey))
-                        pairs.push({ a, b, score, reason: reasons.join(' · '), pairKey });
+            // FASE 2: similitud de nombre dentro de la misma provincia (evita O(n²) global)
+            const byProvince = new Map();
+            studios.forEach(s => {
+                const prov = (s.province || '').toLowerCase().trim() || 'sin_prov';
+                if (!byProvince.has(prov)) byProvince.set(prov, []);
+                byProvince.get(prov).push(s);
+            });
+            let compCount = 0;
+            for (const [, group] of byProvince) {
+                for (let i = 0; i < group.length; i++) {
+                    if (compCount % 500 === 0) await new Promise(r => setTimeout(r, 0));
+                    for (let j = i + 1; j < group.length; j++) {
+                        compCount++;
+                        const a = group[i], b = group[j];
+                        const sim = _wordSim(_normStudioName(a.name), _normStudioName(b.name));
+                        if (sim >= 0.55) addPair(a, b, sim, `Nombre similar (${Math.round(sim*100)}%)`);
+                    }
                 }
             }
 
