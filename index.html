@@ -18425,12 +18425,15 @@ Notas:
                 if (res.success && res.events) gcalEvents = res.events;
             } catch(e) { console.warn('No se pudo cargar Google Calendar:', e); }
 
+            // Guardar globalmente para poder abrir al hacer click
+            window._mobileCalEvents = gcalEvents;
+
             // Agrupar eventos por día
             const eventsByDay = {};
-            gcalEvents.forEach(ev => {
+            gcalEvents.forEach((ev, idx) => {
                 const day = ev.start.split('T')[0];
                 if (!eventsByDay[day]) eventsByDay[day] = [];
-                eventsByDay[day].push(ev);
+                eventsByDay[day].push({ ...ev, _idx: idx });
             });
 
             // Si no hay eventos de Calendar, usar planificadorData como fallback
