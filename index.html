@@ -12703,19 +12703,30 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
         }
 
         async function findAndShowDuplicateStudios() {
-            const studios = allStudios || cloudCache?.studios || [];
-            if (studios.length < 2) { showNotification('No hay estudios suficientes', 'info'); return; }
+            // Cargar de forma garantizada desde la fuente de datos
+            let studios = [];
+            try { studios = await getAllStudios(); } catch(e) {}
+            if (!studios.length) studios = allStudios || cloudCache?.studios || [];
+            if (studios.length < 2) { showNotification('No hay empresas suficientes', 'info'); return; }
 
-            if (!window._dupIgnoredPairs) window._dupIgnoredPairs = new Set();
+            // Cargar pares ignorados desde localStorage
+            if (!window._dupIgnoredPairs) {
+                try {
+                    const saved = JSON.parse(localStorage.getItem('crm_dup_ignored') || '[]');
+                    window._dupIgnoredPairs = new Set(saved);
+                } catch(e) {
+                    window._dupIgnoredPairs = new Set();
+                }
+            }
 
-            showNotification(`🔍 Analizando ${studios.length} estudios...`, 'info');
-            await new Promise(r => setTimeout(r, 60));
+            showNotification(`🔍 Analizando ${studios.length} empresas...`, 'info');
+            await new Promise(r => setTimeout(r, 80));
 
             const addedPairs = new Set();
             const pairs = [];
 
             const addPair = (a, b, score, reason) => {
-                const k = [Math.min(a.id,b.id), Math.max(a.id,b.id)].join('_');
+                const _ia = String(a.id), _ib = String(b.id); const k = (_ia < _ib ? _ia + '_' + _ib : _ib + '_' + _ia);
                 if (addedPairs.has(k) || window._dupIgnoredPairs.has(k)) return;
                 addedPairs.add(k);
                 pairs.push({ a, b, score, reason, pairKey: k });
@@ -12744,9 +12755,9 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
 
             for (let i = 0; i < sorted.length; i++) {
                 if (i % 500 === 0) await new Promise(r => setTimeout(r, 0));
-                for (let j = i + 1; j < Math.min(i + 10, sorted.length); j++) {
+                for (let j = i + 1; j < Math.min(i + 20, sorted.length); j++) {
                     const sim = _wordSim(sorted[i].norm, sorted[j].norm);
-                    if (sim >= 0.55) {
+                    if (sim >= 0.45) {
                         addPair(sorted[i].s, sorted[j].s, sim, `Nombre similar (${Math.round(sim*100)}%)`);
                     }
                 }
@@ -12817,7 +12828,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
 
             const panel = document.createElement('div');
             panel.id = 'duplicates-panel';
-            panel.style.cssText = 'position:fixed;inset:0;background:#0f172a;z-index:10000;overflow-y:auto;padding:24px;font-family:inherit;';
+            panel.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0f172a;z-index:9999999;overflow-y:auto;padding:24px;font-family:inherit;';
             panel.innerHTML = `
                 <div style="max-width:1100px;margin:0 auto;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
@@ -12825,7 +12836,10 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                             <h2 style="margin:0;color:#f1f5f9;font-size:1.3rem;">🔍 Posibles empresas duplicadas</h2>
                             <p id="dup-count" style="margin:4px 0 0;color:#64748b;font-size:0.85rem;">${pairs.length} posibles coincidencias encontradas</p>
                         </div>
-                        <button onclick="document.getElementById('duplicates-panel').remove()" style="background:#334155;border:none;color:#cbd5e1;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:0.9rem;">✕ Cerrar</button>
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="if(confirm('¿Borrar el historial de pares ignorados/procesados?')){localStorage.removeItem('crm_dup_ignored');window._dupIgnoredPairs=new Set();document.getElementById('duplicates-panel').remove();findAndShowDuplicateStudios();}" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:10px 16px;border-radius:8px;cursor:pointer;font-size:0.85rem;">🔄 Resetear</button>
+                            <button onclick="document.getElementById('duplicates-panel').remove()" style="background:#334155;border:none;color:#cbd5e1;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:0.9rem;">✕ Cerrar</button>
+                        </div>
                     </div>
                     <div id="dup-pairs-list">${pairCards}</div>
                 </div>`;
@@ -13099,7 +13113,12 @@ ${comercialCalls.length > 0 ? `
 
 
         function _ignoreDup(idx, pairKey) {
-            if (pairKey) { if (!window._dupIgnoredPairs) window._dupIgnoredPairs = new Set(); window._dupIgnoredPairs.add(pairKey); }
+            if (pairKey) {
+                if (!window._dupIgnoredPairs) window._dupIgnoredPairs = new Set();
+                window._dupIgnoredPairs.add(pairKey);
+                // Persistir en localStorage para que sobreviva recargas
+                try { localStorage.setItem('crm_dup_ignored', JSON.stringify([...window._dupIgnoredPairs])); } catch(e) {}
+            }
             document.getElementById(`dup-pair-${idx}`)?.remove();
             _updateDupCount();
         }
@@ -13114,6 +13133,10 @@ ${comercialCalls.length > 0 ? `
                 for (const act of acts) await updateActivity(act.id, { studioId: keepId });
                 await deleteStudio(removeId);
                 allStudios = (allStudios || []).filter(s => String(s.id) !== String(removeId));
+                if (!window._dupIgnoredPairs) window._dupIgnoredPairs = new Set();
+                const _delK = [String(removeId), String(keepId)].sort().join('_');
+                window._dupIgnoredPairs.add(_delK);
+                try { localStorage.setItem('crm_dup_ignored', JSON.stringify([...window._dupIgnoredPairs])); } catch(e) {}
                 document.getElementById(`dup-pair-${idx}`)?.remove();
                 _updateDupCount();
                 showNotification(`✅ "${s.name}" eliminado. ${acts.length} actividades reasignadas.`, 'success');
@@ -13139,7 +13162,7 @@ ${comercialCalls.length > 0 ? `
                 const mergedTeam = [...keepTeam, ...removeTeam.filter(p => !knownNames.has(p.name))];
 
                 // Estado más avanzado
-                const rank = { nuevo:0, contactado:1, reunion:2, propuesta:3, cliente:4 };
+                const rank = { nuevo:0, contactado:1, standby:1, reunion:2, negociacion:3, traspasado:4, prescripcion:5, venta:6, ganado:7, perdido:0 };
                 const mergedStatus = (rank[keep.status]||0) >= (rank[remove.status]||0) ? keep.status : remove.status;
 
                 await updateStudio(keepId, {
@@ -13154,6 +13177,10 @@ ${comercialCalls.length > 0 ? `
 
                 await deleteStudio(removeId);
                 allStudios = (allStudios || []).filter(s => String(s.id) !== String(removeId));
+                if (!window._dupIgnoredPairs) window._dupIgnoredPairs = new Set();
+                const _merK = [String(keepId), String(removeId)].sort().join('_');
+                window._dupIgnoredPairs.add(_merK);
+                try { localStorage.setItem('crm_dup_ignored', JSON.stringify([...window._dupIgnoredPairs])); } catch(e) {}
                 document.getElementById(`dup-pair-${idx}`)?.remove();
                 _updateDupCount();
                 showNotification(`✅ Fusionados. ${acts.length} actividades reasignadas a "${keep.name}".`, 'success');
