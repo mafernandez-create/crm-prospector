@@ -3862,7 +3862,7 @@
         // AUTO-ACTUALIZACIÓN (evita caché en Safari iOS)
         // ============================================
         (function() {
-            const APP_VERSION = '202603211025';
+            const APP_VERSION = '202603211200';
             const stored = localStorage.getItem('crm_app_version');
             if (stored && stored !== APP_VERSION) {
                 localStorage.setItem('crm_app_version', APP_VERSION);
@@ -4193,7 +4193,7 @@
                 startDate = new Date(); // Fallback a fecha actual
             }
             
-            const timeline = B2B_TIMELINE.map((step, index) => {
+            const timeline = getB2BTimeline(studio.type || 'arquitectura', studio.b2bTimeline?.variant).map((step, index) => {
                 const stepDate = new Date(startDate.getTime()); // Clonar la fecha
                 stepDate.setDate(stepDate.getDate() + step.day);
                 
@@ -4257,7 +4257,9 @@
                 startDate = new Date(); // Fallback a fecha actual
             }
             
-            const timeline = B2B_TIMELINE.map((step, index) => {
+            const _studioForTimeline = await getStudio(studioId);
+            const _studioType = _studioForTimeline?.type || 'arquitectura';
+            const timeline = getB2BTimeline(_studioType, b2bTimeline.variant).map((step, index) => {
                 const stepDate = new Date(startDate.getTime()); // Clonar la fecha
                 stepDate.setDate(stepDate.getDate() + step.day);
                 
@@ -15515,7 +15517,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             
             const startDate = new Date(studio.b2bTimeline.startDate);
             
-            for (const step of B2B_TIMELINE) {
+            for (const step of getB2BTimeline(studio.type || 'arquitectura', studio.b2bTimeline?.variant)) {
                 const scheduledDate = new Date(startDate);
                 scheduledDate.setDate(scheduledDate.getDate() + step.day);
                 
@@ -15531,7 +15533,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 const studio = await getStudio(studioId);
                 if (!studio || !studio.b2bTimeline || typeof studio.b2bTimeline !== 'object') return;
 
-                const step = B2B_TIMELINE[stepIndex];
+                const step = getB2BTimeline(studio.type || 'arquitectura', studio.b2bTimeline?.variant)[stepIndex];
                 if (!step) return;
                 const plannedDate = getPlannedDate(studio.b2bTimeline.startDate, step.day);
 
@@ -15571,7 +15573,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const studio = await getStudio(studioId);
             if (!studio || !studio.b2bTimeline || typeof studio.b2bTimeline !== 'object') return;
 
-            const step = B2B_TIMELINE[stepIndex];
+            const step = getB2BTimeline(studio.type || 'arquitectura', studio.b2bTimeline?.variant)[stepIndex];
             if (!step) return;
             const plannedDate = getPlannedDate(studio.b2bTimeline.startDate, step.day);
 
@@ -15589,68 +15591,2126 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
         // ============================================
         
         // Definición del cronograma B2B (días y acciones)
-        const B2B_TIMELINE = [
-            { day: 0, name: 'Llamada en Frío Inicial', channel: 'phone', icon: '📞', description: 'Establecer primer contacto, identificar decisor', duration: '2-4 min', bestTime: 'Mar-Jue, 10:00-11:30' },
-            { day: 0, name: 'Email de Seguimiento', channel: 'email', icon: '📧', description: 'Reforzar conversación, enviar 2-3 proyectos relevantes', offset: 3, bestTime: 'Mismo día, 2-4h después' },
-            { day: 3, name: 'Conexión LinkedIn', channel: 'linkedin', icon: '💼', description: 'Solicitud de conexión con mensaje personalizado', bestTime: '8:00-9:00 o 12:00-14:00' },
-            { day: 6, name: 'Email de Valor', channel: 'email', icon: '📧', description: 'Aportar valor sin pedir nada (artículo, caso de estudio)', bestTime: 'Mar-Mié, 9:00-10:00' },
-            { day: 11, name: 'Llamada de Calificación', channel: 'phone', icon: '📞', description: 'Profundizar necesidades y confirmar interés', duration: '5-8 min', bestTime: 'Mié-Jue, 11:00-12:00', critical: true },
-            { day: 14, name: 'Email Propuesta Reunión', channel: 'email', icon: '📧', description: 'Propuesta concreta: 25 min para explorar oportunidad', bestTime: 'Lunes, 10:00-11:00' },
-            { day: 17, name: 'Interacción LinkedIn', channel: 'linkedin', icon: '💼', description: 'Comentar publicación o compartir contenido relevante', bestTime: '12:00-14:00' },
-            { day: 20, name: 'Llamada/Email Decisivo', channel: 'phone', icon: '📞', description: '¿Seguimos adelante o cerramos?', bestTime: 'Jueves, 10:00-11:00', critical: true },
-            { day: 23, name: 'Videollamada Presentación', channel: 'meeting', icon: '🎥', description: 'Demo de capacidades, entender necesidades', duration: '30-45 min', bestTime: 'Mar-Jue, 10:00-12:00' },
-            { day: 27, name: 'Reunión Presencial', channel: 'meeting', icon: '🤝', description: 'Visita a instalaciones, presentar propuesta', bestTime: 'Mar-Jue, 10:00-12:00', final: true }
-        ];
+        // ─────────────────────────────────────────────────────────────
+        // SECCIÓN 0: ROL Y OBJETIVOS DEL PRESCRIPTOR
+        // ─────────────────────────────────────────────────────────────
 
-        // Obtener o inicializar el timeline B2B de un estudio
-        function getB2BTimeline(studio) {
-            if (!studio.b2bTimeline) {
-                return null;
-            }
-            return studio.b2bTimeline;
+        /**
+         * Objetivos finales del prescriptor por tipo de cliente.
+         * Mostrar en la cabecera del panel B2B como recordatorio del objetivo.
+         */
+        const PRESCRIPTOR_OBJECTIVES = {
+          arquitectura: [
+            'Conseguir que el producto quede especificado en la memoria de proyecto o pliego',
+            'Organizar visita conjunta prescriptor + comercial GPF',
+            'Obtener el contacto del instalador designado para trasladarlo al comercial'
+          ],
+          ingenieria: [
+            'Conseguir que el producto quede especificado en la memoria técnica o pliego',
+            'Organizar visita conjunta prescriptor + comercial GPF',
+            'Obtener el contacto del instalador designado para trasladarlo al comercial'
+          ],
+          promotora: [
+            'Conseguir prescripción del producto en el pliego de condiciones de la obra',
+            'Organizar visita conjunta prescriptor + comercial para cerrar oferta',
+            'Que el director de compras contacte directamente al comercial GPF',
+            'Facilitar la homologación de GPF como proveedor aprobado'
+          ],
+          constructora: [
+            'Conseguir prescripción del producto en el pliego de condiciones de la obra',
+            'Organizar visita conjunta prescriptor + comercial para cerrar oferta',
+            'Que el director de compras contacte directamente al comercial GPF',
+            'Facilitar la homologación de GPF como proveedor aprobado'
+          ],
+          aapp: [
+            'Conseguir prescripción técnica en el PPT / pliego de licitación',
+            'Organizar visita conjunta prescriptor + comercial GPF',
+            'Que el técnico responsable contacte directamente al comercial',
+            'Iniciar el alta de GPF como proveedor homologado del organismo'
+          ],
+          aguas: [
+            'Conseguir prescripción técnica en especificaciones de compra',
+            'Organizar visita conjunta prescriptor + comercial GPF',
+            'Que el responsable técnico contacte directamente al comercial',
+            'Completar el alta de GPF como proveedor aprobado'
+          ],
+          regantes: [
+            'Conseguir prescripción del producto para la junta de gobierno',
+            'Organizar visita conjunta prescriptor + comercial para la presentación',
+            'Que el presidente o secretario contacte directamente al comercial GPF',
+            'Facilitar la homologación de GPF como proveedor de la comunidad'
+          ]
+        };
+
+        /**
+         * Texto estándar para el traspaso al comercial.
+         * Usar en cualquier paso del proceso cuando el cliente pida precio u oferta.
+         */
+        const TRASPASO_COMERCIAL = {
+          textoEstandar: `"Para todo lo relacionado con precios, condiciones y oferta, le pongo en contacto
+        con nuestro comercial de zona, que es quien gestiona esa parte. Me facilita su
+        teléfono / email y le llama hoy mismo para darle respuesta."`,
+          notaCRM: 'Registrar en notas: fecha de traspaso, nombre del comercial contactado (Tuyper/Ferroplast), datos del cliente trasladados.'
+        };
+
+
+        // ─────────────────────────────────────────────────────────────
+        // SECCIÓN 1: INFORMACIÓN GENERAL DE CICLO POR TIPO
+        // ─────────────────────────────────────────────────────────────
+
+        const CYCLE_INFO = {
+          arquitectura: {
+            label: 'Estudio de Arquitectura',
+            cycleDays: '21–28 días hábiles',
+            decisionType: 'Individual (socio/director)',
+            mainContacts: ['Arquitecto socio/titular', 'Project manager'],
+            priority: 'alta',
+            note: 'Ciclo estándar. Decisión individual. LinkedIn muy activo en este perfil.'
+          },
+          ingenieria: {
+            label: 'Estudio de Ingeniería',
+            cycleDays: '21–35 días hábiles',
+            decisionType: 'Individual o dupla técnica',
+            mainContacts: ['Ingeniero socio/director técnico', 'Responsable de proyectos'],
+            priority: 'alta',
+            note: 'Perfil técnico. Requiere argumentario basado en normativa y certificaciones.'
+          },
+          promotora: {
+            label: 'Promotora Inmobiliaria',
+            cycleDays: 'Ruta A: 14 días (proyecto activo) / Ruta B: 90 días (sin proyecto)',
+            decisionType: 'Dupla: director técnico + director de compras',
+            mainContacts: ['Director técnico', 'Director de compras', 'Gerente'],
+            priority: 'media',
+            note: 'BIFURCACIÓN OBLIGATORIA: calificar si hay proyecto activo antes de iniciar.'
+          },
+          constructora: {
+            label: 'Empresa Constructora',
+            cycleDays: '21–30 días (si hay obra activa)',
+            decisionType: 'Jefe de compras o director técnico',
+            mainContacts: ['Jefe de compras/aprovisionamiento', 'Director técnico', 'Jefe de obra'],
+            priority: 'media',
+            note: 'Objetivo real: homologación GPF + prescripción en pliego. Visita en obra es clave.'
+          },
+          aapp: {
+            label: 'Administración Pública',
+            cycleDays: '90–540 días (sujeto a licitación LCSP)',
+            decisionType: 'Colectiva (órgano de contratación)',
+            mainContacts: ['Técnico municipal (arquitecto/ingeniero)', 'Jefe de servicio técnico'],
+            priority: 'lenta',
+            note: 'Estrategia de prescripción en PPT + seguimiento PLACSP. No es proceso comercial estándar.'
+          },
+          aguas: {
+            label: 'Empresa Gestora de Aguas',
+            cycleDays: '60–180 días',
+            decisionType: 'Director técnico o responsable de operaciones',
+            mainContacts: ['Director técnico / jefe de red', 'Responsable de mantenimiento', 'Director de operaciones'],
+            priority: 'lenta',
+            note: 'Primer objetivo: prescripción técnica y homologación. Segundo: traspaso al comercial.'
+          },
+          regantes: {
+            label: 'Comunidad de Regantes',
+            cycleDays: '60–365 días (decisión en junta/asamblea)',
+            decisionType: 'Colectiva (Junta de Gobierno + Asamblea General)',
+            mainContacts: ['Presidente', 'Secretario/administrador', 'Gerente técnico (grandes comunidades)'],
+            priority: 'lenta',
+            note: 'ESTACIONAL: contactar enero–marzo. Decisión colectiva. Referencia local = argumento principal.'
+          }
+        };
+
+        function getCycleInfo(studioType) {
+          return CYCLE_INFO[studioType] || CYCLE_INFO['arquitectura'];
         }
 
-        // Iniciar el proceso B2B para un estudio
+        function isOptimalContactWindow() {
+          const month = new Date().getMonth() + 1;
+          const optimal = month >= 1 && month <= 3;
+          return {
+            optimal,
+            message: optimal
+              ? '✅ Ventana óptima de contacto (enero–marzo). Máxima receptividad antes de la campaña de riego.'
+              : '⚠️ Fuera de la ventana óptima. El mejor momento es enero–marzo, antes del inicio de la campaña de riego.'
+          };
+        }
+
+
+        // ─────────────────────────────────────────────────────────────
+        // SECCIÓN 2: TIMELINES POR TIPO DE CLIENTE
+        // ─────────────────────────────────────────────────────────────
+
+        /**
+         * Devuelve el timeline de touchpoints para el tipo de cliente.
+         * Para 'promotora' acepta variant: 'rutaA' | 'rutaB'
+         *
+         * Estructura de cada paso:
+         * {
+         *   day: number,
+         *   name: string,
+         *   channel: 'phone' | 'email' | 'meeting' | 'linkedin' | 'visit',
+         *   icon: string,
+         *   description: string,
+         *   script: string,       // Lo que dice/hace el PRESCRIPTOR (no el comercial)
+         *   bestTime: string,
+         *   critical: boolean,
+         *   final: boolean,       // true = objetivo final del prescriptor alcanzado
+         *   handoff: boolean      // true = este paso incluye traspaso al comercial
+         * }
+         */
+        function getB2BTimeline(studioType, variant) {
+          switch (studioType) {
+            case 'arquitectura':  return TIMELINE_ARQUITECTURA;
+            case 'ingenieria':    return TIMELINE_INGENIERIA;
+            case 'promotora':     return variant === 'rutaB' ? TIMELINE_PROMOTORA_B : TIMELINE_PROMOTORA_A;
+            case 'constructora':  return TIMELINE_CONSTRUCTORA;
+            case 'aapp':          return TIMELINE_AAPP;
+            case 'aguas':         return TIMELINE_AGUAS;
+            case 'regantes':      return TIMELINE_REGANTES;
+            default:              return TIMELINE_ARQUITECTURA;
+          }
+        }
+
+
+        // ──────────────────────────────────────────────────────────────
+        // 2.1  ARQUITECTURA
+        // Ciclo: 28 días / 9 touchpoints
+        // Objetivos del prescriptor:
+        //   A) Prescripción del producto en memoria/pliego
+        //   B) Visita conjunta prescriptor + comercial
+        //   C) Contacto del instalador para el comercial
+        // ──────────────────────────────────────────────────────────────
+
+        const TIMELINE_ARQUITECTURA = [
+          {
+            day: 0,
+            name: 'Llamada en frío',
+            channel: 'phone',
+            icon: '📞',
+            description: 'Primer contacto. Identificar al arquitecto que decide la especificación de instalaciones.',
+            script: `Objetivo: 2–4 minutos. Mar–Jue, 10:00–11:30 o 16:00–17:30.
+
+        APERTURA:
+        "Buenos días, soy [nombre], técnico de GPF. Fabricamos sistemas de evacuación de
+        aguas insonorizados para edificación residencial y terciaria. ¿Es usted quien decide
+        o valida la especificación de las instalaciones de fontanería y saneamiento en sus
+        proyectos?"
+
+        SI ES EL DECISOR:
+        "Perfecto. ¿Trabajan actualmente en algún proyecto donde el control acústico de las
+        bajantes sea un factor? Con el CTE DB-HR cada vez es más habitual que se justifique
+        específicamente la atenuación en bajantes. ¿Le parece bien que le envíe documentación
+        técnica para que lo pueda valorar?"
+
+        NOTA ROL: si pregunta por precio → "Para las condiciones comerciales le pondré en
+        contacto con nuestro comercial de zona. Mi función es el soporte técnico."
+
+        CRITERIO DE AVANCE:
+        ✅ Acepta recibir documentación → continuar secuencia
+        ⏸️ "No es buen momento" → preguntar cuándo y agendar en CRM
+        ❌ No proyectan edificación con requisitos acústicos → nurturing trimestral`,
+            bestTime: 'Mar–Jue, 10:00–11:30 o 16:00–17:30',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 0,
+            name: 'Email de seguimiento inmediato',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Reforzar la llamada con documentación técnica de valor. Mismo día.',
+            script: `ASUNTO: "[Nombre], documentación técnica sistemas evacuación insonorizados — GPF"
+
+        CUERPO:
+        "Hola [nombre],
+
+        Le escribo tras nuestra conversación. Soy técnico de GPF, el grupo que engloba
+        Ferroplast y Tuyper, especializados en sistemas de evacuación insonorizados.
+
+        Le adjunto:
+        • Ficha técnica del sistema con valores de atenuación acústica certificados (EN 14366)
+        • Nota técnica: cumplimiento CTE DB-HR en bajantes sin trasdosado adicional
+        • Comparativa acústica vs. PVC convencional
+
+        Si tiene algún proyecto en marcha o previsto donde el aislamiento de las
+        instalaciones sea un condicionante, puedo analizarlo con usted sin compromiso.
+
+        Un saludo,
+        [Nombre] · Técnico prescriptor GPF · [teléfono]"
+
+        NOTA ROL: no mencionar precios. Si pregunta, ver paso de traspaso al comercial.`,
+            bestTime: 'Mismo día de la llamada, antes de las 18:00',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 4,
+            name: 'Email técnico — normativa CTE DB-HR',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Aportar valor técnico sobre normativa. Posicionarse como referente en acústica de instalaciones.',
+            script: `ASUNTO: "CTE DB-HR en bajantes: cómo justificarlo en la memoria de proyecto"
+
+        CUERPO:
+        "Hola [nombre],
+
+        Le comparto una síntesis práctica de cómo justificar el CTE DB-HR en instalaciones
+        de evacuación dentro de la memoria de proyecto:
+
+        • Límite aplicable: Lmax,A ≤ 30 dB en zonas habitables diurnas (tabla 2.1 DB-HR)
+        • Método de verificación: ensayo de laboratorio del sistema completo (EN 14366)
+          o valores tabulados del fabricante si están certificados
+        • Nuestro sistema [producto] dispone de ensayo acreditado bajo EN 14366, por lo
+          que el texto de justificación en la memoria puede redactarse directamente con
+          los datos del certificado
+
+        Si quiere, le puedo preparar el párrafo de justificación listo para incluir en
+        su próxima memoria. ¿Tiene algún proyecto donde lo necesite?
+
+        [Nombre] · GPF"`,
+            bestTime: 'Lun–Mié, 9:00–10:30',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 7,
+            name: 'Conexión LinkedIn',
+            channel: 'linkedin',
+            icon: '🔗',
+            description: 'Solicitud de conexión con nota técnica. Sin pitch comercial.',
+            script: `NOTA DE CONEXIÓN (máx. 300 caracteres):
+        "Hola [nombre], le escribí hace unos días sobre sistemas de evacuación insonorizados
+        para proyectos con DB-HR. Me gustó ver su trabajo en [referencia visible en perfil].
+        Sería un placer conectar. Soy técnico prescriptor en GPF (Ferroplast / Tuyper)."
+
+        DESPUÉS DE ACEPTAR:
+        Comentar o reaccionar a una publicación reciente antes de cualquier mensaje directo.`,
+            bestTime: 'Mar–Jue, 12:00–14:00',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 10,
+            name: 'Email — caso de éxito técnico',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Prueba social con un proyecto resuelto similar en la misma región o tipología.',
+            script: `ASUNTO: "Cómo se resolvió el DB-HR en bajantes en [tipo de proyecto] — caso real"
+
+        CUERPO:
+        "Hola [nombre],
+
+        Le comparto cómo se solucionó el aislamiento acústico de bajantes en un proyecto
+        de [tipo similar: vivienda plurifamiliar / terciario mixto / rehabilitación] en
+        [ciudad/provincia si aplica]:
+
+        El reto era cumplir el Lmax,A ≤ 30 dB sin añadir trasdosados en cuartos húmedos,
+        lo que habría supuesto un incremento significativo de coste y reducción de superficie.
+
+        La solución fue especificar nuestro sistema [producto] directamente en la memoria
+        de instalaciones. El arquitecto incluyó la referencia al ensayo EN 14366 como
+        método de verificación. La DF aceptó sin necesidad de ensayo adicional en obra.
+
+        Si en alguno de sus proyectos tiene este condicionante, puedo prepararle el texto
+        de especificación adaptado.
+
+        [Nombre] · GPF"`,
+            bestTime: 'Mar–Jue, 10:00–11:00',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 13,
+            name: 'Llamada de calificación',
+            channel: 'phone',
+            icon: '📞',
+            description: 'Identificar proyecto activo. Proponer visita técnica presencial.',
+            script: `Duración: 5–8 minutos. Mié–Jue, 11:00–12:00.
+
+        APERTURA:
+        "Hola [nombre], le llamé hace unos días y le envié la documentación técnica.
+        ¿Tuvo oportunidad de revisarla?"
+
+        PREGUNTAS:
+        • "¿Están trabajando en algún proyecto residencial o terciario actualmente?"
+        • "¿Han tenido que justificar el DB-HR en bajantes en alguna obra reciente?"
+        • "¿Quién suele ejecutar las instalaciones en sus obras — tienen instalador habitual?"
+
+        SOBRE EL INSTALADOR (objetivo B):
+        Si mencionan un instalador habitual → "¿Podría facilitarme el contacto?
+        Nuestro comercial de zona puede ponerse en contacto con él directamente para
+        que lo tenga en cuenta en sus próximas obras."
+
+        PROPUESTA DE VISITA:
+        "¿Le parece bien que me pase por su estudio un momento con muestras? Así ve
+        el sistema físicamente y podemos ver juntos cómo encajaría en sus proyectos.
+        No le llevaré más de 30 minutos."
+
+        NOTA ROL: si pregunta por precio → traspasar al comercial de zona.`,
+            bestTime: 'Mié–Jue, 11:00–12:00',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 16,
+            name: 'Email — propuesta de visita técnica',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Proponer visita al estudio con muestras físicas y documentación lista para proyecto.',
+            script: `ASUNTO: "Visita técnica sin compromiso — muestras + texto de especificación para sus proyectos"
+
+        CUERPO:
+        "Hola [nombre],
+
+        Me gustaría pasarme por su estudio para:
+        • Traerle muestras físicas del sistema — conexiones, accesorios, distintos diámetros
+        • Entregarle el texto de especificación técnica listo para incluir en memoria
+        • Resolver cualquier duda sobre la justificación DB-HR
+
+        No le llevaré más de 30 minutos y no hay ningún compromiso.
+
+        ¿Le viene bien el [fecha 1] o el [fecha 2]?
+        Si prefiere otro momento, dígame y lo ajustamos.
+
+        Para todo lo relacionado con precio y condiciones, nuestro comercial de zona
+        estará encantado de contactarle cuando usted lo necesite.
+
+        [Nombre] · Técnico prescriptor GPF"`,
+            bestTime: 'Lun, 9:00–10:30',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 21,
+            name: 'Visita técnica al estudio',
+            channel: 'meeting',
+            icon: '🤝',
+            description: 'Visita presencial con muestras. Conseguir prescripción y/o datos del instalador.',
+            script: `PREPARACIÓN:
+        • Muestras de distintos diámetros y accesorios principales
+        • Catálogo técnico y ficha con valores de ensayo
+        • Texto de especificación para memoria (una hoja, listo para copiar-pegar)
+        • Tarjeta o datos del comercial de zona para entregar si piden oferta
+
+        EN LA VISITA (objetivo del prescriptor):
+        1. Mostrar el sistema físicamente: uniones, rugosidad interior, peso
+        2. Explicar la justificación DB-HR: cómo incluirlo en la memoria sin trasdosado
+        3. Escuchar: ¿En qué proyecto lo podría aplicar? ¿Cuándo es la siguiente obra?
+        4. Preguntar por el instalador: "¿Tienen instalador habitual? ¿Puedo facilitarle
+           su contacto a nuestro comercial de zona?"
+        5. Si muestran interés en precio: entregar datos del comercial y avisarle
+           para que llame en las próximas 24h
+
+        OBJETIVO DE ESTA VISITA:
+        → Que se comprometan a especificarlo en la próxima memoria, O
+        → Que den el contacto del instalador al prescriptor, O
+        → Que acuerden una visita conjunta con el comercial`,
+            bestTime: 'Mar–Jue, 10:00–13:00',
+            critical: true,
+            final: false,
+            handoff: true
+          },
+          {
+            day: 27,
+            name: 'Traspaso al comercial / visita conjunta',
+            channel: 'meeting',
+            icon: '🔄',
+            description: 'OBJETIVO FINAL. Prescripción confirmada y/o visita conjunta prescriptor + comercial.',
+            script: `ESCENARIO A — Prescripción conseguida:
+        El arquitecto acepta especificar el sistema en su próxima memoria de proyecto.
+        → Enviar texto de especificación técnica definitivo por email.
+        → Notificar al comercial de zona: nombre del estudio, contacto, proyecto previsto,
+          nombre del instalador si se ha obtenido.
+        → Registrar en CRM: "Prescripción confirmada. Comercial [nombre] notificado. Fecha: [X]."
+
+        ESCENARIO B — Contacto del instalador obtenido:
+        Se ha conseguido el nombre y contacto del instalador que ejecutará la obra.
+        → Traspasar el contacto al comercial de zona inmediatamente.
+        → El comercial contacta al instalador para que incluya el sistema en su oferta.
+        → Registrar en CRM: "Instalador: [nombre/empresa/teléfono]. Trasladado a [comercial]. Fecha: [X]."
+
+        ESCENARIO C — Visita conjunta acordada:
+        El arquitecto quiere ver el sistema con más detalle y/o pedir oferta.
+        → Coordinar visita conjunta prescriptor + comercial de zona.
+        → El prescriptor hace la parte técnica; el comercial gestiona precios y oferta.
+        → Registrar en CRM: "Visita conjunta [fecha]. Comercial: [nombre]. Objetivo: [X]."
+
+        EMAIL DE CIERRE DEL PRESCRIPTOR:
+        "Hola [nombre], encantado de haberle visitado.
+        Como acordamos, le adjunto el texto de especificación para la memoria [/ le
+        confirmo que nuestro comercial [nombre] le contactará esta semana para la oferta].
+        Cualquier consulta técnica, estoy a su disposición.
+        [Nombre] · Técnico prescriptor GPF"`,
+            bestTime: 'Inmediatamente tras la visita o acuerdo',
+            critical: true,
+            final: true,
+            handoff: true
+          }
+        ];
+
+
+        // ──────────────────────────────────────────────────────────────
+        // 2.2  INGENIERÍA
+        // Ciclo: 28–35 días / 9 touchpoints
+        // Objetivos del prescriptor:
+        //   A) Prescripción en memoria técnica o pliego
+        //   B) Visita conjunta prescriptor + comercial
+        //   C) Contacto del instalador para el comercial
+        // ──────────────────────────────────────────────────────────────
+
+        const TIMELINE_INGENIERIA = [
+          {
+            day: 0,
+            name: 'Llamada en frío',
+            channel: 'phone',
+            icon: '📞',
+            description: 'Primer contacto técnico. Identificar al ingeniero que especifica instalaciones.',
+            script: `Objetivo: 2–4 minutos. Mar–Jue, 10:00–11:30 o 16:00–17:30.
+
+        APERTURA:
+        "Buenos días, soy [nombre], técnico de GPF. Fabricamos sistemas de evacuación de
+        aguas insonorizados certificados bajo UNE-EN 1451 y EN 14366. ¿Es usted el
+        responsable de las instalaciones de fontanería y saneamiento en sus proyectos?"
+
+        PREGUNTA DE CALIFICACIÓN:
+        "¿Están proyectando alguna instalación con requisitos acústicos en bajantes?
+        Con el CTE DB-HR o por exigencia del promotor."
+
+        NOTA ROL: si pregunta por precio o condiciones →
+        "Para eso le pondré en contacto con nuestro comercial de zona. Mi función
+        es el soporte técnico."
+
+        CRITERIO:
+        ✅ Técnico identificado + acepta documentación → continuar
+        ⏸️ "Ahora no" → agendar follow-up
+        ❌ Solo industrial sin requisitos acústicos → descalificar`,
+            bestTime: 'Mar–Jue, 10:00–11:30 o 16:00–17:30',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 0,
+            name: 'Email con ficha técnica certificada',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Documentación técnica completa con certificaciones. Mismo día de la llamada.',
+            script: `ASUNTO: "Sistemas evacuación insonorizados GPF — Ficha técnica + certificaciones UNE"
+
+        CUERPO:
+        "Hola [nombre],
+
+        Le escribo tras nuestra conversación. Soy técnico de GPF (Ferroplast / Tuyper).
+        Le adjunto:
+
+        • Ficha técnica del sistema [producto]: dimensiones, presiones, resistencia química
+        • Certificado de ensayo acústico EN 14366 (laboratorio acreditado ENAC)
+        • Declaración de prestaciones — Reglamento (UE) 305/2011
+        • Marcado CE y referencia norma UNE-EN 1451
+        • Nota técnica: justificación CTE DB-HR sin trasdosado
+
+        Para precios, condiciones y oferta formal, nuestro comercial de zona estará
+        encantado de atenderle cuando lo necesite. Me lo indica y lo pongo en contacto.
+
+        [Nombre] · Técnico prescriptor GPF · [teléfono]"`,
+            bestTime: 'Mismo día, antes de las 18:00',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 4,
+            name: 'Email — normativa técnica aplicable',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Marco normativo completo. Valor diferencial para ingenieros que redactan pliegos.',
+            script: `ASUNTO: "Normativa sistemas evacuación: DB-HR, UNE-EN 1451 y EN 14366 — referencia técnica"
+
+        CUERPO:
+        "Hola [nombre],
+
+        Para complementar la documentación enviada, le detallo el marco normativo que
+        permite especificar correctamente un sistema de evacuación insonorizado en
+        proyecto o pliego:
+
+        • CTE DB-HR tabla 2.1: Lmax,A ≤ 30 dB (zona habitable diurna)
+        • UNE-EN 1451: requisitos del sistema de tuberías PP para evacuación
+        • EN 14366: método de ensayo de ruido de instalaciones (referencia válida en proyecto)
+        • Nuestro sistema dispone de ensayo acreditado conforme a EN 14366 → puede
+          referenciarse directamente en el pliego de prescripciones técnicas
+
+        Si está redactando un pliego y necesita el párrafo técnico de especificación,
+        se lo preparo adaptado al formato que usen.
+
+        [Nombre] · GPF"`,
+            bestTime: 'Lun–Mié, 9:00–10:30',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 7,
+            name: 'Conexión LinkedIn',
+            channel: 'linkedin',
+            icon: '🔗',
+            description: 'Solicitar conexión profesional. Comentar contenido técnico si lo hay.',
+            script: `NOTA DE CONEXIÓN (máx. 300 caracteres):
+        "Hola [nombre], le contacté hace unos días sobre sistemas de evacuación certificados
+        para proyectos con exigencias DB-HR. Me interesa su trabajo en [área técnica].
+        Soy técnico prescriptor en GPF (Ferroplast / Tuyper). Un placer conectar."
+
+        DESPUÉS DE ACEPTAR:
+        Buscar publicaciones técnicas de su empresa y comentar con aporte genuino.
+        No enviar mensaje comercial hasta que haya interacción previa.`,
+            bestTime: 'Mar–Jue, 12:00–14:00',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 10,
+            name: 'Email — comparativa técnica',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Comparativa técnica vs. alternativas. Dato útil para la fase de especificación.',
+            script: `ASUNTO: "Comparativa técnica: PP insonorizado vs. PVC vs. fundición — datos para proyecto"
+
+        CUERPO:
+        "Hola [nombre],
+
+        Adjunto una comparativa que puede ser útil en la fase de especificación:
+
+        PP Insonorizado GPF vs. PVC convencional vs. fundición:
+        • Atenuación acústica (EN 14366): [valores comparados por sistema]
+        • Peso/ml (diámetro 110): PP ~0,9 kg | PVC ~0,7 kg | Fundición ~6 kg
+        • Resistencia química: muy alta en PP (acepta pH 2–12 y temperatura 95°C)
+        • Dilatación térmica: PP lineal = PVC lineal → mismas soluciones de instalación
+        • Documentación para proyecto: DoP + EN 14366 disponibles para los tres sistemas;
+          solo el PP insonorizado tiene ensayo acústico certificado
+
+        Esta comparativa puede incluirse directamente en la memoria descriptiva de
+        instalaciones si resulta de utilidad.
+
+        [Nombre] · GPF"`,
+            bestTime: 'Mar–Jue, 10:00–11:00',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 14,
+            name: 'Llamada de calificación',
+            channel: 'phone',
+            icon: '📞',
+            description: 'Identificar proyecto activo. Preguntar por el instalador. Proponer visita.',
+            script: `Duración: 5–8 minutos. Mié–Jue, 11:00–12:00.
+
+        APERTURA:
+        "Hola [nombre], le envié documentación técnica hace unos días.
+        ¿Tuvo oportunidad de revisarla?"
+
+        PREGUNTAS:
+        • "¿Tienen algún proyecto en fase de redacción de instalaciones donde aplique DB-HR?"
+        • "¿Son ustedes quienes especifican el material de bajantes o lo decide el instalador?"
+        • "¿Con qué instalador suelen trabajar para este tipo de proyectos?"
+
+        SOBRE EL INSTALADOR (objetivo C):
+        "Si me facilita el contacto del instalador, nuestro comercial de zona puede
+        ponerse en contacto con él directamente para que lo incluya en sus ofertas."
+
+        PROPUESTA DE VISITA:
+        "¿Le parece bien que me pase con muestras? Le traigo también el texto de
+        especificación listo para incluir en el pliego. 30 minutos sin compromiso."
+
+        NOTA ROL: si pregunta por precio → traspasar al comercial.`,
+            bestTime: 'Mié–Jue, 11:00–12:00',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 18,
+            name: 'Email — propuesta de visita técnica',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Concretar la visita al estudio de ingeniería con agenda técnica clara.',
+            script: `ASUNTO: "Visita técnica — muestras + texto de pliego listo para su próximo proyecto"
+
+        CUERPO:
+        "Hola [nombre],
+
+        Me gustaría pasarme por su oficina para:
+        • Traerle muestras del sistema para que vea las conexiones y los accesorios
+        • Entregarle el texto de especificación técnica preparado para pliego o memoria
+        • Repasar juntos la justificación DB-HR y resolver cualquier duda técnica
+
+        Nada de presentaciones largas — 30 minutos máximo.
+
+        ¿Le viene bien el [fecha 1] o el [fecha 2]?
+
+        Para precios y condiciones comerciales, en ese mismo momento puedo facilitar
+        el contacto de nuestro comercial de zona.
+
+        [Nombre] · Técnico prescriptor GPF"`,
+            bestTime: 'Lun, 9:00–10:30',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 24,
+            name: 'Visita técnica al estudio',
+            channel: 'meeting',
+            icon: '🤝',
+            description: 'Visita presencial. Conseguir prescripción y/o contacto del instalador.',
+            script: `PREPARACIÓN:
+        • Muestras del sistema (varios diámetros + accesorios)
+        • Texto de especificación para pliego (una hoja)
+        • Ficha técnica + certificado EN 14366 impreso
+        • Datos del comercial de zona para entregar si piden oferta
+
+        EN LA VISITA (objetivos del prescriptor):
+        1. Mostrar el sistema físicamente: conexiones, accesorios, instalación
+        2. Revisar el texto de especificación adaptado a su formato de pliego
+        3. Preguntar por proyectos activos y calendario de redacción
+        4. Preguntar por el instalador habitual → obtener su contacto para el comercial
+        5. Si piden precio: "Les pongo en contacto con nuestro comercial de zona ahora mismo"
+
+        OBJETIVO:
+        → Texto de especificación aceptado para el próximo pliego, O
+        → Contacto del instalador obtenido para trasladar al comercial, O
+        → Visita conjunta con el comercial acordada`,
+            bestTime: 'Mar–Jue, 10:00–13:00',
+            critical: true,
+            final: false,
+            handoff: true
+          },
+          {
+            day: 30,
+            name: 'Prescripción confirmada / traspaso al comercial',
+            channel: 'meeting',
+            icon: '🔄',
+            description: 'OBJETIVO FINAL. Prescripción en pliego y/o visita conjunta y/o contacto instalador.',
+            script: `ESCENARIO A — Prescripción en pliego conseguida:
+        El ingeniero acepta incluir las especificaciones técnicas equivalentes al sistema
+        en el pliego de su proyecto.
+        → Enviar texto definitivo por email.
+        → Notificar al comercial: estudio, contacto, proyecto, plazo previsto, instalador.
+        → Registrar en CRM: "Prescripción confirmada en pliego. Comercial [X] notificado."
+
+        ESCENARIO B — Instalador identificado:
+        Se ha obtenido el contacto del instalador que ejecutará la obra.
+        → Traspasar inmediatamente al comercial de zona.
+        → El comercial visita al instalador para que incluya GPF en su oferta.
+        → Registrar: "Instalador: [nombre/teléfono]. Trasladado a comercial [X]. Fecha: [Y]."
+
+        ESCENARIO C — Visita conjunta:
+        El ingeniero quiere oferta formal.
+        → Coordinar visita conjunta: prescriptor (parte técnica) + comercial (oferta).
+        → Registrar: "Visita conjunta [fecha]. Comercial: [X]."
+
+        EMAIL DEL PRESCRIPTOR TRAS CIERRE:
+        "Hola [nombre], le adjunto el texto de especificación acordado [/ confirmo que
+        nuestro comercial [nombre] le contactará esta semana para la oferta].
+        Para cualquier consulta técnica, aquí estoy.
+        [Nombre] · Técnico prescriptor GPF"`,
+            bestTime: 'Inmediatamente tras la visita o acuerdo',
+            critical: true,
+            final: true,
+            handoff: true
+          }
+        ];
+
+
+        // ─────────────────────────────────────────────────────────────────
+        // 2.3  PROMOTORA — RUTA A (proyecto activo, 14 días)
+        // Objetivos: prescripción en pliego + visita conjunta + compras→comercial
+        // ─────────────────────────────────────────────────────────────────
+
+        const TIMELINE_PROMOTORA_A = [
+          {
+            day: 0,
+            name: 'Llamada de calificación',
+            channel: 'phone',
+            icon: '📞',
+            description: 'BIFURCACIÓN. Calificar si hay promoción activa. Si no → Ruta B.',
+            script: `APERTURA:
+        "Buenos días, soy [nombre], técnico de GPF. Fabricamos sistemas de evacuación
+        insonorizados para obras residenciales. ¿Tienen alguna promoción en marcha?"
+
+        SI HAY PROYECTO:
+        • "¿En qué fase está? ¿Han definido ya las instalaciones de bajantes?"
+        • "¿Quién especifica o elige el material — el arquitecto que proyecta, su equipo técnico?"
+        • "¿Tienen instalador designado para las instalaciones?"
+
+        OBJETIVO DE LA LLAMADA:
+        Confirmar promoción activa + identificar quién decide la especificación +
+        preguntar por el instalador.
+
+        Si no hay proyecto activo → cambiar variant a 'rutaB' en el CRM.`,
+            bestTime: 'Mar–Jue, 10:00–11:30',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 0,
+            name: 'Email con documentación técnica',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Enviar ficha técnica y nota de prescripción. Sin precio — el comercial lo gestiona.',
+            script: `ASUNTO: "Sistemas de evacuación insonorizados GPF — Ficha técnica para su promoción"
+
+        CUERPO:
+        "Hola [nombre],
+
+        Le escribo tras nuestra conversación. Soy técnico de GPF (Ferroplast / Tuyper).
+        Para su promoción de [tipo/ubicación si se conoce], le adjunto:
+
+        • Ficha técnica del sistema con valores de atenuación acústica certificados
+        • Nota técnica: cumplimiento CTE DB-HR en bajantes sin trasdosado adicional
+        • Ventajas respecto a PVC convencional en obra
+
+        Para precios, plazos de entrega y condiciones comerciales, nuestro comercial
+        de zona se lo facilitará en cuanto usted lo indique.
+
+        ¿Cuándo podemos hablar para ver cómo encaja en su obra?
+
+        [Nombre] · Técnico prescriptor GPF · [teléfono]"`,
+            bestTime: 'Mismo día, antes de las 18:00',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 3,
+            name: 'Llamada de seguimiento técnico',
+            channel: 'phone',
+            icon: '📞',
+            description: 'Profundizar en el proyecto. Preguntar por el instalador. Proponer visita.',
+            script: `Duración: 5–8 minutos.
+
+        "Hola [nombre], le envié la documentación técnica hace unos días.
+        ¿Tuvo oportunidad de verla?"
+
+        PREGUNTAS:
+        • "¿Han definido ya qué sistema de bajantes van a usar?"
+        • "¿Tienen instalador designado para las instalaciones de la promoción?"
+
+        SOBRE EL INSTALADOR:
+        "Si me facilita el contacto del instalador, nuestro comercial de zona puede
+        hablar con él directamente para que lo tenga en cuenta en su oferta."
+
+        PROPUESTA DE VISITA:
+        "¿Le parece bien que me pase con muestras? Así ve el sistema y podemos
+        ver cómo encaja en la obra. Si quiere, podemos hacer esa visita conjuntamente
+        con nuestro comercial de zona."`,
+            bestTime: 'Mar–Jue, 10:00–11:30',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 6,
+            name: 'Visita presencial con muestras',
+            channel: 'visit',
+            icon: '🏗️',
+            description: 'Visita al técnico o a obra. Conseguir prescripción y/o datos del instalador.',
+            script: `PREPARACIÓN:
+        • Muestras físicas del sistema
+        • Ficha técnica y nota de prescripción DB-HR
+        • Datos del comercial de zona para entregar
+
+        EN LA VISITA:
+        1. Mostrar el sistema y su instalación
+        2. Vincular a las ventajas para la obra: sin trasdosado, entrega en plazo
+        3. Preguntar quién especifica el material: ¿ellos, el arquitecto, el instalador?
+        4. Si el instalador ya está designado → conseguir su contacto para el comercial
+        5. Si piden precio → "Nuestro comercial de zona les llama hoy/mañana con la oferta"
+
+        OBJETIVO:
+        → Acuerdo verbal de prescripción en el pliego de la obra, O
+        → Contacto del instalador para trasladar al comercial, O
+        → Visita conjunta con comercial acordada para esta semana`,
+            bestTime: 'Mar–Jue, 9:00–13:00',
+            critical: true,
+            final: false,
+            handoff: true
+          },
+          {
+            day: 9,
+            name: 'Coordinación de visita conjunta o traspaso',
+            channel: 'phone',
+            icon: '🔄',
+            description: 'Coordinar visita conjunta prescriptor + comercial o activar traspaso al comercial.',
+            script: `SITUACIÓN A — Quieren oferta:
+        → Contactar al comercial de zona: nombre del cliente, contacto, proyecto, urgencia.
+        → El comercial llama ese mismo día o al día siguiente.
+        → Registrar en CRM: "Traspasado a comercial [nombre]. Fecha: [X]."
+
+        SITUACIÓN B — Quieren visita conjunta:
+        → Coordinar agenda: prescriptor + comercial + director técnico/compras de la promotora.
+        → El prescriptor lleva la parte técnica; el comercial lleva la oferta.
+        → Registrar en CRM: "Visita conjunta programada [fecha]. Comercial: [nombre]."
+
+        SITUACIÓN C — Dan el contacto del instalador:
+        → Trasladar inmediatamente el contacto al comercial.
+        → El comercial visita al instalador para que incluya GPF en su oferta a la promotora.
+        → Registrar: "Instalador: [datos]. Trasladado a comercial [nombre]. Fecha: [X]."`,
+            bestTime: 'Mar–Jue, 10:00–12:00',
+            critical: true,
+            final: false,
+            handoff: true
+          },
+          {
+            day: 14,
+            name: 'Prescripción confirmada / cierre comercial',
+            channel: 'meeting',
+            icon: '🤝',
+            description: 'OBJETIVO FINAL. Prescripción en pliego y/o pedido gestionado por comercial.',
+            script: `ESCENARIO A — Prescripción en pliego:
+        El técnico de la promotora ha incluido la especificación del sistema en el pliego
+        de condiciones de la obra.
+        → Enviar texto definitivo de especificación si no se ha dado aún.
+        → Notificar al comercial para que contacte al instalador con la referencia del pliego.
+
+        ESCENARIO B — Compras contacta al comercial:
+        El director de compras o técnico se pone en contacto directamente con el comercial.
+        → Registrar en CRM: "Director compras [nombre] contacta comercial [X]. Fecha: [Y]."
+
+        ESCENARIO C — Visita conjunta realizada:
+        El comercial ha llevado la oferta en la visita conjunta.
+        → Registrar resultado y próximos pasos en CRM.
+
+        NOTA PARA EL PRESCRIPTOR:
+        Una vez traspasado al comercial, el prescriptor puede hacer seguimiento técnico
+        puntual si hay dudas de instalación o especificación, pero no gestiona el pedido.`,
+            bestTime: 'Inmediatamente tras el acuerdo',
+            critical: true,
+            final: true,
+            handoff: true
+          }
+        ];
+
+
+        // ─────────────────────────────────────────────────────────────────
+        // 2.4  PROMOTORA — RUTA B (sin proyecto activo, nurturing 90 días)
+        // Sin presión. Objetivo: estar presentes cuando surja la próxima promoción.
+        // ─────────────────────────────────────────────────────────────────
+
+        const TIMELINE_PROMOTORA_B = [
+          {
+            day: 0,
+            name: 'Email de presentación técnica',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Dejar constancia de GPF sin presión. Para cuando llegue la próxima promoción.',
+            script: `ASUNTO: "Para cuando llegue su próxima promoción — sistemas evacuación insonorizados GPF"
+
+        CUERPO:
+        "Hola [nombre],
+
+        Soy [nombre], técnico de GPF (Ferroplast / Tuyper). Le escribo porque cuando
+        tengan su próxima promoción en marcha, puede ser útil conocer nuestros sistemas
+        de evacuación de aguas insonorizados.
+
+        Le adjunto catálogo y ficha técnica por si lo quiere tener de referencia.
+        Sin ningún compromiso.
+
+        Cuando llegue el momento, estaré encantado de pasarme con muestras y si
+        necesitan oferta, nuestro comercial de zona lo gestiona rápido.
+
+        [Nombre] · Técnico prescriptor GPF · [teléfono]"`,
+            bestTime: 'Lun–Mié, 9:00–11:00',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 30,
+            name: 'Email de seguimiento — novedad técnica',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Mantener presencia con contenido de valor. Sin presión.',
+            script: `ASUNTO: "Actualización técnica GPF — [novedad: normativa, nuevo producto, caso de uso]"
+
+        CUERPO:
+        "Hola [nombre],
+
+        Le escribo con una novedad que puede ser útil cuando retomen su actividad
+        promotora: [novedad concreta — nueva interpretación DB-HR, mejora de producto,
+        referencia de proyecto terminado, etc.].
+
+        Adjunto la información actualizada para que la tenga de referencia.
+
+        Cuando tengan la próxima promoción en marcha, me avisa y nos vemos.
+
+        [Nombre] · GPF"`,
+            bestTime: 'Mar–Jue, 10:00–11:00',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 60,
+            name: 'Llamada de actualización',
+            channel: 'phone',
+            icon: '📞',
+            description: 'Llamada breve para saber si han arrancado alguna nueva promoción.',
+            script: `Duración: 2–3 minutos.
+
+        "Hola [nombre], soy [nombre] de GPF. Le contacté hace un par de meses.
+        ¿Han arrancado alguna nueva promoción o tienen algo en cartera para los
+        próximos meses?"
+
+        SI HAY PROYECTO NUEVO → cambiar variant a 'rutaA' e iniciar proceso de 14 días.
+        SI NO → "Perfecto. Cuando lo tengan, me llama y nos vemos."`,
+            bestTime: 'Mar–Jue, 10:00–11:30',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 90,
+            name: 'Re-calificación — ¿Ruta A o continuar?',
+            channel: 'phone',
+            icon: '📞',
+            description: 'Decidir si iniciar Ruta A (proyecto activo) o mantener nurturing.',
+            script: `Duración: 2–3 minutos.
+
+        "Hola [nombre], ¿han arrancado algo nuevo?"
+
+        ✅ Proyecto activo → cambiar variant a 'rutaA', reiniciar proceso desde Día 0
+        🔄 Previsto pero no arrancado → mantener Ruta B, recordatorio a 60 días
+        ❌ Sin actividad prevista → marcar "inactivo anual" y programar para enero`,
+            bestTime: 'Mar–Jue, 10:00–11:30',
+            critical: true,
+            final: false,
+            handoff: false
+          }
+        ];
+
+
+        // ──────────────────────────────────────────────────────────────
+        // 2.5  CONSTRUCTORA
+        // Ciclo: 21–30 días si hay obra activa
+        // Objetivos: prescripción en pliego + visita conjunta + homologación GPF
+        // ──────────────────────────────────────────────────────────────
+
+        const TIMELINE_CONSTRUCTORA = [
+          {
+            day: 0,
+            name: 'Llamada — identificar obra activa',
+            channel: 'phone',
+            icon: '📞',
+            description: 'Localizar al jefe de compras. Identificar obra activa o inicio próximo.',
+            script: `Mar–Jue, 9:00–10:00 o 15:00–16:00.
+
+        APERTURA A CENTRALITA:
+        "Buenos días, ¿podría hablar con el departamento de compras o con el responsable
+        de materiales de instalaciones? Soy técnico de GPF (Ferroplast / Tuyper)."
+
+        CON EL JEFE DE COMPRAS:
+        "Buenos días, soy [nombre], técnico de GPF. Fabricamos sistemas de evacuación de
+        aguas insonorizados. ¿Tienen alguna obra en marcha o próxima donde estén
+        definiendo instalaciones de saneamiento?"
+
+        PREGUNTAS:
+        • "¿Quién especifica el material de bajantes — el arquitecto, ustedes, el instalador?"
+        • "¿Tienen listado de proveedores homologados para materiales de instalaciones?"
+        • "¿Con qué instalador suelen trabajar para fontanería y saneamiento?"
+
+        NOTA ROL: si preguntan por precio →
+        "Para eso les pongo en contacto con nuestro comercial de zona."`,
+            bestTime: 'Mar–Jue, 9:00–10:00 o 15:00–16:00',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 0,
+            name: 'Email con documentación técnica',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Ficha técnica y nota de ventajas en obra. Sin precios.',
+            script: `ASUNTO: "Sistemas evacuación insonorizados GPF — Documentación técnica"
+
+        CUERPO:
+        "Hola [nombre],
+
+        Le escribo tras nuestra conversación. Soy técnico de GPF (Ferroplast / Tuyper).
+        Le adjunto:
+
+        • Ficha técnica del sistema [producto]
+        • Nota técnica: ventajas en obra vs. PVC convencional y fundición
+        • Documentación para homologación de GPF como proveedor (si la necesitan)
+
+        Para precios, plazos de entrega y condiciones comerciales, nuestro comercial
+        de zona lo gestiona directamente. Me lo indica y lo pongo en contacto.
+
+        [Nombre] · Técnico prescriptor GPF · [teléfono]"`,
+            bestTime: 'Mismo día, antes de las 18:00',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 4,
+            name: 'Llamada — visita en obra u oficina',
+            channel: 'phone',
+            icon: '📞',
+            description: 'Proponer visita presencial temprana, preferiblemente en obra.',
+            script: `Duración: 3–5 minutos.
+
+        "Hola [nombre], le envié documentación técnica hace unos días.
+        ¿Tuvo oportunidad de verla?"
+
+        PROPUESTA:
+        "Si tienen alguna obra donde estén comenzando la fase de instalaciones, podría
+        pasarme directamente con muestras para que el jefe de obra también las vea.
+        ¿Tienen alguna en [ciudad/zona]?"
+
+        SI PREFIERE OFICINA → proponer visita con muestras y dossier de homologación.
+
+        SOBRE EL INSTALADOR:
+        "¿Con qué instalador suelen trabajar en fontanería y saneamiento? Si me lo
+        indica, nuestro comercial de zona puede hablar con él directamente."`,
+            bestTime: 'Mar–Jue, 9:00–10:00',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 7,
+            name: 'Visita en obra u oficina — con muestras',
+            channel: 'visit',
+            icon: '🔨',
+            description: 'VISITA PRESENCIAL TEMPRANA. Conocer al jefe de obra. Conseguir datos del instalador.',
+            script: `PREPARACIÓN:
+        • Muestras de distintos diámetros y accesorios
+        • Catálogo técnico + ficha técnica
+        • Dossier de homologación GPF como proveedor (para entregar)
+        • Datos del comercial de zona
+
+        EN OBRA:
+        • Presentarse al jefe de obra además del jefe de compras
+        • Mostrar facilidad de montaje: conexiones, abrazaderas, reducción de ruido
+        • Preguntar por el instalador: nombre, empresa, contacto → trasladar al comercial
+        • Si piden precio → "Nuestro comercial les llama esta tarde/mañana"
+
+        EN OFICINA:
+        • Mostrar catálogo completo + muestras
+        • Entregar dossier de homologación
+        • Proponer inicio del proceso de alta como proveedor aprobado
+
+        OBJETIVOS:
+        1. Conocimiento del sistema por parte del jefe de obra y compras
+        2. Contacto del instalador para el comercial
+        3. Inicio del proceso de homologación GPF`,
+            bestTime: 'Mié–Jue, 9:00–13:00',
+            critical: true,
+            final: false,
+            handoff: true
+          },
+          {
+            day: 11,
+            name: 'Traspaso al comercial',
+            channel: 'phone',
+            icon: '🔄',
+            description: 'Activar al comercial de zona con toda la información recogida.',
+            script: `ACCIÓN DEL PRESCRIPTOR:
+        Tras la visita, contactar al comercial de zona con:
+        • Nombre de la constructora y contacto del jefe de compras
+        • Obra en curso (nombre, dirección aproximada, plazo)
+        • Nombre y contacto del instalador si se ha obtenido
+        • Estado del proceso de homologación (documentación entregada / pendiente)
+        • Cualquier objeción o interés específico detectado en la visita
+
+        MENSAJE AL COMERCIAL:
+        "Hola [nombre], acabo de visitar [constructora]. Tienen obra en [ciudad/nombre].
+        El jefe de compras es [nombre, teléfono]. El instalador que usan es [nombre/empresa,
+        teléfono si se tiene]. Les he dejado el dossier de homologación. Están abiertos a
+        recibir oferta. Puedes llamarles mañana directamente."`,
+            bestTime: 'Mismo día de la visita',
+            critical: true,
+            final: false,
+            handoff: true
+          },
+          {
+            day: 18,
+            name: 'Seguimiento homologación',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Asegurar que el proceso de homologación de GPF avanza.',
+            script: `ASUNTO: "Documentación homologación GPF como proveedor — [nombre constructora]"
+
+        CUERPO:
+        "Hola [nombre],
+
+        Conforme a nuestra visita, adjunto la documentación para el alta de GPF en
+        su listado de proveedores:
+
+        • CIF y datos de empresa (Ferroplast / Tuyper / GPF)
+        • Certificado corriente AEAT y TGSS
+        • Seguros de responsabilidad civil
+        • Declaración de prestaciones del producto (DoP)
+        • Marcado CE + norma UNE de referencia
+
+        Si tienen un formulario específico o portal de proveedores, me lo indican.
+
+        Para condiciones comerciales y precio, nuestro comercial [nombre] está en
+        contacto con ustedes / pueden llamarle al [teléfono].
+
+        [Nombre] · Técnico prescriptor GPF"`,
+            bestTime: 'Lun–Mar, 9:00–10:00',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 25,
+            name: 'Visita conjunta prescriptor + comercial',
+            channel: 'meeting',
+            icon: '🤝',
+            description: 'OBJETIVO FINAL. Visita conjunta para cerrar oferta y/o completar homologación.',
+            script: `CONDICIÓN: comercial ya ha contactado a la constructora tras el traspaso del día 11.
+
+        COORDINACIÓN:
+        • Prescriptor: parte técnica (sistema, especificación en pliego, documentación DB-HR)
+        • Comercial: precios, condiciones, plazos de entrega, acuerdo marco si procede
+
+        EN LA REUNIÓN:
+        El prescriptor presenta las ventajas técnicas del sistema y la especificación.
+        El comercial presenta la oferta y cierra las condiciones.
+        Ambos refuerzan la homologación de GPF como proveedor habitual.
+
+        RESULTADO ESPERADO:
+        → Prescripción del sistema en el pliego de la obra actual y/o futuras, Y
+        → GPF dado de alta como proveedor homologado, Y/O
+        → Primer pedido gestionado por el comercial
+
+        Registrar en CRM: resultado de la visita, siguiente acción, responsable.`,
+            bestTime: 'Mar–Jue, 10:00–13:00',
+            critical: true,
+            final: true,
+            handoff: true
+          }
+        ];
+
+
+        // ──────────────────────────────────────────────────────────────────
+        // 2.6  AAPP — ADMINISTRACIONES PÚBLICAS
+        // Ciclo: 90–540 días (LCSP Ley 9/2017)
+        // Objetivos: prescripción en PPT + visita conjunta + alta proveedor
+        // ──────────────────────────────────────────────────────────────────
+
+        const TIMELINE_AAPP = [
+          {
+            day: 0,
+            name: 'Identificación del técnico responsable',
+            channel: 'phone',
+            icon: '📞',
+            description: 'Localizar al técnico municipal responsable de obras e instalaciones.',
+            script: `Lun–Mié, 9:30–11:00.
+
+        LLAMADA A CENTRALITA:
+        "Buenos días, ¿podría hablar con el Servicio Técnico de Obras o el Área de
+        Infraestructuras? Soy técnico de GPF, fabricamos materiales de construcción
+        e instalaciones."
+
+        CON EL TÉCNICO MUNICIPAL:
+        "Buenos días, soy [nombre], técnico de GPF (Ferroplast / Tuyper). Fabricamos
+        sistemas de evacuación de aguas insonorizados. Me gustaría hacerle llegar
+        documentación técnica por si es de utilidad en sus proyectos municipales.
+        ¿Es usted quien se ocupa de las instalaciones de saneamiento?"
+
+        PREGUNTAS:
+        • "¿Tienen previstas obras municipales o licitaciones en los próximos meses
+          que incluyan instalaciones de saneamiento?"
+        • "¿Quién redacta los Pliegos de Prescripciones Técnicas en su organismo?"
+
+        CRITERIO:
+        ✅ Técnico identificado + acepta documentación → continuar
+        ⏸️ "No somos los responsables" → pedir referencia del técnico correcto
+        ❌ Sin proyectos en 12+ meses → seguimiento semestral`,
+            bestTime: 'Lun–Mié, 9:30–11:00',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 2,
+            name: 'Email técnico-institucional',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Email formal con documentación técnica. Tono institucional, no comercial.',
+            script: `ASUNTO: "Sistemas de evacuación insonorizados GPF — Documentación técnica para sus proyectos"
+
+        CUERPO:
+        "Estimado/a [nombre y cargo],
+
+        Me dirijo a usted como técnico responsable del [Servicio Técnico / Área de Obras]
+        del [Ayuntamiento/Organismo]. En GPF (Ferroplast / Tuyper) fabricamos sistemas de
+        evacuación de aguas insonorizados que pueden resultar de interés para los proyectos
+        de obras municipales donde se exija el cumplimiento del CTE DB-HR.
+
+        Le adjunto:
+        • Ficha técnica del sistema con valores de atenuación certificados (EN 14366)
+        • Declaración de prestaciones conforme al Reglamento (UE) 305/2011
+        • Nota técnica: redacción de especificación en Pliego de Prescripciones Técnicas
+
+        Quedo a su disposición para cualquier consulta técnica.
+
+        Atentamente,
+        [Nombre] · Técnico prescriptor GPF · [teléfono] · [email]"`,
+            bestTime: 'Lun–Mar, 9:00–10:00',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 14,
+            name: 'Llamada de seguimiento + propuesta de visita',
+            channel: 'phone',
+            icon: '📞',
+            description: 'Verificar recepción. Proponer visita institucional técnica.',
+            script: `Duración: 3–5 minutos. Tono técnico y respetuoso.
+
+        "Buenos días [nombre], le llamé hace unos días y le envié documentación técnica
+        de nuestros sistemas de evacuación. ¿Tuvo oportunidad de revisarla?"
+
+        PROPUESTA DE VISITA:
+        "Si le parece bien, podría pasarme por sus instalaciones en el momento que le
+        venga bien — no más de 20 o 30 minutos. Le traería muestras y podríamos
+        comentar si hay alguna licitación prevista donde pudiera ser aplicable."
+
+        SOBRE EL PPT:
+        "Si tienen algún proyecto en fase de redacción del Pliego de Prescripciones
+        Técnicas, puedo ayudarles con el texto de especificación técnica equivalente
+        al sistema, respetando el marco de la LCSP."`,
+            bestTime: 'Lun–Mié, 9:30–11:00',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 30,
+            name: 'Visita institucional / reunión técnica',
+            channel: 'meeting',
+            icon: '🏛️',
+            description: 'Reunión presencial con el técnico. Influir en la redacción del PPT.',
+            script: `PREPARACIÓN:
+        • Dossier técnico adaptado a obras municipales
+        • Ejemplo de párrafo para el PPT que describe las prestaciones equivalentes
+          al sistema sin nombrar la marca (conforme a LCSP Art. 126)
+        • Referencias de otros ayuntamientos u organismos públicos si las hay
+        • Datos del comercial de zona para entregar si hay interés en oferta
+
+        EN LA REUNIÓN (objetivos del prescriptor):
+        1. Presentar el sistema con muestras físicas
+        2. Mostrar cómo se redacta la especificación en el PPT:
+           "Se especifican las prestaciones técnicas — atenuación en dB, norma de ensayo,
+           resistencia química — sin nombrar marca. Es perfectamente compatible con la LCSP."
+        3. Preguntar por proyectos en cartera o en redacción
+        4. Ofrecer asistencia técnica gratuita para la redacción del PPT
+        5. Si hay interés en oferta o precio → "Para eso les pondré en contacto con
+           nuestro comercial de zona"
+
+        NOTA LEGAL:
+        El PPT no puede mencionar marcas (LCSP Art. 126). La prescripción técnica
+        consiste en que las especificaciones describan las prestaciones del sistema.`,
+            bestTime: 'Lun–Jue, 10:00–12:00',
+            critical: true,
+            final: false,
+            handoff: true
+          },
+          {
+            day: 45,
+            name: 'Envío documentación para alta como proveedor',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Iniciar el proceso de alta de GPF como proveedor del organismo.',
+            script: `ASUNTO: "Solicitud de alta como proveedor — GPF (Ferroplast / Tuyper) — [Organismo]"
+
+        CUERPO:
+        "Estimado/a [nombre],
+
+        Conforme a nuestra reunión del [fecha], adjunto la documentación para el alta
+        de GPF como proveedor de [nombre del organismo]:
+
+        • CIF + datos de empresa
+        • Certificado corriente con AEAT y TGSS
+        • Declaración responsable de no estar incurso en prohibición de contratar (LCSP)
+        • Declaración de prestaciones del producto (DoP)
+        • Ficha técnica con referencia a normas UNE aplicables
+
+        Si el organismo dispone de portal propio de proveedores o tiene un formulario
+        específico, me lo indican y lo completo de inmediato.
+
+        Para gestión de oferta y condiciones comerciales en futuras licitaciones,
+        nuestro comercial de zona es el interlocutor adecuado.
+
+        Atentamente,
+        [Nombre] · Técnico prescriptor GPF"`,
+            bestTime: 'Lun–Mar, 9:00–10:00',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 60,
+            name: 'Alerta PLACSP + traspaso al comercial',
+            channel: 'email',
+            icon: '🔎',
+            description: 'Configurar alertas en PLACSP. Trasladar el contacto al comercial de zona.',
+            script: `ACCIÓN EN PLACSP (contrataciondelestado.es):
+        1. Configurar alerta por órgano de contratación: [nombre del organismo]
+        2. CPV relevantes: 44163100-1 (tuberías y accesorios), 45000000 (obras construcción)
+        3. Activar notificación por email
+
+        TRASPASO AL COMERCIAL:
+        Notificar al comercial de zona:
+        • Nombre del organismo y técnico de contacto
+        • Estado de la relación: visita realizada, PPT en proceso/pendiente
+        • Estado de la homologación como proveedor
+        • Próximas licitaciones previstas si las hay
+
+        MENSAJE AL COMERCIAL:
+        "Hola [nombre], he trabajado el [Ayuntamiento/Organismo de X].
+        El técnico responsable es [nombre, teléfono, email].
+        He enviado la documentación de alta como proveedor. Tienen prevista licitación
+        [referencia / pendiente de confirmar]. Te paso el contacto para que estés
+        pendiente de cuando salga en PLACSP."`,
+            bestTime: 'Tras la visita institucional',
+            critical: true,
+            final: false,
+            handoff: true
+          },
+          {
+            day: 90,
+            name: 'Visita conjunta + seguimiento PPT',
+            channel: 'meeting',
+            icon: '🤝',
+            description: 'OBJETIVO FINAL. Prescripción en PPT confirmada y/o visita conjunta con comercial.',
+            script: `ESCENARIO A — Prescripción en PPT conseguida:
+        El técnico municipal incorpora las especificaciones técnicas equivalentes al
+        sistema GPF en el PPT de la próxima licitación.
+        → Confirmar por email el texto de especificación acordado.
+        → Notificar al comercial para que esté pendiente de la publicación en PLACSP.
+        → Registrar en CRM: "Prescripción en PPT confirmada. Comercial notificado."
+
+        ESCENARIO B — Visita conjunta:
+        El técnico quiere ver más detalles o hay licitación inminente.
+        → Coordinar visita conjunta: prescriptor (parte técnica) + comercial (oferta/licitación).
+
+        ESCENARIO C — Alta como proveedor completada:
+        GPF está dado de alta en el registro de proveedores del organismo.
+        → Notificar al comercial para que esté listo para cuando salga la licitación.
+
+        SEGUIMIENTO POSTERIOR:
+        Revisar PLACSP mensualmente para este organismo.
+        El prescriptor mantiene la relación técnica; el comercial gestiona la licitación.`,
+            bestTime: 'Según calendario del organismo',
+            critical: true,
+            final: true,
+            handoff: true
+          }
+        ];
+
+
+        // ─────────────────────────────────────────────────────────────────────
+        // 2.7  AGUAS — EMPRESAS GESTORAS DE ABASTECIMIENTO Y SANEAMIENTO
+        // Ciclo: 60–180 días
+        // Objetivos: prescripción en especificaciones + homologación + traspaso
+        // ─────────────────────────────────────────────────────────────────────
+
+        const TIMELINE_AGUAS = [
+          {
+            day: 0,
+            name: 'Llamada — identificar director técnico',
+            channel: 'phone',
+            icon: '📞',
+            description: 'Localizar al responsable técnico de red u operaciones. Tono técnico.',
+            script: `Lun–Mié, 9:00–10:30.
+
+        LLAMADA A CENTRALITA:
+        "Buenos días, ¿podría hablar con el Departamento Técnico o el responsable de
+        red de distribución? Soy técnico de GPF (Ferroplast / Tuyper)."
+
+        CON EL TÉCNICO:
+        "Buenos días [nombre], soy [nombre], técnico de GPF. Fabricamos sistemas de
+        evacuación de aguas insonorizados. Me gustaría hacerle llegar documentación
+        técnica. ¿Es usted el responsable técnico de instalaciones?"
+
+        PREGUNTAS:
+        • "¿Tienen previstas obras de renovación de red o nuevas instalaciones?"
+        • "¿Trabajan con listado de proveedores aprobados para materiales de tubería?"
+        • "¿Cuál es el proceso de homologación de nuevos proveedores en su empresa?"
+
+        NOTA ROL: si pregunta por precio o condiciones →
+        "Para eso les pongo en contacto con nuestro comercial de zona."`,
+            bestTime: 'Lun–Mié, 9:00–10:30',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 2,
+            name: 'Email técnico con certificaciones',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Email técnico-institucional con documentación certificada.',
+            script: `ASUNTO: "Sistemas evacuación insonorizados GPF — Documentación técnica y certificaciones"
+
+        CUERPO:
+        "Estimado/a [nombre],
+
+        Le escribo de GPF (Ferroplast / Tuyper) conforme a nuestra conversación.
+        Adjunto documentación técnica de nuestros sistemas:
+
+        • Ficha técnica: dimensiones, presiones, resistencia química (pH 2–12, 95°C)
+        • Certificado de ensayo acústico EN 14366 (laboratorio acreditado ENAC)
+        • Declaración de prestaciones (Reglamento UE 305/2011)
+        • Marcado CE y norma UNE-EN 1451
+
+        Para precios, condiciones y oferta formal, nuestro comercial de zona es el
+        interlocutor adecuado. Me lo indica y le pongo en contacto.
+
+        [Nombre] · Técnico prescriptor GPF · [contacto]"`,
+            bestTime: 'Mismo día o al siguiente, 9:00–10:00',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 12,
+            name: 'Llamada de seguimiento + propuesta de demostración',
+            channel: 'phone',
+            icon: '📞',
+            description: 'Verificar documentación. Proponer demostración técnica o visita.',
+            script: `Duración: 5–8 minutos.
+
+        "Hola [nombre], le envié documentación técnica hace unos días.
+        ¿Tuvo oportunidad de revisarla?"
+
+        PREGUNTAS:
+        • "¿Tienen proveedores homologados para este tipo de material actualmente?"
+        • "¿Cuál es el proceso de alta como proveedor en su empresa?"
+        • "¿En qué tipo de instalaciones utilizan sistemas de bajantes o evacuación?"
+
+        PROPUESTA:
+        "Si le parece bien, podría pasarme con muestras para que vea el sistema
+        físicamente. Y si en algún momento quieren hacer una prueba en sus
+        instalaciones, podemos organizarlo."
+
+        NOTA ROL: no gestionar precios. Si los piden → comercial de zona.`,
+            bestTime: 'Mar–Jue, 10:00–11:30',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 22,
+            name: 'Visita técnica / demostración en planta',
+            channel: 'visit',
+            icon: '🏭',
+            description: 'Visita presencial a sus instalaciones con muestras y documentación de homologación.',
+            script: `PREPARACIÓN:
+        • Muestras de distintos diámetros y accesorios
+        • Documentación técnica impresa: fichas, certificados, tablas de resistencia química
+        • Dossier de homologación como proveedor GPF
+        • Datos del comercial de zona
+
+        EN LA VISITA:
+        1. Presentación del sistema: componentes, instalación, ventajas técnicas
+        2. Discusión técnica: compatibilidad con sus condiciones de red
+        3. Proceso de homologación: qué documentación necesitan, qué auditorías realizan
+        4. Preguntar cómo incluirían nuestro sistema en sus especificaciones de compra
+        5. Si preguntan por precio → datos del comercial
+
+        OBJETIVO:
+        → Que el sistema quede referenciado en sus especificaciones de compra, Y/O
+        → Inicio del proceso de homologación GPF como proveedor aprobado, Y/O
+        → Visita conjunta con el comercial acordada`,
+            bestTime: 'Mar–Jue, 10:00–13:00',
+            critical: true,
+            final: false,
+            handoff: true
+          },
+          {
+            day: 38,
+            name: 'Envío documentación de homologación',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Tramitar el alta de GPF como proveedor aprobado.',
+            script: `ASUNTO: "Documentación homologación GPF como proveedor aprobado — [empresa de aguas]"
+
+        CUERPO:
+        "Estimado/a [nombre],
+
+        Conforme a nuestra visita del [fecha], adjunto la documentación para iniciar
+        el proceso de homologación de GPF como proveedor aprobado:
+
+        DOCUMENTACIÓN EMPRESARIAL:
+        • CIF + datos de empresa (Ferroplast / Tuyper / GPF)
+        • Certificado corriente AEAT y TGSS
+        • Seguros de responsabilidad civil
+
+        DOCUMENTACIÓN TÉCNICA:
+        • Declaración de prestaciones (DoP) por producto
+        • Marcado CE + norma UNE-EN 1451
+        • Certificado de ensayo EN 14366 (laboratorio acreditado)
+        • Ficha de seguridad (REACH, si aplica)
+
+        Para condiciones comerciales y oferta formal, nuestro comercial [nombre]
+        es el interlocutor adecuado: [teléfono / email].
+
+        [Nombre] · Técnico prescriptor GPF"`,
+            bestTime: 'Lun–Mar, 9:00–10:00',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 55,
+            name: 'Traspaso al comercial + seguimiento homologación',
+            channel: 'phone',
+            icon: '🔄',
+            description: 'Verificar estado de la homologación. Activar al comercial de zona.',
+            script: `LLAMADA AL TÉCNICO (5 minutos):
+        "Hola [nombre], le llamo para saber en qué punto está el proceso de
+        homologación de la documentación que le envié."
+
+        Si avanza → notificar al comercial de zona con todos los datos.
+        Si falta documentación → enviarla ese día.
+        Si está aprobada → traspasar al comercial para gestionar la oferta.
+
+        MENSAJE AL COMERCIAL:
+        "Hola [nombre], he trabajado [empresa de aguas X]. El responsable técnico es
+        [nombre, teléfono, email]. La homologación está [en proceso / aprobada].
+        Sus especificaciones de compra ya contemplan [sistema / prestaciones equivalentes].
+        Puedes contactarles para gestionar la oferta."`,
+            bestTime: 'Mar–Jue, 10:00–11:30',
+            critical: true,
+            final: false,
+            handoff: true
+          },
+          {
+            day: 80,
+            name: 'Visita conjunta prescriptor + comercial',
+            channel: 'meeting',
+            icon: '🤝',
+            description: 'OBJETIVO FINAL. Visita conjunta para cerrar homologación y primer acuerdo comercial.',
+            script: `CONDICIÓN: homologación completada o en fase final.
+
+        COORDINACIÓN:
+        • Prescriptor: parte técnica (prestaciones, especificaciones, demostración)
+        • Comercial: condiciones comerciales, precio, contrato marco o primer pedido
+
+        EN LA REUNIÓN:
+        Prescriptor presenta las ventajas técnicas y la prescripción en especificaciones.
+        Comercial presenta la oferta y cierra las condiciones de suministro.
+
+        RESULTADO ESPERADO:
+        → GPF homologado como proveedor aprobado, Y
+        → Sistema referenciado en especificaciones de compra, Y
+        → Primer pedido o contrato marco gestionado por el comercial
+
+        Registrar en CRM: resultado, próximas acciones, responsable de seguimiento.`,
+            bestTime: 'Mar–Jue, 10:00–12:00',
+            critical: true,
+            final: true,
+            handoff: true
+          }
+        ];
+
+
+        // ──────────────────────────────────────────────────────────────────────
+        // 2.8  REGANTES — COMUNIDADES DE REGANTES
+        // Ciclo: 60–365 días. Decisión colectiva. ESTACIONAL (enero–marzo).
+        // Objetivos: prescripción para la junta + visita conjunta + traspaso
+        // Marco legal: RDL 1/2001 (Ley de Aguas), RDPH.
+        // Órganos: Junta General (soberana), Junta de Gobierno (ejecutiva),
+        //           Jurado de Riegos. Presidente = representante legal.
+        // ──────────────────────────────────────────────────────────────────────
+
+        const TIMELINE_REGANTES = [
+          {
+            day: 0,
+            name: 'Llamada al presidente o secretario',
+            channel: 'phone',
+            icon: '📞',
+            description: 'Primer contacto. Identificar al presidente o secretario. Ventana óptima: enero–marzo.',
+            script: `Lun–Vie, 9:00–11:00.
+
+        NOTA: Mostrar resultado de isOptimalContactWindow() en el CRM antes de iniciar.
+
+        APERTURA:
+        "Buenos días, ¿podría hablar con el presidente o el secretario de la Comunidad
+        de Regantes de [nombre]? Soy [nombre], técnico de GPF."
+
+        CON EL PRESIDENTE / SECRETARIO:
+        "Buenos días [nombre], soy técnico de GPF (Ferroplast / Tuyper). Fabricamos
+        sistemas de conducción y evacuación de aguas. Me gustaría presentarle nuestros
+        productos por si pueden ser útiles en las instalaciones de su comunidad.
+        ¿Tienen previstas obras de renovación o mantenimiento para esta campaña?"
+
+        PREGUNTAS:
+        • "¿Cuándo suele celebrarse la junta de gobierno donde aprueban el presupuesto?"
+        • "¿Quién gestiona técnicamente las obras — técnico interno, empresa externa?"
+        • "¿Tienen ya instalador o empresa con la que trabajan habitualmente?"
+
+        NOTA ROL: si preguntan por precio →
+        "Para eso les pondré en contacto con nuestro comercial de zona."`,
+            bestTime: 'Lun–Vie, 9:00–11:00. ÓPTIMO: enero–marzo',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 3,
+            name: 'Visita presencial a la sede o canal',
+            channel: 'visit',
+            icon: '🌾',
+            description: 'Visita presencial temprana. Contacto directo con el presidente/secretario.',
+            script: `PREPARACIÓN:
+        • Muestras de tubería y accesorios
+        • Catálogo técnico y fichas de producto
+        • Referencia de otras comunidades de regantes si las hay
+        • Datos del comercial de zona
+
+        EN LA VISITA:
+        1. Presentación personal y breve de GPF
+        2. Mostrar muestras físicas y explicar las diferencias vs. el material que usan
+        3. Escuchar: ¿Qué problemas tienen actualmente? ¿Ruidos, fugas, mantenimiento?
+        4. Preguntar por las obras previstas y el ciclo de aprobación en junta
+        5. Preguntar por el instalador o empresa que ejecuta las obras
+           → Si dan el contacto → trasladar al comercial de zona
+        6. Si preguntan por precio → "Nuestro comercial de zona les llama para darte un precio"
+
+        CLAVE CULTURAL:
+        Son corporaciones de derecho público con funcionamiento asambleario.
+        La confianza personal del presidente es determinante. Sin presión.
+
+        OBJETIVO:
+        → Que el presidente quiera presentar GPF a la junta de gobierno, Y/O
+        → Contacto del instalador/empresa que ejecuta obras para el comercial`,
+            bestTime: 'Lun–Vie, 9:00–13:00. ÓPTIMO: enero–febrero',
+            critical: true,
+            final: false,
+            handoff: true
+          },
+          {
+            day: 10,
+            name: 'Envío de propuesta técnica para la junta',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Propuesta técnica clara, sin precio, lista para presentar a la junta de gobierno.',
+            script: `ASUNTO: "Documentación técnica GPF para su junta de gobierno — [Comunidad de Regantes]"
+
+        CUERPO:
+        "Estimado/a [nombre],
+
+        Conforme a nuestra visita del [fecha], le adjunto documentación técnica de
+        nuestros sistemas de evacuación de aguas para que pueda presentarla a la
+        junta de gobierno si lo considera oportuno:
+
+        • Ficha técnica del sistema con características principales
+        • Ventajas respecto a los sistemas habituales: durabilidad, reducción de ruido
+          en instalaciones con caudales variables, resistencia química
+        • Casos de referencia si los hay
+
+        Para la oferta económica detallada, nuestro comercial de zona se la facilitará
+        en cuanto lo necesiten.
+
+        Si lo considera útil, puedo asistir a la junta para presentar el sistema
+        personalmente y responder preguntas.
+
+        [Nombre] · Técnico prescriptor GPF · [teléfono]"`,
+            bestTime: 'Lun–Mar, 9:00–10:00',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 22,
+            name: 'Llamada previa a la junta',
+            channel: 'phone',
+            icon: '📞',
+            description: 'Confirmar si la propuesta se presentará en junta. Ofrecer asistencia del prescriptor.',
+            script: `Duración: 5–8 minutos.
+
+        "Hola [nombre], le llamo para saber si van a presentar nuestra documentación
+        en la próxima junta. ¿Tienen fecha prevista?"
+
+        OFERTA DE PRESENCIA:
+        "Si lo consideran útil, puedo asistir a la junta para presentar el sistema
+        personalmente. Así los vocales pueden hacer preguntas técnicas directamente."
+
+        COORDINACIÓN CON COMERCIAL:
+        "Y si en la junta quieren ver también la oferta económica, puedo ir acompañado
+        de nuestro comercial de zona para que la presente él directamente."
+
+        Si dan el contacto del instalador que ejecuta sus obras →
+        trasladar inmediatamente al comercial de zona.`,
+            bestTime: 'Mar–Jue, 9:00–11:00',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 38,
+            name: 'Presentación ante la junta de gobierno',
+            channel: 'meeting',
+            icon: '🤝',
+            description: 'Asistir a la junta. Presentar técnicamente. El comercial lleva la oferta si se requiere.',
+            script: `PREPARACIÓN:
+        • Presentación sencilla (máx. 10 diapositivas o una hoja A4 clara)
+        • Muestras físicas para que los vocales puedan ver y tocar el material
+        • Documentación técnica impresa (una copia por vocal si posible)
+        • El comercial de zona: si en la junta piden precio → el comercial presenta la oferta
+
+        EN LA JUNTA:
+        • Ser muy conciso: 5–10 minutos para la exposición técnica
+        • Lenguaje práctico: "duración", "facilidad de montaje", "menos ruido", "menos averías"
+        • No usar tecnicismos: los vocales suelen ser agricultores o gestores locales
+        • Responder preguntas con honestidad
+        • NO hacer presión: la decisión es colectiva y puede requerir una segunda junta
+
+        DIVISIÓN DE ROLES EN LA JUNTA:
+        → Prescriptor: presenta las características técnicas y ventajas
+        → Comercial (si asiste): presenta la oferta económica y condiciones
+
+        DESPUÉS DE LA JUNTA:
+        Enviar email al presidente esa misma tarde con la documentación técnica en PDF.
+        Si hay preguntas pendientes, responderlas en 24h por escrito.`,
+            bestTime: 'Fecha fijada por la comunidad. ÓPTIMO: febrero–marzo',
+            critical: true,
+            final: false,
+            handoff: true
+          },
+          {
+            day: 60,
+            name: 'Seguimiento post-junta',
+            channel: 'phone',
+            icon: '📞',
+            description: 'Conocer el resultado de la junta. Traspasar al comercial si hay decisión positiva.',
+            script: `Duración: 5–8 minutos.
+
+        "Hola [nombre], le llamo para saber cómo fue la junta y si tomaron alguna
+        decisión respecto a nuestra propuesta."
+
+        SI APROBARON:
+        → Traspasar inmediatamente al comercial de zona para que gestione el pedido.
+        → Registrar en CRM: "Junta aprobó. Traspasado a comercial [X]. Fecha: [Y]."
+        El prescriptor NO gestiona el pedido.
+
+        SI POSPOSICIÓN A ASAMBLEA GENERAL:
+        → Ofrecer material adicional para la asamblea.
+        → Preguntar la fecha de la asamblea y programar seguimiento.
+        → Coordinar asistencia conjunta prescriptor + comercial si se requiere.
+
+        SI RECHAZO:
+        → Preguntar el motivo para aprender y mejorar.
+        → Programar seguimiento para el próximo ciclo (enero del año siguiente).
+        → Registrar motivo en CRM.`,
+            bestTime: 'Mar–Jue, 9:00–11:00',
+            critical: true,
+            final: false,
+            handoff: true
+          },
+          {
+            day: 90,
+            name: 'Cierre / re-calificación anual',
+            channel: 'phone',
+            icon: '🔄',
+            description: 'OBJETIVO FINAL. Prescripción confirmada y pedido trasladado al comercial.',
+            script: `ESCENARIO A — Decisión positiva (junta o asamblea):
+        → El prescriptor traslada el contacto al comercial de zona para gestionar el pedido.
+        → Registrar: "Aprobado. Comercial [nombre] gestiona el pedido. Fecha: [X]."
+        → El prescriptor puede dar soporte técnico puntual pero NO gestiona el pedido.
+
+        ESCENARIO B — Presidente/secretario contacta al comercial directamente:
+        → El prescriptor informa al comercial y le facilita el contexto completo.
+        → Registrar: "Presidente [nombre] contacta comercial [X] directamente. Fecha: [Y]."
+
+        ESCENARIO C — Pendiente de asamblea general:
+        → Coordinar visita conjunta prescriptor + comercial para la asamblea.
+        → Programar seguimiento 2 semanas antes de la asamblea.
+
+        ESCENARIO D — Sin decisión por este año:
+        → Marcar como "nurturing anual".
+        → Programar contacto en enero del año siguiente.
+        → Registrar motivo y observaciones en CRM.
+
+        NOTA: las Comunidades de Regantes no tienen consideración de poder adjudicador
+        (Informe JSCAV 5/2020), por lo que el proceso de compra es privado y no requiere
+        procedimiento de licitación pública.`,
+            bestTime: 'Según calendario de la comunidad',
+            critical: true,
+            final: true,
+            handoff: true
+          }
+        ];
+
+
+        // ─────────────────────────────────────────────────────────────
+        // SECCIÓN 3: TRIGGERS POR TIPO DE CLIENTE (sin BANT)
+        // ─────────────────────────────────────────────────────────────
+
+        /**
+         * Triggers específicos por tipo de cliente.
+         * Reemplaza el sistema BANT. Sin referencias a presupuesto, autoridad, etc.
+         * Los triggers miden el avance del proceso de PRESCRIPCIÓN, no de venta.
+         *
+         * @param {string} studioType
+         * @returns {{ config: Array, minRequired: number, initialState: Object }}
+         */
+        function getTriggersByType(studioType) {
+          const configs = {
+
+            arquitectura: {
+              minRequired: 3,
+              config: [
+                { key: 'docReceived',       label: 'Documentación revisada',    description: 'Ha confirmado que ha revisado la ficha técnica o nota de normativa enviada.' },
+                { key: 'activeProject',     label: 'Proyecto activo identificado', description: 'Ha mencionado un proyecto en marcha donde aplica la especificación.' },
+                { key: 'specificationRole', label: 'Él especifica el material',  description: 'Es el arquitecto quien decide la especificación de bajantes en sus proyectos.' },
+                { key: 'installerContact',  label: 'Instalador identificado',    description: 'Se ha obtenido el nombre o contacto del instalador para trasladar al comercial.' },
+                { key: 'visitAccepted',     label: 'Visita aceptada',            description: 'Ha aceptado recibir la visita técnica presencial con muestras.' }
+              ]
+            },
+
+            ingenieria: {
+              minRequired: 3,
+              config: [
+                { key: 'technicalInterest', label: 'Interés técnico demostrado', description: 'Ha pedido más documentación técnica o ha hecho preguntas de detalle.' },
+                { key: 'activeProject',     label: 'Proyecto en instalaciones',  description: 'Tiene un proyecto en fase de redacción de instalaciones donde aplica DB-HR.' },
+                { key: 'specificationRole', label: 'Redactan el pliego',         description: 'Son ellos quienes redactan el pliego de prescripciones técnicas del proyecto.' },
+                { key: 'installerContact',  label: 'Instalador identificado',    description: 'Se ha obtenido el contacto del instalador para trasladar al comercial.' },
+                { key: 'visitAccepted',     label: 'Visita aceptada',            description: 'Ha aceptado la visita técnica presencial con muestras.' }
+              ]
+            },
+
+            promotora: {
+              minRequired: 2,
+              config: [
+                { key: 'activeProject',     label: 'Promoción activa',           description: 'Tienen una promoción en marcha o inicio en menos de 3 meses.' },
+                { key: 'specificationRole', label: 'Definen el pliego',          description: 'Son ellos (o su arquitecto) quienes definen el pliego de la obra.' },
+                { key: 'installerContact',  label: 'Instalador identificado',    description: 'Se ha obtenido el contacto del instalador para trasladar al comercial.' },
+                { key: 'comercialHandoff',  label: 'Comercial activado',         description: 'El director de compras ha contactado o acordado contactar al comercial GPF.' }
+              ]
+            },
+
+            constructora: {
+              minRequired: 2,
+              config: [
+                { key: 'activeWork',        label: 'Obra activa',                description: 'Hay obra en ejecución o inicio en menos de 60 días.' },
+                { key: 'siteVisitDone',     label: 'Visita en obra realizada',   description: 'Se ha realizado visita presencial en obra o en su oficina con muestras.' },
+                { key: 'installerContact',  label: 'Instalador identificado',    description: 'Se ha obtenido el contacto del instalador para trasladar al comercial.' },
+                { key: 'homologationStarted', label: 'Homologación iniciada',   description: 'Se ha enviado la documentación de alta como proveedor GPF.' }
+              ]
+            },
+
+            aapp: {
+              minRequired: 2,
+              config: [
+                { key: 'technicalContact',  label: 'Técnico identificado',       description: 'Se ha identificado y contactado al técnico municipal responsable.' },
+                { key: 'institutionalVisit', label: 'Visita institucional hecha', description: 'Se ha realizado al menos una visita presencial al organismo.' },
+                { key: 'pptInfluence',      label: 'Prescripción en PPT',        description: 'El técnico ha aceptado incorporar especificaciones equivalentes en el PPT.' },
+                { key: 'supplierRegistered', label: 'Alta como proveedor',       description: 'Se ha completado o iniciado el proceso de alta de GPF en el registro del organismo.' }
+              ]
+            },
+
+            aguas: {
+              minRequired: 2,
+              config: [
+                { key: 'technicalMeeting',  label: 'Visita técnica realizada',   description: 'Se ha realizado visita presencial con el responsable técnico.' },
+                { key: 'specInSpecs',       label: 'Prescripción en especificaciones', description: 'El sistema ha quedado referenciado en sus especificaciones de compra.' },
+                { key: 'homologationProcess', label: 'Homologación en curso',    description: 'Se ha iniciado o completado el proceso de alta de GPF como proveedor aprobado.' },
+                { key: 'comercialHandoff',  label: 'Comercial activado',         description: 'El responsable técnico ha contactado o acordado contactar al comercial GPF.' }
+              ]
+            },
+
+            regantes: {
+              minRequired: 2,
+              config: [
+                { key: 'presidentContact',  label: 'Presidente/secretario contactado', description: 'Se ha establecido contacto directo con el presidente o secretario.' },
+                { key: 'visitDone',         label: 'Visita presencial realizada', description: 'Se ha realizado visita a la sede o instalaciones de la comunidad.' },
+                { key: 'boardPresentation', label: 'Presentación a la junta',    description: 'Se ha presentado o acordado presentar el sistema a la junta de gobierno.' },
+                { key: 'installerContact',  label: 'Instalador/empresa identificado', description: 'Se tiene el contacto de la empresa que ejecuta las obras de la comunidad.' }
+              ]
+            }
+          };
+
+          const typeConfig = configs[studioType] || configs['arquitectura'];
+          const initialState = {};
+          typeConfig.config.forEach(t => { initialState[t.key] = false; });
+
+          return {
+            config: typeConfig.config,
+            minRequired: typeConfig.minRequired,
+            initialState
+          };
+        }
+
+
+        // ─────────────────────────────────────────────────────────────
+        // SECCIÓN 4: PUNTUACIÓN DE MADUREZ
+        // ─────────────────────────────────────────────────────────────
+
+        /**
+         * Calcula el score de madurez del proceso de prescripción.
+         * Combina pasos completados + triggers activos.
+         * No usa BANT.
+         *
+         * @param {Object} b2bTimeline - Objeto b2bTimeline del estudio en el CRM
+         * @param {string} studioType
+         * @returns {{ score: number, total: number, percentage: number, readyForHandoff: boolean, triggersActive: number, triggersRequired: number }}
+         */
+        function getReadinessScore(b2bTimeline, studioType) {
+          if (!b2bTimeline) {
+            return { score: 0, total: 10, percentage: 0, readyForHandoff: false, triggersActive: 0, triggersRequired: 3 };
+          }
+
+          const triggerConfig = getTriggersByType(studioType);
+          const triggersActive = triggerConfig.config.filter(
+            t => b2bTimeline.triggers && b2bTimeline.triggers[t.key]
+          ).length;
+          const triggersRequired = triggerConfig.minRequired;
+
+          const timeline = getB2BTimeline(studioType, b2bTimeline.variant);
+          const totalSteps = timeline.length;
+          const completedSteps = (b2bTimeline.steps || []).filter(s => s && s.completedAt).length;
+
+          const stepScore    = totalSteps    > 0 ? (completedSteps / totalSteps) * 60       : 0;
+          const triggerScore = triggersRequired > 0
+            ? (Math.min(triggersActive, triggersRequired) / triggersRequired) * 40 : 0;
+          const percentage   = Math.round(stepScore + triggerScore);
+
+          return {
+            score: completedSteps + triggersActive,
+            total: totalSteps + triggerConfig.config.length,
+            percentage,
+            readyForHandoff: triggersActive >= triggersRequired,
+            triggersActive,
+            triggersRequired
+          };
+        }
+
+
+        // ─────────────────────────────────────────────────────────────
+        // SECCIÓN 5: TEXTOS AUXILIARES Y CONSTANTES
+        // ─────────────────────────────────────────────────────────────
+
+        /**
+         * Avisos a mostrar al iniciar el proceso en tipos de ciclo largo.
+         * Mostrar en startB2BProcess() antes de crear el b2bTimeline.
+         */
+        const AVISOS_CICLO_LARGO = {
+          aapp: {
+            titulo: '⚠️ Proceso de ciclo largo — Administración Pública',
+            mensaje: `El ciclo real es de 3 a 18 meses, sujeto al calendario de licitaciones (Ley 9/2017 LCSP).
+        Tu objetivo como prescriptor es influir en la redacción del PPT ANTES de que se
+        publique la licitación en PLACSP. El comercial de zona gestionará la oferta
+        cuando salga la licitación. No esperes resultados en semanas.`
+          },
+          aguas: {
+            titulo: '⚠️ Proceso de ciclo largo — Empresa de Aguas',
+            mensaje: `El ciclo es de 2 a 6 meses. Tu objetivo es conseguir prescripción en sus
+        especificaciones de compra y la homologación de GPF como proveedor aprobado.
+        Solo después de eso el comercial puede gestionar ofertas. La venta viene después.`
+          },
+          regantes: {
+            titulo: '⚠️ Proceso estacional y colectivo — Comunidad de Regantes',
+            mensaje: `Las decisiones las toma la Junta de Gobierno y, para obras grandes, la Asamblea General.
+        El ciclo puede ir de 2 meses a más de 1 año.
+        IMPORTANTE: La ventana óptima de contacto es enero–marzo, antes de la campaña de riego.
+        Fuera de ese periodo la receptividad es significativamente menor.`
+          }
+        };
+
+        /**
+         * Bifurcación para Promotoras.
+         * El CRM debe preguntar esto al usuario antes de iniciar el proceso
+         * y guardar 'rutaA' o 'rutaB' en b2bTimeline.variant.
+         */
+        const PROMOTORA_VARIANTES = {
+          pregunta: '¿Tiene esta promotora una promoción activa en marcha o con inicio en menos de 3 meses?',
+          rutaA: {
+            label: 'Sí — proceso rápido de 14 días',
+            descripcion: 'Hay promoción activa. 6 pasos: visita rápida, prescripción en pliego y traspaso al comercial.'
+          },
+          rutaB: {
+            label: 'No — nurturing de 90 días',
+            descripcion: 'Sin proyecto activo. 4 pasos de mantenimiento hasta que arranque la próxima promoción.'
+          }
+        };
+
+        // ─────────────────────────────────────────────────────────────
+        // EXPORTACIONES
+
         async function startB2BProcess(studioId) {
             const studio = await getStudio(studioId);
             if (!studio) return;
 
-            // Preguntar si quiere cambiar el estado a Contactado
-            const cambiarAContactado = confirm(`¿Deseas marcar "${studio.name}" como "Contactado"?\n\nEsto actualizará el estado del estudio además de iniciar el proceso B2B.`);
+            const studioType = studio.type || 'arquitectura';
 
+            // Aviso ciclo largo para AAPP, Aguas, Regantes
+            if (['aapp', 'aguas', 'regantes'].includes(studioType) && AVISOS_CICLO_LARGO[studioType]) {
+                const aviso = AVISOS_CICLO_LARGO[studioType];
+                if (!confirm(`${aviso.titulo}\n\n${aviso.mensaje}\n\n¿Continuar con el inicio del proceso?`)) return;
+            }
+
+            // Bifurcación para Promotoras
+            let variant = null;
+            if (studioType === 'promotora') {
+                const rutaA = confirm(`${PROMOTORA_VARIANTES.pregunta}\n\nAceptar → ${PROMOTORA_VARIANTES.rutaA.label}\nCancelar → ${PROMOTORA_VARIANTES.rutaB.label}`);
+                variant = rutaA ? 'rutaA' : 'rutaB';
+            }
+
+            // Ventana estacional para Regantes
+            if (studioType === 'regantes') {
+                const win = isOptimalContactWindow();
+                if (!win.optimal) {
+                    if (!confirm(`${win.message}\n\n¿Deseas iniciar el proceso igualmente?`)) return;
+                }
+            }
+
+            const cambiarAContactado = confirm(`¿Deseas marcar "${studio.name}" como "Contactado"?\n\nEsto actualizará el estado del estudio además de iniciar el proceso.`);
+
+            const triggerConfig = getTriggersByType(studioType);
             const now = new Date();
             const b2bTimeline = {
                 startDate: now.toISOString(),
                 currentStep: 0,
                 steps: [],
-                triggers: { activeInterest: false, definedProject: false, decisionMaker: false, specificQuestions: false, activeBenchmark: false }
+                variant: variant,
+                triggers: { ...triggerConfig.initialState }
             };
 
-            // Actualizar con b2bTimeline y opcionalmente el status
             const updateData = { b2bTimeline };
             if (cambiarAContactado) {
                 updateData.status = 'contactado';
             }
             await updateStudio(studioId, updateData);
-            
-            // Registrar actividad
-            const activityText = cambiarAContactado 
-                ? '🎯 Iniciado proceso de seguimiento B2B (Estado → Contactado)'
-                : '🎯 Iniciado proceso de seguimiento B2B';
+
+            const activityText = cambiarAContactado
+                ? '🎯 Iniciado proceso de prescripción B2B (Estado → Contactado)'
+                : '🎯 Iniciado proceso de prescripción B2B';
             await addActivity({
                 studioId: studioId,
                 type: 'status',
                 text: activityText
             });
 
-            // Ofrecer sincronizar con Google Calendar vía Apps Script (si cloud está activo)
             if (useCloudStorage) {
-                if (confirm('¿Crear eventos en Google Calendar para todo el proceso B2B?\n\n📅 Se crearán 10 eventos con las tareas programadas.\n\n⏰ Cada evento incluirá recordatorios (1h y 15min antes)')) {
+                if (confirm('¿Crear eventos en Google Calendar para el proceso de prescripción?\n\n📅 Se crearán los eventos con las tareas programadas.\n\n⏰ Cada evento incluirá recordatorios (1h y 15min antes)')) {
                     showNotification('🔄 Creando eventos en Calendar...', 'info');
-                    
-                    // Pasar el timeline directamente para evitar problemas de caché
                     const result = await createB2BCalendarEventsViaAPIWithTimeline(studioId, studio.name, b2bTimeline);
-                    
                     if (result.success) {
                         alert(`✅ Eventos creados en Google Calendar\n\n📅 ${result.created} eventos programados para "${studio.name}"\n\nLos eventos aparecerán en tu calendario con recordatorios.`);
                     } else if (result.error) {
@@ -15667,7 +17727,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const studio = await getStudio(studioId);
             if (!studio || !studio.b2bTimeline) return;
 
-            const step = B2B_TIMELINE[stepIndex];
+            const step = getB2BTimeline(studio.type || 'arquitectura', studio.b2bTimeline?.variant)[stepIndex];
             studio.b2bTimeline.steps[stepIndex] = {
                 completedAt: new Date().toISOString(),
                 notes: ''
@@ -15701,7 +17761,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                     currentStep: 0,
                     steps: [],
 
-                    triggers: { activeInterest: false, definedProject: false, decisionMaker: false, specificQuestions: false, activeBenchmark: false }
+                    triggers: { ...getTriggersByType(studio.type || 'arquitectura').initialState }
                 };
             }
 
@@ -15718,81 +17778,96 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             return planned;
         }
 
-        // Calcular el score de preparación para reunión
-        function calculateReadinessScore(b2bTimeline) {
-            if (!b2bTimeline) return { score: 0, total: 5, percentage: 0 };
-
-            let score = 0;
-            const triggers = b2bTimeline.triggers || {};
-
-            // Triggers (5 puntos)
-            if (triggers.activeInterest) score++;
-            if (triggers.definedProject) score++;
-            if (triggers.decisionMaker) score++;
-            if (triggers.specificQuestions) score++;
-            if (triggers.activeBenchmark) score++;
-
-            return { score, total: 5, percentage: Math.round((score / 5) * 100) };
+        function calculateReadinessScore(b2bTimeline, studioType) {
+            return getReadinessScore(b2bTimeline, studioType || 'arquitectura');
         }
 
-        // Renderizar el panel B2B completo
         function renderB2BPanel(studio, activities) {
             const b2b = studio.b2bTimeline;
+            const studioType = studio.type || 'arquitectura';
 
             if (!b2b) {
+                const cycleInfo = getCycleInfo(studioType);
+                const objectives = PRESCRIPTOR_OBJECTIVES[studioType] || [];
                 return `
                     <div class="card">
                         <div class="card-body" style="text-align:center;padding:40px;">
                             <div style="font-size:4rem;margin-bottom:16px;">🎯</div>
-                            <h3 style="margin-bottom:8px;">Proceso de Seguimiento B2B</h3>
-                            <p style="color:var(--muted);margin-bottom:24px;">
-                                Inicia el cronograma de conversión para este estudio.<br>
-                                Incluye 10 puntos de contacto estratégicos en 28 días.
-                            </p>
+                            <h3 style="margin-bottom:8px;">Proceso de Prescripción</h3>
+                            <p style="color:var(--muted);margin-bottom:4px;"><strong>${cycleInfo.label}</strong> · Ciclo: ${cycleInfo.cycleDays}</p>
+                            <p style="color:var(--muted);margin-bottom:16px;font-size:0.875rem;">${cycleInfo.note}</p>
+                            ${objectives.length > 0 ? `
+                            <div style="text-align:left;background:var(--bg-secondary);padding:12px 16px;border-radius:8px;margin-bottom:24px;">
+                                <div style="font-weight:600;margin-bottom:8px;">🎯 Objetivos del prescriptor:</div>
+                                ${objectives.map(o => `<div style="margin-bottom:4px;font-size:0.875rem;">• ${o}</div>`).join('')}
+                            </div>` : ''}
                             <button class="btn btn-primary" onclick="startB2BProcess(${studio.id})" style="font-size:1rem;padding:12px 24px;">
-                                🚀 Iniciar Proceso B2B
+                                🚀 Iniciar Proceso de Prescripción
                             </button>
                         </div>
                     </div>
                 `;
             }
 
-            // Asegurar que sub-objetos existan
             if (!b2b.triggers) b2b.triggers = {};
             if (!b2b.steps) b2b.steps = [];
 
-            const readiness = calculateReadinessScore(b2b);
+            const timeline = getB2BTimeline(studioType, b2b.variant);
+            const readiness = calculateReadinessScore(b2b, studioType);
+            const triggerConfig = getTriggersByType(studioType);
+            const cycleInfo = getCycleInfo(studioType);
+            const objectives = PRESCRIPTOR_OBJECTIVES[studioType] || [];
             const startDate = new Date(b2b.startDate || Date.now());
             const today = new Date();
             const daysSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
             const steps = b2b.steps || [];
             const currentStep = b2b.currentStep || 0;
 
-            // Generar HTML del timeline
+            // Aviso estacional para regantes
+            let seasonalWarning = '';
+            if (studioType === 'regantes') {
+                const win = isOptimalContactWindow();
+                const bg = win.optimal ? '#d4edda' : '#fff3cd';
+                const color = win.optimal ? '#155724' : '#856404';
+                seasonalWarning = `<div style="padding:10px 14px;border-radius:8px;margin-bottom:16px;background:${bg};color:${color};">${win.message}</div>`;
+            }
+
+            // Aviso variante promotora
+            let variantBadge = '';
+            if (studioType === 'promotora' && b2b.variant) {
+                const v = b2b.variant === 'rutaA' ? PROMOTORA_VARIANTES.rutaA : PROMOTORA_VARIANTES.rutaB;
+                variantBadge = `<span style="background:#7c3aed;color:white;padding:3px 10px;border-radius:12px;font-size:0.78rem;font-weight:600;">${v.label}</span>`;
+            }
+
+            // Timeline HTML
             let timelineHtml = '';
-            B2B_TIMELINE.forEach((step, index) => {
-                const isCompleted = steps[index];
-                const isCurrent = index === currentStep;
-                const isPending = index > currentStep;
+            timeline.forEach((step, index) => {
+                const stepData = steps[index];
+                const isCompleted = stepData && stepData.completedAt;
+                const isCurrent = !isCompleted && index === currentStep;
                 const plannedDate = getPlannedDate(b2b.startDate, step.day);
-                
                 const statusClass = isCompleted ? 'completed' : (isCurrent ? 'current' : 'pending');
-                const channelClass = step.channel;
-                
+
                 timelineHtml += `
                     <div class="b2b-step ${statusClass}">
                         <div class="b2b-step-marker">${isCompleted ? '✓' : (index + 1)}</div>
                         <div class="b2b-step-header">
                             <span class="b2b-step-day">Día ${step.day}</span>
-                            <span class="b2b-step-channel ${channelClass}">${step.icon} ${step.channel.toUpperCase()}</span>
+                            <span class="b2b-step-channel ${step.channel}">${step.icon} ${step.channel.toUpperCase()}</span>
                             ${step.critical ? '<span style="background:var(--danger);color:white;padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:600;">CRÍTICO</span>' : ''}
-                            ${step.final ? '<span style="background:var(--success);color:white;padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:600;">OBJETIVO</span>' : ''}
+                            ${step.final ? '<span style="background:var(--success);color:white;padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:600;">OBJETIVO FINAL</span>' : ''}
+                            ${step.handoff ? '<span style="background:#7c3aed;color:white;padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:600;">TRASPASO COMERCIAL</span>' : ''}
                         </div>
                         <div class="b2b-step-title">${step.name}</div>
                         <div class="b2b-step-desc">${step.description}</div>
+                        ${step.script ? `
+                        <details style="margin-top:6px;">
+                            <summary style="cursor:pointer;color:var(--primary);font-size:0.8rem;user-select:none;">📋 Ver guión del prescriptor</summary>
+                            <pre style="white-space:pre-wrap;font-size:0.75rem;background:var(--bg-secondary);padding:10px;border-radius:6px;margin-top:6px;line-height:1.5;max-height:300px;overflow-y:auto;">${step.script.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+                        </details>` : ''}
                         <div class="b2b-step-date">
                             ${isCompleted
-                                ? '✅ Completado: ' + formatDate(steps[index]?.completedAt)
+                                ? '✅ Completado: ' + formatDate(stepData.completedAt)
                                 : '📅 Planificado: ' + formatDate(plannedDate.toISOString())
                             }
                             ${step.bestTime ? ' · ⏰ ' + step.bestTime : ''}
@@ -15809,59 +17884,54 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 `;
             });
 
+            // Triggers HTML - dinámicos por tipo
+            let triggersHtml = '';
+            triggerConfig.config.forEach(trigger => {
+                const isActive = !!b2b.triggers[trigger.key];
+                triggersHtml += `
+                    <div class="trigger-item ${isActive ? 'active' : ''}" onclick="updateTrigger(${studio.id}, '${trigger.key}')">
+                        <div class="trigger-icon">${isActive ? '✅' : '⬜'}</div>
+                        <div class="trigger-title">${trigger.label}</div>
+                        <div class="trigger-desc">${trigger.description}</div>
+                    </div>
+                `;
+            });
 
-            // HTML para Triggers
-            const triggersHtml = `
-                <div class="triggers-grid">
-                    <div class="trigger-item ${b2b.triggers.activeInterest ? 'active' : ''}" onclick="updateTrigger(${studio.id}, 'activeInterest')">
-                        <div class="trigger-icon">💬</div>
-                        <div class="trigger-title">Interés Activo</div>
-                        <div class="trigger-desc">Ha respondido emails o llamadas</div>
-                    </div>
-                    <div class="trigger-item ${b2b.triggers.definedProject ? 'active' : ''}" onclick="updateTrigger(${studio.id}, 'definedProject')">
-                        <div class="trigger-icon">📋</div>
-                        <div class="trigger-title">Proyecto Definido</div>
-                        <div class="trigger-desc">Menciona proyecto con timeline</div>
-                    </div>
-                    <div class="trigger-item ${b2b.triggers.decisionMaker ? 'active' : ''}" onclick="updateTrigger(${studio.id}, 'decisionMaker')">
-                        <div class="trigger-icon">👔</div>
-                        <div class="trigger-title">Decisor Identificado</div>
-                        <div class="trigger-desc">Acceso a quien decide</div>
-                    </div>
-                    <div class="trigger-item ${b2b.triggers.specificQuestions ? 'active' : ''}" onclick="updateTrigger(${studio.id}, 'specificQuestions')">
-                        <div class="trigger-icon">❓</div>
-                        <div class="trigger-title">Preguntas Específicas</div>
-                        <div class="trigger-desc">Sobre precios, plazos, equipo</div>
-                    </div>
-                    <div class="trigger-item ${b2b.triggers.activeBenchmark ? 'active' : ''}" onclick="updateTrigger(${studio.id}, 'activeBenchmark')">
-                        <div class="trigger-icon">⚖️</div>
-                        <div class="trigger-title">Benchmark Activo</div>
-                        <div class="trigger-desc">Está evaluando opciones</div>
-                    </div>
-                </div>
-            `;
-
-            // Mensaje de preparación
+            // Mensaje de madurez
             let readinessMessage = '';
             let readinessClass = 'early';
-            if (readiness.score >= 6) {
-                readinessMessage = '🎉 ¡Listo para reunión presencial! El prospecto cumple los criterios.';
+            if (readiness.readyForHandoff) {
+                readinessMessage = '🎉 ¡Listo para traspaso al comercial GPF! Triggers mínimos confirmados.';
                 readinessClass = 'ready';
-            } else if (readiness.score >= 4) {
-                readinessMessage = '📈 Buen progreso. Continúa el proceso para confirmar más señales.';
+            } else if (readiness.percentage >= 50) {
+                readinessMessage = '📈 Buen avance. Continúa para confirmar los triggers restantes.';
                 readinessClass = 'almost';
             } else {
-                readinessMessage = '🔄 En fase temprana. Sigue el cronograma de contactos.';
+                readinessMessage = '🔄 En fase inicial. Sigue el cronograma de prescripción.';
                 readinessClass = 'early';
             }
 
             return `
+                <div style="background:var(--bg-secondary);border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+                    <div>
+                        <span style="font-weight:600;">${cycleInfo.label}</span>
+                        <span style="color:var(--muted);margin-left:8px;">· Ciclo: ${cycleInfo.cycleDays}</span>
+                        ${variantBadge ? `&nbsp;${variantBadge}` : ''}
+                    </div>
+                    <div style="flex:1;min-width:200px;color:var(--muted);font-size:0.85rem;">${cycleInfo.note}</div>
+                </div>
+                ${objectives.length > 0 ? `
+                <div style="background:#eff6ff;border-left:3px solid #3b82f6;border-radius:6px;padding:10px 14px;margin-bottom:16px;">
+                    <div style="font-weight:600;margin-bottom:6px;color:#1d4ed8;">🎯 Objetivos del prescriptor</div>
+                    ${objectives.map(o => `<div style="color:#1e40af;font-size:0.87rem;margin-bottom:2px;">• ${o}</div>`).join('')}
+                </div>` : ''}
+                ${seasonalWarning}
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
                     <div>
                         <div class="card">
                             <div class="card-header">
-                                <h3 class="card-title">📅 Timeline de Conversión</h3>
-                                <span style="font-size:0.8rem;color:var(--muted);">Día ${daysSinceStart} de 28</span>
+                                <h3 class="card-title">📅 Cronograma de Prescripción</h3>
+                                <span style="font-size:0.8rem;color:var(--muted);">Día ${daysSinceStart}</span>
                             </div>
                             <div class="card-body">
                                 <div class="b2b-timeline">
@@ -15873,13 +17943,16 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                     <div>
                         <div class="card">
                             <div class="card-header">
-                                <h3 class="card-title">🚦 Triggers de Reunión Presencial</h3>
+                                <h3 class="card-title">🚦 Triggers de Prescripción</h3>
+                                <span style="font-size:0.8rem;color:var(--muted);">${readiness.triggersActive}/${readiness.triggersRequired} requeridos</span>
                             </div>
                             <div class="card-body">
-                                ${triggersHtml}
+                                <div class="triggers-grid">
+                                    ${triggersHtml}
+                                </div>
                                 <div class="readiness-score">
-                                    <div class="readiness-value">${readiness.score}/${readiness.total}</div>
-                                    <div class="readiness-label">Señales confirmadas</div>
+                                    <div class="readiness-value">${readiness.percentage}%</div>
+                                    <div class="readiness-label">Madurez de prescripción</div>
                                     <div class="readiness-bar">
                                         <div class="readiness-fill" style="width:${readiness.percentage}%"></div>
                                     </div>
@@ -15907,9 +17980,9 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 const b2b = studio.b2bTimeline;
                 const currentStep = b2b.currentStep;
 
-                if (currentStep == null || currentStep >= B2B_TIMELINE.length) continue;
+                const _studioTimeline = getB2BTimeline(studio.type || 'arquitectura', b2b?.variant); if (currentStep == null || currentStep >= _studioTimeline.length) continue;
 
-                const step = B2B_TIMELINE[currentStep];
+                const step = _studioTimeline[currentStep];
                 if (!step) continue;
                 const plannedDate = getPlannedDate(b2b.startDate, step.day);
                 plannedDate.setHours(0, 0, 0, 0);
@@ -16185,9 +18258,10 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const b2b = studio.b2bTimeline;
             const currentStep = b2b.currentStep;
 
-            if (currentStep == null || currentStep >= B2B_TIMELINE.length) return null;
+            const _nextTimeline = getB2BTimeline(studio.type || 'arquitectura', b2b?.variant);
+            if (currentStep == null || currentStep >= _nextTimeline.length) return null;
 
-            const step = B2B_TIMELINE[currentStep];
+            const step = _nextTimeline[currentStep];
             if (!step) return null;
             const plannedDate = getPlannedDate(b2b.startDate, step.day);
             const today = new Date();
