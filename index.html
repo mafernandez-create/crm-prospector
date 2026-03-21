@@ -16323,6 +16323,26 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
         
         function savePlanificadorData() {
             localStorage.setItem('crm_test_planificador', JSON.stringify(planificadorData));
+            if (useFirebase && firestoreDB) {
+                firestoreDB.collection('_meta').doc('planificador').set(planificadorData)
+                    .catch(e => console.warn('Error sync planificador → Firebase:', e));
+            }
+        }
+
+        async function loadPlanificadorFromFirebase() {
+            if (!useFirebase || !firestoreDB) return;
+            try {
+                const doc = await firestoreDB.collection('_meta').doc('planificador').get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (data && data.schedule) {
+                        planificadorData = data;
+                        localStorage.setItem('crm_test_planificador', JSON.stringify(planificadorData));
+                    }
+                }
+            } catch(e) {
+                console.warn('No se pudo cargar planificador de Firebase:', e);
+            }
         }
 
         // ============================================
