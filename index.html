@@ -5904,8 +5904,21 @@
             ],
         };
 
+        function _loadUserTemplates() {
+            try { return JSON.parse(localStorage.getItem('crm_templates') || '{}'); } catch(e) { return {}; }
+        }
+        function _saveUserTemplates(data) {
+            try { localStorage.setItem('crm_templates', JSON.stringify(data)); } catch(e) {}
+        }
         function getTemplatesForType(type) {
-            return DEFAULT_TEMPLATES[type] || DEFAULT_TEMPLATES['arquitectura'];
+            const user = _loadUserTemplates();
+            const defaults = DEFAULT_TEMPLATES[type] || [];
+            const userForType = user[type] || [];
+            // Merge: defaults not overridden by user + user additions
+            const userIds = new Set(userForType.map(t => t.id));
+            const deletedIds = new Set((user._deleted || []).filter(k => k.startsWith(type + '.')).map(k => k.split('.')[1]));
+            const merged = defaults.filter(t => !userIds.has(t.id) && !deletedIds.has(t.id));
+            return [...userForType, ...merged];
         }
 
         function showTemplatesPanel() {
@@ -5926,7 +5939,10 @@
                     <div style="display:flex;gap:0;border-bottom:1px solid #d9e2ec;overflow-x:auto;">
                         ${types.map((t,i) => `<button onclick="showTemplatesTab('${t}')" id="ttab-${t}" style="padding:10px 16px;background:${i===0?'var(--primary)':'none'};color:${i===0?'white':'var(--text-primary)'};border:none;border-bottom:${i===0?'none':'2px solid transparent'};cursor:pointer;font-size:0.82rem;font-weight:600;white-space:nowrap;">${typeLabels[t]||t}</button>`).join('')}
                     </div>
-                    <div id="templates-tab-content" style="padding:20px 24px;color:#1a1a2e;">
+                    <div id="templates-tab-content" style="padding:16px 24px 20px;color:#1a1a2e;">
+                        <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+                            <button class="btn btn-primary btn-sm" onclick="editTemplate(null,'${types[0]}',true)">+ Nueva plantilla</button>
+                        </div>
                         ${renderTemplatesForType(types[0])}
                     </div>
                 </div>`;
@@ -5934,35 +5950,46 @@
             document.body.appendChild(overlay);
         }
 
+        let _currentTemplateType = Object.keys(DEFAULT_TEMPLATES)[0];
         function showTemplatesTab(type) {
+            _currentTemplateType = type;
             document.querySelectorAll('[id^="ttab-"]').forEach(b => {
                 const active = b.id === 'ttab-' + type;
                 b.style.background = active ? 'var(--primary)' : 'none';
-                b.style.color = active ? 'white' : 'var(--text-primary)';
+                b.style.color = active ? 'white' : '#1a1a2e';
             });
-            document.getElementById('templates-tab-content').innerHTML = renderTemplatesForType(type);
+            document.getElementById('templates-tab-content').innerHTML = `
+                <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+                    <button class="btn btn-primary btn-sm" onclick="editTemplate(null,'${type}',true)">+ Nueva plantilla</button>
+                </div>
+                ${renderTemplatesForType(type)}`;
         }
 
         function renderTemplatesForType(type) {
             const templates = getTemplatesForType(type);
-            if (!templates.length) return '<p style="color:var(--muted);">No hay plantillas para este tipo.</p>';
-            return templates.map(t => `
-                <div style="border:1px solid #d9e2ec;border-radius:10px;padding:16px;margin-bottom:12px;background:#ffffff;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-                        <div>
-                            <div style="font-weight:700;font-size:0.95rem;">${t.name}</div>
-                            <div style="font-size:0.78rem;color:var(--muted);margin-top:2px;">${t.type === 'email' ? '✉️ Email' : t.type === 'note' ? '📝 Nota interna' : t.type}</div>
+            if (!templates.length) return '<div style="text-align:center;padding:32px;color:#6b7c93;">Sin plantillas. Crea la primera con el botón de arriba.</div>';
+            return templates.map(t => {
+                const isDefault = !!(DEFAULT_TEMPLATES[type] || []).find(d => d.id === t.id);
+                const typeIcon = t.type === 'email' ? '✉️ Email' : t.type === 'note' ? '📝 Nota interna' : '💬 WhatsApp';
+                return `<div id="tcard-${t.id}" style="border:1px solid #d9e2ec;border-radius:10px;padding:16px;margin-bottom:12px;background:#ffffff;">
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-weight:700;font-size:0.95rem;color:#1a1a2e;">${escapeHtml(t.name)}</div>
+                            <div style="font-size:0.78rem;color:#6b7c93;margin-top:2px;">${typeIcon}${isDefault ? ' · <span style="color:#aaa;">Predeterminada</span>' : ''}</div>
                         </div>
-                        <div style="display:flex;gap:8px;">
+                        <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
                             <button class="btn btn-sm btn-secondary" onclick="previewTemplate('${t.id}','${type}')">👁 Ver</button>
+                            <button class="btn btn-sm btn-secondary" onclick="editTemplate('${t.id}','${type}',false)">✏️ Editar</button>
                             <button class="btn btn-sm btn-primary" onclick="copyTemplate('${t.id}','${type}')">📋 Copiar</button>
+                            <button onclick="deleteTemplate('${t.id}','${type}')" style="background:none;border:1px solid #fca5a5;color:#ef4444;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:0.75rem;" title="Eliminar">🗑</button>
                         </div>
                     </div>
                     <div id="tpreview-${t.id}" style="display:none;margin-top:12px;background:#f7f9fc;border-radius:8px;padding:12px;">
-                        ${t.subject ? `<div style="font-size:0.8rem;font-weight:600;color:var(--muted);margin-bottom:4px;">Asunto: ${t.subject}</div>` : ''}
-                        <pre style="white-space:pre-wrap;font-family:inherit;font-size:0.82rem;margin:0;color:var(--text-primary);">${t.body}</pre>
+                        ${t.subject ? `<div style="font-size:0.8rem;font-weight:600;color:#6b7c93;margin-bottom:4px;">Asunto: ${escapeHtml(t.subject)}</div>` : ''}
+                        <pre style="white-space:pre-wrap;font-family:inherit;font-size:0.82rem;margin:0;color:#1a1a2e;">${escapeHtml(t.body)}</pre>
                     </div>
-                </div>`).join('');
+                </div>`;
+            }).join('');
         }
 
         function previewTemplate(id, type) {
@@ -5976,6 +6003,102 @@
             if (!t) return;
             const text = (t.subject ? 'Asunto: ' + t.subject + '\n\n' : '') + t.body;
             navigator.clipboard.writeText(text).then(() => showNotification('✅ Plantilla copiada al portapapeles', 'success'));
+        }
+
+        function editTemplate(id, type, isNew) {
+            const templates = getTemplatesForType(type);
+            const t = id ? templates.find(x => x.id === id) : null;
+            const modal = document.createElement('div');
+            modal.id = 'template-edit-modal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+            modal.innerHTML = `
+                <div style="background:#ffffff;border-radius:12px;padding:28px;max-width:600px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;">
+                    <h3 style="margin:0 0 20px;font-size:1.1rem;color:#1a1a2e;">${isNew ? '➕ Nueva plantilla' : '✏️ Editar plantilla'}</h3>
+                    <div style="display:flex;flex-direction:column;gap:14px;">
+                        <div>
+                            <label style="font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;color:#1a1a2e;">Nombre</label>
+                            <input id="te-name" type="text" class="form-input" value="${escapeHtml(t?.name || '')}" placeholder="Nombre de la plantilla">
+                        </div>
+                        <div>
+                            <label style="font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;color:#1a1a2e;">Tipo</label>
+                            <select id="te-type" class="form-select">
+                                <option value="email" ${(!t || t.type==='email')?'selected':''}>✉️ Email</option>
+                                <option value="note" ${t?.type==='note'?'selected':''}>📝 Nota interna</option>
+                                <option value="whatsapp" ${t?.type==='whatsapp'?'selected':''}>💬 WhatsApp</option>
+                            </select>
+                        </div>
+                        <div id="te-subject-row" style="${(!t || t.type!=='note')?'':'display:none'}">
+                            <label style="font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;color:#1a1a2e;">Asunto del email</label>
+                            <input id="te-subject" type="text" class="form-input" value="${escapeHtml(t?.subject || '')}" placeholder="Asunto">
+                        </div>
+                        <div>
+                            <label style="font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;color:#1a1a2e;">Cuerpo <span style="font-weight:400;color:#6b7c93;">(usa [nombre], [empresa], [tu_nombre] como variables)</span></label>
+                            <textarea id="te-body" class="form-input" rows="10" style="font-family:inherit;font-size:0.875rem;resize:vertical;">${escapeHtml(t?.body || '')}</textarea>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+                        <button class="btn btn-secondary" onclick="document.getElementById('template-edit-modal').remove()">Cancelar</button>
+                        <button class="btn btn-primary" onclick="saveTemplate('${id || ''}','${type}',${isNew})">💾 Guardar</button>
+                    </div>
+                </div>`;
+            // Toggle subject row on type change
+            modal.querySelector('#te-type').onchange = function() {
+                modal.querySelector('#te-subject-row').style.display = this.value === 'note' ? 'none' : '';
+            };
+            document.body.appendChild(modal);
+        }
+
+        function saveTemplate(id, type, isNew) {
+            const name    = document.getElementById('te-name')?.value.trim();
+            const ttype   = document.getElementById('te-type')?.value || 'email';
+            const subject = document.getElementById('te-subject')?.value.trim() || '';
+            const body    = document.getElementById('te-body')?.value || '';
+            if (!name) { showNotification('⚠️ El nombre es obligatorio', 'warning'); return; }
+            if (!body) { showNotification('⚠️ El cuerpo no puede estar vacío', 'warning'); return; }
+
+            const user = _loadUserTemplates();
+            if (!user[type]) user[type] = [];
+
+            const newId = id || ('u_' + type + '_' + Date.now());
+            const tpl = { id: newId, name, type: ttype, subject, body };
+
+            if (isNew) {
+                user[type].unshift(tpl);
+            } else {
+                // Check if it's a default template being overridden
+                const isDefault = !!(DEFAULT_TEMPLATES[type] || []).find(d => d.id === id);
+                if (isDefault) {
+                    // Save as user override
+                    const idx = user[type].findIndex(t => t.id === id);
+                    if (idx >= 0) user[type][idx] = tpl;
+                    else user[type].unshift(tpl);
+                } else {
+                    const idx = user[type].findIndex(t => t.id === id);
+                    if (idx >= 0) user[type][idx] = tpl;
+                    else user[type].push(tpl);
+                }
+            }
+
+            _saveUserTemplates(user);
+            document.getElementById('template-edit-modal').remove();
+            showNotification('✅ Plantilla guardada', 'success');
+            showTemplatesTab(type);
+        }
+
+        function deleteTemplate(id, type) {
+            if (!confirm('¿Eliminar esta plantilla?')) return;
+            const user = _loadUserTemplates();
+            // Remove from user list if present
+            if (user[type]) user[type] = user[type].filter(t => t.id !== id);
+            // If it was a default, mark as deleted
+            const isDefault = !!(DEFAULT_TEMPLATES[type] || []).find(d => d.id === id);
+            if (isDefault) {
+                if (!user._deleted) user._deleted = [];
+                user._deleted.push(type + '.' + id);
+            }
+            _saveUserTemplates(user);
+            document.getElementById('tcard-' + id)?.remove();
+            showNotification('🗑 Plantilla eliminada', 'info');
         }
 
         // ============================================
