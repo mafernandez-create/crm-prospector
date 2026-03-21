@@ -21626,9 +21626,12 @@ Notas:
                             ${p.insight ? `<p style="margin:6px 0 0;font-size:0.73rem;color:#64748b;font-style:italic;line-height:1.4;">"${escapeHtml(p.insight)}"</p>` : ''}
                         </div>`).join('')}
                     </div>` : ''}
-                    <div class="m-action-row" style="margin-top:16px;" onclick="event.stopPropagation();">
-                        ${phone ? `<a href="tel:${escapeHtml(phone.replace(/\s/g,''))}" class="m-btn m-btn-ghost" style="text-decoration:none;flex:1;">📞 Llamar</a>` : ''}
-                        <button class="m-btn m-btn-primary" style="flex:1;" onclick="this.closest('[id=mobile-estudio-modal]')?.remove();const r=document.getElementById('mobile-modal-root');if(r&&!r.children.length)r.style.pointerEvents='none';mobileIrARegistrar('${safeId}','${safeName}')">✍️ Registrar</button>
+                    <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;" onclick="event.stopPropagation();">
+                        ${phone ? `<a href="tel:${escapeHtml(phone.replace(/\s/g,''))}" class="m-btn m-btn-ghost" style="text-decoration:none;text-align:center;">📞 Llamar</a>` : ''}
+                        <button class="m-btn" style="background:#6366f1;color:white;font-weight:700;padding:13px;border:none;border-radius:12px;cursor:pointer;font-size:0.9rem;width:100%;"
+                            onclick="const r=document.getElementById('mobile-modal-root');document.getElementById('mobile-estudio-modal')?.remove();if(r&&!r.children.length)r.style.pointerEvents='none';mobileRegistroRapido('${safeId}','${safeName}')">⚡ Registro rápido</button>
+                        <button class="m-btn m-btn-ghost" style="text-align:center;"
+                            onclick="this.closest('[id=mobile-estudio-modal]')?.remove();const r=document.getElementById('mobile-modal-root');if(r&&!r.children.length)r.style.pointerEvents='none';mobileIrARegistrar('${safeId}','${safeName}')">📝 Registro completo</button>
                     </div>
                     <button onclick="this.closest('[id=mobile-estudio-modal]')?.remove(); const r=document.getElementById('mobile-modal-root');if(r&&!r.children.length)r.style.pointerEvents='none';"
                         style="margin-top:10px;width:100%;padding:14px;background:#334155;border:none;border-radius:12px;color:#f1f5f9;font-size:0.95rem;cursor:pointer;">Cerrar</button>
@@ -21672,7 +21675,8 @@ Notas:
                     </button>
                     <div class="m-action-row" style="margin-top:10px;">
                         ${phone ? `<a href="tel:${escapeHtml(phone)}" class="m-btn m-btn-ghost" style="text-decoration:none;">📞 ${escapeHtml(phone)}</a>` : ''}
-                        <button class="m-btn m-btn-primary" onclick="mobileIrARegistrar('${safeId}','${safeName}')">✍️ Registrar</button>
+                        <button class="m-btn" style="background:#6366f1;color:white;border:none;border-radius:10px;padding:8px 14px;cursor:pointer;font-size:0.82rem;font-weight:700;" onclick="mobileRegistroRapido('${safeId}','${safeName}')">⚡ Rápido</button>
+                        <button class="m-btn m-btn-primary" onclick="mobileIrARegistrar('${safeId}','${safeName}')">📝 Completo</button>
                     </div>
                 </div>`;
             }).join('');
@@ -21700,7 +21704,19 @@ Notas:
                 nameDiv.textContent = '✓ ' + studioName;
                 nameDiv.style.display = 'block';
                 document.getElementById('mobile-reg-suggestions').innerHTML = '';
+                // Mostrar banner de acceso rápido
+                const banner = document.getElementById('mobile-quick-reg-banner');
+                const bannerName = document.getElementById('mobile-quick-reg-name');
+                if (banner) { banner.style.display = 'block'; }
+                if (bannerName) { bannerName.textContent = studioName; }
             }, 50);
+        }
+
+        function mobileRegistroRapidoFromReg() {
+            const id = document.getElementById('mobile-reg-studio-id')?.value;
+            const name = document.getElementById('mobile-reg-search')?.value || '';
+            if (!id) { showNotification('⚠️ Selecciona una empresa primero', 'warning'); return; }
+            mobileRegistroRapido(id, name);
         }
 
         // Registro ultra-rápido post-visita (modal de 3 botones desde pestaña Hoy)
@@ -22101,6 +22117,11 @@ Notas:
 
         <!-- Tab: REGISTRAR -->
         <div id="mobile-tab-registrar" class="mobile-tab-content">
+            <div id="mobile-quick-reg-banner" style="background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:12px 14px;margin-bottom:14px;display:none;">
+                <p style="margin:0 0 8px;font-size:0.82rem;color:#a5b4fc;font-weight:600;">⚡ Empresa seleccionada — registro rápido</p>
+                <p id="mobile-quick-reg-name" style="margin:0 0 10px;font-size:0.9rem;color:#f1f5f9;font-weight:700;"></p>
+                <button onclick="mobileRegistroRapidoFromReg()" style="width:100%;padding:12px;border-radius:10px;border:none;background:#6366f1;color:white;font-size:0.9rem;font-weight:700;cursor:pointer;">⚡ Abrir registro rápido</button>
+            </div>
             <div class="m-section-title">Empresa</div>
             <input id="mobile-reg-search" type="text" class="m-textarea" style="min-height:auto;padding:12px;border-radius:12px;" placeholder="Buscar y seleccionar estudio..." oninput="mobileRegSearch(this.value)" autocomplete="off">
             <div id="mobile-reg-suggestions" style="margin-top:4px;"></div>
