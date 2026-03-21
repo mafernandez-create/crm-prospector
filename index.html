@@ -18324,7 +18324,7 @@ Notas:
                     <button onclick="document.getElementById('mobile-evento-modal').remove()"
                         style="margin-top:20px;width:100%;padding:14px;background:#334155;border:none;border-radius:12px;color:#f1f5f9;font-size:0.95rem;cursor:pointer;">Cerrar</button>
                 </div>`;
-            document.body.appendChild(modal);
+            (document.getElementById('mobile-app') || document.body).appendChild(modal);
         }
 
         function mobileOpenEstudio(studioId) {
