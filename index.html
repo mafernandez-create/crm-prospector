@@ -18354,8 +18354,10 @@ Notas:
             const safeName = escapeHtml(s.name || '').replace(/'/g,"\\'");
             const TIPOS = window.TIPOS_ESTUDIO || {};
             const tipoLabel = TIPOS[s.type] || s.type || '';
-            const email  = s.email || s.contactEmail || '';
-            const web    = s.web || s.website || '';
+            const dc = s.data?.contact || {};
+            const email   = dc.email   || s.email   || '';
+            const web     = dc.web     || s.web     || '';
+            const address = dc.address || s.address || '';
             const contact = s.contactName || s.contact || '';
             const team = s.data?.team || [];
 
