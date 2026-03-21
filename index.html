@@ -17755,7 +17755,11 @@ Notas:
             try { dataToSync = JSON.parse(localStorage.getItem('crm_test_planificador') || 'null'); } catch(e) {}
             if (!dataToSync) dataToSync = planificadorData;
             if (!dataToSync?.schedule || Object.keys(dataToSync.schedule).length === 0) {
-                alert('⚠️ No hay visitas planificadas que sincronizar'); return;
+                // Diagnóstico: buscar en todas las claves de localStorage
+                const allKeys = Object.keys(localStorage);
+                const planKeys = allKeys.filter(k => k.includes('plan') || k.includes('schedule') || k.includes('visit'));
+                alert('⚠️ No hay visitas planificadas que sincronizar\n\nClaves en localStorage: ' + allKeys.join(', ') + '\n\nplanificadorData días: ' + Object.keys(planificadorData?.schedule || {}).length);
+                return;
             }
             try {
                 await firestoreDB.collection('_meta').doc('planificador').set(dataToSync);
