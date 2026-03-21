@@ -12088,7 +12088,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
 
             const FIELDS = [
                 { label: 'Nombre',    get: s => s.name || '' },
-                { label: 'Tipo',      get: s => TIPOS_ESTUDIO?.[s.type] || s.type || '' },
+                { label: 'Tipo',      get: s => TIPOS_ESTUDIO?.[s.type]?.label || s.type || '' },
                 { label: 'Estado',    get: s => s.status || '' },
                 { label: 'Ciudad',    get: s => s.data?.contact?.city || s.city || '' },
                 { label: 'Provincia', get: s => s.province || '' },
