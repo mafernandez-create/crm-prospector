@@ -21026,7 +21026,8 @@ Notas:
                         </div>
                         <div class="m-action-row" style="margin-top:10px;">
                             ${phone ? `<a href="tel:${escapeHtml(phone)}" class="m-btn m-btn-ghost" style="text-decoration:none;">📞 ${escapeHtml(phone)}</a>` : ''}
-                            <button class="m-btn m-btn-primary" onclick="mobileIrARegistrar('${safeId}','${safeName}')">✍️ Registrar</button>
+                            <button class="m-btn m-btn-ghost" onclick="mobileIrARegistrar('${safeId}','${safeName}')">📝 Completo</button>
+                            <button class="m-btn m-btn-primary" onclick="mobileRegistroRapido('${safeId}','${safeName}')">⚡ Rápido</button>
                         </div>
                     </div>`;
                 }).join('');
