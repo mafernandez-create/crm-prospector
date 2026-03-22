@@ -4006,7 +4006,7 @@
         // AUTO-ACTUALIZACIÓN (evita caché en Safari iOS)
         // ============================================
         (function() {
-            const APP_VERSION = '202603222359';
+            const APP_VERSION = '202603230010';
             const stored = localStorage.getItem('crm_app_version');
             if (stored && stored !== APP_VERSION) {
                 localStorage.setItem('crm_app_version', APP_VERSION);
@@ -6050,6 +6050,66 @@
         function previewTemplate(id, type) {
             const el = document.getElementById('tpreview-' + id);
             if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function inlineEditTemplate(id, type) {
+            const templates = getTemplatesForType(type);
+            const t = templates.find(x => x.id === id);
+            if (!t) return;
+            const editDiv = document.getElementById('tedit-' + id);
+            const btnEdit = document.getElementById('tbtn-edit-' + id);
+            if (!editDiv) return;
+            if (editDiv.style.display !== 'none') {
+                editDiv.style.display = 'none';
+                editDiv.innerHTML = '';
+                if (btnEdit) btnEdit.textContent = '✏️ Editar';
+                return;
+            }
+            editDiv.innerHTML =
+                '<div style="display:flex;flex-direction:column;gap:12px;">' +
+                '<div><label style="font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;color:#1a1a2e;">Nombre</label>' +
+                '<input id="tie-name-' + id + '" type="text" class="form-input" value="' + escapeHtml(t.name) + '"></div>' +
+                '<div><label style="font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;color:#1a1a2e;">Tipo</label>' +
+                '<select id="tie-type-' + id + '" class="form-select" onchange="document.getElementById(\'tie-sr-' + id + '\').style.display=this.value===\'note\'?\'none\':\'\';">' +
+                '<option value="email"' + (t.type === 'email' ? ' selected' : '') + '>✉️ Email</option>' +
+                '<option value="note"' + (t.type === 'note' ? ' selected' : '') + '>📝 Nota interna</option>' +
+                '<option value="whatsapp"' + (t.type === 'whatsapp' ? ' selected' : '') + '>💬 WhatsApp</option>' +
+                '</select></div>' +
+                '<div id="tie-sr-' + id + '" style="' + (t.type === 'note' ? 'display:none;' : '') + '">' +
+                '<label style="font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;color:#1a1a2e;">Asunto</label>' +
+                '<input id="tie-subject-' + id + '" type="text" class="form-input" value="' + escapeHtml(t.subject || '') + '" placeholder="Asunto del email"></div>' +
+                '<div><label style="font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;color:#1a1a2e;">Cuerpo <span style="font-weight:400;color:#6b7c93;">(usa [nombre], [empresa], [tu_nombre])</span></label>' +
+                '<textarea id="tie-body-' + id + '" class="form-input" rows="8" style="font-family:inherit;font-size:0.875rem;resize:vertical;">' + escapeHtml(t.body || '') + '</textarea></div>' +
+                '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
+                '<button class="btn btn-secondary" onclick="inlineEditTemplate(\'' + id + '\',\'' + type + '\')">Cancelar</button>' +
+                '<button class="btn btn-primary" onclick="saveTemplateInline(\'' + id + '\',\'' + type + '\')">💾 Guardar</button>' +
+                '</div></div>';
+            editDiv.style.display = 'block';
+            if (btnEdit) btnEdit.textContent = '✕ Cerrar';
+            setTimeout(() => document.getElementById('tie-body-' + id)?.focus(), 50);
+        }
+
+        function saveTemplateInline(id, type) {
+            const name    = document.getElementById('tie-name-' + id)?.value.trim();
+            const ttype   = document.getElementById('tie-type-' + id)?.value || 'email';
+            const subject = document.getElementById('tie-subject-' + id)?.value.trim() || '';
+            const body    = document.getElementById('tie-body-' + id)?.value || '';
+            if (!name) { showNotification('⚠️ El nombre es obligatorio', 'warning'); return; }
+            if (!body)  { showNotification('⚠️ El cuerpo no puede estar vacío', 'warning'); return; }
+            const user = _loadUserTemplates();
+            if (!user[type]) user[type] = [];
+            const tpl = { id, name, type: ttype, subject, body };
+            const isDefault = !!(DEFAULT_TEMPLATES[type] || []).find(d => d.id === id);
+            if (isDefault) {
+                const idx = user[type].findIndex(t => t.id === id);
+                if (idx >= 0) user[type][idx] = tpl; else user[type].unshift(tpl);
+            } else {
+                const idx = user[type].findIndex(t => t.id === id);
+                if (idx >= 0) user[type][idx] = tpl; else user[type].push(tpl);
+            }
+            _saveUserTemplates(user);
+            showNotification('✅ Plantilla guardada', 'success');
+            showTemplatesTab(type);
         }
 
         function copyTemplate(id, type) {
