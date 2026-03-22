@@ -21829,8 +21829,8 @@ Notas:
                         </div>
                     </div>
                     ${desc ? `<div style="background:#0f172a;border-radius:10px;padding:14px;margin-top:4px;">
-                        <p style="margin:0 0 6px;font-size:0.7rem;color:#64748b;font-weight:600;text-transform:uppercase;">Descripción</p>
-                        <p style="margin:0;font-size:0.84rem;color:#cbd5e1;white-space:pre-wrap;line-height:1.5;">${escapeHtml(desc)}</p>
+                        <p style="margin:0 0 8px;font-size:0.7rem;color:#64748b;font-weight:600;text-transform:uppercase;">Descripción</p>
+                        <div style="font-size:0.84rem;color:#cbd5e1;line-height:1.7;">${formatCalDesc(desc)}</div>
                     </div>` : ''}
                     <button onclick="this.closest('[id=mobile-evento-modal]')?.remove(); const r=document.getElementById('mobile-modal-root');if(r&&!r.children.length)r.style.pointerEvents='none';"
                         style="margin-top:20px;width:100%;padding:14px;background:#334155;border:none;border-radius:12px;color:#f1f5f9;font-size:0.95rem;cursor:pointer;">Cerrar</button>
