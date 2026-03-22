@@ -245,6 +245,9 @@
         .status-reunion { background: var(--accent-light); color: var(--accent); }
         .status-negociacion { background: #fdf4ff; color: #a855f7; }
         .status-traspasado { background: #ede9fe; color: #7c3aed; }
+        .status-prescripcion { background: #d1fae5; color: #065f46; }
+        .status-venta { background: #dcfce7; color: #166534; font-weight:700; }
+        .status-traspasado { background: #ede9fe; color: #7c3aed; }
         .kanban-col { flex: 0 0 220px; background: var(--bg-secondary); border-radius: 10px; padding: 10px 8px; }
         .kanban-col-header { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 8px; border-radius: 6px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
         .kanban-card { background: var(--bg-primary); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; border-left: 3px solid transparent; transition: box-shadow 0.15s, transform 0.1s; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
@@ -2622,7 +2625,11 @@
     <span class="nav-item-icon">📊</span>
     <span>Informe Semanal</span>
 </div>
-<div class="nav-item" onclick="findAndShowDuplicateStudios()">
+<div class="nav-item" onclick="generateWeeklyReport()">
+                    <span class="nav-item-icon">📊</span>
+                    <span>Informe Semanal</span>
+                </div>
+                <div class="nav-item" onclick="findAndShowDuplicateStudios()">
                             <span class="nav-item-icon">🧹</span>
                             <span>Limpiar Duplicados</span>
                         </div>
@@ -2793,6 +2800,9 @@
                             <option value="standby">En Standby</option>
                             <option value="reunion">Reunión</option>
                             <option value="negociacion">Negociación</option>
+                            <option value="traspasado">Traspasado</option>
+                            <option value="prescripcion">Prescripción confirmada</option>
+                            <option value="venta">Venta cerrada</option>
                             <option value="traspasado">Traspasado</option>
                             <option value="prescripcion">Prescripción confirmada</option>
                             <option value="venta">Venta cerrada</option>
@@ -3301,6 +3311,40 @@
                         <option value="otro">Otro</option>
                     </select>
                 </div>
+                <div class="form-group" id="meeting-origin-section" style="display:none;">
+                    <label class="form-label">Origen de la visita</label>
+                    <div style="display:flex;gap:10px;">
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;">
+                            <input type="radio" name="visit-origin" value="prescriptor" checked> 🙋 Propuesta por mí
+                        </label>
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;">
+                            <input type="radio" name="visit-origin" value="comercial"> 💼 Propuesta por el comercial
+                        </label>
+                    </div>
+                    <div style="margin-top:8px;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.9rem;">
+                            <input type="checkbox" id="visit-conjunta"> Visita conjunta con el comercial
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group" id="comercial-call-section" style="display:none;">
+                    <label class="form-label">Datos de la llamada</label>
+                    <div style="display:flex;gap:10px;margin-bottom:10px;">
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;">
+                            <input type="radio" name="call-direction" value="yo-llame" checked> 📲 Yo llamé
+                        </label>
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;">
+                            <input type="radio" name="call-direction" value="comercial-llamo"> 📥 El comercial llamó
+                        </label>
+                    </div>
+                    <input type="text" class="form-input" id="comercial-name" placeholder="Nombre del comercial" style="margin-bottom:8px;">
+                    <select class="form-select" id="comercial-motivo">
+                        <option value="concertar-cita">Concertar cita / visita conjunta</option>
+                        <option value="seguimiento">Seguimiento de prescripción</option>
+                        <option value="resultado">Comunicar resultado de venta</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                </div>
                 <div class="form-group">
                     <label class="form-label">Descripción</label>
                     <textarea class="form-textarea" id="activity-text" placeholder="Describe la actividad..."></textarea>
@@ -3453,6 +3497,9 @@
                         <option value="standby">⏸️ En Standby</option>
                         <option value="reunion">📅 Reunión Programada</option>
                         <option value="negociacion">💼 En Negociación</option>
+                        <option value="traspasado">🤝 Traspasado a comercial</option>
+                        <option value="prescripcion">📋 Prescripción confirmada</option>
+                        <option value="venta">💰 Venta cerrada</option>
                         <option value="traspasado">🤝 Traspasado a comercial</option>
                         <option value="prescripcion">📋 Prescripción confirmada</option>
                         <option value="venta">💰 Venta cerrada</option>
@@ -3959,7 +4006,7 @@
         // AUTO-ACTUALIZACIÓN (evita caché en Safari iOS)
         // ============================================
         (function() {
-            const APP_VERSION = '202603212200';
+            const APP_VERSION = '202603222300';
             const stored = localStorage.getItem('crm_app_version');
             if (stored && stored !== APP_VERSION) {
                 localStorage.setItem('crm_app_version', APP_VERSION);
@@ -5679,6 +5726,9 @@
                 'traspasado': '🤝 Traspasado a comercial',
                 'prescripcion': '📋 Prescripción confirmada',
                 'venta': '💰 Venta cerrada',
+                'traspasado': '🤝 Traspasado a comercial',
+                'prescripcion': '📋 Prescripción confirmada',
+                'venta': '💰 Venta cerrada',
                 'ganado': '✅ Ganado',
                 'perdido': '❌ Perdido'
             };
@@ -5848,7 +5898,7 @@
                         <td style="padding:8px 10px;color:var(--muted);text-transform:capitalize;">${escapeHtml(s.type || '')}</td>
                         <td style="padding:8px 10px;"><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:600;background:${statusColors[st]}22;color:${statusColors[st]};">${statusLabels[st]||st}</span></td>
                         <td style="padding:8px 10px;">${phone ? `<a href="tel:${escapeHtml(phone)}" style="color:var(--primary);text-decoration:none;">${escapeHtml(phone)}</a>` : '—'}</td>
-                        <td style="padding:8px 10px;color:#6b7c93;font-size:0.8rem;">${escapeHtml(addr)}${addr && city ? ', ' : ''}${escapeHtml(city)}</td>
+                        <td style="padding:8px 10px;color:var(--muted);font-size:0.8rem;">${escapeHtml(addr)}${addr && city ? ', ' : ''}${escapeHtml(city)}</td>
                         <td style="padding:8px 10px;"><button class="btn btn-sm btn-secondary" onclick="document.getElementById('route-panel').remove();showStudioDetail(${s.id})">Ver</button></td>
                     </tr>`;
                 }).join('')}
@@ -5982,75 +6032,23 @@
                             <div style="font-size:0.78rem;color:#6b7c93;margin-top:2px;">${typeIcon}${isDefault ? ' · <span style="color:#aaa;">Predeterminada</span>' : ''}</div>
                         </div>
                         <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
+                            <button class="btn btn-sm btn-secondary" onclick="previewTemplate('${t.id}','${type}')">👁 Ver</button>
+                            <button class="btn btn-sm btn-secondary" onclick="editTemplate('${t.id}','${type}',false)">✏️ Editar</button>
                             <button class="btn btn-sm btn-primary" onclick="copyTemplate('${t.id}','${type}')">📋 Copiar</button>
-                            <button class="btn btn-sm btn-secondary" onclick="inlineEditTemplate('${t.id}','${type}',${isDefault})" style="font-weight:600;">✏️ Editar</button>
                             <button onclick="deleteTemplate('${t.id}','${type}')" style="background:none;border:1px solid #fca5a5;color:#ef4444;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:0.75rem;" title="Eliminar">🗑</button>
                         </div>
                     </div>
-                    <div id="tpreview-${t.id}" style="display:none;margin-top:12px;">
-                        <div style="background:#f7f9fc;border-radius:8px;padding:12px;">
-                            ${t.subject ? `<div style="font-size:0.8rem;font-weight:600;color:#6b7c93;margin-bottom:4px;">Asunto: ${escapeHtml(t.subject)}</div>` : ''}
-                            <pre style="white-space:pre-wrap;font-family:inherit;font-size:0.82rem;margin:0;color:#1a1a2e;">${escapeHtml(t.body)}</pre>
-                        </div>
-                    </div>
-                    <div id="tedit-${t.id}" style="display:none;margin-top:12px;background:#f7f9fc;border-radius:8px;padding:14px;border:2px solid #0066cc;">
-                        <div style="font-size:0.8rem;font-weight:700;color:#0066cc;margin-bottom:8px;">✏️ Editando plantilla</div>
-                        ${t.subject !== undefined ? `
-                        <div style="margin-bottom:8px;">
-                            <label style="font-size:0.75rem;font-weight:600;color:#6b7c93;display:block;margin-bottom:3px;">Asunto</label>
-                            <input id="te-subj-${t.id}" type="text" value="${escapeHtml(t.subject||'')}" style="width:100%;padding:7px 10px;border:1px solid #d9e2ec;border-radius:6px;font-size:0.85rem;box-sizing:border-box;">
-                        </div>` : ''}
-                        <div>
-                            <label style="font-size:0.75rem;font-weight:600;color:#6b7c93;display:block;margin-bottom:3px;">Cuerpo <span style="font-weight:400;">(usa [nombre], [empresa], [tu_nombre])</span></label>
-                            <textarea id="te-body-${t.id}" rows="8" style="width:100%;padding:8px 10px;border:1px solid #d9e2ec;border-radius:6px;font-size:0.85rem;font-family:inherit;resize:vertical;box-sizing:border-box;">${escapeHtml(t.body)}</textarea>
-                        </div>
-                        <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end;">
-                            <button class="btn btn-sm btn-secondary" onclick="document.getElementById('tedit-${t.id}').style.display='none'">Cancelar</button>
-                            <button class="btn btn-sm btn-primary" onclick="saveTemplateInline('${t.id}','${type}',${isDefault})">💾 Guardar cambios</button>
-                        </div>
+                    <div id="tpreview-${t.id}" style="display:none;margin-top:12px;background:#f7f9fc;border-radius:8px;padding:12px;">
+                        ${t.subject ? `<div style="font-size:0.8rem;font-weight:600;color:#6b7c93;margin-bottom:4px;">Asunto: ${escapeHtml(t.subject)}</div>` : ''}
+                        <pre style="white-space:pre-wrap;font-family:inherit;font-size:0.82rem;margin:0;color:#1a1a2e;">${escapeHtml(t.body)}</pre>
                     </div>
                 </div>`;
             }).join('');
         }
 
-
-        function inlineEditTemplate(id, type, isDefault) {
-            const editEl = document.getElementById('tedit-' + id);
-            const previewEl = document.getElementById('tpreview-' + id);
-            if (!editEl) { editTemplate(id, type, false); return; }
-            if (previewEl) previewEl.style.display = 'none';
-            editEl.style.display = editEl.style.display === 'none' ? 'block' : 'none';
-        }
-
-        function saveTemplateInline(id, type, isDefault) {
-            const body = document.getElementById('te-body-' + id)?.value;
-            const subjectEl = document.getElementById('te-subj-' + id);
-            const subject = subjectEl ? subjectEl.value.trim() : '';
-            if (!body) { showNotification('⚠️ El cuerpo no puede estar vacío', 'warning'); return; }
-
-            const allTemplates = getTemplatesForType(type);
-            const t = allTemplates.find(x => x.id === id);
-            if (!t) return;
-
-            const user = _loadUserTemplates();
-            if (!user[type]) user[type] = [];
-            const updatedTpl = { ...t, body, subject: subject || t.subject || '' };
-
-            const idx = user[type].findIndex(x => x.id === id);
-            if (idx >= 0) user[type][idx] = updatedTpl;
-            else user[type].unshift(updatedTpl);
-
-            _saveUserTemplates(user);
-            document.getElementById('tedit-' + id).style.display = 'none';
-            showNotification('✅ Plantilla guardada', 'success');
-            showTemplatesTab(type);
-        }
-
         function previewTemplate(id, type) {
             const el = document.getElementById('tpreview-' + id);
-            if (!el) return;
-            if (el.style.display !== 'none') { el.style.display = 'none'; return; }
-            el.style.display = 'block';
+            if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
         }
 
         function copyTemplate(id, type) {
@@ -6232,7 +6230,7 @@
             modal.id = 'handoff-modal';
             modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;';
             modal.innerHTML = `
-                <div style="background:#ffffff;border-radius:12px;padding:28px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                <div style="background:var(--bg-primary);border-radius:12px;padding:28px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
                     <h3 style="margin:0 0 20px;font-size:1.2rem;">🤝 Registrar traspaso al comercial</h3>
                     <div style="display:flex;flex-direction:column;gap:14px;">
                         <div>
@@ -6287,7 +6285,7 @@
             modal.id = 'handoff-result-modal';
             modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;';
             modal.innerHTML = `
-                <div style="background:#ffffff;border-radius:12px;padding:28px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                <div style="background:var(--bg-primary);border-radius:12px;padding:28px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
                     <h3 style="margin:0 0 20px;font-size:1.2rem;">📋 Actualizar resultado del traspaso</h3>
                     <div style="display:flex;flex-direction:column;gap:14px;">
                         <div>
@@ -6363,16 +6361,16 @@
 
             return `
                 <div style="display:flex;flex-direction:column;gap:16px;">
-                    <div style="background:#f7f9fc;border-radius:10px;padding:18px;">
+                    <div style="background:var(--bg-secondary);border-radius:10px;padding:18px;">
                         <div style="font-weight:700;font-size:1rem;margin-bottom:14px;">🤝 Datos del traspaso</div>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                            <div><span style="color:#6b7c93;font-size:0.8rem;">Comercial</span><div style="font-weight:600;">${h.comercial || '—'}</div></div>
-                            <div><span style="color:#6b7c93;font-size:0.8rem;">Empresa</span><div style="font-weight:600;text-transform:capitalize;">${h.empresa || '—'}</div></div>
-                            <div><span style="color:#6b7c93;font-size:0.8rem;">Fecha traspaso</span><div style="font-weight:600;">${h.fechaTraspaso ? formatDate(h.fechaTraspaso) : '—'}</div></div>
-                            <div><span style="color:#6b7c93;font-size:0.8rem;">Fecha resultado</span><div style="font-weight:600;">${h.fechaResultado ? formatDate(h.fechaResultado) : '—'}</div></div>
+                            <div><span style="color:var(--muted);font-size:0.8rem;">Comercial</span><div style="font-weight:600;">${h.comercial || '—'}</div></div>
+                            <div><span style="color:var(--muted);font-size:0.8rem;">Empresa</span><div style="font-weight:600;text-transform:capitalize;">${h.empresa || '—'}</div></div>
+                            <div><span style="color:var(--muted);font-size:0.8rem;">Fecha traspaso</span><div style="font-weight:600;">${h.fechaTraspaso ? formatDate(h.fechaTraspaso) : '—'}</div></div>
+                            <div><span style="color:var(--muted);font-size:0.8rem;">Fecha resultado</span><div style="font-weight:600;">${h.fechaResultado ? formatDate(h.fechaResultado) : '—'}</div></div>
                         </div>
-                        ${h.notas ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);"><span style="color:#6b7c93;font-size:0.8rem;">Notas del traspaso</span><div style="margin-top:4px;">${h.notas}</div></div>` : ''}
-                        ${h.notasResultado ? `<div style="margin-top:8px;"><span style="color:#6b7c93;font-size:0.8rem;">Notas del resultado</span><div style="margin-top:4px;">${h.notasResultado}</div></div>` : ''}
+                        ${h.notas ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);"><span style="color:var(--muted);font-size:0.8rem;">Notas del traspaso</span><div style="margin-top:4px;">${h.notas}</div></div>` : ''}
+                        ${h.notasResultado ? `<div style="margin-top:8px;"><span style="color:var(--muted);font-size:0.8rem;">Notas del resultado</span><div style="margin-top:4px;">${h.notasResultado}</div></div>` : ''}
                     </div>
                     <div style="background:${res.bg};border-radius:10px;padding:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
                         <div style="font-weight:700;color:${res.color};font-size:1rem;">${res.label}</div>
@@ -6915,6 +6913,7 @@
                     <button class="tab active" onclick="switchDetailTab(this, 'info')">📋 Información</button>
                     <button class="tab" onclick="switchDetailTab(this, 'b2b')">🎯 Seguimiento B2B</button>
                     <button class="tab" onclick="switchDetailTab(this, 'traspaso')">🤝 Traspaso</button>
+                    <button class="tab" onclick="switchDetailTab(this, 'traspaso')">🤝 Traspaso</button>
                     <button class="tab" onclick="switchDetailTab(this, 'team')">👥 Equipo</button>
                     <button class="tab" onclick="switchDetailTab(this, 'reports')">📎 Informes</button>
                     <button class="tab" onclick="switchDetailTab(this, 'social')">📱 Redes</button>
@@ -6968,6 +6967,9 @@
                         <!-- B2B Sales Timeline Tab -->
                         <div class="tab-panel" id="panel-b2b">
                             ${renderB2BPanel(studio, activities)}
+                        </div>
+                        <div class="tab-panel" id="panel-traspaso" style="display:none;">
+                            ${renderHandoffPanel(studio)}
                         </div>
                         <div class="tab-panel" id="panel-traspaso" style="display:none;">
                             ${renderHandoffPanel(studio)}
@@ -12888,7 +12890,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             if (!studios.length) studios = allStudios || cloudCache?.studios || [];
             if (studios.length < 2) { showNotification('No hay empresas suficientes', 'info'); return; }
 
-            // Cargar pares ignorados desde localStorage (siempre, no solo primera vez)
+            // Cargar pares ignorados desde localStorage (siempre al inicio)
             try {
                 const saved = JSON.parse(localStorage.getItem('crm_dup_ignored') || '[]');
                 window._dupIgnoredPairs = new Set(saved);
@@ -12947,21 +12949,14 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 return;
             }
 
-            // Cap at 200 pairs to avoid browser freeze
-            const MAX_PAIRS = 200;
-            const cappedPairs = pairs.slice(0, MAX_PAIRS);
-            if (pairs.length > MAX_PAIRS) {
-                showNotification(`⚠️ Mostrando los ${MAX_PAIRS} pares más similares de ${pairs.length} encontrados`, 'warning');
-                await new Promise(r => setTimeout(r, 600));
-            }
-
-            _renderDuplicatesPanel(cappedPairs, pairs.length);
+            const MAX_PAIRS = 100;
+            const toShow = pairs.slice(0, MAX_PAIRS);
+            window._dupAllPairs = pairs;
+            _renderDuplicatesPanel(toShow, pairs.length);
         }
 
         function _renderDuplicatesPanel(pairs, totalFound) {
             document.getElementById('duplicates-panel')?.remove();
-            window._dupAllPairs = pairs;
-            window._dupPage = 0;
 
             const FIELDS = [
                 { label: 'Nombre',    get: s => s.name || '' },
@@ -12975,12 +12970,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 { label: 'Dirección', get: s => s.data?.contact?.address || '' },
             ];
 
-            const PAGE_SIZE = 25;
-            const renderPage = (pageIdx) => {
-              const start = pageIdx * PAGE_SIZE;
-              const slice = pairs.slice(start, start + PAGE_SIZE);
-              return slice.map(({ a, b, score, reason, pairKey }, i) => {
-                const idx = start + i;
+            const pairCards = pairs.map(({ a, b, score, reason, pairKey }, idx) => {
                 const rows = FIELDS.map(f => {
                     const va = f.get(a), vb = f.get(b);
                     const diff = va !== vb;
@@ -12994,92 +12984,6 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     </div>`;
                 }).join('');
 
-                return `<div id="dup-pair-${idx}" style="background:#1e293b;border-radius:12px;margin-bottom:14px;border:1px solid rgba(255,255,255,0.06);overflow:hidden;">
-                    <div style="padding:12px 16px;background:#1e293b;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                            <span style="font-size:0.72rem;background:rgba(245,158,11,0.2);color:#fbbf24;padding:3px 10px;border-radius:99px;font-weight:600;">${escapeHtml(reason)}</span>
-                            <span style="font-size:0.72rem;color:#475569;">Similitud: ${Math.round(score*100)}%</span>
-                        </div>
-                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                            <button onclick="_deleteDup(${a.id},${b.id},${idx})" style="background:rgba(239,68,68,0.12);color:#fca5a5;border:1px solid rgba(239,68,68,0.25);padding:6px 12px;border-radius:7px;cursor:pointer;font-size:0.78rem;font-weight:600;">🗑️ Eliminar A</button>
-                            <button onclick="_mergeDup(${a.id},${b.id},${idx})" style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);padding:6px 12px;border-radius:7px;cursor:pointer;font-size:0.78rem;font-weight:600;">🔀 Fusionar → A</button>
-                            <button onclick="_deleteDup(${b.id},${a.id},${idx})" style="background:rgba(239,68,68,0.12);color:#fca5a5;border:1px solid rgba(239,68,68,0.25);padding:6px 12px;border-radius:7px;cursor:pointer;font-size:0.78rem;font-weight:600;">🗑️ Eliminar B</button>
-                            <button onclick="_ignoreDup(${idx},'${pairKey}')" style="background:#334155;color:#64748b;border:none;padding:6px 12px;border-radius:7px;cursor:pointer;font-size:0.78rem;">Ignorar</button>
-                        </div>
-                    </div>
-                    <div style="padding:10px 16px;">
-                        <div style="display:grid;grid-template-columns:90px 1fr 24px 1fr;padding:4px 0;margin-bottom:4px;">
-                            <div></div>
-                            <div style="font-size:0.72rem;color:#6366f1;font-weight:700;padding:0 10px;">A: ${escapeHtml(a.name)}</div>
-                            <div></div>
-                            <div style="font-size:0.72rem;color:#6366f1;font-weight:700;padding:0 10px;">B: ${escapeHtml(b.name)}</div>
-                        </div>
-                        <div>${rows}</div>
-                    </div>
-                </div>`;
-              }).join('');
-            };
-
-            const totalLabel = totalFound && totalFound > pairs.length
-                ? `${pairs.length} de ${totalFound} coincidencias (ordenadas por similitud)`
-                : `${pairs.length} posibles coincidencias encontradas`;
-
-            const panel = document.createElement('div');
-            panel.id = 'duplicates-panel';
-            panel.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0f172a;z-index:9999999;overflow-y:auto;padding:24px;font-family:inherit;';
-            panel.innerHTML = `
-                <div style="max-width:1100px;margin:0 auto;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
-                        <div>
-                            <h2 style="margin:0;color:#f1f5f9;font-size:1.3rem;">🔍 Posibles empresas duplicadas</h2>
-                            <p id="dup-count" style="margin:4px 0 0;color:#64748b;font-size:0.85rem;">${totalLabel}</p>
-                        </div>
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            <button onclick="if(confirm('¿Borrar el historial de pares ignorados/procesados?')){localStorage.removeItem('crm_dup_ignored');window._dupIgnoredPairs=new Set();document.getElementById('duplicates-panel').remove();findAndShowDuplicateStudios();}" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:10px 16px;border-radius:8px;cursor:pointer;font-size:0.85rem;">🔄 Resetear historial</button>
-                            <button onclick="document.getElementById('duplicates-panel').remove()" style="background:#334155;border:none;color:#cbd5e1;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:0.9rem;">✕ Cerrar</button>
-                        </div>
-                    </div>
-                    <div id="dup-pairs-list">${renderPage(0)}</div>
-                    <div id="dup-pagination" style="text-align:center;margin-top:20px;padding-bottom:40px;">
-                        ${pairs.length > PAGE_SIZE ? `<button onclick="_dupLoadMore()" style="background:#1e293b;border:1px solid #334155;color:#a5b4fc;padding:12px 28px;border-radius:8px;cursor:pointer;font-size:0.9rem;">Ver más (${Math.min(PAGE_SIZE, pairs.length - PAGE_SIZE)} de ${pairs.length - PAGE_SIZE} restantes)</button>` : ''}
-                    </div>
-                </div>`;
-            document.body.appendChild(panel);
-        }
-
-        function _dupLoadMore() {
-            window._dupPage = (window._dupPage || 0) + 1;
-            const PAGE_SIZE = 25;
-            const pairs = window._dupAllPairs || [];
-            const start = window._dupPage * PAGE_SIZE;
-            const slice = pairs.slice(start, start + PAGE_SIZE);
-            if (!slice.length) return;
-
-            const FIELDS = [
-                { label: 'Nombre',    get: s => s.name || '' },
-                { label: 'Tipo',      get: s => TIPOS_ESTUDIO?.[s.type]?.label || s.type || '' },
-                { label: 'Estado',    get: s => s.status || '' },
-                { label: 'Ciudad',    get: s => s.data?.contact?.city || s.city || '' },
-                { label: 'Provincia', get: s => s.province || '' },
-                { label: 'Teléfono', get: s => s.data?.contact?.phone || '' },
-                { label: 'Email',     get: s => s.data?.contact?.email || '' },
-                { label: 'Web',       get: s => s.data?.contact?.web || '' },
-            ];
-
-            const newCards = slice.map(({ a, b, score, reason, pairKey }, i) => {
-                const idx = start + i;
-                const rows = FIELDS.map(f => {
-                    const va = f.get(a), vb = f.get(b);
-                    const diff = va !== vb;
-                    const vc = diff ? 'color:#fcd34d;' : 'color:#e2e8f0;';
-                    const bg = diff ? 'background:rgba(245,158,11,0.06);' : '';
-                    return `<div style="display:grid;grid-template-columns:90px 1fr 24px 1fr;${bg}padding:4px 0;">
-                        <div style="padding:4px 10px;color:#64748b;font-size:0.76rem;white-space:nowrap;align-self:center;">${f.label}</div>
-                        <div style="padding:4px 10px;font-size:0.82rem;${vc}word-break:break-all;">${escapeHtml(va) || '<span style="color:#334155;">—</span>'}</div>
-                        <div style="padding:4px 0;font-size:0.7rem;color:#475569;text-align:center;align-self:center;">${diff ? '≠' : '='}</div>
-                        <div style="padding:4px 10px;font-size:0.82rem;${vc}word-break:break-all;">${escapeHtml(vb) || '<span style="color:#334155;">—</span>'}</div>
-                    </div>`;
-                }).join('');
                 return `<div id="dup-pair-${idx}" style="background:#1e293b;border-radius:12px;margin-bottom:14px;border:1px solid rgba(255,255,255,0.06);overflow:hidden;">
                     <div style="padding:12px 16px;background:#1e293b;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
                         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -13105,16 +13009,24 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 </div>`;
             }).join('');
 
-            const list = document.getElementById('dup-pairs-list');
-            if (list) list.insertAdjacentHTML('beforeend', newCards);
+            const totalMsg = totalFound && totalFound > pairs.length
+                ? pairs.length + ' de ' + totalFound + ' coincidencias'
+                : pairs.length + ' posibles coincidencias encontradas';
 
-            const remaining = pairs.length - (start + PAGE_SIZE);
-            const pagBtn = document.getElementById('dup-pagination');
-            if (pagBtn) {
-                pagBtn.innerHTML = remaining > 0
-                    ? `<button onclick="_dupLoadMore()" style="background:#1e293b;border:1px solid #334155;color:#a5b4fc;padding:12px 28px;border-radius:8px;cursor:pointer;font-size:0.9rem;">Ver más (${Math.min(PAGE_SIZE, remaining)} de ${remaining} restantes)</button>`
-                    : '<p style="color:#475569;font-size:0.85rem;">— Todos los pares mostrados —</p>';
-            }
+            const panel = document.createElement('div');
+            panel.id = 'duplicates-panel';
+            panel.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0f172a;z-index:9999999;overflow-y:auto;padding:24px;font-family:inherit;';
+            panel.innerHTML = '<div style="max-width:1100px;margin:0 auto;">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">' +
+                '<div><h2 style="margin:0;color:#f1f5f9;font-size:1.3rem;">🔍 Posibles empresas duplicadas</h2>' +
+                '<p id="dup-count" style="margin:4px 0 0;color:#64748b;font-size:0.85rem;">' + totalMsg + '</p></div>' +
+                '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+                '<button onclick="if(confirm('¿Borrar el historial de pares ignorados/procesados?')){localStorage.removeItem('crm_dup_ignored');window._dupIgnoredPairs=new Set();document.getElementById('duplicates-panel').remove();findAndShowDuplicateStudios();}" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:10px 16px;border-radius:8px;cursor:pointer;font-size:0.85rem;">🔄 Resetear historial</button>' +
+                '<button onclick="document.getElementById('duplicates-panel').remove()" style="background:#334155;border:none;color:#cbd5e1;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:0.9rem;">✕ Cerrar</button>' +
+                '</div></div>' +
+                '<div id="dup-pairs-list">' + pairCards + '</div>' +
+                '</div>';
+            document.body.appendChild(panel);
         }
 
         function _updateDupCount() {
@@ -13122,6 +13034,205 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const el = document.getElementById('dup-count');
             if (el) el.textContent = `${remaining} posibles coincidencias restantes`;
         }
+
+        // ============================================
+        // SEGUIMIENTO POST-TRASPASO AL COMERCIAL
+        // ============================================
+
+        function showHandoffModal(studioId) {
+            const modal = document.createElement('div');
+            modal.id = 'handoff-modal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;';
+            modal.innerHTML = '<div style="background:#ffffff;border-radius:12px;padding:28px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
+                '<h3 style="margin:0 0 20px;font-size:1.2rem;">🤝 Registrar traspaso al comercial</h3>' +
+                '<div style="display:flex;flex-direction:column;gap:14px;">' +
+                '<div><label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:4px;">Empresa comercial</label>' +
+                '<select id="ho-empresa" class="form-select"><option value="ferroplast">Ferroplast</option><option value="tuyper">Tuyper</option><option value="otro">Otro</option></select></div>' +
+                '<div><label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:4px;">Nombre del comercial</label>' +
+                '<input id="ho-comercial" type="text" class="form-input" placeholder="Nombre del comercial asignado"></div>' +
+                '<div><label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:4px;">Notas del traspaso</label>' +
+                '<textarea id="ho-notas" class="form-input" rows="3" placeholder="Qué se ha prescrito, contexto..."></textarea></div>' +
+                '</div>' +
+                '<div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">' +
+                '<button class="btn btn-secondary" onclick="document.getElementById('handoff-modal').remove()">Cancelar</button>' +
+                '<button class="btn btn-primary" onclick="confirmHandoff(' + studioId + ')">✅ Confirmar traspaso</button>' +
+                '</div></div>';
+            document.body.appendChild(modal);
+        }
+
+        async function confirmHandoff(studioId) {
+            const empresa = document.getElementById('ho-empresa').value;
+            const comercial = document.getElementById('ho-comercial').value.trim();
+            const notas = document.getElementById('ho-notas').value.trim();
+            if (!comercial) { alert('Indica el nombre del comercial'); return; }
+            const handoff = { empresa, comercial, notas, fechaTraspaso: new Date().toISOString(), resultado: 'pendiente', fechaResultado: null };
+            await updateStudio(studioId, { status: 'traspasado', handoff });
+            await addActivity({ studioId, type: 'status', text: '🤝 Traspasado a ' + comercial + ' (' + empresa + '). ' + notas });
+            document.getElementById('handoff-modal').remove();
+            showNotification('✅ Traspaso registrado', 'success');
+            showStudioDetail(studioId);
+        }
+
+        function showHandoffResultModal(studioId) {
+            const modal = document.createElement('div');
+            modal.id = 'handoff-result-modal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;';
+            modal.innerHTML = '<div style="background:#ffffff;border-radius:12px;padding:28px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
+                '<h3 style="margin:0 0 20px;font-size:1.2rem;">📋 Actualizar resultado del traspaso</h3>' +
+                '<div style="display:flex;flex-direction:column;gap:12px;">' +
+                '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;border:1px solid #d9e2ec;border-radius:8px;"><input type="radio" name="hr-resultado" value="prescripcion_confirmada"> 📋 Prescripción confirmada</label>' +
+                '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;border:1px solid #d9e2ec;border-radius:8px;"><input type="radio" name="hr-resultado" value="venta_cerrada"> 💰 Venta cerrada</label>' +
+                '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;border:1px solid #d9e2ec;border-radius:8px;"><input type="radio" name="hr-resultado" value="perdido"> ❌ No prosperó</label>' +
+                '<textarea id="hr-notas" class="form-input" rows="2" placeholder="Notas del resultado..."></textarea>' +
+                '</div>' +
+                '<div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">' +
+                '<button class="btn btn-secondary" onclick="document.getElementById('handoff-result-modal').remove()">Cancelar</button>' +
+                '<button class="btn btn-primary" onclick="confirmHandoffResult(' + studioId + ')">✅ Guardar resultado</button>' +
+                '</div></div>';
+            document.body.appendChild(modal);
+        }
+
+        async function confirmHandoffResult(studioId) {
+            const resultadoVal = document.querySelector('input[name="hr-resultado"]:checked') && document.querySelector('input[name="hr-resultado"]:checked').value;
+            if (!resultadoVal) { alert('Selecciona un resultado'); return; }
+            const notas = document.getElementById('hr-notas').value.trim();
+            const studio = await getStudio(studioId);
+            const handoff = studio.handoff || {};
+            handoff.resultado = resultadoVal;
+            handoff.notasResultado = notas;
+            handoff.fechaResultado = new Date().toISOString();
+            const statusMap = { prescripcion_confirmada: 'prescripcion', venta_cerrada: 'venta', perdido: 'perdido' };
+            await updateStudio(studioId, { status: statusMap[resultadoVal], handoff });
+            const resultLabel = { prescripcion_confirmada: '📋 Prescripción confirmada', venta_cerrada: '💰 Venta cerrada', perdido: '❌ No prosperó' }[resultadoVal];
+            await addActivity({ studioId, type: 'status', text: resultLabel + (notas ? '. ' + notas : '') });
+            document.getElementById('handoff-result-modal').remove();
+            showNotification('✅ Resultado guardado', 'success');
+            showStudioDetail(studioId);
+        }
+
+        function renderHandoffPanel(studio) {
+            const h = studio.handoff;
+            if (!h) {
+                return '<div style="text-align:center;padding:32px;color:#6b7c93;">' +
+                    '<div style="font-size:3rem;margin-bottom:12px;">🤝</div>' +
+                    '<p style="margin-bottom:16px;">Registra el traspaso al comercial cuando el proceso de prescripción esté listo.</p>' +
+                    '<button class="btn btn-primary" onclick="showHandoffModal(' + studio.id + ')">🤝 Registrar traspaso</button>' +
+                    '</div>';
+            }
+            const resultadoLabels = {
+                pendiente: { label: '⏳ Pendiente de resultado', color: '#f59e0b', bg: '#fef3c7' },
+                prescripcion_confirmada: { label: '📋 Prescripción confirmada', color: '#065f46', bg: '#d1fae5' },
+                venta_cerrada: { label: '💰 Venta cerrada', color: '#166534', bg: '#dcfce7' },
+                perdido: { label: '❌ No prosperó', color: '#991b1b', bg: '#fee2e2' }
+            };
+            const res = resultadoLabels[h.resultado] || resultadoLabels.pendiente;
+            return '<div style="display:flex;flex-direction:column;gap:16px;">' +
+                '<div style="background:#f7f9fc;border-radius:10px;padding:18px;">' +
+                '<div style="font-weight:700;font-size:1rem;margin-bottom:14px;">🤝 Datos del traspaso</div>' +
+                '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
+                '<div><span style="color:#6b7c93;font-size:0.8rem;">Comercial</span><div style="font-weight:600;">' + (h.comercial || '—') + '</div></div>' +
+                '<div><span style="color:#6b7c93;font-size:0.8rem;">Empresa</span><div style="font-weight:600;text-transform:capitalize;">' + (h.empresa || '—') + '</div></div>' +
+                '<div><span style="color:#6b7c93;font-size:0.8rem;">Fecha traspaso</span><div style="font-weight:600;">' + (h.fechaTraspaso ? formatDate(h.fechaTraspaso) : '—') + '</div></div>' +
+                '<div><span style="color:#6b7c93;font-size:0.8rem;">Fecha resultado</span><div style="font-weight:600;">' + (h.fechaResultado ? formatDate(h.fechaResultado) : '—') + '</div></div>' +
+                '</div>' + (h.notas ? '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #d9e2ec;"><span style="color:#6b7c93;font-size:0.8rem;">Notas</span><div style="margin-top:4px;">' + h.notas + '</div></div>' : '') +
+                '</div>' +
+                '<div style="background:' + res.bg + ';border-radius:10px;padding:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">' +
+                '<div style="font-weight:700;color:' + res.color + ';font-size:1rem;">' + res.label + '</div>' +
+                '<button class="btn btn-primary btn-sm" onclick="showHandoffResultModal(' + studio.id + ')">' + (h.resultado === 'pendiente' ? 'Actualizar resultado' : 'Editar resultado') + '</button>' +
+                '</div></div>';
+        }
+
+        // ============================================
+        // ACTIVIDADES - helpers nuevos
+        // ============================================
+
+        function toggleActivityFields() {
+            const type = document.getElementById('activity-type') && document.getElementById('activity-type').value;
+            const productos = document.getElementById('productos-section');
+            const meetingOrigin = document.getElementById('meeting-origin-section');
+            const comercialCall = document.getElementById('comercial-call-section');
+            if (productos) productos.style.display = type === 'meeting' ? 'block' : 'none';
+            if (meetingOrigin) meetingOrigin.style.display = type === 'meeting' ? 'block' : 'none';
+            if (comercialCall) comercialCall.style.display = type === 'comercial' ? 'block' : 'none';
+        }
+
+        function getActivityOriginBadge(activity) {
+            let badges = '';
+            if (activity.type === 'meeting' && activity.visitaOrigen) {
+                const label = activity.visitaOrigen === 'comercial' ? '💼 Propuesta por comercial' : '🙋 Propuesta por mí';
+                const bg = activity.visitaOrigen === 'comercial' ? '#ede9fe' : '#dbeafe';
+                const color = activity.visitaOrigen === 'comercial' ? '#7c3aed' : '#1d4ed8';
+                badges += '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:600;background:' + bg + ';color:' + color + ';margin-right:4px;">' + label + '</span>';
+            }
+            if (activity.type === 'meeting' && activity.visitaConjunta) {
+                badges += '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:600;background:#d1fae5;color:#065f46;">👥 Visita conjunta</span>';
+            }
+            if (activity.type === 'comercial' && activity.comercialCall) {
+                const c = activity.comercialCall;
+                const dir = c.direccion === 'yo-llame' ? '📲 Yo llamé' : '📥 Llamó el comercial';
+                badges += '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:600;background:#ede9fe;color:#7c3aed;margin-right:4px;">' + dir + '</span>';
+                if (c.comercial) badges += '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;background:#f3f4f6;color:#374151;">👤 ' + escapeHtml(c.comercial) + '</span>';
+            }
+            return badges ? '<div style="margin-top:4px;">' + badges + '</div>' : '';
+        }
+
+        // ============================================
+        // INFORME SEMANAL
+        // ============================================
+        async function generateWeeklyReport() {
+            showNotification('📊 Generando informe semanal...', 'info');
+            const allStudiosData = await getAllStudios();
+            const allActivities = await getAllActivities();
+            const now = new Date();
+            const weekStart = new Date(now);
+            weekStart.setDate(now.getDate() - 7);
+            weekStart.setHours(0,0,0,0);
+            const weekActivities = allActivities.filter(function(a) { return new Date(a.createdAt) >= weekStart; });
+            const visits = weekActivities.filter(function(a) { return a.type === 'meeting'; });
+            const calls = weekActivities.filter(function(a) { return a.type === 'call'; });
+            const emails = weekActivities.filter(function(a) { return a.type === 'email'; });
+            const comercialCalls = weekActivities.filter(function(a) { return a.type === 'comercial'; });
+            const visitsByMe = visits.filter(function(a) { return a.visitaOrigen !== 'comercial'; });
+            const visitsByComercial = visits.filter(function(a) { return a.visitaOrigen === 'comercial'; });
+            const jointVisits = visits.filter(function(a) { return a.visitaConjunta; });
+            const statusCounts = {};
+            allStudiosData.forEach(function(s) { var st = s.status || 'nuevo'; statusCounts[st] = (statusCounts[st] || 0) + 1; });
+            const handoffs = weekActivities.filter(function(a) { return a.text && a.text.includes('Traspasado a'); });
+            const prescriptions = weekActivities.filter(function(a) { return a.text && (a.text.includes('Prescripción confirmada') || a.text.includes('prescripción confirmada')); });
+            const sales = weekActivities.filter(function(a) { return a.text && (a.text.includes('Venta cerrada') || a.text.includes('venta cerrada')); });
+            const statusLabels = { nuevo:'Nuevo', contactado:'Contactado', standby:'Standby', reunion:'Reunión', negociacion:'Negociación', traspasado:'Traspasado', prescripcion:'Prescripción', venta:'Venta cerrada', ganado:'Ganado', perdido:'Perdido' };
+            const dateStr = now.toLocaleDateString('es-ES', { day:'2-digit', month:'long', year:'numeric' });
+            const weekStartStr = weekStart.toLocaleDateString('es-ES', { day:'2-digit', month:'long' });
+            const statusOrder2 = { nuevo:1, contactado:2, standby:3, reunion:4, negociacion:5, traspasado:6, prescripcion:7, venta:8, ganado:9, perdido:10 };
+            const funnelRows = Object.entries(statusCounts).sort(function(a,b){ return (statusOrder2[a[0]]||99)-(statusOrder2[b[0]]||99); }).map(function(entry) {
+                var status = entry[0], count = entry[1];
+                var total = allStudiosData.length || 1;
+                var pct = Math.max(4, Math.round(count/total*100));
+                var colors = { nuevo:'#3b82f6', contactado:'#f59e0b', reunion:'#8b5cf6', negociacion:'#ec4899', traspasado:'#7c3aed', prescripcion:'#10b981', venta:'#059669', ganado:'#16a34a', perdido:'#ef4444', standby:'#9ca3af' };
+                return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><div style="width:130px;font-size:0.85rem;">' + (statusLabels[status]||status) + '</div><div style="flex:1;background:#f3f4f6;border-radius:4px;height:20px;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:' + (colors[status]||'#3b82f6') + ';border-radius:4px;display:flex;align-items:center;padding-left:6px;"><span style="color:white;font-size:0.72rem;font-weight:700;">' + count + '</span></div></div><div style="width:28px;text-align:right;font-weight:700;">' + count + '</div></div>';
+            }).join('');
+            const reportHtml = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Informe Semanal GPF</title><style>body{font-family:Arial,sans-serif;margin:0;padding:24px;color:#1f2937;background:#f9fafb;}.header{background:linear-gradient(135deg,#1d4ed8,#7c3aed);color:white;padding:28px 32px;border-radius:12px;margin-bottom:24px;}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;}.card{background:white;border-radius:10px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.08);}.card-title{font-size:0.8rem;color:#6b7280;font-weight:600;text-transform:uppercase;margin-bottom:6px;}.card-value{font-size:2rem;font-weight:700;color:#1d4ed8;line-height:1;}.card-sub{font-size:0.8rem;color:#6b7280;margin-top:4px;}.section{background:white;border-radius:10px;padding:20px 24px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:16px;}.section h2{margin:0 0 16px;font-size:1rem;color:#374151;border-bottom:2px solid #e5e7eb;padding-bottom:8px;}</style></head><body>' +
+                '<div class="header"><h1 style="margin:0 0 4px;font-size:1.6rem;">📊 Informe Semanal — Prescripción GPF</h1><p style="margin:0;opacity:0.85;">Semana del ' + weekStartStr + ' al ' + dateStr + '</p></div>' +
+                '<div class="grid">' +
+                '<div class="card"><div class="card-title">🏢 Visitas realizadas</div><div class="card-value">' + visits.length + '</div><div class="card-sub">Por mí: ' + visitsByMe.length + ' · Comercial: ' + visitsByComercial.length + '</div></div>' +
+                '<div class="card"><div class="card-title">📞 Llamadas</div><div class="card-value">' + calls.length + '</div><div class="card-sub">Con comerciales: ' + comercialCalls.length + '</div></div>' +
+                '<div class="card"><div class="card-title">✉️ Emails</div><div class="card-value">' + emails.length + '</div><div class="card-sub">Total actividades: ' + weekActivities.length + '</div></div>' +
+                '<div class="card"><div class="card-title">👥 Visitas conjuntas</div><div class="card-value">' + jointVisits.length + '</div></div>' +
+                '<div class="card"><div class="card-title">🤝 Traspasos</div><div class="card-value">' + handoffs.length + '</div></div>' +
+                '<div class="card"><div class="card-title">📋 Prescripciones + ventas</div><div class="card-value">' + (prescriptions.length + sales.length) + '</div></div>' +
+                '</div>' +
+                '<div class="section"><h2>📈 Pipeline — Estado actual</h2>' + funnelRows + '</div>' +
+                '<div style="margin-top:24px;text-align:center;color:#9ca3af;font-size:0.78rem;">Generado el ' + dateStr + ' · CRM Prescripción GPF</div>' +
+                '</body></html>';
+            const win = window.open('', '_blank');
+            if (win) { win.document.write(reportHtml); win.document.close(); }
+            else { showNotification('⚠️ Activa las ventanas emergentes para ver el informe', 'warning'); }
+        }
+
+        // ============================================
+        // FIX: duplicate panel - always reload ignored + pagination  
+        // ============================================
+
 
         // ============================================
         // INFORME SEMANAL
