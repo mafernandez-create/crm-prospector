@@ -12888,14 +12888,12 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             if (!studios.length) studios = allStudios || cloudCache?.studios || [];
             if (studios.length < 2) { showNotification('No hay empresas suficientes', 'info'); return; }
 
-            // Cargar pares ignorados desde localStorage
-            if (!window._dupIgnoredPairs) {
-                try {
-                    const saved = JSON.parse(localStorage.getItem('crm_dup_ignored') || '[]');
-                    window._dupIgnoredPairs = new Set(saved);
-                } catch(e) {
-                    window._dupIgnoredPairs = new Set();
-                }
+            // Cargar pares ignorados desde localStorage (siempre, no solo primera vez)
+            try {
+                const saved = JSON.parse(localStorage.getItem('crm_dup_ignored') || '[]');
+                window._dupIgnoredPairs = new Set(saved);
+            } catch(e) {
+                window._dupIgnoredPairs = new Set();
             }
 
             showNotification(`🔍 Analizando ${studios.length} empresas...`, 'info');
@@ -12948,11 +12946,22 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 showNotification('✅ No se encontraron posibles duplicados', 'success');
                 return;
             }
-            _renderDuplicatesPanel(pairs);
+
+            // Cap at 200 pairs to avoid browser freeze
+            const MAX_PAIRS = 200;
+            const cappedPairs = pairs.slice(0, MAX_PAIRS);
+            if (pairs.length > MAX_PAIRS) {
+                showNotification(`⚠️ Mostrando los ${MAX_PAIRS} pares más similares de ${pairs.length} encontrados`, 'warning');
+                await new Promise(r => setTimeout(r, 600));
+            }
+
+            _renderDuplicatesPanel(cappedPairs, pairs.length);
         }
 
-        function _renderDuplicatesPanel(pairs) {
+        function _renderDuplicatesPanel(pairs, totalFound) {
             document.getElementById('duplicates-panel')?.remove();
+            window._dupAllPairs = pairs;
+            window._dupPage = 0;
 
             const FIELDS = [
                 { label: 'Nombre',    get: s => s.name || '' },
@@ -12966,7 +12975,12 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 { label: 'Dirección', get: s => s.data?.contact?.address || '' },
             ];
 
-            const pairCards = pairs.map(({ a, b, score, reason, pairKey }, idx) => {
+            const PAGE_SIZE = 25;
+            const renderPage = (pageIdx) => {
+              const start = pageIdx * PAGE_SIZE;
+              const slice = pairs.slice(start, start + PAGE_SIZE);
+              return slice.map(({ a, b, score, reason, pairKey }, i) => {
+                const idx = start + i;
                 const rows = FIELDS.map(f => {
                     const va = f.get(a), vb = f.get(b);
                     const diff = va !== vb;
@@ -13003,7 +13017,12 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                         <div>${rows}</div>
                     </div>
                 </div>`;
-            }).join('');
+              }).join('');
+            };
+
+            const totalLabel = totalFound && totalFound > pairs.length
+                ? `${pairs.length} de ${totalFound} coincidencias (ordenadas por similitud)`
+                : `${pairs.length} posibles coincidencias encontradas`;
 
             const panel = document.createElement('div');
             panel.id = 'duplicates-panel';
@@ -13013,16 +13032,89 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
                         <div>
                             <h2 style="margin:0;color:#f1f5f9;font-size:1.3rem;">🔍 Posibles empresas duplicadas</h2>
-                            <p id="dup-count" style="margin:4px 0 0;color:#64748b;font-size:0.85rem;">${pairs.length} posibles coincidencias encontradas</p>
+                            <p id="dup-count" style="margin:4px 0 0;color:#64748b;font-size:0.85rem;">${totalLabel}</p>
                         </div>
-                        <div style="display:flex;gap:8px;">
-                            <button onclick="if(confirm('¿Borrar el historial de pares ignorados/procesados?')){localStorage.removeItem('crm_dup_ignored');window._dupIgnoredPairs=new Set();document.getElementById('duplicates-panel').remove();findAndShowDuplicateStudios();}" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:10px 16px;border-radius:8px;cursor:pointer;font-size:0.85rem;">🔄 Resetear</button>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <button onclick="if(confirm('¿Borrar el historial de pares ignorados/procesados?')){localStorage.removeItem('crm_dup_ignored');window._dupIgnoredPairs=new Set();document.getElementById('duplicates-panel').remove();findAndShowDuplicateStudios();}" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:10px 16px;border-radius:8px;cursor:pointer;font-size:0.85rem;">🔄 Resetear historial</button>
                             <button onclick="document.getElementById('duplicates-panel').remove()" style="background:#334155;border:none;color:#cbd5e1;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:0.9rem;">✕ Cerrar</button>
                         </div>
                     </div>
-                    <div id="dup-pairs-list">${pairCards}</div>
+                    <div id="dup-pairs-list">${renderPage(0)}</div>
+                    <div id="dup-pagination" style="text-align:center;margin-top:20px;padding-bottom:40px;">
+                        ${pairs.length > PAGE_SIZE ? `<button onclick="_dupLoadMore()" style="background:#1e293b;border:1px solid #334155;color:#a5b4fc;padding:12px 28px;border-radius:8px;cursor:pointer;font-size:0.9rem;">Ver más (${Math.min(PAGE_SIZE, pairs.length - PAGE_SIZE)} de ${pairs.length - PAGE_SIZE} restantes)</button>` : ''}
+                    </div>
                 </div>`;
             document.body.appendChild(panel);
+        }
+
+        function _dupLoadMore() {
+            window._dupPage = (window._dupPage || 0) + 1;
+            const PAGE_SIZE = 25;
+            const pairs = window._dupAllPairs || [];
+            const start = window._dupPage * PAGE_SIZE;
+            const slice = pairs.slice(start, start + PAGE_SIZE);
+            if (!slice.length) return;
+
+            const FIELDS = [
+                { label: 'Nombre',    get: s => s.name || '' },
+                { label: 'Tipo',      get: s => TIPOS_ESTUDIO?.[s.type]?.label || s.type || '' },
+                { label: 'Estado',    get: s => s.status || '' },
+                { label: 'Ciudad',    get: s => s.data?.contact?.city || s.city || '' },
+                { label: 'Provincia', get: s => s.province || '' },
+                { label: 'Teléfono', get: s => s.data?.contact?.phone || '' },
+                { label: 'Email',     get: s => s.data?.contact?.email || '' },
+                { label: 'Web',       get: s => s.data?.contact?.web || '' },
+            ];
+
+            const newCards = slice.map(({ a, b, score, reason, pairKey }, i) => {
+                const idx = start + i;
+                const rows = FIELDS.map(f => {
+                    const va = f.get(a), vb = f.get(b);
+                    const diff = va !== vb;
+                    const vc = diff ? 'color:#fcd34d;' : 'color:#e2e8f0;';
+                    const bg = diff ? 'background:rgba(245,158,11,0.06);' : '';
+                    return `<div style="display:grid;grid-template-columns:90px 1fr 24px 1fr;${bg}padding:4px 0;">
+                        <div style="padding:4px 10px;color:#64748b;font-size:0.76rem;white-space:nowrap;align-self:center;">${f.label}</div>
+                        <div style="padding:4px 10px;font-size:0.82rem;${vc}word-break:break-all;">${escapeHtml(va) || '<span style="color:#334155;">—</span>'}</div>
+                        <div style="padding:4px 0;font-size:0.7rem;color:#475569;text-align:center;align-self:center;">${diff ? '≠' : '='}</div>
+                        <div style="padding:4px 10px;font-size:0.82rem;${vc}word-break:break-all;">${escapeHtml(vb) || '<span style="color:#334155;">—</span>'}</div>
+                    </div>`;
+                }).join('');
+                return `<div id="dup-pair-${idx}" style="background:#1e293b;border-radius:12px;margin-bottom:14px;border:1px solid rgba(255,255,255,0.06);overflow:hidden;">
+                    <div style="padding:12px 16px;background:#1e293b;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                            <span style="font-size:0.72rem;background:rgba(245,158,11,0.2);color:#fbbf24;padding:3px 10px;border-radius:99px;font-weight:600;">${escapeHtml(reason)}</span>
+                            <span style="font-size:0.72rem;color:#475569;">Similitud: ${Math.round(score*100)}%</span>
+                        </div>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                            <button onclick="_deleteDup(${a.id},${b.id},${idx})" style="background:rgba(239,68,68,0.12);color:#fca5a5;border:1px solid rgba(239,68,68,0.25);padding:6px 12px;border-radius:7px;cursor:pointer;font-size:0.78rem;font-weight:600;">🗑️ Eliminar A</button>
+                            <button onclick="_mergeDup(${a.id},${b.id},${idx})" style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);padding:6px 12px;border-radius:7px;cursor:pointer;font-size:0.78rem;font-weight:600;">🔀 Fusionar → A</button>
+                            <button onclick="_deleteDup(${b.id},${a.id},${idx})" style="background:rgba(239,68,68,0.12);color:#fca5a5;border:1px solid rgba(239,68,68,0.25);padding:6px 12px;border-radius:7px;cursor:pointer;font-size:0.78rem;font-weight:600;">🗑️ Eliminar B</button>
+                            <button onclick="_ignoreDup(${idx},'${pairKey}')" style="background:#334155;color:#64748b;border:none;padding:6px 12px;border-radius:7px;cursor:pointer;font-size:0.78rem;">Ignorar</button>
+                        </div>
+                    </div>
+                    <div style="padding:10px 16px;">
+                        <div style="display:grid;grid-template-columns:90px 1fr 24px 1fr;padding:4px 0;margin-bottom:4px;">
+                            <div></div>
+                            <div style="font-size:0.72rem;color:#6366f1;font-weight:700;padding:0 10px;">A: ${escapeHtml(a.name)}</div>
+                            <div></div>
+                            <div style="font-size:0.72rem;color:#6366f1;font-weight:700;padding:0 10px;">B: ${escapeHtml(b.name)}</div>
+                        </div>
+                        <div>${rows}</div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            const list = document.getElementById('dup-pairs-list');
+            if (list) list.insertAdjacentHTML('beforeend', newCards);
+
+            const remaining = pairs.length - (start + PAGE_SIZE);
+            const pagBtn = document.getElementById('dup-pagination');
+            if (pagBtn) {
+                pagBtn.innerHTML = remaining > 0
+                    ? `<button onclick="_dupLoadMore()" style="background:#1e293b;border:1px solid #334155;color:#a5b4fc;padding:12px 28px;border-radius:8px;cursor:pointer;font-size:0.9rem;">Ver más (${Math.min(PAGE_SIZE, remaining)} de ${remaining} restantes)</button>`
+                    : '<p style="color:#475569;font-size:0.85rem;">— Todos los pares mostrados —</p>';
+            }
         }
 
         function _updateDupCount() {
