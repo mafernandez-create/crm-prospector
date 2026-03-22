@@ -4006,7 +4006,7 @@
         // AUTO-ACTUALIZACIÓN (evita caché en Safari iOS)
         // ============================================
         (function() {
-            const APP_VERSION = '202603230010';
+            const APP_VERSION = '202603230030';
             const stored = localStorage.getItem('crm_app_version');
             if (stored && stored !== APP_VERSION) {
                 localStorage.setItem('crm_app_version', APP_VERSION);
@@ -21889,7 +21889,7 @@ Notas:
                         ${row('📞', 'Teléfono', phone, phone ? 'tel:' + phone.replace(/\s/g,'') : '')}
                         ${row('✉️', 'Email', email, email ? 'mailto:' + email : '')}
                         ${row('🌐', 'Web', web, web ? (web.startsWith('http') ? web : 'https://'+web) : '')}
-                        ${row('📍', 'Dirección', address)}
+                        ${row('📍', 'Dirección', address, address ? 'https://waze.com/ul?q=' + encodeURIComponent(address + (city ? ', ' + city : '')) + '&navigate=yes' : '')}
                     </div>
                     ${team.length > 0 ? `
                     <p style="margin:16px 0 8px;font-size:0.7rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">👥 Personas de contacto</p>
