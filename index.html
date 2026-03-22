@@ -21321,7 +21321,8 @@ Notas:
                     const desc    = s.data?.studio?.description || '';
                     const tipo    = s.type ? (typeof TIPOS_ESTUDIO !== 'undefined' && TIPOS_ESTUDIO?.[s.type] ? TIPOS_ESTUDIO[s.type] : s.type) : '';
                     const crmLink = `https://mafernandez-create.github.io/crm-prospector/?view=studio&id=${s.id}`;
-                    const wazeLink = address ? `https://waze.com/ul?q=${encodeURIComponent(address + ', ' + city)}` : '';
+                    const wazeQuery = address ? (address + ', ' + city) : (s.name + (city ? ', ' + city : ''));
+                    const wazeLink = wazeQuery ? `https://waze.com/ul?q=${encodeURIComponent(wazeQuery)}&navigate=yes` : '';
 
                     let description = `🏢 ${s.name}`;
                     if (tipo) description += ` · ${tipo}`;
