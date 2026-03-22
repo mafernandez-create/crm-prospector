@@ -21992,7 +21992,7 @@ Notas:
             cont.innerHTML = results.map(s => {
                 const safeId = String(s.id).replace(/'/g,"\'");
                 const safeName = (s.name||'').replace(/'/g,"\'");
-                return `<button onclick="mobileRRSelectEmpresa('${safeId}','${safeName.replace(/\/g,'\\')}')"
+                return `<button onclick="mobileRRSelectEmpresa('${safeId}','${safeName.replace(/'/g, "\\'")}')"
                     style="display:block;width:100%;text-align:left;padding:10px 12px;background:#1e293b;border:1px solid #334155;border-radius:8px;margin-bottom:4px;color:#f1f5f9;font-size:0.85rem;cursor:pointer;-webkit-tap-highlight-color:transparent;">
                     ${escapeHtml(s.name)} <span style="color:#64748b;font-size:0.75rem;">${escapeHtml(s.province||s.city||'')}</span>
                 </button>`;
