@@ -13181,64 +13181,6 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
         // ============================================
         async function generateWeeklyReport() {
             showNotification('📊 Generando informe semanal...', 'info');
-            const allStudiosData = await getAllStudios();
-            const allActivities = await getAllActivities();
-            const now = new Date();
-            const weekStart = new Date(now);
-            weekStart.setDate(now.getDate() - 7);
-            weekStart.setHours(0,0,0,0);
-            const weekActivities = allActivities.filter(function(a) { return new Date(a.createdAt) >= weekStart; });
-            const visits = weekActivities.filter(function(a) { return a.type === 'meeting'; });
-            const calls = weekActivities.filter(function(a) { return a.type === 'call'; });
-            const emails = weekActivities.filter(function(a) { return a.type === 'email'; });
-            const comercialCalls = weekActivities.filter(function(a) { return a.type === 'comercial'; });
-            const visitsByMe = visits.filter(function(a) { return a.visitaOrigen !== 'comercial'; });
-            const visitsByComercial = visits.filter(function(a) { return a.visitaOrigen === 'comercial'; });
-            const jointVisits = visits.filter(function(a) { return a.visitaConjunta; });
-            const statusCounts = {};
-            allStudiosData.forEach(function(s) { var st = s.status || 'nuevo'; statusCounts[st] = (statusCounts[st] || 0) + 1; });
-            const handoffs = weekActivities.filter(function(a) { return a.text && a.text.includes('Traspasado a'); });
-            const prescriptions = weekActivities.filter(function(a) { return a.text && (a.text.includes('Prescripción confirmada') || a.text.includes('prescripción confirmada')); });
-            const sales = weekActivities.filter(function(a) { return a.text && (a.text.includes('Venta cerrada') || a.text.includes('venta cerrada')); });
-            const statusLabels = { nuevo:'Nuevo', contactado:'Contactado', standby:'Standby', reunion:'Reunión', negociacion:'Negociación', traspasado:'Traspasado', prescripcion:'Prescripción', venta:'Venta cerrada', ganado:'Ganado', perdido:'Perdido' };
-            const dateStr = now.toLocaleDateString('es-ES', { day:'2-digit', month:'long', year:'numeric' });
-            const weekStartStr = weekStart.toLocaleDateString('es-ES', { day:'2-digit', month:'long' });
-            const statusOrder2 = { nuevo:1, contactado:2, standby:3, reunion:4, negociacion:5, traspasado:6, prescripcion:7, venta:8, ganado:9, perdido:10 };
-            const funnelRows = Object.entries(statusCounts).sort(function(a,b){ return (statusOrder2[a[0]]||99)-(statusOrder2[b[0]]||99); }).map(function(entry) {
-                var status = entry[0], count = entry[1];
-                var total = allStudiosData.length || 1;
-                var pct = Math.max(4, Math.round(count/total*100));
-                var colors = { nuevo:'#3b82f6', contactado:'#f59e0b', reunion:'#8b5cf6', negociacion:'#ec4899', traspasado:'#7c3aed', prescripcion:'#10b981', venta:'#059669', ganado:'#16a34a', perdido:'#ef4444', standby:'#9ca3af' };
-                return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><div style="width:130px;font-size:0.85rem;">' + (statusLabels[status]||status) + '</div><div style="flex:1;background:#f3f4f6;border-radius:4px;height:20px;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:' + (colors[status]||'#3b82f6') + ';border-radius:4px;display:flex;align-items:center;padding-left:6px;"><span style="color:white;font-size:0.72rem;font-weight:700;">' + count + '</span></div></div><div style="width:28px;text-align:right;font-weight:700;">' + count + '</div></div>';
-            }).join('');
-            const reportHtml = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Informe Semanal GPF</title><style>body{font-family:Arial,sans-serif;margin:0;padding:24px;color:#1f2937;background:#f9fafb;}.header{background:linear-gradient(135deg,#1d4ed8,#7c3aed);color:white;padding:28px 32px;border-radius:12px;margin-bottom:24px;}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;}.card{background:white;border-radius:10px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.08);}.card-title{font-size:0.8rem;color:#6b7280;font-weight:600;text-transform:uppercase;margin-bottom:6px;}.card-value{font-size:2rem;font-weight:700;color:#1d4ed8;line-height:1;}.card-sub{font-size:0.8rem;color:#6b7280;margin-top:4px;}.section{background:white;border-radius:10px;padding:20px 24px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:16px;}.section h2{margin:0 0 16px;font-size:1rem;color:#374151;border-bottom:2px solid #e5e7eb;padding-bottom:8px;}</style></head><body>' +
-                '<div class="header"><h1 style="margin:0 0 4px;font-size:1.6rem;">📊 Informe Semanal — Prescripción GPF</h1><p style="margin:0;opacity:0.85;">Semana del ' + weekStartStr + ' al ' + dateStr + '</p></div>' +
-                '<div class="grid">' +
-                '<div class="card"><div class="card-title">🏢 Visitas realizadas</div><div class="card-value">' + visits.length + '</div><div class="card-sub">Por mí: ' + visitsByMe.length + ' · Comercial: ' + visitsByComercial.length + '</div></div>' +
-                '<div class="card"><div class="card-title">📞 Llamadas</div><div class="card-value">' + calls.length + '</div><div class="card-sub">Con comerciales: ' + comercialCalls.length + '</div></div>' +
-                '<div class="card"><div class="card-title">✉️ Emails</div><div class="card-value">' + emails.length + '</div><div class="card-sub">Total actividades: ' + weekActivities.length + '</div></div>' +
-                '<div class="card"><div class="card-title">👥 Visitas conjuntas</div><div class="card-value">' + jointVisits.length + '</div></div>' +
-                '<div class="card"><div class="card-title">🤝 Traspasos</div><div class="card-value">' + handoffs.length + '</div></div>' +
-                '<div class="card"><div class="card-title">📋 Prescripciones + ventas</div><div class="card-value">' + (prescriptions.length + sales.length) + '</div></div>' +
-                '</div>' +
-                '<div class="section"><h2>📈 Pipeline — Estado actual</h2>' + funnelRows + '</div>' +
-                '<div style="margin-top:24px;text-align:center;color:#9ca3af;font-size:0.78rem;">Generado el ' + dateStr + ' · CRM Prescripción GPF</div>' +
-                '</body></html>';
-            const win = window.open('', '_blank');
-            if (win) { win.document.write(reportHtml); win.document.close(); }
-            else { showNotification('⚠️ Activa las ventanas emergentes para ver el informe', 'warning'); }
-        }
-
-        // ============================================
-        // FIX: duplicate panel - always reload ignored + pagination  
-        // ============================================
-
-
-        // ============================================
-        // INFORME SEMANAL
-        // ============================================
-        async function generateWeeklyReport() {
-            showNotification('📊 Generando informe semanal...', 'info');
 
             const allStudios = await getAllStudios();
             const allActivities = await getAllActivities();
