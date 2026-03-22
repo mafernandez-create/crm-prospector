@@ -5982,23 +5982,75 @@
                             <div style="font-size:0.78rem;color:#6b7c93;margin-top:2px;">${typeIcon}${isDefault ? ' · <span style="color:#aaa;">Predeterminada</span>' : ''}</div>
                         </div>
                         <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
-                            <button class="btn btn-sm btn-secondary" onclick="previewTemplate('${t.id}','${type}')">👁 Ver</button>
-                            <button class="btn btn-sm btn-secondary" onclick="editTemplate('${t.id}','${type}',false)">✏️ Editar</button>
                             <button class="btn btn-sm btn-primary" onclick="copyTemplate('${t.id}','${type}')">📋 Copiar</button>
+                            <button class="btn btn-sm btn-secondary" onclick="inlineEditTemplate('${t.id}','${type}',${isDefault})" style="font-weight:600;">✏️ Editar</button>
                             <button onclick="deleteTemplate('${t.id}','${type}')" style="background:none;border:1px solid #fca5a5;color:#ef4444;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:0.75rem;" title="Eliminar">🗑</button>
                         </div>
                     </div>
-                    <div id="tpreview-${t.id}" style="display:none;margin-top:12px;background:#f7f9fc;border-radius:8px;padding:12px;">
-                        ${t.subject ? `<div style="font-size:0.8rem;font-weight:600;color:#6b7c93;margin-bottom:4px;">Asunto: ${escapeHtml(t.subject)}</div>` : ''}
-                        <pre style="white-space:pre-wrap;font-family:inherit;font-size:0.82rem;margin:0;color:#1a1a2e;">${escapeHtml(t.body)}</pre>
+                    <div id="tpreview-${t.id}" style="display:none;margin-top:12px;">
+                        <div style="background:#f7f9fc;border-radius:8px;padding:12px;">
+                            ${t.subject ? `<div style="font-size:0.8rem;font-weight:600;color:#6b7c93;margin-bottom:4px;">Asunto: ${escapeHtml(t.subject)}</div>` : ''}
+                            <pre style="white-space:pre-wrap;font-family:inherit;font-size:0.82rem;margin:0;color:#1a1a2e;">${escapeHtml(t.body)}</pre>
+                        </div>
+                    </div>
+                    <div id="tedit-${t.id}" style="display:none;margin-top:12px;background:#f7f9fc;border-radius:8px;padding:14px;border:2px solid #0066cc;">
+                        <div style="font-size:0.8rem;font-weight:700;color:#0066cc;margin-bottom:8px;">✏️ Editando plantilla</div>
+                        ${t.subject !== undefined ? `
+                        <div style="margin-bottom:8px;">
+                            <label style="font-size:0.75rem;font-weight:600;color:#6b7c93;display:block;margin-bottom:3px;">Asunto</label>
+                            <input id="te-subj-${t.id}" type="text" value="${escapeHtml(t.subject||'')}" style="width:100%;padding:7px 10px;border:1px solid #d9e2ec;border-radius:6px;font-size:0.85rem;box-sizing:border-box;">
+                        </div>` : ''}
+                        <div>
+                            <label style="font-size:0.75rem;font-weight:600;color:#6b7c93;display:block;margin-bottom:3px;">Cuerpo <span style="font-weight:400;">(usa [nombre], [empresa], [tu_nombre])</span></label>
+                            <textarea id="te-body-${t.id}" rows="8" style="width:100%;padding:8px 10px;border:1px solid #d9e2ec;border-radius:6px;font-size:0.85rem;font-family:inherit;resize:vertical;box-sizing:border-box;">${escapeHtml(t.body)}</textarea>
+                        </div>
+                        <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end;">
+                            <button class="btn btn-sm btn-secondary" onclick="document.getElementById('tedit-${t.id}').style.display='none'">Cancelar</button>
+                            <button class="btn btn-sm btn-primary" onclick="saveTemplateInline('${t.id}','${type}',${isDefault})">💾 Guardar cambios</button>
+                        </div>
                     </div>
                 </div>`;
             }).join('');
         }
 
+
+        function inlineEditTemplate(id, type, isDefault) {
+            const editEl = document.getElementById('tedit-' + id);
+            const previewEl = document.getElementById('tpreview-' + id);
+            if (!editEl) { editTemplate(id, type, false); return; }
+            if (previewEl) previewEl.style.display = 'none';
+            editEl.style.display = editEl.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function saveTemplateInline(id, type, isDefault) {
+            const body = document.getElementById('te-body-' + id)?.value;
+            const subjectEl = document.getElementById('te-subj-' + id);
+            const subject = subjectEl ? subjectEl.value.trim() : '';
+            if (!body) { showNotification('⚠️ El cuerpo no puede estar vacío', 'warning'); return; }
+
+            const allTemplates = getTemplatesForType(type);
+            const t = allTemplates.find(x => x.id === id);
+            if (!t) return;
+
+            const user = _loadUserTemplates();
+            if (!user[type]) user[type] = [];
+            const updatedTpl = { ...t, body, subject: subject || t.subject || '' };
+
+            const idx = user[type].findIndex(x => x.id === id);
+            if (idx >= 0) user[type][idx] = updatedTpl;
+            else user[type].unshift(updatedTpl);
+
+            _saveUserTemplates(user);
+            document.getElementById('tedit-' + id).style.display = 'none';
+            showNotification('✅ Plantilla guardada', 'success');
+            showTemplatesTab(type);
+        }
+
         function previewTemplate(id, type) {
             const el = document.getElementById('tpreview-' + id);
-            if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+            if (!el) return;
+            if (el.style.display !== 'none') { el.style.display = 'none'; return; }
+            el.style.display = 'block';
         }
 
         function copyTemplate(id, type) {
