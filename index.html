@@ -13021,8 +13021,8 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 '<div><h2 style="margin:0;color:#f1f5f9;font-size:1.3rem;">🔍 Posibles empresas duplicadas</h2>' +
                 '<p id="dup-count" style="margin:4px 0 0;color:#64748b;font-size:0.85rem;">' + totalMsg + '</p></div>' +
                 '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
-                '<button onclick="if(confirm('¿Borrar el historial de pares ignorados/procesados?')){localStorage.removeItem('crm_dup_ignored');window._dupIgnoredPairs=new Set();document.getElementById('duplicates-panel').remove();findAndShowDuplicateStudios();}" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:10px 16px;border-radius:8px;cursor:pointer;font-size:0.85rem;">🔄 Resetear historial</button>' +
-                '<button onclick="document.getElementById('duplicates-panel').remove()" style="background:#334155;border:none;color:#cbd5e1;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:0.9rem;">✕ Cerrar</button>' +
+                '<button onclick="if(confirm(\'¿Borrar el historial de pares ignorados/procesados?\')){localStorage.removeItem(\'crm_dup_ignored\');window._dupIgnoredPairs=new Set();document.getElementById(\'duplicates-panel\').remove();findAndShowDuplicateStudios();}" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:10px 16px;border-radius:8px;cursor:pointer;font-size:0.85rem;">🔄 Resetear historial</button>' +
+                '<button onclick="document.getElementById(\'duplicates-panel\').remove()" style="background:#334155;border:none;color:#cbd5e1;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:0.9rem;">✕ Cerrar</button>' +
                 '</div></div>' +
                 '<div id="dup-pairs-list">' + pairCards + '</div>' +
                 '</div>';
