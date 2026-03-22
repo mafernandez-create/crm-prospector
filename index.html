@@ -19829,20 +19829,27 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             if (!useFirebase || !firestoreDB) return;
             try {
                 const doc = await firestoreDB.collection('_meta').doc('planificador').get();
+                const local = JSON.parse(localStorage.getItem('crm_test_planificador') || 'null');
+                const localDays = (local && local.schedule) ? Object.keys(local.schedule).length : 0;
+
                 if (doc.exists) {
-                    const data = doc.data();
-                    if (data && data.schedule) {
-                        planificadorData = data;
-                        localStorage.setItem('crm_test_planificador', JSON.stringify(planificadorData));
-                    }
-                } else {
-                    // Firebase vacío: migrar datos de localStorage a Firebase
-                    const local = JSON.parse(localStorage.getItem('crm_test_planificador') || 'null');
-                    if (local && local.schedule && Object.keys(local.schedule).length > 0) {
+                    const remote = doc.data();
+                    const remoteDays = (remote && remote.schedule) ? Object.keys(remote.schedule).length : 0;
+                    // Usar el que tenga más días planificados; en empate, preferir Firebase
+                    if (localDays > remoteDays) {
                         planificadorData = local;
                         await firestoreDB.collection('_meta').doc('planificador').set(planificadorData);
-                        console.log('✅ Planificador migrado a Firebase:', Object.keys(local.schedule).length, 'días');
+                        console.log('✅ Planificador local → Firebase (' + localDays + ' días, remoto tenía ' + remoteDays + ')');
+                    } else if (remote && remote.schedule) {
+                        planificadorData = remote;
+                        localStorage.setItem('crm_test_planificador', JSON.stringify(planificadorData));
+                        console.log('✅ Planificador cargado de Firebase (' + remoteDays + ' días)');
                     }
+                } else if (localDays > 0) {
+                    // Firebase vacío: migrar datos locales
+                    planificadorData = local;
+                    await firestoreDB.collection('_meta').doc('planificador').set(planificadorData);
+                    console.log('✅ Planificador migrado a Firebase (' + localDays + ' días)');
                 }
             } catch(e) {
                 console.warn('No se pudo cargar planificador de Firebase:', e);
