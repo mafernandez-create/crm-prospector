@@ -59,6 +59,10 @@
             --surface: #f7f9fc;
             --card: #ffffff;
             --border: #d9e2ec;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f7f9fc;
+            --bg-tertiary: #eef2f7;
+            --text-primary: #1a1a2e;
             --sidebar-width: 260px;
             /* Safe area para iPhone con notch/Dynamic Island */
             --safe-area-top: env(safe-area-inset-top, 0px);
@@ -5844,7 +5848,7 @@
                         <td style="padding:8px 10px;color:var(--muted);text-transform:capitalize;">${escapeHtml(s.type || '')}</td>
                         <td style="padding:8px 10px;"><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:600;background:${statusColors[st]}22;color:${statusColors[st]};">${statusLabels[st]||st}</span></td>
                         <td style="padding:8px 10px;">${phone ? `<a href="tel:${escapeHtml(phone)}" style="color:var(--primary);text-decoration:none;">${escapeHtml(phone)}</a>` : '—'}</td>
-                        <td style="padding:8px 10px;color:var(--muted);font-size:0.8rem;">${escapeHtml(addr)}${addr && city ? ', ' : ''}${escapeHtml(city)}</td>
+                        <td style="padding:8px 10px;color:#6b7c93;font-size:0.8rem;">${escapeHtml(addr)}${addr && city ? ', ' : ''}${escapeHtml(city)}</td>
                         <td style="padding:8px 10px;"><button class="btn btn-sm btn-secondary" onclick="document.getElementById('route-panel').remove();showStudioDetail(${s.id})">Ver</button></td>
                     </tr>`;
                 }).join('')}
@@ -6176,7 +6180,7 @@
             modal.id = 'handoff-modal';
             modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;';
             modal.innerHTML = `
-                <div style="background:var(--bg-primary);border-radius:12px;padding:28px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                <div style="background:#ffffff;border-radius:12px;padding:28px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
                     <h3 style="margin:0 0 20px;font-size:1.2rem;">🤝 Registrar traspaso al comercial</h3>
                     <div style="display:flex;flex-direction:column;gap:14px;">
                         <div>
@@ -6231,7 +6235,7 @@
             modal.id = 'handoff-result-modal';
             modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;';
             modal.innerHTML = `
-                <div style="background:var(--bg-primary);border-radius:12px;padding:28px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                <div style="background:#ffffff;border-radius:12px;padding:28px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
                     <h3 style="margin:0 0 20px;font-size:1.2rem;">📋 Actualizar resultado del traspaso</h3>
                     <div style="display:flex;flex-direction:column;gap:14px;">
                         <div>
@@ -6307,16 +6311,16 @@
 
             return `
                 <div style="display:flex;flex-direction:column;gap:16px;">
-                    <div style="background:var(--bg-secondary);border-radius:10px;padding:18px;">
+                    <div style="background:#f7f9fc;border-radius:10px;padding:18px;">
                         <div style="font-weight:700;font-size:1rem;margin-bottom:14px;">🤝 Datos del traspaso</div>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                            <div><span style="color:var(--muted);font-size:0.8rem;">Comercial</span><div style="font-weight:600;">${h.comercial || '—'}</div></div>
-                            <div><span style="color:var(--muted);font-size:0.8rem;">Empresa</span><div style="font-weight:600;text-transform:capitalize;">${h.empresa || '—'}</div></div>
-                            <div><span style="color:var(--muted);font-size:0.8rem;">Fecha traspaso</span><div style="font-weight:600;">${h.fechaTraspaso ? formatDate(h.fechaTraspaso) : '—'}</div></div>
-                            <div><span style="color:var(--muted);font-size:0.8rem;">Fecha resultado</span><div style="font-weight:600;">${h.fechaResultado ? formatDate(h.fechaResultado) : '—'}</div></div>
+                            <div><span style="color:#6b7c93;font-size:0.8rem;">Comercial</span><div style="font-weight:600;">${h.comercial || '—'}</div></div>
+                            <div><span style="color:#6b7c93;font-size:0.8rem;">Empresa</span><div style="font-weight:600;text-transform:capitalize;">${h.empresa || '—'}</div></div>
+                            <div><span style="color:#6b7c93;font-size:0.8rem;">Fecha traspaso</span><div style="font-weight:600;">${h.fechaTraspaso ? formatDate(h.fechaTraspaso) : '—'}</div></div>
+                            <div><span style="color:#6b7c93;font-size:0.8rem;">Fecha resultado</span><div style="font-weight:600;">${h.fechaResultado ? formatDate(h.fechaResultado) : '—'}</div></div>
                         </div>
-                        ${h.notas ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);"><span style="color:var(--muted);font-size:0.8rem;">Notas del traspaso</span><div style="margin-top:4px;">${h.notas}</div></div>` : ''}
-                        ${h.notasResultado ? `<div style="margin-top:8px;"><span style="color:var(--muted);font-size:0.8rem;">Notas del resultado</span><div style="margin-top:4px;">${h.notasResultado}</div></div>` : ''}
+                        ${h.notas ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);"><span style="color:#6b7c93;font-size:0.8rem;">Notas del traspaso</span><div style="margin-top:4px;">${h.notas}</div></div>` : ''}
+                        ${h.notasResultado ? `<div style="margin-top:8px;"><span style="color:#6b7c93;font-size:0.8rem;">Notas del resultado</span><div style="margin-top:4px;">${h.notasResultado}</div></div>` : ''}
                     </div>
                     <div style="background:${res.bg};border-radius:10px;padding:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
                         <div style="font-weight:700;color:${res.color};font-size:1rem;">${res.label}</div>
