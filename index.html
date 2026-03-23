@@ -22487,6 +22487,8 @@ ${modalidad === 'real' ? `Notas de Manuel:\n"${notas}"` : (notas ? `Datos adicio
                             onclick="const r=document.getElementById('mobile-modal-root');document.getElementById('mobile-estudio-modal')?.remove();if(r&&!r.children.length)r.style.pointerEvents='none';mobileRegistroRapido('${safeId}','${safeName}')">⚡ Registro rápido</button>
                         <button class="m-btn m-btn-ghost" style="text-align:center;"
                             onclick="this.closest('[id=mobile-estudio-modal]')?.remove();const r=document.getElementById('mobile-modal-root');if(r&&!r.children.length)r.style.pointerEvents='none';mobileIrARegistrar('${safeId}','${safeName}')">📝 Registro completo</button>
+                        <button class="m-btn" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;font-weight:700;padding:13px;border:none;border-radius:12px;cursor:pointer;font-size:0.9rem;width:100%;text-align:center;"
+                            onclick="currentStudioId=${safeId}; openInformeIAModal();">✍️ Redactar Informe con IA</button>
                     </div>
                     <button onclick="this.closest('[id=mobile-estudio-modal]')?.remove(); const r=document.getElementById('mobile-modal-root');if(r&&!r.children.length)r.style.pointerEvents='none';"
                         style="margin-top:10px;width:100%;padding:14px;background:#334155;border:none;border-radius:12px;color:#f1f5f9;font-size:0.95rem;cursor:pointer;">Cerrar</button>
