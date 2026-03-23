@@ -7104,7 +7104,11 @@
                                                             👁️ Ver informe
                                                         </button>
                                                     ` : ''}
-                                                    ${r.fileData ? `
+                                                    ${r.aiGenerated ? `
+                                                        <button onclick="descargarInformeDocx(${idx})" class="btn btn-sm btn-primary">
+                                                            📥 Descargar .docx
+                                                        </button>
+                                                    ` : (r.fileData ? `
                                                         <button onclick="downloadReport(${idx})" class="btn btn-sm btn-primary">
                                                             📥 Descargar
                                                         </button>
@@ -21514,7 +21518,7 @@ Redacta el informe completo siguiendo las 8 secciones obligatorias.`;
                                 <div style="font-size:0.75rem;background:rgba(124,58,237,0.15);color:#a78bfa;padding:2px 8px;border-radius:8px;display:inline-block;">✍️ Generado con IA</div>
                             </div>
                             <div style="display:flex;gap:8px;align-items:center;">
-                                <button onclick="downloadReport(${reportIdx})" class="btn btn-sm btn-primary">📥 Descargar .md</button>
+                                <button onclick="descargarInformeDocx(${reportIdx})" class="btn btn-sm btn-primary">📥 Descargar .docx</button>
                                 <button onclick="document.getElementById('ver-informe-modal').remove()"
                                     style="background:none; border:none; color:#94a3b8; font-size:1.4rem; cursor:pointer; line-height:1;">✕</button>
                             </div>
