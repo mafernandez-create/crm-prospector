@@ -21284,6 +21284,256 @@ Notas:
             }
         }
 
+        // ============================================
+        // GENERADOR DE INFORMES DE VISITA CON IA
+        // ============================================
+
+        function openInformeIAModal() {
+            const prev = document.getElementById('informe-ia-modal');
+            if (prev) prev.remove();
+
+            const studio = cloudCache.studios.find(s => s.id == currentStudioId);
+            const studioName = studio?.name || 'Empresa';
+            const today = new Date().toISOString().split('T')[0];
+
+            const modal = document.createElement('div');
+            modal.id = 'informe-ia-modal';
+            modal.style.cssText = `
+                position:fixed; inset:0; background:rgba(0,0,0,0.65);
+                display:flex; align-items:flex-start; justify-content:center;
+                z-index:10000; padding:20px; overflow-y:auto;
+            `;
+            modal.innerHTML = `
+                <div style="background:#1e293b; border-radius:16px; padding:28px; max-width:680px; width:100%;
+                            box-shadow:0 20px 60px rgba(0,0,0,0.5); border:1px solid rgba(124,58,237,0.3); margin:auto;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <h3 style="margin:0; color:#e2e8f0; font-size:1.1rem;">✍️ Redactar Informe de Visita</h3>
+                        <button onclick="document.getElementById('informe-ia-modal').remove()"
+                            style="background:none; border:none; color:#94a3b8; font-size:1.4rem; cursor:pointer; line-height:1;">✕</button>
+                    </div>
+                    <div style="color:#7c3aed; font-size:0.82rem; margin-bottom:18px; font-weight:600;">${studioName}</div>
+
+                    <!-- Modalidad -->
+                    <div style="margin-bottom:16px;">
+                        <div style="color:#94a3b8; font-size:0.8rem; margin-bottom:8px; font-weight:500;">MODALIDAD</div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;background:#0f172a;padding:8px 14px;border-radius:8px;border:2px solid #7c3aed;">
+                                <input type="radio" name="informe-modalidad" value="real" checked style="accent-color:#7c3aed;">
+                                <span style="color:#e2e8f0;font-size:0.85rem;">📋 Visita Real</span>
+                            </label>
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;background:#0f172a;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);">
+                                <input type="radio" name="informe-modalidad" value="ficticio" style="accent-color:#7c3aed;">
+                                <span style="color:#e2e8f0;font-size:0.85rem;">🧪 Visita Ficticia</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Fecha -->
+                    <div style="margin-bottom:16px;">
+                        <div style="color:#94a3b8; font-size:0.8rem; margin-bottom:6px; font-weight:500;">FECHA DE LA VISITA</div>
+                        <input type="date" id="informe-ia-fecha" value="${today}"
+                            style="background:#0f172a; border:1px solid rgba(124,58,237,0.4); border-radius:8px;
+                                   padding:8px 12px; color:#e2e8f0; font-size:0.9rem; width:180px;">
+                    </div>
+
+                    <!-- Notas -->
+                    <div style="margin-bottom:16px;">
+                        <div style="color:#94a3b8; font-size:0.8rem; margin-bottom:6px; font-weight:500;">TUS NOTAS DE LA VISITA</div>
+                        <textarea id="informe-ia-notas"
+                            style="width:100%; min-height:180px; background:#0f172a; border:1px solid rgba(124,58,237,0.4);
+                                   border-radius:10px; padding:14px; color:#e2e8f0; font-size:0.88rem;
+                                   resize:vertical; outline:none; box-sizing:border-box; font-family:inherit; line-height:1.6;"
+                            placeholder="Escribe libremente lo que recuerdas de la visita. Ejemplos:
+• Visita a Juan López (arquitecto jefe). Presentamos Mute y Ecosan. Les llamó la atención los pozos modulares, les flipó.
+• Están trabajando con Adequa pero abiertos a cambiar. Tienen 3 proyectos en Málaga capital.
+• Nos pidieron familias BIM para Revit. Manuel se compromete a enviarlas esta semana.
+• Nivel de interés alto. Quedan en llamarme cuando salga el proyecto del hotel."></textarea>
+                    </div>
+
+                    <div style="display:flex; gap:10px; justify-content:flex-end;">
+                        <button onclick="document.getElementById('informe-ia-modal').remove()"
+                            style="background:#334155; color:#cbd5e1; border:none; padding:10px 20px;
+                                   border-radius:8px; cursor:pointer; font-size:0.9rem;">Cancelar</button>
+                        <button onclick="generarInformeIA(${currentStudioId})"
+                            style="background:linear-gradient(135deg,#7c3aed,#6d28d9); color:white; border:none;
+                                   padding:10px 24px; border-radius:8px; cursor:pointer; font-size:0.9rem; font-weight:600;">
+                            ✍️ Generar Informe
+                        </button>
+                    </div>
+
+                    <div id="informe-ia-status" style="margin-top:14px; display:none;
+                        background:rgba(124,58,237,0.1); border-radius:8px; padding:12px;
+                        color:#c4b5fd; font-size:0.85rem; text-align:center;">
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            setTimeout(() => document.getElementById('informe-ia-notas')?.focus(), 100);
+        }
+
+        async function generarInformeIA(studioId) {
+            const notas = document.getElementById('informe-ia-notas')?.value?.trim();
+            const fecha = document.getElementById('informe-ia-fecha')?.value || new Date().toISOString().split('T')[0];
+            const modalidad = document.querySelector('input[name="informe-modalidad"]:checked')?.value || 'real';
+            const statusDiv = document.getElementById('informe-ia-status');
+
+            if (modalidad === 'real' && !notas) {
+                showNotification('⚠️ Escribe las notas de la visita antes de generar', 'warning');
+                return;
+            }
+
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = 'rgba(124,58,237,0.1)';
+            statusDiv.style.color = '#c4b5fd';
+            statusDiv.textContent = '🤖 Generando informe...';
+
+            const studio = cloudCache.studios.find(s => s.id == studioId);
+            const studioName = studio?.name || 'Empresa';
+            const city = studio?.city || studio?.province || '';
+            const type = studio?.type || '';
+            const contactName = studio?.data?.contact?.contactName || '';
+
+            const systemPrompt = `Eres el asistente de informes de visitas comerciales de Manuel Fernández, promotor y prescriptor de Grupo Plásticos Ferro (GPF) en Andalucía.
+
+CONTEXTO GPF:
+- Productos: Ferroplast Mute (evacuación insonorizada, 16 dB a 4 L/s, triple cert. AENOR, Fraunhofer, RAL 9002, B-s1,d0), Ecosan (saneamiento reciclado, criterios CAM), GPB Biopipe, Pozos modulares plástico.
+- Competencia insonorización: Adequa (referencia histórica), Italsan (Triplus/Silere, BIM+Presto), Aliaxis (dBlue 10dB/Phonoblack 13dB), Ostendorf/Crearplast (Skolan Safe 17dB), Geberit (premium).
+- Competencia saneamiento: Aliaxis, Ostendorf (KG2000), Molecor (TOM), Italsan HDPE.
+- Barreras frecuentes: familias BIM/Revit (~79% estudios), archivo Presto, Archicad, desconocimiento marca.
+- Lenguaje de Manuel: "les flipó" = reacción muy positiva, "territorio virgen" = sin prescripción establecida, "están con Adequa" = competencia prescrita, "me pidieron las familias BIM", "quieren el Presto".
+
+ESTRUCTURA OBLIGATORIA DEL INFORME (8 secciones):
+1. INFORMACIÓN GENERAL DE LA VISITA (Fecha, Empresa, Asistentes empresa, Asistente GPF: Manuel Fernández)
+2. OBJETIVO DE LA VISITA (por defecto Ferroplast Mute + Ecosan salvo que se indique otro)
+3. TEMAS TRATADOS (productos presentados, muestra física Sí/No, requerimientos técnicos, proyectos activos, argumentos utilizados)
+4. OPORTUNIDADES DETECTADAS (proyectos concretos, tipología, volumen estimado, territorio virgen)
+5. DECISIONES TOMADAS Y COMPROMISOS (por parte empresa visitada / por parte GPF - Manuel)
+6. TEMAS PENDIENTES NO ABORDADOS
+7. OBSERVACIONES ADICIONALES (declaraciones relevantes, percepción marca/productos, obstáculos, competidores referenciados)
+8. EVALUACIÓN GENERAL (nivel interés: Alto/Medio/Bajo, acciones internas recomendadas, plan de seguimiento)
+
+REGLAS:
+- ${modalidad === 'real' ? 'NO inventar datos. Si falta información relevante, dejar la sección con "Pendiente de completar" en lugar de inventar.' : 'Modalidad ficticia: crear datos verosímiles y coherentes con el contexto real de GPF (Andalucía, arquitectura/ingeniería, productos reales). El informe debe ser indistinguible de uno real.'}
+- Tono profesional, directo y objetivo. Sin descripciones de producto excesivas.
+- Preservar el lenguaje real del cliente en las observaciones (no "limpiar" expresiones coloquiales).
+- Formato Markdown con cabeceras ## para cada sección y tablas donde corresponda.
+- Objetivo por defecto si no se especifica: Ferroplast Mute + Ecosan.`;
+
+            const userMsg = `Empresa visitada: ${studioName}${city ? ` (${city})` : ''}${type ? ` — ${type}` : ''}${contactName ? `\nContacto registrado en CRM: ${contactName}` : ''}
+Fecha: ${fecha}
+Modalidad: ${modalidad === 'real' ? 'Visita Real' : 'Visita Ficticia'}
+
+${modalidad === 'real' ? `Notas de la visita:\n"${notas}"` : (notas ? `Datos adicionales proporcionados:\n"${notas}"` : 'Generar informe ficticio completo y verosímil para esta empresa.')}
+
+Redacta el informe completo siguiendo las 8 secciones obligatorias.`;
+
+            try {
+                const response = await callClaudeAPI(
+                    [{ role: 'user', content: userMsg }],
+                    2500,
+                    'claude-sonnet-4-6',
+                    systemPrompt
+                );
+
+                const reportText = response?.content?.[0]?.text || '';
+                if (!reportText) throw new Error('La IA no devolvió contenido');
+
+                statusDiv.textContent = '✅ Informe generado. Guardando...';
+
+                // Codificar como base64 para descarga
+                const b64 = btoa(unescape(encodeURIComponent(reportText)));
+                const fileData = `data:text/markdown;base64,${b64}`;
+                const safeDate = fecha.replace(/-/g, '');
+                const safeName = studioName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                const fileName = `informe_${safeName}_${safeDate}.md`;
+                const title = `Informe visita ${studioName} — ${fecha}`;
+
+                const newReport = {
+                    title,
+                    date: fecha,
+                    fileName,
+                    fileType: 'text/markdown',
+                    aiGenerated: true,
+                    markdownContent: reportText,
+                    fileData,
+                    uploadedAt: new Date().toISOString(),
+                    createdAt: new Date().toISOString()
+                };
+
+                const s = await getStudio(studioId);
+                if (!s) throw new Error('Estudio no encontrado');
+                if (!s.data) s.data = {};
+                if (!s.data.reports) s.data.reports = [];
+                s.data.reports.unshift(newReport);
+                await updateStudio(studioId, { data: s.data });
+
+                await addActivity({
+                    studioId,
+                    type: 'meeting',
+                    text: `✍️ Informe generado con IA: ${title}`
+                });
+
+                document.getElementById('informe-ia-modal')?.remove();
+                showNotification('✅ Informe generado y guardado en Informes', 'success');
+                // Recargar la vista de detalle para mostrar el nuevo informe
+                showStudioDetail(studioId);
+
+            } catch(e) {
+                console.error('Error generando informe:', e);
+                statusDiv.style.background = 'rgba(239,68,68,0.15)';
+                statusDiv.style.color = '#fca5a5';
+                statusDiv.textContent = `❌ Error: ${e.message}`;
+            }
+        }
+
+        function verInformeIA(reportIdx) {
+            getStudio(currentStudioId).then(studio => {
+                const report = studio?.data?.reports?.[reportIdx];
+                if (!report?.markdownContent) return;
+
+                const prev = document.getElementById('ver-informe-modal');
+                if (prev) prev.remove();
+
+                // Convertir markdown básico a HTML legible
+                const html = report.markdownContent
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                    .replace(/^## (.+)$/gm, '<h3 style="color:#a78bfa;margin:20px 0 8px;font-size:1rem;border-bottom:1px solid rgba(124,58,237,0.3);padding-bottom:6px;">$1</h3>')
+                    .replace(/^# (.+)$/gm, '<h2 style="color:#e2e8f0;margin:0 0 16px;font-size:1.15rem;">$1</h2>')
+                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/^- (.+)$/gm, '<li style="margin:4px 0;">$1</li>')
+                    .replace(/\n/g, '<br>');
+
+                const modal = document.createElement('div');
+                modal.id = 'ver-informe-modal';
+                modal.style.cssText = `
+                    position:fixed; inset:0; background:rgba(0,0,0,0.7);
+                    display:flex; align-items:flex-start; justify-content:center;
+                    z-index:10001; padding:20px; overflow-y:auto;
+                `;
+                modal.innerHTML = `
+                    <div style="background:#1e293b; border-radius:16px; padding:28px; max-width:760px; width:100%;
+                                box-shadow:0 20px 60px rgba(0,0,0,0.5); border:1px solid rgba(124,58,237,0.3); margin:auto;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                            <div>
+                                <h3 style="margin:0 0 4px; color:#e2e8f0; font-size:1rem;">${report.title}</h3>
+                                <div style="font-size:0.75rem;background:rgba(124,58,237,0.15);color:#a78bfa;padding:2px 8px;border-radius:8px;display:inline-block;">✍️ Generado con IA</div>
+                            </div>
+                            <div style="display:flex;gap:8px;align-items:center;">
+                                <button onclick="downloadReport(${reportIdx})" class="btn btn-sm btn-primary">📥 Descargar .md</button>
+                                <button onclick="document.getElementById('ver-informe-modal').remove()"
+                                    style="background:none; border:none; color:#94a3b8; font-size:1.4rem; cursor:pointer; line-height:1;">✕</button>
+                            </div>
+                        </div>
+                        <div style="background:#0f172a; border-radius:10px; padding:20px; color:#cbd5e1;
+                                    font-size:0.88rem; line-height:1.7; max-height:70vh; overflow-y:auto;">
+                            ${html}
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            });
+        }
+
         async function syncPlanToCalendar() {
             // 1. Recopilar visitas principales por día
             const schedule = planificadorData.schedule || {};
