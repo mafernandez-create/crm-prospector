@@ -21288,6 +21288,109 @@ Notas:
         }
 
         // ============================================
+        // WORD (.DOCX) — GENERADOR DE INFORMES
+        // ============================================
+
+        function markdownToWordHtml(markdown, studioName) {
+            // Escapar HTML básico antes de procesar
+            let text = markdown
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
+            // Inline: negrita e itálica
+            text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+            // Tablas Markdown → HTML
+            text = text.replace(/(?:^\|.+\|\n)+/gm, tableBlock => {
+                const rows = tableBlock.trim().split('\n');
+                let html = '<table>';
+                rows.forEach((row, i) => {
+                    if (/^\|[-:\s|]+\|$/.test(row.trim())) return; // separador
+                    const cells = row.split('|').filter((_, ci) => ci > 0 && ci < row.split('|').length - 1);
+                    const tag = i === 0 ? 'th' : 'td';
+                    html += '<tr>' + cells.map(c => `<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>';
+                });
+                html += '</table>';
+                return html;
+            });
+
+            // Cabeceras y listas línea a línea
+            const lines = text.split('\n');
+            const out = [];
+            let inList = false;
+            for (const line of lines) {
+                if (line.startsWith('# '))        { if (inList) { out.push('</ul>'); inList=false; } out.push(`<h1>${line.slice(2)}</h1>`); }
+                else if (line.startsWith('## '))  { if (inList) { out.push('</ul>'); inList=false; } out.push(`<h2>${line.slice(3)}</h2>`); }
+                else if (line.startsWith('### ')) { if (inList) { out.push('</ul>'); inList=false; } out.push(`<h3>${line.slice(4)}</h3>`); }
+                else if (/^[-*] /.test(line))     { if (!inList) { out.push('<ul>'); inList=true; } out.push(`<li>${line.slice(2)}</li>`); }
+                else if (line.trim() === '')      { if (inList) { out.push('</ul>'); inList=false; } out.push('<p></p>'); }
+                else if (line.includes('<table>') || line.includes('<tr>') || line.includes('</table>')) { if (inList) { out.push('</ul>'); inList=false; } out.push(line); }
+                else                              { if (inList) { out.push('</ul>'); inList=false; } out.push(`<p>${line}</p>`); }
+            }
+            if (inList) out.push('</ul>');
+
+            const body = out.join('\n');
+            const today = new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'long', year:'numeric' });
+
+            return `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8">
+<style>
+  body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; margin: 2.5cm; color: #1a1a1a; }
+  .doc-header { border-bottom: 3px solid #1a3a6c; padding-bottom: 14px; margin-bottom: 28px; }
+  .doc-header-logo { font-size: 15pt; font-weight: bold; color: #1a3a6c; letter-spacing: 0.5px; }
+  .doc-header-sub { font-size: 9pt; color: #555; margin-top: 3px; }
+  .doc-header-right { float: right; text-align: right; font-size: 9pt; color: #555; }
+  h1 { font-size: 14pt; color: #1a3a6c; margin: 22px 0 8px; border-bottom: 1px solid #c5d0e6; padding-bottom: 5px; }
+  h2 { font-size: 12pt; color: #2c5282; margin: 18px 0 6px; }
+  h3 { font-size: 11pt; color: #2d3748; font-weight: bold; margin: 12px 0 4px; }
+  p { margin: 5px 0; line-height: 1.55; }
+  ul { margin: 6px 0 10px 22px; padding: 0; }
+  li { margin: 4px 0; line-height: 1.55; }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 10pt; }
+  th { background: #1a3a6c; color: white; padding: 7px 11px; text-align: left; }
+  td { border: 1px solid #b8c8e0; padding: 6px 11px; }
+  tr:nth-child(even) td { background: #f4f7fc; }
+  strong { color: #1a3a6c; }
+</style>
+</head>
+<body>
+<div class="doc-header">
+  <div class="doc-header-right">Informe de Visita Comercial<br>${today}</div>
+  <div class="doc-header-logo">GRUPO PLÁSTICOS FERRO</div>
+  <div class="doc-header-sub">Manuel Fernández · Promotor y Prescriptor · Andalucía</div>
+</div>
+${body}
+</body></html>`;
+        }
+
+        function descargarInformeDocx(reportIdx) {
+            getStudio(currentStudioId).then(studio => {
+                const report = studio?.data?.reports?.[reportIdx];
+                if (!report?.markdownContent) {
+                    showNotification('❌ No se encontró el contenido del informe', 'error');
+                    return;
+                }
+                if (typeof htmlDocx === 'undefined') {
+                    showNotification('❌ Librería Word no cargada. Recarga la página.', 'error');
+                    return;
+                }
+                const html = markdownToWordHtml(report.markdownContent, studio.name || '');
+                const blob = htmlDocx.asBlob(html);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = report.fileName || 'informe_visita.docx';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            });
+        }
+
+        // ============================================
         // GENERADOR DE INFORMES DE VISITA CON IA
         // ============================================
 
