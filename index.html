@@ -21732,7 +21732,11 @@ IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin ex
                     }
                 } catch(pe) {
                     console.error('Raw IA response:', rawText);
-                    throw new Error('La IA no devolvió JSON válido. Intenta de nuevo.');
+                    // Mostrar inicio del texto para diagnóstico
+                    const preview = rawText ? rawText.slice(0,120).replace(/</g,'&lt;') : '(vacío)';
+                    statusDiv.innerHTML = `❌ <b>Error JSON</b><br><small style="opacity:0.7;">${preview}…</small>`;
+                    statusDiv.style.display = 'block';
+                    return; // No lanzar excepción para que se vea el mensaje
                 }
 
                 statusDiv.textContent = '✅ Informe generado. Guardando...';
