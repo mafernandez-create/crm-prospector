@@ -21288,9 +21288,170 @@ Notas:
         }
 
         // ============================================
-        // WORD (.DOCX) — GENERADOR DE INFORMES
+        // WORD (.DOCX) — GENERADOR DE INFORMES GPF
         // ============================================
 
+        async function buildDocxGPF(data, studio) {
+            const {
+                Document, Paragraph, TextRun, Table, TableRow, TableCell,
+                WidthType, BorderStyle, ShadingType, AlignmentType,
+                LevelFormat, TabStopType, PageNumber, PageNumberType,
+                Header, Footer, PageBreak
+            } = window.docx;
+
+            const NAVY='1F3864', BLUE='2E5DA6', STRIPE='EAF0FB',
+                  LABEL='D6E4F7', BORDER='C5D3E8', BODY='1A1A1A',
+                  GREY='555555', WHITE='FFFFFF';
+
+            const bd = { style: BorderStyle.SINGLE, size: 1, color: BORDER };
+            const borders = { top: bd, bottom: bd, left: bd, right: bd };
+
+            const hCell = (t, w) => new TableCell({ width:{ size:w, type:WidthType.DXA }, borders, shading:{ fill:BLUE, type:ShadingType.CLEAR }, margins:{ top:80, bottom:80, left:150, right:150 },
+                children:[new Paragraph({ children:[new TextRun({ text:String(t||''), bold:true, color:WHITE, size:20, font:'Calibri' })] })] });
+            const lCell = (t, w) => new TableCell({ width:{ size:w, type:WidthType.DXA }, borders, shading:{ fill:LABEL, type:ShadingType.CLEAR }, margins:{ top:80, bottom:80, left:150, right:150 },
+                children:[new Paragraph({ children:[new TextRun({ text:String(t||''), bold:true, size:20, font:'Calibri', color:NAVY })] })] });
+            const vCell = (t, w, even) => new TableCell({ width:{ size:w, type:WidthType.DXA }, borders, shading:{ fill:even?STRIPE:WHITE, type:ShadingType.CLEAR }, margins:{ top:80, bottom:80, left:150, right:150 },
+                children:[new Paragraph({ children:[new TextRun({ text:String(t||'—'), size:20, font:'Calibri', color:BODY })] })] });
+            const sHdr = (n, title) => new Paragraph({ spacing:{ before:360, after:120 }, shading:{ fill:NAVY, type:ShadingType.CLEAR },
+                children:[new TextRun({ text:`${n}. ${title}`, font:'Calibri', size:26, bold:true, color:WHITE })] });
+            const bodyP = (t, sp=160) => new Paragraph({ spacing:{ before:0, after:sp }, children:[new TextRun({ text:String(t||''), size:22, font:'Calibri', color:BODY })] });
+            const bullet = (t) => new Paragraph({ numbering:{ reference:'gpf-bullets', level:0 }, spacing:{ after:80 }, children:[new TextRun({ text:String(t||''), size:20, font:'Calibri', color:BODY })] });
+            const sub = (t) => new Paragraph({ spacing:{ before:160, after:80 }, children:[new TextRun({ text:String(t||''), bold:true, size:22, font:'Calibri', color:BLUE })] });
+            const sep = () => new Paragraph({ border:{ bottom:{ style:BorderStyle.SINGLE, size:12, color:BLUE, space:1 } }, spacing:{ after:200 }, children:[new TextRun('')] });
+            const arr = (v) => Array.isArray(v) && v.length > 0 ? v : null;
+
+            const fechaDisp = data.fecha || new Date().toLocaleDateString('es-ES',{ day:'2-digit', month:'2-digit', year:'numeric' });
+
+            // PORTADA
+            const cover = [
+                new Paragraph({ spacing:{ before:2880, after:400 }, children:[new TextRun({ text:'INFORME DE VISITA COMERCIAL', font:'Calibri', size:64, bold:true, color:NAVY })] }),
+                new Paragraph({ spacing:{ before:0, after:200 }, children:[new TextRun({ text:data.empresa||studio?.name||'', font:'Calibri', size:40, color:BLUE })] }),
+                new Paragraph({ spacing:{ before:0, after:600 }, children:[new TextRun({ text:`${data.localidad||studio?.city||''} — ${fechaDisp}`, font:'Calibri', size:28, color:GREY })] }),
+                sep(),
+                new Paragraph({ spacing:{ before:200, after:80 }, children:[new TextRun({ text:'Grupo Plásticos Ferro', font:'Calibri', size:24, bold:true, color:NAVY })] }),
+                new Paragraph({ spacing:{ before:0, after:80 }, children:[new TextRun({ text:'Promoción y Prescripción — Andalucía', font:'Calibri', size:20, color:GREY })] }),
+                new Paragraph({ spacing:{ before:0, after:0 }, children:[new TextRun({ text:'Manuel Fernández', font:'Calibri', size:20, italics:true, color:GREY })] }),
+                new Paragraph({ children:[new PageBreak()] })
+            ];
+
+            // SECCIÓN 1 — tabla info general
+            const asist = arr(data.asistentes_empresa)
+                ? data.asistentes_empresa.map(a => typeof a==='string' ? a : `${a.nombre||''}${a.cargo?' — '+a.cargo:''}`).join(' / ')
+                : (data.asistentes_empresa_texto||'—');
+            const infoTable = new Table({ width:{ size:9026, type:WidthType.DXA }, columnWidths:[2800,6226],
+                rows:[
+                    new TableRow({ children:[hCell('CAMPO',2800), hCell('DETALLE',6226)] }),
+                    ...[ ['Fecha',fechaDisp], ['Empresa visitada',data.empresa||studio?.name||'—'], ['Localidad',data.localidad||studio?.city||'—'],
+                         ['Asistentes (empresa)',asist], ['Asistentes (GPF)','Manuel Fernández — Promotor y Prescriptor']
+                    ].map(([l,v],i) => new TableRow({ children:[lCell(l,2800), vCell(v,6226,i%2===0)] }))
+                ]
+            });
+
+            // SECCIÓN 3 — tabla temas tratados
+            const temasTable = new Table({ width:{ size:9026, type:WidthType.DXA }, columnWidths:[3200,5826],
+                rows:[
+                    new TableRow({ children:[hCell('ÍTEM',3200), hCell('DETALLE',5826)] }),
+                    ...[ ['Productos presentados',data.productos_presentados||'Ferroplast Mute + Ecosan'],
+                         ['Entrega de muestra física',data.muestra_fisica||'No'],
+                         ['Requerimientos técnicos identificados',data.requerimientos_tecnicos||'—'],
+                         ['Proyectos activos del cliente',data.proyectos_activos||'—'],
+                         ['Argumentos diferenciadores utilizados',data.argumentos||'—']
+                    ].map(([l,v],i) => new TableRow({ children:[lCell(l,3200), vCell(v,5826,i%2===0)] }))
+                ]
+            });
+
+            // SECCIÓN 8 — nivel de interés
+            const nivel = data.nivel_interes||'Medio';
+            const iColor = nivel==='Alto'?'1E7B34':(nivel==='Bajo'?'C0392B':'B8860B');
+            const iLabel = nivel==='Alto'?'🟢 Alto':(nivel==='Bajo'?'🔴 Bajo':'🟡 Medio');
+
+            // CABECERA Y PIE
+            const header = new Header({ children:[new Paragraph({
+                border:{ bottom:{ style:BorderStyle.SINGLE, size:6, color:BLUE } },
+                tabStops:[{ type:TabStopType.RIGHT, position:9026 }],
+                children:[
+                    new TextRun({ text:'Grupo Plásticos Ferro — Informe de Visita Comercial', size:18, font:'Calibri', color:BLUE, italics:true }),
+                    new TextRun({ text:'\t', size:18 }),
+                    new TextRun({ text:fechaDisp, size:18, font:'Calibri', color:GREY })
+                ]
+            })] });
+            const footer = new Footer({ children:[new Paragraph({
+                border:{ top:{ style:BorderStyle.SINGLE, size:6, color:BLUE } },
+                tabStops:[{ type:TabStopType.RIGHT, position:9026 }],
+                children:[
+                    new TextRun({ text:'Manuel Fernández — Promotor y Prescriptor GPF', size:18, font:'Calibri', color:GREY, italics:true }),
+                    new TextRun({ text:'\t', size:18 }),
+                    new TextRun({ text:'Página ', size:18, font:'Calibri', color:GREY }),
+                    new PageNumber({ type:PageNumberType.CURRENT }),
+                    new TextRun({ text:' de ', size:18, font:'Calibri', color:GREY }),
+                    new PageNumber({ type:PageNumberType.TOTAL_PAGES })
+                ]
+            })] });
+
+            // CUERPO DEL DOCUMENTO
+            const body = [
+                sHdr(1,'INFORMACIÓN GENERAL DE LA VISITA'), infoTable, sep(),
+                sHdr(2,'OBJETIVO DE LA VISITA'),
+                bodyP(data.objetivo||'Visita de prescripción con el objetivo de presentar los sistemas Ferroplast Mute (evacuación insonorizada) y Ecosan (saneamiento con material reciclado) de Grupo Plásticos Ferro, identificar oportunidades en cartera de proyectos activos y evaluar el nivel de conocimiento previo de la marca.'),
+                sep(),
+                sHdr(3,'TEMAS TRATADOS'), temasTable, sep(),
+                sHdr(4,'OPORTUNIDADES DETECTADAS'),
+                ...(arr(data.oportunidades) ? data.oportunidades.map(bullet) : [bodyP('Sin oportunidades específicas identificadas en esta visita.')]),
+                sep(),
+                sHdr(5,'DECISIONES TOMADAS Y COMPROMISOS'),
+                sub('Por parte de la empresa visitada:'),
+                ...(arr(data.compromisos_empresa) ? data.compromisos_empresa.map(bullet) : [bodyP('Visita informativa sin compromisos formales adquiridos.')]),
+                sub('Por parte de GPF (Manuel Fernández):'),
+                ...(arr(data.compromisos_gpf) ? data.compromisos_gpf.map(bullet) : [bodyP('Visita informativa sin compromisos formales adquiridos.')]),
+                sep(),
+                sHdr(6,'TEMAS PENDIENTES NO ABORDADOS'),
+                ...(arr(data.temas_pendientes) ? data.temas_pendientes.map(bullet) : [bodyP('Se abordaron todos los temas previstos para esta visita.')]),
+                sep(),
+                sHdr(7,'OBSERVACIONES ADICIONALES'),
+                sub('Declaraciones relevantes del cliente:'), bodyP(data.declaraciones||'—'),
+                sub('Percepción de la marca y productos:'), bodyP(data.percepcion||'—'),
+                sub('Obstáculos identificados:'), bodyP(data.obstaculos||'—'),
+                sub('Competidores referenciados:'), bodyP(data.competidores||'—'),
+                sep(),
+                sHdr(8,'EVALUACIÓN GENERAL DE LA VISITA'),
+                sub('Nivel de interés del cliente:'),
+                new Paragraph({ spacing:{ before:0, after:160 }, children:[
+                    new TextRun({ text:iLabel, size:24, bold:true, font:'Calibri', color:iColor }),
+                    ...(data.justificacion_interes ? [new TextRun({ text:` — ${data.justificacion_interes}`, size:22, font:'Calibri', color:BODY })] : [])
+                ] }),
+                sub('Acciones internas recomendadas:'),
+                ...(arr(data.acciones_internas) ? data.acciones_internas.map(bullet) : [bodyP('—')]),
+                sub('Plan de seguimiento propuesto:'),
+                bodyP(data.plan_seguimiento||'—')
+            ];
+
+            return new Document({
+                numbering:{ config:[{ reference:'gpf-bullets', levels:[{ level:0, format:LevelFormat.BULLET, text:'•', alignment:AlignmentType.LEFT, style:{ paragraph:{ indent:{ left:600, hanging:300 } }, run:{ font:'Calibri', size:20, color:BLUE } } }] }] },
+                sections:[{ properties:{ page:{ size:{ width:11906, height:16838 }, margin:{ top:1134, right:1134, bottom:1134, left:1134 } } }, headers:{ default:header }, footers:{ default:footer }, children:[...cover, ...body] }]
+            });
+        }
+
+        async function descargarInformeDocx(reportIdx) {
+            const studio = await getStudio(currentStudioId);
+            const report = studio?.data?.reports?.[reportIdx];
+            if (!report?.reportJson && !report?.markdownContent) { showNotification('❌ No se encontró el contenido del informe','error'); return; }
+            if (typeof window.docx === 'undefined') { showNotification('❌ Librería Word no cargada. Recarga la página.','error'); return; }
+            try {
+                const data = report.reportJson || {};
+                const doc = await buildDocxGPF(data, studio);
+                const blob = await window.docx.Packer.toBlob(doc);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = report.fileName||'informe_visita.docx';
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            } catch(e) {
+                console.error('Error generando .docx:', e);
+                showNotification('❌ Error al generar el Word: ' + e.message, 'error');
+            }
+        }
+
+        // marcador de reemplazo — eliminar función antigua
         function markdownToWordHtml(markdown, studioName) {
             // Escapar HTML básico antes de procesar
             let text = markdown
