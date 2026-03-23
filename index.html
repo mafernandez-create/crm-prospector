@@ -21439,22 +21439,18 @@ Redacta el informe completo siguiendo las 8 secciones obligatorias.`;
 
                 statusDiv.textContent = '✅ Informe generado. Guardando...';
 
-                // Codificar como base64 para descarga
-                const b64 = btoa(unescape(encodeURIComponent(reportText)));
-                const fileData = `data:text/markdown;base64,${b64}`;
                 const safeDate = fecha.replace(/-/g, '');
                 const safeName = studioName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-                const fileName = `informe_${safeName}_${safeDate}.md`;
+                const fileName = `informe_${safeName}_${safeDate}.docx`;
                 const title = `Informe visita ${studioName} — ${fecha}`;
 
                 const newReport = {
                     title,
                     date: fecha,
                     fileName,
-                    fileType: 'text/markdown',
+                    fileType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                     aiGenerated: true,
                     markdownContent: reportText,
-                    fileData,
                     uploadedAt: new Date().toISOString(),
                     createdAt: new Date().toISOString()
                 };
