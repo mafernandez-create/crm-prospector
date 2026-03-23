@@ -19137,7 +19137,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const b2b = studio.b2bTimeline;
             const studioType = studio.type || 'arquitectura';
 
-            if (!b2b) {
+            if (!b2b || typeof b2b !== 'object') {
                 const cycleInfo = getCycleInfo(studioType);
                 const objectives = PRESCRIPTOR_OBJECTIVES[studioType] || [];
                 return `
