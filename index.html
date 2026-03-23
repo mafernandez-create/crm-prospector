@@ -21698,11 +21698,14 @@ Devuelve SOLO un JSON válido (sin markdown, sin explicaciones) con esta estruct
   "plan_seguimiento": "plazo y forma del siguiente contacto"
 }`;
 
+            const fechaFormateada = (() => { const d=new Date(fecha); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })();
             const userMsg = `Empresa visitada: ${studioName}${city ? ` (${city})` : ''}${type ? ` — tipo: ${type}` : ''}${contactName ? `\nContacto CRM: ${contactName}` : ''}
-Fecha de la visita: ${(() => { const d=new Date(fecha); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })()}
+Fecha de la visita: ${fechaFormateada}
 Modalidad: ${modalidad === 'real' ? 'Visita Real' : 'Visita Ficticia'}
 
-${modalidad === 'real' ? `Notas de Manuel:\n"${notas}"` : (notas ? `Datos adicionales:\n"${notas}"` : 'Generar informe ficticio completo para esta empresa.')}`;
+${modalidad === 'real' ? `Notas de Manuel:\n"${notas}"` : (notas ? `Datos adicionales:\n"${notas}"` : 'Generar informe ficticio completo para esta empresa.')}
+
+IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin explicaciones, sin markdown. Empieza directamente con { y termina con }.`;
 
             try {
                 const response = await callClaudeAPI(
