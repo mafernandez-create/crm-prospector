@@ -21715,13 +21715,21 @@ ${modalidad === 'real' ? `Notas de Manuel:\n"${notas}"` : (notas ? `Datos adicio
                 const rawText = response?.content?.[0]?.text || '';
                 if (!rawText) throw new Error('La IA no devolvió contenido');
 
-                // Parsear JSON
+                // Parsear JSON — extracción robusta
                 let reportJson;
                 try {
-                    const cleaned = rawText.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
-                    reportJson = JSON.parse(cleaned);
+                    // 1. Intentar directo tras limpiar code fences
+                    const cleaned = rawText.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
+                    try { reportJson = JSON.parse(cleaned); } catch(_) {
+                        // 2. Extraer primer { ... } del texto
+                        const start = rawText.indexOf('{');
+                        const end = rawText.lastIndexOf('}');
+                        if (start === -1 || end === -1) throw new Error('sin JSON');
+                        reportJson = JSON.parse(rawText.slice(start, end + 1));
+                    }
                 } catch(pe) {
-                    throw new Error('La IA no devolvió JSON válido. Intenta reformular las notas.');
+                    console.error('Raw IA response:', rawText);
+                    throw new Error('La IA no devolvió JSON válido. Intenta de nuevo.');
                 }
 
                 statusDiv.textContent = '✅ Informe generado. Guardando...';
