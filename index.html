@@ -7065,11 +7065,18 @@
                         
                         <!-- Reports Tab -->
                         <div class="tab-panel" id="panel-reports">
-                            <!-- Botón principal para adjuntar -->
-                            <div style="background:linear-gradient(135deg, var(--accent), var(--primary));border-radius:12px;padding:24px;text-align:center;margin-bottom:20px;cursor:pointer;" onclick="openAddReportModal()">
-                                <div style="font-size:3rem;margin-bottom:8px;">📎</div>
-                                <div style="color:white;font-size:1.1rem;font-weight:600;">Adjuntar Informe de Visita</div>
-                                <div style="color:rgba(255,255,255,0.8);font-size:0.85rem;margin-top:4px;">Haz clic para seleccionar un archivo</div>
+                            <!-- Botones de acción -->
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+                                <div style="background:linear-gradient(135deg, var(--accent), var(--primary));border-radius:12px;padding:20px;text-align:center;cursor:pointer;" onclick="openAddReportModal()">
+                                    <div style="font-size:2.5rem;margin-bottom:8px;">📎</div>
+                                    <div style="color:white;font-size:1rem;font-weight:600;">Adjuntar Archivo</div>
+                                    <div style="color:rgba(255,255,255,0.8);font-size:0.8rem;margin-top:4px;">Sube un documento existente</div>
+                                </div>
+                                <div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:12px;padding:20px;text-align:center;cursor:pointer;" onclick="openInformeIAModal()">
+                                    <div style="font-size:2.5rem;margin-bottom:8px;">✍️</div>
+                                    <div style="color:white;font-size:1rem;font-weight:600;">Redactar con IA</div>
+                                    <div style="color:rgba(255,255,255,0.8);font-size:0.8rem;margin-top:4px;">Escribe tus notas y la IA lo estructura</div>
+                                </div>
                             </div>
                             
                             <!-- Lista de informes -->
