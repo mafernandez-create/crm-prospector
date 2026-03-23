@@ -21732,12 +21732,37 @@ IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin ex
                     }
                 } catch(pe) {
                     console.error('Raw IA response:', rawText);
-                    // Mostrar inicio del texto para diagnóstico
-                    const preview = rawText ? rawText.slice(0,120).replace(/</g,'&lt;') : '(vacío)';
-                    statusDiv.innerHTML = `❌ <b>Error JSON</b><br><small style="opacity:0.7;">${preview}…</small>`;
-                    statusDiv.style.display = 'block';
-                    return; // No lanzar excepción para que se vea el mensaje
+                    throw new Error('No se pudo leer la respuesta de la IA. Intenta de nuevo.');
                 }
+
+                // Normalizar claves — el modelo a veces usa nombres distintos
+                const r = reportJson;
+                const toArr = v => Array.isArray(v) ? v : (v ? [v] : []);
+                const toStr = v => Array.isArray(v) ? v.join(', ') : (v || '');
+                reportJson = {
+                    empresa:              r.empresa || r.nombre_empresa || r.compania || '',
+                    localidad:            r.localidad || r.ubicacion || r.ciudad || r.location || '',
+                    fecha:                r.fecha || r.fecha_visita || r.date || '',
+                    asistentes_empresa:   toArr(r.asistentes_empresa || r.contacto || r.interlocutor),
+                    objetivo:             r.objetivo || r.objetivo_visita || '',
+                    productos_presentados: toStr(r.productos_presentados || r.productos),
+                    muestra_fisica:       r.muestra_fisica || r.muestra || 'No',
+                    requerimientos_tecnicos: r.requerimientos_tecnicos || r.solicitudes || r.requerimientos || '—',
+                    proyectos_activos:    r.proyectos_activos || r.proyectos_mencionados || r.proyectos || '—',
+                    argumentos:           r.argumentos || r.argumentos_utilizados || '—',
+                    oportunidades:        toArr(r.oportunidades || r.oportunidades_detectadas),
+                    compromisos_empresa:  toArr(r.compromisos_empresa || r.compromisos?.empresa),
+                    compromisos_gpf:      toArr(r.compromisos_gpf || r.compromisos?.gpf),
+                    temas_pendientes:     toArr(r.temas_pendientes || r.pendientes),
+                    declaraciones:        r.declaraciones || r.frases_clave || r.citas || '—',
+                    percepcion:           r.percepcion || r.percepcion_marca || '—',
+                    obstaculos:           r.obstaculos || r.barreras || '—',
+                    competidores:         r.competidores || r.competencia_actual || r.competencia || '—',
+                    nivel_interes:        r.nivel_interes || r.nivel_de_interes || r.interes || 'Medio',
+                    justificacion_interes: r.justificacion_interes || r.justificacion || '',
+                    acciones_internas:    toArr(r.acciones_internas || r.acciones_recomendadas),
+                    plan_seguimiento:     r.plan_seguimiento || r.proximo_paso || r.proximos_pasos || '—'
+                };
 
                 statusDiv.textContent = '✅ Informe generado. Guardando...';
 
