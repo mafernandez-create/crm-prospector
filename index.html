@@ -4269,12 +4269,10 @@
         // ============================================
         // CLAUDE API VÍA PROXY (Apps Script)
         // ============================================
-        async function callClaudeAPI(messages, maxTokens = 4000, model = 'claude-sonnet-4-20250514') {
-            const result = await callAPI('claudeProxy', {
-                model: model,
-                max_tokens: maxTokens,
-                messages: messages
-            });
+        async function callClaudeAPI(messages, maxTokens = 4000, model = 'claude-sonnet-4-20250514', system = null) {
+            const payload = { model, max_tokens: maxTokens, messages };
+            if (system) payload.system = system;
+            const result = await callAPI('claudeProxy', payload);
             if (result.error) {
                 const errMsg = typeof result.error === 'string' ? result.error : (result.error.message || JSON.stringify(result.error));
                 console.error('❌ Claude API error:', result.error);
