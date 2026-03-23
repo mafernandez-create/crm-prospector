@@ -21663,52 +21663,71 @@ ${body}
             const systemPrompt = `Eres el asistente de informes de visitas comerciales de Manuel Fernández, promotor y prescriptor de Grupo Plásticos Ferro (GPF) en Andalucía.
 
 CONTEXTO GPF:
-- Productos: Ferroplast Mute (evacuación insonorizada, 16 dB a 4 L/s, triple cert. AENOR, Fraunhofer, RAL 9002, B-s1,d0), Ecosan (saneamiento reciclado, criterios CAM), GPB Biopipe, Pozos modulares plástico.
-- Competencia insonorización: Adequa (referencia histórica), Italsan (Triplus/Silere, BIM+Presto), Aliaxis (dBlue 10dB/Phonoblack 13dB), Ostendorf/Crearplast (Skolan Safe 17dB), Geberit (premium).
-- Competencia saneamiento: Aliaxis, Ostendorf (KG2000), Molecor (TOM), Italsan HDPE.
-- Barreras frecuentes: familias BIM/Revit (~79% estudios), archivo Presto, Archicad, desconocimiento marca.
-- Lenguaje de Manuel: "les flipó" = reacción muy positiva, "territorio virgen" = sin prescripción establecida, "están con Adequa" = competencia prescrita, "me pidieron las familias BIM", "quieren el Presto".
+- Productos: Ferroplast Mute (evacuación insonorizada, 16 dB a 4 L/s, triple cert. AENOR, Fraunhofer, RAL 9002, B-s1,d0), Ecosan (saneamiento reciclado criterios CAM), GPB Biopipe, Pozos modulares plástico.
+- Competencia insonorización: Adequa (referencia histórica, el más prescrito), Italsan (Triplus/Silere, tienen BIM y Presto), Aliaxis (dBlue 10dB a 2L/s / Phonoblack 13dB), Ostendorf/Crearplast (Skolan Safe 17dB, en España desde 2022), Geberit (premium hotelería/hospitales).
+- Competencia saneamiento: Aliaxis PVC teja, Ostendorf KG2000 (cert. DIBt), Molecor TOM PVC orientado, Italsan HDPE.
+- Barreras frecuentes: familias BIM/Revit (~79%), archivo Presto/BC3, Archicad, desconocimiento marca.
+- Lenguaje de Manuel a preservar: "les flipó"=reacción muy positiva, "territorio virgen"=sin prescripción establecida, "están con Adequa"=competencia prescrita, "me pidieron las familias BIM", "quieren el Presto".
+- Regla: ${modalidad === 'real' ? 'NO inventar datos. Campos sin información → dejar "Pendiente de completar".' : 'Modalidad ficticia: inventar datos verosímiles de estudios de Andalucía (Sevilla, Málaga, Granada, Córdoba). Nombres plausibles, proyectos coherentes (residencial plurifamiliar, hotel, VPO, rehabilitación), competidores del mapa real. El informe debe ser indistinguible de uno real.'}
+- Objetivo por defecto si no se especifica: Ferroplast Mute + Ecosan.
+- Tono: profesional, directo, sin relleno. Preservar expresiones coloquiales del cliente en declaraciones.
 
-ESTRUCTURA OBLIGATORIA DEL INFORME (8 secciones):
-1. INFORMACIÓN GENERAL DE LA VISITA (Fecha, Empresa, Asistentes empresa, Asistente GPF: Manuel Fernández)
-2. OBJETIVO DE LA VISITA (por defecto Ferroplast Mute + Ecosan salvo que se indique otro)
-3. TEMAS TRATADOS (productos presentados, muestra física Sí/No, requerimientos técnicos, proyectos activos, argumentos utilizados)
-4. OPORTUNIDADES DETECTADAS (proyectos concretos, tipología, volumen estimado, territorio virgen)
-5. DECISIONES TOMADAS Y COMPROMISOS (por parte empresa visitada / por parte GPF - Manuel)
-6. TEMAS PENDIENTES NO ABORDADOS
-7. OBSERVACIONES ADICIONALES (declaraciones relevantes, percepción marca/productos, obstáculos, competidores referenciados)
-8. EVALUACIÓN GENERAL (nivel interés: Alto/Medio/Bajo, acciones internas recomendadas, plan de seguimiento)
+Devuelve SOLO un JSON válido (sin markdown, sin explicaciones) con esta estructura exacta:
+{
+  "empresa": "nombre empresa",
+  "localidad": "ciudad, provincia",
+  "fecha": "DD/MM/AAAA",
+  "asistentes_empresa": [{"nombre": "Nombre Apellido", "cargo": "Cargo"}],
+  "objetivo": "párrafo 2-4 líneas",
+  "productos_presentados": "lista de productos GPF presentados",
+  "muestra_fisica": "Sí — [qué muestra] o No",
+  "requerimientos_tecnicos": "BIM/Revit, Presto, Archicad, etc. o —",
+  "proyectos_activos": "descripción de proyectos en curso o cartera",
+  "argumentos": "argumentos diferenciadores GPF utilizados",
+  "oportunidades": ["descripción proyecto — tipología — ubicación — estado"],
+  "compromisos_empresa": ["acción acordada por el cliente"],
+  "compromisos_gpf": ["acción acordada por Manuel/GPF"],
+  "temas_pendientes": ["tema no abordado"],
+  "declaraciones": "citas o frases relevantes del cliente, preservando lenguaje original",
+  "percepcion": "valoración cualitativa de cómo recibió el cliente la presentación",
+  "obstaculos": "barreras técnicas, comerciales o relacionales detectadas",
+  "competidores": "marcas mencionadas por el cliente y contexto",
+  "nivel_interes": "Alto o Medio o Bajo",
+  "justificacion_interes": "frase corta de justificación",
+  "acciones_internas": ["acción interna recomendada para GPF"],
+  "plan_seguimiento": "plazo y forma del siguiente contacto"
+}`;
 
-REGLAS:
-- ${modalidad === 'real' ? 'NO inventar datos. Si falta información relevante, dejar la sección con "Pendiente de completar" en lugar de inventar.' : 'Modalidad ficticia: crear datos verosímiles y coherentes con el contexto real de GPF (Andalucía, arquitectura/ingeniería, productos reales). El informe debe ser indistinguible de uno real.'}
-- Tono profesional, directo y objetivo. Sin descripciones de producto excesivas.
-- Preservar el lenguaje real del cliente en las observaciones (no "limpiar" expresiones coloquiales).
-- Formato Markdown con cabeceras ## para cada sección y tablas donde corresponda.
-- Objetivo por defecto si no se especifica: Ferroplast Mute + Ecosan.`;
-
-            const userMsg = `Empresa visitada: ${studioName}${city ? ` (${city})` : ''}${type ? ` — ${type}` : ''}${contactName ? `\nContacto registrado en CRM: ${contactName}` : ''}
-Fecha: ${fecha}
+            const userMsg = `Empresa visitada: ${studioName}${city ? ` (${city})` : ''}${type ? ` — tipo: ${type}` : ''}${contactName ? `\nContacto CRM: ${contactName}` : ''}
+Fecha de la visita: ${(() => { const d=new Date(fecha); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })()}
 Modalidad: ${modalidad === 'real' ? 'Visita Real' : 'Visita Ficticia'}
 
-${modalidad === 'real' ? `Notas de la visita:\n"${notas}"` : (notas ? `Datos adicionales proporcionados:\n"${notas}"` : 'Generar informe ficticio completo y verosímil para esta empresa.')}
-
-Redacta el informe completo siguiendo las 8 secciones obligatorias.`;
+${modalidad === 'real' ? `Notas de Manuel:\n"${notas}"` : (notas ? `Datos adicionales:\n"${notas}"` : 'Generar informe ficticio completo para esta empresa.')}`;
 
             try {
                 const response = await callClaudeAPI(
                     [{ role: 'user', content: userMsg }],
-                    2500,
+                    2000,
                     'claude-sonnet-4-6',
                     systemPrompt
                 );
 
-                const reportText = response?.content?.[0]?.text || '';
-                if (!reportText) throw new Error('La IA no devolvió contenido');
+                const rawText = response?.content?.[0]?.text || '';
+                if (!rawText) throw new Error('La IA no devolvió contenido');
+
+                // Parsear JSON
+                let reportJson;
+                try {
+                    const cleaned = rawText.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
+                    reportJson = JSON.parse(cleaned);
+                } catch(pe) {
+                    throw new Error('La IA no devolvió JSON válido. Intenta reformular las notas.');
+                }
 
                 statusDiv.textContent = '✅ Informe generado. Guardando...';
 
-                const safeDate = fecha.replace(/-/g, '');
-                const safeName = studioName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                const safeDate = fecha.replace(/-/g,'');
+                const safeName = studioName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
                 const fileName = `informe_${safeName}_${safeDate}.docx`;
                 const title = `Informe visita ${studioName} — ${fecha}`;
 
@@ -21718,7 +21737,7 @@ Redacta el informe completo siguiendo las 8 secciones obligatorias.`;
                     fileName,
                     fileType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                     aiGenerated: true,
-                    markdownContent: reportText,
+                    reportJson,
                     uploadedAt: new Date().toISOString(),
                     createdAt: new Date().toISOString()
                 };
