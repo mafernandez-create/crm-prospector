@@ -21672,30 +21672,32 @@ CONTEXTO GPF:
 - Objetivo por defecto si no se especifica: Ferroplast Mute + Ecosan.
 - Tono: profesional, directo, sin relleno. Preservar expresiones coloquiales del cliente en declaraciones.
 
-Devuelve SOLO un JSON válido (sin markdown, sin explicaciones) con esta estructura exacta:
+REGLA CRÍTICA DE FORMATO: Devuelve ÚNICAMENTE un objeto JSON plano. Todos los valores de texto deben ser strings simples, NO objetos anidados. El JSON debe empezar con { y terminar con } sin ningún texto antes ni después.
+
+Estructura EXACTA (copia estas claves tal cual, sin cambiar nombres):
 {
-  "empresa": "nombre empresa",
-  "localidad": "ciudad, provincia",
-  "fecha": "DD/MM/AAAA",
+  "empresa": "SOLO el nombre de la empresa como string simple",
+  "localidad": "ciudad y provincia como string simple, ej: Almería, Almería",
+  "fecha": "DD/MM/AAAA como string",
   "asistentes_empresa": [{"nombre": "Nombre Apellido", "cargo": "Cargo"}],
-  "objetivo": "párrafo 2-4 líneas",
-  "productos_presentados": "lista de productos GPF presentados",
-  "muestra_fisica": "Sí — [qué muestra] o No",
-  "requerimientos_tecnicos": "BIM/Revit, Presto, Archicad, etc. o —",
-  "proyectos_activos": "descripción de proyectos en curso o cartera",
-  "argumentos": "argumentos diferenciadores GPF utilizados",
-  "oportunidades": ["descripción proyecto — tipología — ubicación — estado"],
-  "compromisos_empresa": ["acción acordada por el cliente"],
-  "compromisos_gpf": ["acción acordada por Manuel/GPF"],
-  "temas_pendientes": ["tema no abordado"],
-  "declaraciones": "citas o frases relevantes del cliente, preservando lenguaje original",
-  "percepcion": "valoración cualitativa de cómo recibió el cliente la presentación",
-  "obstaculos": "barreras técnicas, comerciales o relacionales detectadas",
-  "competidores": "marcas mencionadas por el cliente y contexto",
-  "nivel_interes": "Alto o Medio o Bajo",
-  "justificacion_interes": "frase corta de justificación",
-  "acciones_internas": ["acción interna recomendada para GPF"],
-  "plan_seguimiento": "plazo y forma del siguiente contacto"
+  "objetivo": "texto del objetivo como string simple de 2-4 líneas",
+  "productos_presentados": "string simple con los productos GPF presentados",
+  "muestra_fisica": "string: Sí — qué muestra, o simplemente No",
+  "requerimientos_tecnicos": "string: BIM/Revit, Presto, etc. o guión —",
+  "proyectos_activos": "string describiendo proyectos o guión —",
+  "argumentos": "string con argumentos diferenciadores GPF usados",
+  "oportunidades": ["string por oportunidad: proyecto — tipología — ubicación — estado"],
+  "compromisos_empresa": ["string por compromiso del cliente"],
+  "compromisos_gpf": ["string por compromiso de Manuel/GPF"],
+  "temas_pendientes": ["string por tema pendiente"],
+  "declaraciones": "string con citas del cliente, preservando su lenguaje",
+  "percepcion": "string valorando cómo recibió el cliente la presentación",
+  "obstaculos": "string con barreras técnicas o comerciales detectadas",
+  "competidores": "string con marcas mencionadas y contexto",
+  "nivel_interes": "Alto o Medio o Bajo (solo uno de estos tres valores)",
+  "justificacion_interes": "string corto justificando el nivel de interés",
+  "acciones_internas": ["string por acción interna recomendada para GPF"],
+  "plan_seguimiento": "string con plazo y forma del siguiente contacto"
 }`;
 
             const fechaFormateada = (() => { const d=new Date(fecha); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })();
