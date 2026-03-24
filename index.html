@@ -21381,10 +21381,13 @@ Notas:
                 children:[
                     new TextRun({ text:'Manuel Fernández — Promotor y Prescriptor GPF', size:18, font:'Calibri', color:GREY, italics:true }),
                     new TextRun({ text:'\t', size:18 }),
-                    new TextRun({ text:'Página ', size:18, font:'Calibri', color:GREY }),
-                    new PageNumber({ type:PageNumberType.CURRENT }),
-                    new TextRun({ text:' de ', size:18, font:'Calibri', color:GREY }),
-                    new PageNumber({ type:PageNumberType.TOTAL_PAGES })
+                    new TextRun({ text:'\t', size:18 }),
+                    ...(typeof SimpleField !== 'undefined' ? [
+                        new TextRun({ text:'Pág. ', size:18, font:'Calibri', color:GREY }),
+                        new SimpleField({ instrText:' PAGE ' }),
+                        new TextRun({ text:' / ', size:18, font:'Calibri', color:GREY }),
+                        new SimpleField({ instrText:' NUMPAGES ' })
+                    ] : [new TextRun({ text:'Pág. 1', size:18, font:'Calibri', color:GREY })])
                 ]
             })] });
 
