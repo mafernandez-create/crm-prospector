@@ -21711,12 +21711,30 @@ IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin ex
                 const response = await callClaudeAPI(
                     [{ role: 'user', content: userMsg }],
                     2000,
-                    'claude-sonnet-4-6',
+                    'claude-sonnet-4-20250514',
                     systemPrompt
                 );
 
-                const rawText = response?.content?.[0]?.text || '';
-                if (!rawText) throw new Error('La IA no devolvió contenido');
+                console.log('📄 Claude response completo:', JSON.stringify(response).substring(0, 500));
+
+                // Extraer texto — el proxy puede devolver distintas estructuras
+                let rawText = '';
+                if (response?.content?.[0]?.text) {
+                    rawText = response.content[0].text;
+                } else if (response?.content?.[0]?.value) {
+                    rawText = response.content[0].value;
+                } else if (typeof response?.content === 'string') {
+                    rawText = response.content;
+                } else if (response?.text) {
+                    rawText = response.text;
+                } else if (response?.output) {
+                    rawText = typeof response.output === 'string' ? response.output : JSON.stringify(response.output);
+                } else if (response?.choices?.[0]?.message?.content) {
+                    rawText = response.choices[0].message.content;
+                }
+
+                console.log('📄 rawText (primeros 300):', rawText.substring(0, 300));
+                if (!rawText) throw new Error(`La IA no devolvió contenido (estructura: ${Object.keys(response||{}).join(',')})`);
 
                 // Parsear JSON — extracción robusta
                 let reportJson;
@@ -21727,12 +21745,12 @@ IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin ex
                         // 2. Extraer primer { ... } del texto
                         const start = rawText.indexOf('{');
                         const end = rawText.lastIndexOf('}');
-                        if (start === -1 || end === -1) throw new Error('sin JSON');
+                        if (start === -1 || end === -1) throw new Error('sin JSON en respuesta');
                         reportJson = JSON.parse(rawText.slice(start, end + 1));
                     }
                 } catch(pe) {
                     console.error('Raw IA response:', rawText);
-                    throw new Error('No se pudo leer la respuesta de la IA. Intenta de nuevo.');
+                    throw new Error(`No se pudo parsear JSON. Respuesta: "${rawText.substring(0,100)}..."`);
                 }
 
                 // Normalizar claves — el modelo a veces usa nombres distintos
