@@ -21755,31 +21755,51 @@ IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin ex
 
                 // Normalizar claves — el modelo a veces usa nombres distintos
                 const r = reportJson;
-                const toArr = v => Array.isArray(v) ? v : (v ? [v] : []);
-                const toStr = v => Array.isArray(v) ? v.join(', ') : (v || '');
+                // Helpers para normalizar: el modelo puede devolver strings u objetos
+                const toArr = v => Array.isArray(v) ? v : (v && typeof v === 'object' && !Array.isArray(v) ? [v] : (v ? [v] : []));
+                const toStr = v => {
+                    if (!v) return '';
+                    if (Array.isArray(v)) return v.map(i => typeof i === 'object' ? Object.values(i).join(' ') : i).join(', ');
+                    if (typeof v === 'object') return Object.values(v).filter(Boolean).join(' — ');
+                    return String(v);
+                };
+                // Extraer string de campo que puede ser string u objeto con .nombre/.name/.value
+                const toFlat = v => {
+                    if (!v) return '';
+                    if (typeof v === 'string') return v;
+                    if (typeof v === 'object') return v.nombre || v.name || v.value || v.empresa || Object.values(v).filter(x => typeof x === 'string').join(', ');
+                    return String(v);
+                };
+                // Empresa puede venir como objeto { nombre, ubicacion } — extraer nombre
+                const empresaRaw = r.empresa || r.nombre_empresa || r.compania || '';
+                const empresaStr = toFlat(empresaRaw);
+                // Localidad puede venir dentro de empresa.ubicacion
+                const localidadRaw = r.localidad || r.ubicacion || r.ciudad || r.location ||
+                    (typeof r.empresa === 'object' ? (r.empresa.ubicacion || r.empresa.ciudad || r.empresa.localidad || '') : '');
+
                 reportJson = {
-                    empresa:              r.empresa || r.nombre_empresa || r.compania || '',
-                    localidad:            r.localidad || r.ubicacion || r.ciudad || r.location || '',
-                    fecha:                r.fecha || r.fecha_visita || r.date || '',
-                    asistentes_empresa:   toArr(r.asistentes_empresa || r.contacto || r.interlocutor),
-                    objetivo:             r.objetivo || r.objetivo_visita || '',
+                    empresa:              empresaStr,
+                    localidad:            toFlat(localidadRaw),
+                    fecha:                toFlat(r.fecha || r.fecha_visita || r.date || ''),
+                    asistentes_empresa:   toArr(r.asistentes_empresa || r.asistentes || r.contacto || r.interlocutor),
+                    objetivo:             toFlat(r.objetivo || r.objetivo_visita || ''),
                     productos_presentados: toStr(r.productos_presentados || r.productos),
-                    muestra_fisica:       r.muestra_fisica || r.muestra || 'No',
-                    requerimientos_tecnicos: r.requerimientos_tecnicos || r.solicitudes || r.requerimientos || '—',
-                    proyectos_activos:    r.proyectos_activos || r.proyectos_mencionados || r.proyectos || '—',
-                    argumentos:           r.argumentos || r.argumentos_utilizados || '—',
+                    muestra_fisica:       toFlat(r.muestra_fisica || r.muestra || 'No'),
+                    requerimientos_tecnicos: toFlat(r.requerimientos_tecnicos || r.solicitudes || r.requerimientos || '—'),
+                    proyectos_activos:    toStr(r.proyectos_activos || r.proyectos_mencionados || r.proyectos || '—'),
+                    argumentos:           toStr(r.argumentos || r.argumentos_utilizados || '—'),
                     oportunidades:        toArr(r.oportunidades || r.oportunidades_detectadas),
-                    compromisos_empresa:  toArr(r.compromisos_empresa || r.compromisos?.empresa),
-                    compromisos_gpf:      toArr(r.compromisos_gpf || r.compromisos?.gpf),
+                    compromisos_empresa:  toArr(r.compromisos_empresa || r.compromisos?.empresa || r.compromisos?.cliente),
+                    compromisos_gpf:      toArr(r.compromisos_gpf || r.compromisos?.gpf || r.compromisos?.manuel),
                     temas_pendientes:     toArr(r.temas_pendientes || r.pendientes),
-                    declaraciones:        r.declaraciones || r.frases_clave || r.citas || '—',
-                    percepcion:           r.percepcion || r.percepcion_marca || '—',
-                    obstaculos:           r.obstaculos || r.barreras || '—',
-                    competidores:         r.competidores || r.competencia_actual || r.competencia || '—',
-                    nivel_interes:        r.nivel_interes || r.nivel_de_interes || r.interes || 'Medio',
-                    justificacion_interes: r.justificacion_interes || r.justificacion || '',
+                    declaraciones:        toStr(r.declaraciones || r.frases_clave || r.citas || '—'),
+                    percepcion:           toFlat(r.percepcion || r.percepcion_marca || '—'),
+                    obstaculos:           toStr(r.obstaculos || r.barreras || '—'),
+                    competidores:         toStr(r.competidores || r.competencia_actual || r.competencia || '—'),
+                    nivel_interes:        toFlat(r.nivel_interes || r.nivel_de_interes || r.interes || 'Medio'),
+                    justificacion_interes: toFlat(r.justificacion_interes || r.justificacion || ''),
                     acciones_internas:    toArr(r.acciones_internas || r.acciones_recomendadas),
-                    plan_seguimiento:     r.plan_seguimiento || r.proximo_paso || r.proximos_pasos || '—'
+                    plan_seguimiento:     toFlat(r.plan_seguimiento || r.proximo_paso || r.proximos_pasos || '—')
                 };
 
                 statusDiv.textContent = '✅ Informe generado. Guardando...';
