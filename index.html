@@ -21695,7 +21695,12 @@ Estructura EXACTA (copia estas claves tal cual, sin cambiar nombres):
   "plan_seguimiento": "string con plazo y forma del siguiente contacto"
 }`;
 
-            const fechaFormateada = (() => { const d=new Date(fecha); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })();
+            // Parsear fecha sin new Date() para evitar problemas de zona horaria UTC
+            const fechaFormateada = (() => {
+                const parts = (fecha || '').split('-');
+                if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                return fecha || new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric' });
+            })();
             const userMsg = `Empresa visitada: ${studioName}${city ? ` (${city})` : ''}${type ? ` — tipo: ${type}` : ''}${contactName ? `\nContacto CRM: ${contactName}` : ''}
 Fecha de la visita: ${fechaFormateada}
 Modalidad: ${modalidad === 'real' ? 'Visita Real' : 'Visita Ficticia'}
