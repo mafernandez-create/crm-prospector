@@ -21454,7 +21454,12 @@ Notas:
             }
             if (typeof window.docx === 'undefined') { showNotification('❌ Librería Word no cargada. Recarga la página.','error'); return; }
             try {
-                const data = report.reportJson || {};
+                const data = { ...(report.reportJson || {}) };
+                // Asegurar fecha correcta desde metadata del informe (YYYY-MM-DD → DD/MM/YYYY)
+                if (!data.fecha && report.date) {
+                    const p = report.date.split('-');
+                    if (p.length === 3) data.fecha = `${p[2]}/${p[1]}/${p[0]}`;
+                }
                 const doc = await buildDocxGPF(data, studio);
                 const blob = await window.docx.Packer.toBlob(doc);
                 const url = URL.createObjectURL(blob);
