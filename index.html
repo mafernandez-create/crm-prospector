@@ -21672,6 +21672,64 @@ CONTEXTO GPF:
 - Objetivo por defecto si no se especifica: Ferroplast Mute + Ecosan.
 - Tono: profesional, directo, sin relleno. Preservar expresiones coloquiales del cliente en declaraciones.
 
+PRODUCTOS GPF POR TIPO DE CLIENTE (ajusta los productos presentados según el tipo de empresa):
+${(() => {
+  const t = type || '';
+  const maps = {
+    arquitectura: `ESTUDIO DE ARQUITECTURA — Prescriptores para edificación.
+  • Ferroplast Mute: sistema evacuación insonorizado (16 dB a 4 L/s, triple cert. AENOR/Fraunhofer/RAL, B-s1d0). Prescripción en residencial plurifamiliar, hoteles, hospitales, residencias, oficinas. Cumplimiento CTE DB-HR. BIM/Revit disponibles.
+  • Ecosan: saneamiento PVC reciclado con criterios CAM (compra verde). Prescripción en proyectos con certificación BREEAM/LEED/Verde o licitaciones públicas.
+  • Pozos modulares plástico: para urbanizaciones y acometidas en proyecto.
+  • Canalones EUME (Ferroplast): en proyectos con cubierta inclinada.
+  • NO presentar: GPF Biopipe, PE riego, conducciones gas, grandes colectores.`,
+    ingenieria: `INGENIERÍA — Prescriptores para infraestructuras y edificación técnica.
+  • GPF Biopipe PVC-O: tubería a presión para agua potable y riego (90-630mm, hasta 25 bar, alta resistencia). Red de distribución urbana, impulsiones, obras de regadío.
+  • Ecosan: colectores de saneamiento PVC reciclado criterios CAM. Redes de alcantarillado urbano y comunitario.
+  • PE 100 Ferroplast/Tuyper: conducciones agua potable y gas a presión en grandes diámetros.
+  • Pozos modulares plástico: pozos y arquetas en redes saneamiento.
+  • Ferroplast Mute: si también proyectan edificios (residencial, hospitales, etc.).
+  • Tuyper CONDUSAN (PEAD corrugado doble pared): grandes colectores saneamiento y drenaje.`,
+    promotora: `PROMOTORA INMOBILIARIA — Clientes finales de producto en edificación.
+  • Ferroplast Mute: diferenciador de calidad acústica en la promoción. Argumento: cumplimiento CTE DB-HR garantizado, reduce reclamaciones de vecinos, valor añadido frente a competencia.
+  • Ecosan: diferenciador sostenible para certificaciones BREEAM/LEED o imagen de marca verde.
+  • Braseli (PEX/multicapa/suelo radiante): para instalaciones de calefacción y ACS en promociones residenciales y hoteleras.
+  • NO presentar: GPF Biopipe riego, conducciones gas distribución, grandes colectores.`,
+    constructora: `CONSTRUCTORA — Ejecutores de obra, trabajan con lo especificado en proyecto.
+  • Ferroplast Mute: si está prescrito en proyecto. Argumento: servicio técnico, garantía de entrega, muestras físicas.
+  • Ecosan: saneamiento horizontal y vertical en obra civil y edificación. PVC reciclado criterios CAM.
+  • Tubería PVC evacuación Serie B/F (Ferroplast/Tuyper): evacuación interior estándar en edificios.
+  • GPF Biopipe: si la obra incluye urbanización o red de agua potable.
+  • Tuyper PVC/PE presión: redes de abastecimiento en urbanizaciones.
+  • Pozos modulares: obras de saneamiento y urbanización.`,
+    aapp: `ADMINISTRACIÓN PÚBLICA — Licitaciones obras públicas, criterios CAM obligatorios.
+  • Ecosan: PRIORITARIO. Criterios CAM obligatorios en contratación pública. PVC reciclado certificado. Argumento: cumplimiento legal Ley de Residuos y directivas europeas.
+  • GPF Biopipe PVC-O: conducciones agua potable a presión, red distribución urbana (90-630mm). Larga vida útil, resistencia a fatiga.
+  • PE 100 Ferroplast/Tuyper: conducciones agua potable y gas en grandes diámetros.
+  • Pozos modulares plástico: arquetas y pozos en redes saneamiento urbano.
+  • Tuyper CONDUSAN (PEAD): grandes colectores saneamiento.
+  • Ferroplast Mute: si hay edificios públicos (colegios, centros salud, residencias mayores).`,
+    aguas: `EMPRESA DE AGUAS — Gestión redes abastecimiento y saneamiento.
+  • GPF Biopipe PVC-O: RED DE DISTRIBUCIÓN agua potable (90-630mm, hasta 25 bar). Menor pérdida de carga, mayor durabilidad frente a PVC convencional.
+  • PE 100 Ferroplast/Tuyper: conducciones agua potable a presión, grandes diámetros, ramales.
+  • Ecosan: colectores saneamiento PVC reciclado, criterios CAM. Red de alcantarillado.
+  • Tuyper CONDUSAN (PEAD corrugado doble pared): grandes colectores saneamiento gravedad.
+  • Pozos modulares plástico: pozos registro y arquetas en red de saneamiento.
+  • NO presentar: Ferroplast Mute, Braseli radiant floor, productos edificación.`,
+    regantes: `COMUNIDAD DE REGANTES — Redes de riego agrícola y comunitario.
+  • GPF Biopipe PVC-O riego (banda blanca): PRODUCTO ESTRELLA. Conducciones principales y secundarias de riego a presión (90-630mm). Mejor relación resistencia/coste, certificado para agua potable.
+  • PE 40 / PE 100 Ferroplast/Tuyper: tuberías distribución riego localizado (goteo, aspersión), ramales de campo.
+  • Tuyper PVC presión riego: redes secundarias riego, diámetros medios.
+  • Programa de cálculo GPF Biopipe: herramienta técnica de prescripción para ingenieros de la comunidad.
+  • NO presentar: Ferroplast Mute, Ecosan edificación, Braseli, productos de edificación.`,
+    almacen: `ALMACÉN / DISTRIBUIDOR — Intermediario comercial, cliente de stock.
+  • Gama completa Ferroplast: Mute (evacuación insonorizada), Ecosan (saneamiento CAM), GPF Biopipe (presión PVC-O), PE 100/40, canalones EUME, pozos modulares.
+  • Gama completa Tuyper: PVC evacuación Serie B/F, PVC presión riego, PE 100/40, CONDUSAN (PEAD), TUYPERDREN (drenaje), PE gas, conducciones eléctricas.
+  • Argumentos: disponibilidad stock, plazos entrega, soporte técnico GPF, formación equipo comercial, catálogos y herramientas prescripción para sus clientes.`,
+  };
+  return maps[t] || `TIPO DE CLIENTE NO ESPECIFICADO — Presentar gama edificación por defecto:
+  • Ferroplast Mute (evacuación insonorizada), Ecosan (saneamiento CAM), GPF Biopipe (si hay obra civil).`;
+})()}
+
 REGLA CRÍTICA DE FORMATO: Devuelve ÚNICAMENTE un objeto JSON plano. Todos los valores de texto deben ser strings simples, NO objetos anidados. El JSON debe empezar con { y terminar con } sin ningún texto antes ni después.
 
 Estructura EXACTA (copia estas claves tal cual, sin cambiar nombres):
