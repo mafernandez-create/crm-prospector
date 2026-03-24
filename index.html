@@ -21527,29 +21527,7 @@ ${body}
 </body></html>`;
         }
 
-        function descargarInformeDocx(reportIdx) {
-            getStudio(currentStudioId).then(studio => {
-                const report = studio?.data?.reports?.[reportIdx];
-                if (!report?.markdownContent) {
-                    showNotification('❌ No se encontró el contenido del informe', 'error');
-                    return;
-                }
-                if (typeof htmlDocx === 'undefined') {
-                    showNotification('❌ Librería Word no cargada. Recarga la página.', 'error');
-                    return;
-                }
-                const html = markdownToWordHtml(report.markdownContent, studio.name || '');
-                const blob = htmlDocx.asBlob(html);
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = report.fileName || 'informe_visita.docx';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 1000);
-            });
-        }
+        // descargarInformeDocx — función anterior eliminada, usar la versión async de arriba (buildDocxGPF)
 
         // ============================================
         // GENERADOR DE INFORMES DE VISITA CON IA
