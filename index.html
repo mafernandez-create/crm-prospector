@@ -21432,9 +21432,26 @@ Notas:
         }
 
         async function descargarInformeDocx(reportIdx) {
-            const studio = await getStudio(currentStudioId);
-            const report = studio?.data?.reports?.[reportIdx];
-            if (!report?.reportJson && !report?.markdownContent) { showNotification('❌ No se encontró el contenido del informe','error'); return; }
+            // Forzar lectura fresca de Firestore (no usar cache)
+            let studio;
+            try {
+                if (typeof firestoreDB !== 'undefined') {
+                    const snap = await firestoreDB.collection('studios').doc(String(currentStudioId)).get();
+                    studio = snap.exists ? snap.data() : null;
+                }
+            } catch(_) {}
+            if (!studio) studio = await getStudio(currentStudioId);
+
+            const reports = studio?.data?.reports || [];
+            const report = reports[reportIdx];
+            console.log('📋 descargarInformeDocx idx='+reportIdx+' report keys:', report ? Object.keys(report) : 'report undefined');
+            console.log('📋 reportJson:', report?.reportJson);
+
+            if (!report) { showNotification(`❌ No se encontró el informe (idx ${reportIdx} de ${reports.length})`, 'error'); return; }
+            if (!report?.reportJson && !report?.markdownContent) {
+                showNotification(`❌ Informe sin contenido. Claves: ${Object.keys(report).join(', ')}`, 'error');
+                return;
+            }
             if (typeof window.docx === 'undefined') { showNotification('❌ Librería Word no cargada. Recarga la página.','error'); return; }
             try {
                 const data = report.reportJson || {};
