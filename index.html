@@ -21875,36 +21875,60 @@ ${modalidad === 'real'
 IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin explicaciones, sin markdown. Empieza directamente con { y termina con }.`;
 
             try {
-                // Assistant prefill — forzamos a Claude a continuar un JSON con los campos exactos correctos
-                // Esto impide que invente su propia estructura anidada
-                const esc = s => (s||'').replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,' ');
-                // Prefill extendido: forzamos los primeros 5 campos exactos incluyendo la apertura
-                // de asistentes_empresa — esto impide que Claude inserte claves extra (modalidad,
-                // comercial, contacto, representante_contacto, situacion_actual…) antes del contenido real
-                const prefill = `{\n  "empresa": "${esc(studioName)}",\n  "localidad": "${esc(city)}",\n  "direccion": "${esc(address)}",\n  "fecha": "${esc(fechaFormateada)}",\n  "asistentes_empresa": [{"nombre": "`;
+                // ENFOQUE PLANTILLA: pasamos a Claude el JSON completo con valores placeholder.
+                // Claude solo tiene que sustituir los placeholders por contenido real.
+                // Esto garantiza que devuelva exactamente las 23 claves del esquema.
+                const jsonTemplate = JSON.stringify({
+                    empresa: studioName,
+                    localidad: city || 'Ciudad, Provincia',
+                    direccion: address || 'Dirección completa de la empresa',
+                    fecha: fechaFormateada,
+                    asistentes_empresa: [{"nombre":"NOMBRE_APELLIDOS_CONTACTO","cargo":"CARGO_DEL_CONTACTO"}],
+                    objetivo: "DESCRIPCIÓN DEL OBJETIVO DE LA VISITA: qué productos GPF se presentaron y por qué, contexto del cliente",
+                    productos_presentados: "PRODUCTOS GPF PRESENTADOS EN LA VISITA (Ferroplast Mute, Ecosan, Biopipe, pozos...)",
+                    muestra_fisica: "No / Sí — qué muestra se entregó",
+                    requerimientos_tecnicos: "REQUERIMIENTOS TÉCNICOS DETECTADOS (BIM/Revit, Presto, Archicad) o —",
+                    proyectos_activos: "DESCRIPCIÓN DE PROYECTOS EN CARTERA DEL CLIENTE o —",
+                    argumentos: "ARGUMENTOS DIFERENCIADORES GPF UTILIZADOS EN LA VISITA",
+                    oportunidades: ["OPORTUNIDAD 1 — tipología — ubicación — estado del proyecto"],
+                    compromisos_empresa: ["COMPROMISO ADQUIRIDO POR EL CLIENTE"],
+                    compromisos_gpf: ["COMPROMISO ADQUIRIDO POR MANUEL / GPF"],
+                    temas_pendientes: ["TEMA NO ABORDADO EN ESTA VISITA"],
+                    declaraciones: "DECLARACIONES LITERALES O PARAFRASEADAS DEL CLIENTE durante la visita",
+                    percepcion: "PERCEPCIÓN DEL CLIENTE SOBRE GPF Y SUS PRODUCTOS tras la presentación",
+                    obstaculos: "BARRERAS O DIFICULTADES DETECTADAS (BIM, Presto, competencia, precio, etc.)",
+                    competidores: "MARCAS COMPETIDORAS MENCIONADAS POR EL CLIENTE y contexto",
+                    nivel_interes: "Alto",
+                    justificacion_interes: "RAZÓN QUE JUSTIFICA EL NIVEL DE INTERÉS ASIGNADO",
+                    acciones_internas: ["ACCIÓN INTERNA RECOMENDADA PARA EL EQUIPO GPF"],
+                    plan_seguimiento: "PLAN DE SEGUIMIENTO: plazo, forma de contacto y objetivo del próximo contacto"
+                }, null, 2);
+
+                // Sustituir la instrucción final del userMsg por la plantilla
+                const userMsgConPlantilla = userMsg.replace(
+                    'IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin explicaciones, sin markdown. Empieza directamente con { y termina con }.',
+                    `INSTRUCCIÓN FINAL: Devuelve el siguiente JSON con los valores PLACEHOLDER reemplazados por contenido real, verosímil y detallado. Mantén EXACTAMENTE las mismas claves. No añadas ni elimines claves. No cambies el tipo de valor (string→string, array→array). Devuelve SOLO el JSON, sin texto adicional.
+
+${jsonTemplate}`
+                );
 
                 const response = await callClaudeAPI(
-                    [
-                        { role: 'user', content: userMsg },
-                        { role: 'assistant', content: prefill }
-                    ],
+                    [{ role: 'user', content: userMsgConPlantilla }],
                     8192,
                     'claude-sonnet-4-20250514',
                     systemPrompt
                 );
 
-                console.log('📄 Claude response completo:', JSON.stringify(response).substring(0, 500));
-
-                // Extraer texto y anteponer el prefill para tener el JSON completo
+                // Extraer texto de la respuesta
                 let rawText = '';
                 if (response?.content?.[0]?.text) {
-                    rawText = prefill + response.content[0].text;
+                    rawText = response.content[0].text;
                 } else if (response?.content?.[0]?.value) {
-                    rawText = prefill + response.content[0].value;
+                    rawText = response.content[0].value;
                 } else if (typeof response?.content === 'string') {
-                    rawText = prefill + response.content;
+                    rawText = response.content;
                 } else if (response?.text) {
-                    rawText = prefill + response.text;
+                    rawText = response.text;
                 } else if (response?.output) {
                     rawText = typeof response.output === 'string' ? response.output : JSON.stringify(response.output);
                 } else if (response?.choices?.[0]?.message?.content) {
