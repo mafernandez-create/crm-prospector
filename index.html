@@ -21696,9 +21696,12 @@ CONTEXTO GPF:
 - Competencia saneamiento: Aliaxis PVC teja, Ostendorf KG2000 (cert. DIBt), Molecor TOM PVC orientado, Italsan HDPE.
 - Barreras frecuentes: familias BIM/Revit (~79%), archivo Presto/BC3, Archicad, desconocimiento marca.
 - Lenguaje de Manuel a preservar: "les flipó"=reacción muy positiva, "territorio virgen"=sin prescripción establecida, "están con Adequa"=competencia prescrita, "me pidieron las familias BIM", "quieren el Presto".
-- Regla: ${modalidad === 'real' ? 'NO inventar datos. Campos sin información → dejar "Pendiente de completar".' : 'Modalidad ficticia: inventar datos verosímiles de estudios de Andalucía (Sevilla, Málaga, Granada, Córdoba). Nombres plausibles, proyectos coherentes (residencial plurifamiliar, hotel, VPO, rehabilitación), competidores del mapa real. El informe debe ser indistinguible de uno real.'}
-- Objetivo por defecto si no se especifica: Ferroplast Mute + Ecosan.
 - Tono: profesional, directo, sin relleno. Preservar expresiones coloquiales del cliente en declaraciones.
+
+${modalidad === 'real'
+  ? '- MODO REAL: NO inventar datos. Si hay información en las notas, úsala. Campos sin información → "Pendiente de completar".'
+  : `- MODO FICTICIO: OBLIGATORIO rellenar TODOS Y CADA UNO de los campos del JSON con contenido realista y detallado. NO dejar ningún campo vacío ni con "—". Usa la información real de la empresa (web, actividad, ciudad) para generar un informe verosímil de primera visita GPF. Inventa nombres de personas creíbles, proyectos coherentes con el tipo de empresa, objeciones realistas, compromisos concretos. El informe debe ser INDISTINGUIBLE de uno real. Si la empresa no es cliente típico de GPF, adapta el contexto (p.ej. una empresa de automatización puede tener proyectos industriales que requieran saneamiento, drenaje o conducciones). Competidores del mapa real GPF. Nivel de interés siempre justificado.`
+}
 
 PRODUCTOS GPF POR TIPO DE CLIENTE (ajusta los productos presentados según el tipo de empresa):
 ${(() => {
