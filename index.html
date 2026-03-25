@@ -21326,7 +21326,7 @@ Notas:
             const cover = [
                 new Paragraph({ spacing:{ before:2880, after:400 }, children:[new TextRun({ text:'INFORME DE VISITA COMERCIAL', font:'Calibri', size:64, bold:true, color:NAVY })] }),
                 new Paragraph({ spacing:{ before:0, after:200 }, children:[new TextRun({ text:data.empresa||studio?.name||'', font:'Calibri', size:40, color:BLUE })] }),
-                new Paragraph({ spacing:{ before:0, after:600 }, children:[new TextRun({ text:`${data.localidad||studio?.city||''} — ${fechaDisp}`, font:'Calibri', size:28, color:GREY })] }),
+                new Paragraph({ spacing:{ before:0, after:600 }, children:[new TextRun({ text:`${data.localidad||studio?.city||''}${data.direccion ? ' · ' + data.direccion : ''} — ${fechaDisp}`, font:'Calibri', size:28, color:GREY })] }),
                 sep(),
                 new Paragraph({ spacing:{ before:200, after:80 }, children:[new TextRun({ text:'Grupo Plásticos Ferro', font:'Calibri', size:24, bold:true, color:NAVY })] }),
                 new Paragraph({ spacing:{ before:0, after:80 }, children:[new TextRun({ text:'Promoción y Prescripción — Andalucía', font:'Calibri', size:20, color:GREY })] }),
