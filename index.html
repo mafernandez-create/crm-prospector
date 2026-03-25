@@ -21893,6 +21893,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin ex
                 reportJson = {
                     empresa:              empresaStr,
                     localidad:            toFlat(localidadRaw),
+                    direccion:            toFlat(r.direccion || r.direccion_postal || r.address || r.domicilio || address || ''),
                     fecha:                toFlat(r.fecha || r.fecha_visita || r.date || ''),
                     asistentes_empresa:   toArr(r.asistentes_empresa || r.asistentes || r.contacto || r.interlocutor),
                     objetivo:             toFlat(r.objetivo || r.objetivo_visita || ''),
