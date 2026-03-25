@@ -21652,13 +21652,41 @@ ${body}
             statusDiv.style.display = 'block';
             statusDiv.style.background = 'rgba(124,58,237,0.1)';
             statusDiv.style.color = '#c4b5fd';
-            statusDiv.textContent = '🤖 Generando informe...';
+            statusDiv.textContent = '🔍 Buscando información de la empresa...';
 
             const studio = cloudCache.studios.find(s => s.id == studioId);
             const studioName = studio?.name || 'Empresa';
-            const city = studio?.city || studio?.province || '';
+            const city = studio?.city || studio?.data?.contact?.city || studio?.province || '';
             const type = studio?.type || '';
             const contactName = studio?.data?.contact?.contactName || '';
+            const address = studio?.data?.contact?.address || studio?.address || '';
+            const web = studio?.data?.contact?.web || '';
+            const email = studio?.data?.contact?.email || '';
+            const phone = studio?.data?.contact?.phone || '';
+
+            // Intentar obtener contenido de la web de la empresa
+            let webContent = '';
+            const webUrl = web || (() => {
+                const slug = studioName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+                return `https://www.${slug}.es`;
+            })();
+            try {
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(webUrl)}`;
+                const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(7000) });
+                if (res.ok) {
+                    const payload = await res.json();
+                    if (payload.contents) {
+                        const tmp = document.createElement('div');
+                        tmp.innerHTML = payload.contents;
+                        // Eliminar scripts/styles
+                        tmp.querySelectorAll('script,style,nav,footer,header').forEach(el => el.remove());
+                        const raw = (tmp.textContent || '').replace(/\s+/g, ' ').trim();
+                        webContent = raw.substring(0, 2500);
+                    }
+                }
+            } catch(e) { console.log('Web fetch no disponible:', e.message); }
+
+            statusDiv.textContent = '🤖 Generando informe...';
 
             const systemPrompt = `Eres el asistente de informes de visitas comerciales de Manuel Fernández, promotor y prescriptor de Grupo Plásticos Ferro (GPF) en Andalucía.
 
