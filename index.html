@@ -4808,7 +4808,16 @@
         // Guardar datos en localStorage
         function saveToLocalStorage() {
             try {
-                localStorage.setItem(LS_KEY, JSON.stringify(localData));
+                // Excluir reports (base64 de archivos) para no saturar el localStorage.
+                // Los reports ya están guardados en Firebase y se cargan desde allí.
+                const dataToSave = {
+                    ...localData,
+                    studios: (localData.studios || []).map(s => {
+                        if (!s.data?.reports?.length) return s;
+                        return { ...s, data: { ...s.data, reports: [] } };
+                    })
+                };
+                localStorage.setItem(LS_KEY, JSON.stringify(dataToSave));
             } catch (e) {
                 console.warn('Error guardando en localStorage:', e);
                 if (e.name === 'QuotaExceededError') {
