@@ -21796,11 +21796,27 @@ Estructura EXACTA (copia estas claves tal cual, sin cambiar nombres):
                 if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
                 return fecha || new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric' });
             })();
-            const userMsg = `Empresa visitada: ${studioName}${city ? ` (${city})` : ''}${type ? ` — tipo: ${type}` : ''}${contactName ? `\nContacto CRM: ${contactName}` : ''}
+            const userMsg = `DATOS DE LA EMPRESA EN EL CRM:
+- Nombre: ${studioName}
+- Tipo de empresa: ${type || 'No especificado'}
+- Ciudad/Provincia: ${city || 'No especificada'}
+${address ? `- Dirección: ${address}` : ''}
+${web ? `- Web: ${web}` : ''}
+${email ? `- Email: ${email}` : ''}
+${phone ? `- Teléfono: ${phone}` : ''}
+${contactName ? `- Contacto principal CRM: ${contactName}` : ''}
+
 Fecha de la visita: ${fechaFormateada}
 Modalidad: ${modalidad === 'real' ? 'Visita Real' : 'Visita Ficticia'}
 
-${modalidad === 'real' ? `Notas de Manuel:\n"${notas}"` : (notas ? `Datos adicionales:\n"${notas}"` : 'Generar informe ficticio completo para esta empresa.')}
+${webContent ? `INFORMACIÓN OBTENIDA DE LA WEB DE LA EMPRESA (${webUrl}):\n"""\n${webContent}\n"""\n` : ''}
+${modalidad === 'real'
+  ? `NOTAS DE MANUEL SOBRE LA VISITA:\n"${notas}"`
+  : (notas
+      ? `DATOS ADICIONALES PROPORCIONADOS:\n"${notas}"\n\nGenera un informe ficticio completo usando toda la información disponible de la empresa.`
+      : `Genera un informe ficticio completo y detallado basándote en toda la información disponible de la empresa (CRM, web si disponible, tipo de cliente). TODOS los campos deben tener contenido realista, ninguno vacío.`
+    )
+}
 
 IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin explicaciones, sin markdown. Empieza directamente con { y termina con }.`;
 
