@@ -22062,9 +22062,11 @@ IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin ex
 
             } catch(e) {
                 console.error('Error generando informe:', e);
-                statusDiv.style.background = 'rgba(239,68,68,0.15)';
-                statusDiv.style.color = '#fca5a5';
-                statusDiv.textContent = `❌ Error: ${e.message}`;
+                if (statusDiv) {
+                    statusDiv.style.background = 'rgba(239,68,68,0.15)';
+                    statusDiv.style.color = '#fca5a5';
+                    statusDiv.textContent = `❌ Error: ${e.message}`;
+                }
             }
         }
 
