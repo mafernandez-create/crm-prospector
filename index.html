@@ -4619,6 +4619,8 @@
                 if (cloudCache.studios.length > 0 || cloudCache.activities.length > 0) {
                     localData.studios = JSON.parse(JSON.stringify(cloudCache.studios));
                     localData.activities = JSON.parse(JSON.stringify(cloudCache.activities));
+                    // Limpiar localStorage antiguo antes de guardar (puede estar lleno con reports base64)
+                    try { localStorage.removeItem(LS_KEY); } catch(e) {}
                     saveToLocalStorage();
                 } else {
                     loadFromLocalStorage(); // Preservar datos locales para migración
