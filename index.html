@@ -20047,13 +20047,24 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             `;
             modal.innerHTML = `
                 <div style="background:#1e293b; border-bottom:1px solid rgba(255,255,255,0.08);
-                            padding:12px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+                            padding:10px 16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                     <button onclick="document.getElementById('mapa-caliente-modal').remove()"
                         style="background:rgba(255,255,255,0.08); border:none; color:#94a3b8;
-                               width:32px; height:32px; border-radius:8px; cursor:pointer; font-size:1rem;">✕</button>
-                    <span style="color:#e2e8f0; font-weight:600; font-size:1rem;">🗺️ Mapa Caliente de Visitas</span>
+                               width:32px; height:32px; border-radius:8px; cursor:pointer; font-size:1rem; flex-shrink:0;">✕</button>
+                    <span style="color:#e2e8f0; font-weight:600; font-size:1rem; flex-shrink:0;">🗺️ Mapa Caliente</span>
 
-                    <div style="display:flex; align-items:center; gap:8px; margin-left:auto;">
+                    <!-- Selector de modo -->
+                    <div style="display:flex; border-radius:8px; overflow:hidden; border:1px solid rgba(255,255,255,0.15); flex-shrink:0;">
+                        <button id="mc-tab-estado" onclick="mcSetModo('estado')"
+                            style="background:rgba(124,58,237,0.5); color:white; border:none; padding:5px 14px;
+                                   cursor:pointer; font-size:0.8rem; font-weight:600;">📊 Por estado</button>
+                        <button id="mc-tab-productos" onclick="mcSetModo('productos')"
+                            style="background:rgba(255,255,255,0.05); color:#94a3b8; border:none; padding:5px 14px;
+                                   cursor:pointer; font-size:0.8rem; font-weight:400;">📦 Por productos</button>
+                    </div>
+
+                    <!-- Fechas -->
+                    <div style="display:flex; align-items:center; gap:6px; margin-left:auto;">
                         <label style="color:#94a3b8; font-size:0.8rem;">Desde</label>
                         <input type="date" id="mc-fecha-inicio" value="${hace6m}"
                             style="background:#0f172a; border:1px solid rgba(255,255,255,0.15); border-radius:6px;
@@ -20064,36 +20075,52 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                                    padding:5px 10px; color:#e2e8f0; font-size:0.82rem;">
                     </div>
 
-                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <!-- Filtros por estado -->
+                    <div id="mc-status-section" style="display:flex; gap:6px; flex-wrap:wrap;">
                         ${['contactado','reunion','propuesta','cliente'].map(s => `
-                        <label style="display:flex; align-items:center; gap:4px; cursor:pointer;
-                                      color:#94a3b8; font-size:0.78rem;">
-                            <input type="checkbox" class="mc-status-cb" value="${s}" checked
-                                   style="accent-color:#7c3aed;"> ${s}
+                        <label style="display:flex; align-items:center; gap:4px; cursor:pointer; color:#94a3b8; font-size:0.78rem;">
+                            <input type="checkbox" class="mc-status-cb" value="${s}" checked style="accent-color:#7c3aed;"> ${s}
+                        </label>`).join('')}
+                    </div>
+
+                    <!-- Filtros por producto (oculto por defecto) -->
+                    <div id="mc-productos-section" style="display:none; gap:5px; flex-wrap:wrap; max-width:700px;">
+                        ${['Mute','Ecosan Evacuación sanitario suelo','Canalones','Presión PVC','Biorientado',
+                           'Saneamiento PVC','Saneamiento Polietileno','Presión Polietileno','Drenaje',
+                           'Saneamiento PVC compacto','Pozos'].map(p => `
+                        <label style="display:flex; align-items:center; gap:4px; cursor:pointer; color:#94a3b8; font-size:0.78rem;">
+                            <input type="checkbox" class="mc-producto-cb" value="${p}" checked style="accent-color:#10b981;">
+                            ${p === 'Ecosan Evacuación sanitario suelo' ? 'Ecosan' : p}
                         </label>`).join('')}
                     </div>
 
                     <button onclick="renderMapaCaliente()"
                         style="background:linear-gradient(135deg,#7c3aed,#6d28d9); color:white; border:none;
-                               padding:7px 18px; border-radius:8px; cursor:pointer; font-size:0.85rem; font-weight:600;">
+                               padding:7px 16px; border-radius:8px; cursor:pointer; font-size:0.85rem; font-weight:600; flex-shrink:0;">
                         🔥 Actualizar
                     </button>
 
-                    <span id="mc-counter" style="color:#64748b; font-size:0.8rem;"></span>
+                    <button onclick="exportarMapaCaliente()"
+                        style="background:rgba(16,185,129,0.2); color:#34d399; border:1px solid rgba(16,185,129,0.35);
+                               padding:7px 14px; border-radius:8px; cursor:pointer; font-size:0.85rem; font-weight:600; flex-shrink:0;">
+                        📸 Exportar
+                    </button>
+
+                    <span id="mc-counter" style="color:#64748b; font-size:0.8rem; flex-shrink:0;"></span>
                 </div>
 
                 <div id="mc-map" style="flex:1; width:100%;"></div>
 
                 <div style="background:#1e293b; border-top:1px solid rgba(255,255,255,0.08);
-                            padding:8px 20px; display:flex; gap:20px; align-items:center; flex-wrap:wrap;">
+                            padding:8px 20px; display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
                     <span style="color:#64748b; font-size:0.75rem;">Intensidad:</span>
                     <div style="display:flex; align-items:center; gap:4px;">
-                        <div style="width:80px; height:10px; border-radius:4px;
-                             background:linear-gradient(90deg,#00f,#0ff,#0f0,#ff0,#f00);"></div>
+                        <div id="mc-gradiente" style="width:80px; height:10px; border-radius:4px;
+                             background:linear-gradient(90deg,#3b82f6,#10b981,#f59e0b,#ef4444);"></div>
                         <span style="color:#64748b; font-size:0.72rem;">Baja → Alta</span>
                     </div>
                     <span style="color:#64748b; font-size:0.75rem;">•</span>
-                    <span style="color:#64748b; font-size:0.75rem;">Peso: Nuevo=1 · Contactado=2 · Reunión=3 · Propuesta=4 · Cliente=5</span>
+                    <span id="mc-leyenda-texto" style="color:#64748b; font-size:0.75rem;">Peso: Nuevo=1 · Contactado=2 · Reunión=3 · Propuesta=4 · Cliente=5</span>
                 </div>
             `;
             document.body.appendChild(modal);
