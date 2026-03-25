@@ -20013,6 +20013,233 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             document.getElementById('comerciales-table-container').innerHTML = html + summary;
         }
 
+        // ============================================================
+        // MAPA CALIENTE DE VISITAS
+        // ============================================================
+        let _mapaInstance = null;
+        let _heatLayer = null;
+        let _geocodeCache = {};
+
+        function openMapaCaliente() {
+            if (typeof closeMobileMenu === 'function' && isMobile) closeMobileMenu();
+            const prev = document.getElementById('mapa-caliente-modal');
+            if (prev) { prev.remove(); return; }
+
+            const today = new Date().toISOString().split('T')[0];
+            const hace6m = new Date(Date.now() - 180*24*60*60*1000).toISOString().split('T')[0];
+
+            const modal = document.createElement('div');
+            modal.id = 'mapa-caliente-modal';
+            modal.style.cssText = `
+                position:fixed; inset:0; background:#0f172a; z-index:9000;
+                display:flex; flex-direction:column;
+            `;
+            modal.innerHTML = `
+                <div style="background:#1e293b; border-bottom:1px solid rgba(255,255,255,0.08);
+                            padding:12px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+                    <button onclick="document.getElementById('mapa-caliente-modal').remove()"
+                        style="background:rgba(255,255,255,0.08); border:none; color:#94a3b8;
+                               width:32px; height:32px; border-radius:8px; cursor:pointer; font-size:1rem;">✕</button>
+                    <span style="color:#e2e8f0; font-weight:600; font-size:1rem;">🗺️ Mapa Caliente de Visitas</span>
+
+                    <div style="display:flex; align-items:center; gap:8px; margin-left:auto;">
+                        <label style="color:#94a3b8; font-size:0.8rem;">Desde</label>
+                        <input type="date" id="mc-fecha-inicio" value="${hace6m}"
+                            style="background:#0f172a; border:1px solid rgba(255,255,255,0.15); border-radius:6px;
+                                   padding:5px 10px; color:#e2e8f0; font-size:0.82rem;">
+                        <label style="color:#94a3b8; font-size:0.8rem;">Hasta</label>
+                        <input type="date" id="mc-fecha-fin" value="${today}"
+                            style="background:#0f172a; border:1px solid rgba(255,255,255,0.15); border-radius:6px;
+                                   padding:5px 10px; color:#e2e8f0; font-size:0.82rem;">
+                    </div>
+
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        ${['contactado','reunion','propuesta','cliente'].map(s => `
+                        <label style="display:flex; align-items:center; gap:4px; cursor:pointer;
+                                      color:#94a3b8; font-size:0.78rem;">
+                            <input type="checkbox" class="mc-status-cb" value="${s}" checked
+                                   style="accent-color:#7c3aed;"> ${s}
+                        </label>`).join('')}
+                    </div>
+
+                    <button onclick="renderMapaCaliente()"
+                        style="background:linear-gradient(135deg,#7c3aed,#6d28d9); color:white; border:none;
+                               padding:7px 18px; border-radius:8px; cursor:pointer; font-size:0.85rem; font-weight:600;">
+                        🔥 Actualizar
+                    </button>
+
+                    <span id="mc-counter" style="color:#64748b; font-size:0.8rem;"></span>
+                </div>
+
+                <div id="mc-map" style="flex:1; width:100%;"></div>
+
+                <div style="background:#1e293b; border-top:1px solid rgba(255,255,255,0.08);
+                            padding:8px 20px; display:flex; gap:20px; align-items:center; flex-wrap:wrap;">
+                    <span style="color:#64748b; font-size:0.75rem;">Intensidad:</span>
+                    <div style="display:flex; align-items:center; gap:4px;">
+                        <div style="width:80px; height:10px; border-radius:4px;
+                             background:linear-gradient(90deg,#00f,#0ff,#0f0,#ff0,#f00);"></div>
+                        <span style="color:#64748b; font-size:0.72rem;">Baja → Alta</span>
+                    </div>
+                    <span style="color:#64748b; font-size:0.75rem;">•</span>
+                    <span style="color:#64748b; font-size:0.75rem;">Peso: Nuevo=1 · Contactado=2 · Reunión=3 · Propuesta=4 · Cliente=5</span>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            // Init map after render
+            setTimeout(() => {
+                _mapaInstance = L.map('mc-map', { zoomControl: true }).setView([37.5, -4.5], 7);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 18
+                }).addTo(_mapaInstance);
+                renderMapaCaliente();
+
+                // Re-render on filter changes
+                document.querySelectorAll('#mc-fecha-inicio,#mc-fecha-fin,.mc-status-cb')
+                    .forEach(el => el.addEventListener('change', () => renderMapaCaliente()));
+            }, 100);
+        }
+
+        async function geocodeCity(city, province) {
+            const key = (city + ',' + province).toLowerCase();
+            if (_geocodeCache[key]) return _geocodeCache[key];
+
+            // Static lookup for common Andalusian cities (instant, no API)
+            const STATIC = {
+                'málaga': [36.721, -4.421], 'malaga': [36.721, -4.421],
+                'sevilla': [37.389, -5.984], 'córdoba': [37.888, -4.779], 'cordoba': [37.888, -4.779],
+                'granada': [37.177, -3.600], 'almería': [36.834, -2.464], 'almeria': [36.834, -2.464],
+                'huelva': [37.261, -6.945], 'jaén': [37.779, -3.787], 'jaen': [37.779, -3.787],
+                'cádiz': [36.527, -6.289], 'cadiz': [36.527, -6.289],
+                'marbella': [36.511, -4.885], 'fuengirola': [36.540, -4.625],
+                'torremolinos': [36.622, -4.500], 'benalmádena': [36.600, -4.517],
+                'estepona': [36.426, -5.146], 'vélez-málaga': [36.780, -4.100],
+                'antequera': [37.020, -4.560], 'ronda': [36.746, -5.162],
+                'mijas': [36.597, -4.637], 'nerja': [36.748, -3.870],
+                'torrevieja': [37.978, -0.682], 'motril': [36.743, -3.519],
+                'roquetas de mar': [36.764, -2.615], 'el ejido': [36.776, -2.813],
+                'adra': [36.748, -3.022], 'huércal-overa': [37.398, -1.940],
+                'almendralejo': [38.685, -6.411], 'mérida': [38.916, -6.344],
+                'badajoz': [38.879, -6.970], 'cáceres': [39.476, -6.372], 'caceres': [39.476, -6.372],
+                'puente genil': [37.388, -4.773], 'lucena': [37.409, -4.485],
+                'linares': [38.095, -3.636], 'úbeda': [38.014, -3.370],
+                'jerez de la frontera': [36.687, -6.137], 'algeciras': [36.133, -5.453],
+                'la línea': [36.166, -5.349], 'san fernando': [36.474, -6.197],
+                'madrid': [40.416, -3.703], 'barcelona': [41.385, 2.173],
+                'valencia': [39.470, -0.376], 'zaragoza': [41.656, -0.877],
+                'bilbao': [43.263, -2.935], 'murcia': [37.984, -1.129],
+                'valladolid': [41.652, -4.724], 'alicante': [38.345, -0.490],
+                'castellón': [39.987, -0.052],
+            };
+
+            const cityLow = (city || '').toLowerCase().trim();
+            const provLow = (province || '').toLowerCase().trim();
+
+            // Try city first
+            if (STATIC[cityLow]) {
+                const coords = STATIC[cityLow];
+                _geocodeCache[key] = coords;
+                return coords;
+            }
+            // Try province capital
+            if (STATIC[provLow]) {
+                const coords = STATIC[provLow];
+                _geocodeCache[key] = coords;
+                return coords;
+            }
+
+            // Nominatim fallback (rate-limited: 1 req/s)
+            try {
+                const q = encodeURIComponent((city || province || 'España') + ', España');
+                const resp = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`,
+                    { headers: { 'Accept-Language': 'es' } });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data[0]) {
+                        const coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+                        _geocodeCache[key] = coords;
+                        return coords;
+                    }
+                }
+            } catch(e) {}
+
+            // Default: Andalucía center
+            _geocodeCache[key] = [37.5, -4.5];
+            return [37.5, -4.5];
+        }
+
+        async function renderMapaCaliente() {
+            if (!_mapaInstance) return;
+
+            const fi = document.getElementById('mc-fecha-inicio')?.value || '';
+            const ff = document.getElementById('mc-fecha-fin')?.value || '';
+            const statusSel = new Set(Array.from(document.querySelectorAll('.mc-status-cb:checked')).map(cb => cb.value));
+            const counter = document.getElementById('mc-counter');
+            if (counter) counter.textContent = '⏳ Cargando...';
+
+            const STATUS_WEIGHT = { nuevo:1, contactado:2, reunion:3, propuesta:4, cliente:5 };
+
+            // Build list of studios to show
+            const studios = cloudCache.studios.filter(s => {
+                if (!statusSel.has(s.status || '')) return false;
+
+                // Date filter: use last report date, or updatedAt
+                let fecha = null;
+                const lastReport = s.data?.reports?.[0];
+                if (lastReport?.date) {
+                    // Format may be YYYY-MM-DD or DD/MM/YYYY
+                    fecha = lastReport.date.includes('-') ? lastReport.date
+                          : lastReport.date.split('/').reverse().join('-');
+                } else if (s.updatedAt) {
+                    fecha = s.updatedAt.split('T')[0];
+                }
+
+                if (fi && fecha && fecha < fi) return false;
+                if (ff && fecha && fecha > ff) return false;
+                return true;
+            });
+
+            // Geocode unique cities
+            const uniqueCities = [...new Set(studios.map(s => (s.data?.contact?.city || s.province || '') + '|' + (s.province || '')))];
+            await Promise.all(uniqueCities.map(async ck => {
+                const [city, prov] = ck.split('|');
+                await geocodeCity(city, prov);
+                await new Promise(r => setTimeout(r, 50)); // small delay between requests
+            }));
+
+            // Build heatmap points
+            const points = await Promise.all(studios.map(async s => {
+                const city = s.data?.contact?.city || s.province || '';
+                const prov = s.province || '';
+                const coords = await geocodeCity(city, prov);
+                const weight = STATUS_WEIGHT[s.status] || 1;
+                // Add slight random offset so overlapping points spread out
+                const jitter = () => (Math.random() - 0.5) * 0.06;
+                return [coords[0] + jitter(), coords[1] + jitter(), weight];
+            }));
+
+            // Remove old heat layer and add new one
+            if (_heatLayer) _mapaInstance.removeLayer(_heatLayer);
+            if (points.length > 0) {
+                _heatLayer = L.heatLayer(points, {
+                    radius: 35,
+                    blur: 25,
+                    maxZoom: 12,
+                    gradient: { 0.2: '#3b82f6', 0.4: '#06b6d4', 0.6: '#10b981', 0.75: '#f59e0b', 1.0: '#ef4444' }
+                }).addTo(_mapaInstance);
+
+                // Fit map to points
+                const bounds = L.latLngBounds(points.map(p => [p[0], p[1]]));
+                _mapaInstance.fitBounds(bounds.pad(0.15));
+            } else {
+                _heatLayer = null;
+            }
+
+            if (counter) counter.textContent = `${points.length} estudios`;
+        }
+
         async function openPlanificador() {
             if (typeof closeMobileMenu === 'function' && isMobile) closeMobileMenu();
             
