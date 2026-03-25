@@ -8499,6 +8499,143 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             }
         }
 
+        let _editReportNewFile = null;
+
+        function editReport(index) {
+            getStudio(currentStudioId).then(studio => {
+                const report = studio?.data?.reports?.[index];
+                if (!report) return;
+                _editReportNewFile = null;
+
+                document.getElementById('edit-report-modal-dyn')?.remove();
+
+                const modal = document.createElement('div');
+                modal.id = 'edit-report-modal-dyn';
+                modal.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.65);display:flex;
+                    align-items:center;justify-content:center;z-index:10000;padding:20px;`;
+                const safeTitle = (report.title || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+                const safeNotes = (report.notes || '').replace(/</g, '&lt;');
+                modal.innerHTML = `
+                    <div style="background:#1e293b;border-radius:16px;padding:28px;max-width:520px;width:100%;
+                                box-shadow:0 20px 60px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
+                            <h3 style="margin:0;color:#e2e8f0;font-size:1.1rem;">✏️ Editar Informe</h3>
+                            <button onclick="document.getElementById('edit-report-modal-dyn').remove()"
+                                style="background:none;border:none;color:#94a3b8;font-size:1.4rem;cursor:pointer;line-height:1;">✕</button>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:16px;">
+                            <div>
+                                <label style="color:#94a3b8;font-size:0.82rem;display:block;margin-bottom:6px;">Título *</label>
+                                <input id="er-title" type="text" value="${safeTitle}"
+                                    style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.15);border-radius:8px;
+                                           padding:10px 14px;color:#e2e8f0;font-size:0.9rem;box-sizing:border-box;outline:none;">
+                            </div>
+                            <div>
+                                <label style="color:#94a3b8;font-size:0.82rem;display:block;margin-bottom:6px;">Fecha de visita *</label>
+                                <input id="er-date" type="date" value="${report.date || ''}"
+                                    style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.15);border-radius:8px;
+                                           padding:10px 14px;color:#e2e8f0;font-size:0.9rem;box-sizing:border-box;outline:none;">
+                            </div>
+                            <div>
+                                <label style="color:#94a3b8;font-size:0.82rem;display:block;margin-bottom:6px;">Notas</label>
+                                <textarea id="er-notes" rows="3"
+                                    style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,0.15);border-radius:8px;
+                                           padding:10px 14px;color:#e2e8f0;font-size:0.9rem;box-sizing:border-box;resize:vertical;font-family:inherit;outline:none;">${safeNotes}</textarea>
+                            </div>
+                            <div>
+                                <label style="color:#94a3b8;font-size:0.82rem;display:block;margin-bottom:6px;">
+                                    Reemplazar archivo <span style="color:#475569;">(opcional — deja vacío para conservar el actual)</span>
+                                </label>
+                                <div onclick="document.getElementById('er-file-input').click()"
+                                    style="border:2px dashed rgba(255,255,255,0.15);border-radius:8px;padding:14px;text-align:center;
+                                           cursor:pointer;color:#64748b;font-size:0.85rem;transition:border-color 0.2s;"
+                                    onmouseenter="this.style.borderColor='rgba(124,58,237,0.5)'"
+                                    onmouseleave="this.style.borderColor='rgba(255,255,255,0.15)'">
+                                    📁 ${report.fileName ? report.fileName : 'Seleccionar archivo'} — clic para cambiar
+                                </div>
+                                <input type="file" id="er-file-input" style="display:none;" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                                    onchange="handleEditFileSelect(this)">
+                                <div id="er-file-info" style="display:none;margin-top:8px;font-size:0.82rem;color:#34d399;padding:8px;
+                                    background:rgba(16,185,129,0.1);border-radius:6px;"></div>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:22px;">
+                            <button onclick="document.getElementById('edit-report-modal-dyn').remove()"
+                                style="background:#334155;color:#cbd5e1;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:0.9rem;">
+                                Cancelar
+                            </button>
+                            <button onclick="saveReportEdit(${index})"
+                                style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;border:none;
+                                       padding:10px 24px;border-radius:8px;cursor:pointer;font-size:0.9rem;font-weight:600;">
+                                💾 Guardar cambios
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                setTimeout(() => document.getElementById('er-title')?.focus(), 100);
+            });
+        }
+
+        function handleEditFileSelect(input) {
+            const file = input.files[0];
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) {
+                alert('⚠️ El archivo es demasiado grande. Máximo 5MB.');
+                input.value = '';
+                return;
+            }
+            _editReportNewFile = file;
+            const info = document.getElementById('er-file-info');
+            if (info) {
+                info.style.display = 'block';
+                info.textContent = `✅ Nuevo archivo: ${file.name} (${(file.size / 1024).toFixed(0)} KB)`;
+            }
+        }
+
+        async function saveReportEdit(index) {
+            const title = document.getElementById('er-title')?.value.trim();
+            const date = document.getElementById('er-date')?.value;
+            const notes = document.getElementById('er-notes')?.value.trim();
+
+            if (!title || !date) {
+                alert('⚠️ El título y la fecha son obligatorios');
+                return;
+            }
+
+            try {
+                const studio = await getStudio(currentStudioId);
+                if (!studio?.data?.reports?.[index]) {
+                    alert('❌ No se encontró el informe');
+                    return;
+                }
+
+                const report = studio.data.reports[index];
+                report.title = title;
+                report.date = date;
+                report.notes = notes;
+                report.updatedAt = new Date().toISOString();
+
+                if (_editReportNewFile) {
+                    report.fileData = await fileToBase64(_editReportNewFile);
+                    report.fileName = _editReportNewFile.name;
+                    report.fileType = _editReportNewFile.type;
+                    report.fileSize = _editReportNewFile.size;
+                    _editReportNewFile = null;
+                }
+
+                await updateStudio(currentStudioId, { data: studio.data });
+                document.getElementById('edit-report-modal-dyn')?.remove();
+                await showStudioDetail(currentStudioId);
+                const tab = document.querySelector('[onclick*="switchDetailTab"][onclick*="reports"]');
+                if (tab) switchDetailTab(tab, 'reports');
+                showNotification('✅ Informe actualizado correctamente', 'success');
+            } catch(e) {
+                console.error('Error editando informe:', e);
+                alert('❌ Error al guardar: ' + e.message);
+            }
+        }
+
         // Función para buscar en la web usando DuckDuckGo (no requiere API key)
         // Lista de proxies CORS disponibles
         const CORS_PROXIES = [
