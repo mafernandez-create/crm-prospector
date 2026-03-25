@@ -21811,9 +21811,13 @@ ${(() => {
   • Ferroplast Mute (evacuación insonorizada), Ecosan (saneamiento CAM), GPF Biopipe (si hay obra civil).`;
 })()}
 
-REGLA CRÍTICA DE FORMATO: Devuelve ÚNICAMENTE un objeto JSON plano. Todos los valores de texto deben ser strings simples, NO objetos anidados. El JSON debe empezar con { y terminar con } sin ningún texto antes ni después.
+REGLA CRÍTICA DE FORMATO — LEE ESTO CON ATENCIÓN:
+1. El JSON debe tener EXACTAMENTE estas 22 claves y NINGUNA MÁS. Prohibido añadir claves extra como "modalidad", "persona_contacto", "cargo", "sector_actividad", "productos_servicios", "informacion_empresa" u otras inventadas.
+2. Todos los valores de texto deben ser strings simples, NUNCA objetos anidados.
+3. La clave "asistentes_empresa" es un array de objetos {"nombre": "...", "cargo": "..."} — NO usar "persona_contacto" ni "cargo" sueltos.
+4. Si no tienes info para un campo, invéntala de forma verosímil (modo ficticio) — NUNCA dejar vacío.
 
-Estructura EXACTA (copia estas claves tal cual, sin cambiar nombres):
+Las 22 claves obligatorias son exactamente estas:
 {
   "empresa": "SOLO el nombre de la empresa como string simple",
   "localidad": "ciudad y provincia como string simple, ej: Almería, Almería",
