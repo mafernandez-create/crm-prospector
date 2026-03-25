@@ -21955,8 +21955,41 @@ IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin ex
                 const localidadRaw = r.localidad || r.ubicacion || r.ciudad || r.location ||
                     (typeof r.empresa === 'object' ? (r.empresa.ubicacion || r.empresa.ciudad || r.empresa.localidad || '') : '');
 
-                // Asistentes: Claude a veces usa persona_contacto + cargo sueltos
-                let asistentesRaw = r.asistentes_empresa || r.asistentes || r.contacto || r.interlocutor;
+                // Aplanar objetos anidados en un mapa plano para rescatar campos
+                // que Claude mete dentro de subobjetos (visita, temas_tratados, evaluacion, etc.)
+                const flat = {};
+                const flatten = (obj, prefix) => {
+                    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return;
+                    for (const [k, v] of Object.entries(obj)) {
+                        const key = prefix ? `${prefix}_${k}` : k;
+                        flat[key] = v;
+                        if (v && typeof v === 'object' && !Array.isArray(v)) flatten(v, key);
+                    }
+                };
+                flatten(r, '');
+
+                // Helper: buscar campo en r y en flat con múltiples alias
+                const get = (...keys) => {
+                    for (const k of keys) {
+                        const v = r[k] ?? flat[k];
+                        if (v !== undefined && v !== null && v !== '') return v;
+                    }
+                    return undefined;
+                };
+
+                // Asistentes: manejar todos los alias conocidos
+                // Con el nuevo prefill extendido, asistentes_empresa YA viene como array correcto.
+                // Pero por compatibilidad, mantenemos fallbacks para variantes anteriores.
+                let asistentesRaw = r.asistentes_empresa || r.asistentes;
+                if (!asistentesRaw) {
+                    // Claude a veces usa contacto (objeto) o representante_contacto (objeto)
+                    const ctRaw = r.contacto || r.representante_contacto || r.interlocutor || r.persona_contacto_obj;
+                    if (ctRaw && typeof ctRaw === 'object' && !Array.isArray(ctRaw)) {
+                        asistentesRaw = [{ nombre: ctRaw.nombre || ctRaw.name || '', cargo: ctRaw.cargo || ctRaw.puesto || ctRaw.role || '' }];
+                    } else if (ctRaw) {
+                        asistentesRaw = toArr(ctRaw);
+                    }
+                }
                 if (!asistentesRaw && (r.persona_contacto || r.nombre_contacto || r.interlocutor_nombre)) {
                     asistentesRaw = [{ nombre: r.persona_contacto || r.nombre_contacto || r.interlocutor_nombre || '', cargo: r.cargo || r.cargo_contacto || '' }];
                 }
@@ -21964,27 +21997,27 @@ IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin ex
                 reportJson = {
                     empresa:              empresaStr,
                     localidad:            toFlat(localidadRaw),
-                    direccion:            toFlat(r.direccion || r.direccion_postal || r.address || r.domicilio || address || ''),
-                    fecha:                toFlat(r.fecha || r.fecha_visita || r.date || ''),
+                    direccion:            toFlat(get('direccion','direccion_postal','address','domicilio') || address || ''),
+                    fecha:                toFlat(get('fecha','fecha_visita','date') || ''),
                     asistentes_empresa:   toArr(asistentesRaw),
-                    objetivo:             toFlat(r.objetivo || r.objetivo_visita || r.objetivo_reunion || ''),
-                    productos_presentados: toStr(r.productos_presentados || r.productos_gpf || r.productos_servicios || r.productos || ''),
-                    muestra_fisica:       toFlat(r.muestra_fisica || r.muestra || r.entrega_muestra || 'No'),
-                    requerimientos_tecnicos: toFlat(r.requerimientos_tecnicos || r.requerimientos_tecnicos_detectados || r.solicitudes || r.requerimientos || r.necesidades_tecnicas || '—'),
-                    proyectos_activos:    toStr(r.proyectos_activos || r.proyectos_en_curso || r.proyectos_mencionados || r.proyectos || r.cartera_proyectos || '—'),
-                    argumentos:           toStr(r.argumentos || r.argumentos_utilizados || r.argumentos_gpf || r.argumentos_comerciales || '—'),
-                    oportunidades:        toArr(r.oportunidades || r.oportunidades_detectadas || r.oportunidades_comerciales),
-                    compromisos_empresa:  toArr(r.compromisos_empresa || r.compromisos_cliente || r.compromisos?.empresa || r.compromisos?.cliente || r.acuerdos_empresa),
-                    compromisos_gpf:      toArr(r.compromisos_gpf || r.compromisos_manuel || r.compromisos?.gpf || r.compromisos?.manuel || r.acuerdos_gpf),
-                    temas_pendientes:     toArr(r.temas_pendientes || r.pendientes || r.temas_no_abordados || r.temas_a_tratar),
-                    declaraciones:        toStr(r.declaraciones || r.declaraciones_cliente || r.frases_clave || r.citas || r.comentarios_cliente || '—'),
-                    percepcion:           toFlat(r.percepcion || r.percepcion_marca || r.percepcion_cliente || r.valoracion || '—'),
-                    obstaculos:           toStr(r.obstaculos || r.barreras || r.obstaculos_detectados || r.barreras_detectadas || '—'),
-                    competidores:         toStr(r.competidores || r.competidores_mencionados || r.competencia_actual || r.competencia || '—'),
-                    nivel_interes:        toFlat(r.nivel_interes || r.nivel_de_interes || r.interes || r.evaluacion?.nivel_interes || 'Medio'),
-                    justificacion_interes: toFlat(r.justificacion_interes || r.justificacion || r.evaluacion?.justificacion || ''),
-                    acciones_internas:    toArr(r.acciones_internas || r.acciones_recomendadas || r.acciones_gpf || r.recomendaciones_internas),
-                    plan_seguimiento:     toFlat(r.plan_seguimiento || r.seguimiento || r.proximo_paso || r.proximos_pasos || r.proxima_accion || '—')
+                    objetivo:             toFlat(get('objetivo','objetivo_visita','objetivo_reunion','proposito','proposito_visita') || ''),
+                    productos_presentados: toStr(get('productos_presentados','productos_gpf','productos_presentados_gpf','productos','gama_presentada') || ''),
+                    muestra_fisica:       toFlat(get('muestra_fisica','muestra','entrega_muestra','muestras_entregadas') || 'No'),
+                    requerimientos_tecnicos: toFlat(get('requerimientos_tecnicos','requerimientos_tecnicos_detectados','solicitudes_tecnicas','solicitudes','requerimientos','necesidades_tecnicas','herramientas_solicitadas','herramientas') || '—'),
+                    proyectos_activos:    toStr(get('proyectos_activos','proyectos_en_curso','proyectos_mencionados','proyectos','cartera_proyectos','obras_en_curso','cartera') || '—'),
+                    argumentos:           toStr(get('argumentos','argumentos_utilizados','argumentos_gpf','argumentos_comerciales','diferenciadores','puntos_fuerza') || '—'),
+                    oportunidades:        toArr(get('oportunidades','oportunidades_detectadas','oportunidades_comerciales','proyectos_oportunidad')),
+                    compromisos_empresa:  toArr(get('compromisos_empresa','compromisos_cliente','acuerdos_empresa','compromisos_empresa_visitada') ?? r.compromisos?.empresa ?? r.compromisos?.cliente),
+                    compromisos_gpf:      toArr(get('compromisos_gpf','compromisos_manuel','acuerdos_gpf','compromisos_gpf_manuel') ?? r.compromisos?.gpf ?? r.compromisos?.manuel),
+                    temas_pendientes:     toArr(get('temas_pendientes','pendientes','temas_no_abordados','temas_a_tratar','temas_no_tratados')),
+                    declaraciones:        toStr(get('declaraciones','declaraciones_cliente','frases_clave','citas','comentarios_cliente','frases_relevantes') || '—'),
+                    percepcion:           toFlat(get('percepcion','percepcion_marca','percepcion_cliente','percepcion_gama','valoracion','impresion') || '—'),
+                    obstaculos:           toStr(get('obstaculos','barreras','obstaculos_detectados','barreras_detectadas','dificultades','barreras_comerciales') || '—'),
+                    competidores:         toStr(get('competidores','competidores_mencionados','competencia_actual','competencia','marcas_mencionadas') || '—'),
+                    nivel_interes:        toFlat(get('nivel_interes','nivel_de_interes','interes','nivel') ?? r.evaluacion?.nivel_interes ?? 'Medio'),
+                    justificacion_interes: toFlat(get('justificacion_interes','justificacion','razon_interes','motivo_interes') ?? r.evaluacion?.justificacion ?? ''),
+                    acciones_internas:    toArr(get('acciones_internas','acciones_recomendadas','acciones_gpf','recomendaciones_internas','proximas_acciones_gpf')),
+                    plan_seguimiento:     toFlat(get('plan_seguimiento','seguimiento','proximo_paso','proximos_pasos','proxima_accion','siguiente_paso') || '—')
                 };
                 // Siempre usar la fecha del formulario (no depender de lo que devuelva Claude)
                 reportJson.fecha = fechaFormateada;
