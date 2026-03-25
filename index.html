@@ -21874,7 +21874,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin ex
                 // Assistant prefill — forzamos a Claude a continuar un JSON con los campos exactos correctos
                 // Esto impide que invente su propia estructura anidada
                 const esc = s => (s||'').replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,' ');
-                const prefill = `{\n  "empresa": "${esc(studioName)}",\n  "localidad": "${esc(city)}",\n  "direccion": "${esc(address)}",\n  "fecha": "${esc(fechaFormateada)}",\n  `;
+                const prefill = `{\n  "empresa": "${esc(studioName)}",\n  "localidad": "${esc(city)}",\n  "direccion": "${esc(address)}",\n  "fecha": "${esc(fechaFormateada)}",`;
 
                 const response = await callClaudeAPI(
                     [
