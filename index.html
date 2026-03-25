@@ -21893,11 +21893,11 @@ IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin ex
                 if (response?.content?.[0]?.text) {
                     rawText = prefill + response.content[0].text;
                 } else if (response?.content?.[0]?.value) {
-                    rawText = response.content[0].value;
+                    rawText = prefill + response.content[0].value;
                 } else if (typeof response?.content === 'string') {
-                    rawText = response.content;
+                    rawText = prefill + response.content;
                 } else if (response?.text) {
-                    rawText = response.text;
+                    rawText = prefill + response.text;
                 } else if (response?.output) {
                     rawText = typeof response.output === 'string' ? response.output : JSON.stringify(response.output);
                 } else if (response?.choices?.[0]?.message?.content) {
