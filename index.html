@@ -6503,7 +6503,9 @@
             document.getElementById(`view-${view}`).classList.add('active');
             
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            event?.target?.closest('.nav-item')?.classList.add('active');
+            if (typeof event !== 'undefined' && event instanceof Event && event.target) {
+                event.target.closest?.('.nav-item')?.classList.add('active');
+            }
             
             currentView = view;
             
