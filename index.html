@@ -20208,74 +20208,223 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             return [37.5, -4.5];
         }
 
+        function mcSetModo(modo) {
+            const estadoSection = document.getElementById('mc-status-section');
+            const productosSection = document.getElementById('mc-productos-section');
+            const tabEstado = document.getElementById('mc-tab-estado');
+            const tabProductos = document.getElementById('mc-tab-productos');
+            const gradiente = document.getElementById('mc-gradiente');
+            const leyendaTexto = document.getElementById('mc-leyenda-texto');
+            if (modo === 'estado') {
+                if (estadoSection) estadoSection.style.display = 'flex';
+                if (productosSection) productosSection.style.display = 'none';
+                if (tabEstado) { tabEstado.style.background = 'rgba(124,58,237,0.5)'; tabEstado.style.color = 'white'; tabEstado.style.fontWeight = '600'; }
+                if (tabProductos) { tabProductos.style.background = 'rgba(255,255,255,0.05)'; tabProductos.style.color = '#94a3b8'; tabProductos.style.fontWeight = '400'; }
+                if (gradiente) gradiente.style.background = 'linear-gradient(90deg,#3b82f6,#10b981,#f59e0b,#ef4444)';
+                if (leyendaTexto) leyendaTexto.textContent = 'Peso: Nuevo=1 · Contactado=2 · Reunión=3 · Propuesta=4 · Cliente=5';
+            } else {
+                if (estadoSection) estadoSection.style.display = 'none';
+                if (productosSection) productosSection.style.display = 'flex';
+                if (tabEstado) { tabEstado.style.background = 'rgba(255,255,255,0.05)'; tabEstado.style.color = '#94a3b8'; tabEstado.style.fontWeight = '400'; }
+                if (tabProductos) { tabProductos.style.background = 'rgba(16,185,129,0.4)'; tabProductos.style.color = 'white'; tabProductos.style.fontWeight = '600'; }
+                if (gradiente) gradiente.style.background = 'linear-gradient(90deg,#065f46,#10b981,#f59e0b,#7c3aed)';
+                if (leyendaTexto) leyendaTexto.textContent = 'Peso: nº de reuniones donde se presentó el producto seleccionado';
+            }
+            renderMapaCaliente();
+        }
+
         async function renderMapaCaliente() {
             if (!_mapaInstance) return;
 
             const fi = document.getElementById('mc-fecha-inicio')?.value || '';
             const ff = document.getElementById('mc-fecha-fin')?.value || '';
-            const statusSel = new Set(Array.from(document.querySelectorAll('.mc-status-cb:checked')).map(cb => cb.value));
             const counter = document.getElementById('mc-counter');
             if (counter) counter.textContent = '⏳ Cargando...';
 
-            const STATUS_WEIGHT = { nuevo:1, contactado:2, reunion:3, propuesta:4, cliente:5 };
+            // Detectar modo activo
+            const modoProductos = document.getElementById('mc-productos-section')?.style.display !== 'none';
 
-            // Build list of studios to show
-            const studios = cloudCache.studios.filter(s => {
-                if (!statusSel.has(s.status || '')) return false;
+            if (_heatLayer) _mapaInstance.removeLayer(_heatLayer);
+            let points = [];
 
-                // Date filter: use last report date, or updatedAt
-                let fecha = null;
-                const lastReport = s.data?.reports?.[0];
-                if (lastReport?.date) {
-                    // Format may be YYYY-MM-DD or DD/MM/YYYY
-                    fecha = lastReport.date.includes('-') ? lastReport.date
-                          : lastReport.date.split('/').reverse().join('-');
-                } else if (s.updatedAt) {
-                    fecha = s.updatedAt.split('T')[0];
+            if (!modoProductos) {
+                // ── MODO ESTADO ──────────────────────────────────────────────
+                const STATUS_WEIGHT = { nuevo:1, contactado:2, reunion:3, propuesta:4, cliente:5 };
+                const statusSel = new Set(Array.from(document.querySelectorAll('.mc-status-cb:checked')).map(cb => cb.value));
+
+                const studios = cloudCache.studios.filter(s => {
+                    if (!statusSel.has(s.status || '')) return false;
+                    let fecha = null;
+                    const lastReport = s.data?.reports?.[0];
+                    if (lastReport?.date) {
+                        fecha = lastReport.date.includes('-') ? lastReport.date : lastReport.date.split('/').reverse().join('-');
+                    } else if (s.updatedAt) {
+                        fecha = s.updatedAt.split('T')[0];
+                    }
+                    if (fi && fecha && fecha < fi) return false;
+                    if (ff && fecha && fecha > ff) return false;
+                    return true;
+                });
+
+                const uniqueCities = [...new Set(studios.map(s => (s.city || s.province || '') + '|' + (s.province || '')))];
+                await Promise.all(uniqueCities.map(async ck => {
+                    const [city, prov] = ck.split('|');
+                    await geocodeCity(city, prov);
+                    await new Promise(r => setTimeout(r, 50));
+                }));
+
+                points = await Promise.all(studios.map(async s => {
+                    const city = s.city || s.province || '';
+                    const prov = s.province || '';
+                    const coords = await geocodeCity(city, prov);
+                    const weight = STATUS_WEIGHT[s.status] || 1;
+                    const jitter = () => (Math.random() - 0.5) * 0.06;
+                    return [coords[0] + jitter(), coords[1] + jitter(), weight];
+                }));
+
+                if (points.length > 0) {
+                    _heatLayer = L.heatLayer(points, {
+                        radius: 35, blur: 25, maxZoom: 12,
+                        gradient: { 0.2: '#3b82f6', 0.4: '#06b6d4', 0.6: '#10b981', 0.75: '#f59e0b', 1.0: '#ef4444' }
+                    }).addTo(_mapaInstance);
                 }
 
-                if (fi && fecha && fecha < fi) return false;
-                if (ff && fecha && fecha > ff) return false;
-                return true;
-            });
+            } else {
+                // ── MODO PRODUCTOS ───────────────────────────────────────────
+                const productosSel = new Set(Array.from(document.querySelectorAll('.mc-producto-cb:checked')).map(cb => cb.value));
 
-            // Geocode unique cities
-            const uniqueCities = [...new Set(studios.map(s => (s.data?.contact?.city || s.province || '') + '|' + (s.province || '')))];
-            await Promise.all(uniqueCities.map(async ck => {
-                const [city, prov] = ck.split('|');
-                await geocodeCity(city, prov);
-                await new Promise(r => setTimeout(r, 50)); // small delay between requests
-            }));
+                // Filtrar actividades de tipo reunión con los productos seleccionados y en el rango de fechas
+                const acts = cloudCache.activities.filter(a => {
+                    if (a.type !== 'meeting') return false;
+                    if (!a.productos || !a.productos.length) return false;
+                    if (productosSel.size > 0 && !a.productos.some(p => productosSel.has(p))) return false;
+                    const fecha = (a.createdAt || '').split('T')[0];
+                    if (fi && fecha && fecha < fi) return false;
+                    if (ff && fecha && fecha > ff) return false;
+                    return true;
+                });
 
-            // Build heatmap points
-            const points = await Promise.all(studios.map(async s => {
-                const city = s.data?.contact?.city || s.province || '';
-                const prov = s.province || '';
-                const coords = await geocodeCity(city, prov);
-                const weight = STATUS_WEIGHT[s.status] || 1;
-                // Add slight random offset so overlapping points spread out
-                const jitter = () => (Math.random() - 0.5) * 0.06;
-                return [coords[0] + jitter(), coords[1] + jitter(), weight];
-            }));
+                // Agrupar por studioId y contar reuniones
+                const studioCount = {};
+                acts.forEach(a => {
+                    if (a.studioId != null) studioCount[a.studioId] = (studioCount[a.studioId] || 0) + 1;
+                });
 
-            // Remove old heat layer and add new one
-            if (_heatLayer) _mapaInstance.removeLayer(_heatLayer);
+                const studioIds = new Set(Object.keys(studioCount).map(Number));
+                const studios = cloudCache.studios.filter(s => studioIds.has(s.id));
+
+                const uniqueCities = [...new Set(studios.map(s => (s.city || s.province || '') + '|' + (s.province || '')))];
+                await Promise.all(uniqueCities.map(async ck => {
+                    const [city, prov] = ck.split('|');
+                    await geocodeCity(city, prov);
+                    await new Promise(r => setTimeout(r, 50));
+                }));
+
+                points = await Promise.all(studios.map(async s => {
+                    const city = s.city || s.province || '';
+                    const prov = s.province || '';
+                    const coords = await geocodeCity(city, prov);
+                    const weight = studioCount[s.id] || 1;
+                    const jitter = () => (Math.random() - 0.5) * 0.06;
+                    return [coords[0] + jitter(), coords[1] + jitter(), weight];
+                }));
+
+                if (points.length > 0) {
+                    _heatLayer = L.heatLayer(points, {
+                        radius: 35, blur: 25, maxZoom: 12,
+                        gradient: { 0.1: '#065f46', 0.35: '#10b981', 0.65: '#f59e0b', 0.85: '#ef4444', 1.0: '#7c3aed' }
+                    }).addTo(_mapaInstance);
+                }
+
+                // Actualizar leyenda con productos seleccionados
+                const leyenda = document.getElementById('mc-leyenda-texto');
+                if (leyenda) {
+                    const selList = [...productosSel].join(' · ') || 'Todos los productos';
+                    leyenda.textContent = `Productos: ${selList} · Peso = nº reuniones`;
+                }
+            }
+
             if (points.length > 0) {
-                _heatLayer = L.heatLayer(points, {
-                    radius: 35,
-                    blur: 25,
-                    maxZoom: 12,
-                    gradient: { 0.2: '#3b82f6', 0.4: '#06b6d4', 0.6: '#10b981', 0.75: '#f59e0b', 1.0: '#ef4444' }
-                }).addTo(_mapaInstance);
-
-                // Fit map to points
                 const bounds = L.latLngBounds(points.map(p => [p[0], p[1]]));
                 _mapaInstance.fitBounds(bounds.pad(0.15));
             } else {
                 _heatLayer = null;
             }
 
-            if (counter) counter.textContent = `${points.length} estudios`;
+            if (counter) counter.textContent = points.length > 0 ? `${points.length} estudios` : '0 estudios encontrados';
+        }
+
+        async function exportarMapaCaliente() {
+            const mapContainer = document.getElementById('mc-map');
+            if (!mapContainer) { showNotification('⚠️ No hay mapa visible', 'warning'); return; }
+            const canvases = mapContainer.querySelectorAll('canvas');
+            if (canvases.length === 0) { showNotification('⚠️ Actualiza el mapa primero', 'warning'); return; }
+
+            const w = mapContainer.offsetWidth;
+            const h = mapContainer.offsetHeight;
+            const legendH = 60;
+
+            const output = document.createElement('canvas');
+            output.width = w;
+            output.height = h + legendH;
+            const ctx = output.getContext('2d');
+
+            // Fondo negro para la leyenda
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, w, h + legendH);
+
+            // Dibujar todas las capas canvas del mapa
+            canvases.forEach(c => { try { ctx.drawImage(c, 0, 0); } catch(e) {} });
+
+            // Franja de leyenda
+            const ly = h;
+            ctx.fillStyle = 'rgba(15,23,42,0.96)';
+            ctx.fillRect(0, ly, w, legendH);
+
+            // Barra de gradiente
+            const modoProductos = document.getElementById('mc-productos-section')?.style.display !== 'none';
+            const grad = ctx.createLinearGradient(20, 0, 220, 0);
+            if (!modoProductos) {
+                grad.addColorStop(0, '#3b82f6'); grad.addColorStop(0.4, '#10b981');
+                grad.addColorStop(0.75, '#f59e0b'); grad.addColorStop(1, '#ef4444');
+            } else {
+                grad.addColorStop(0, '#065f46'); grad.addColorStop(0.4, '#10b981');
+                grad.addColorStop(0.75, '#f59e0b'); grad.addColorStop(1, '#7c3aed');
+            }
+            ctx.fillStyle = grad;
+            if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(20, ly + 14, 200, 12, 4); ctx.fill(); }
+            else { ctx.fillRect(20, ly + 14, 200, 12); }
+
+            ctx.fillStyle = '#94a3b8'; ctx.font = '11px Arial,sans-serif';
+            ctx.fillText('Baja', 20, ly + 42);
+            ctx.fillText('Alta', 202, ly + 42);
+
+            // Texto descriptivo
+            ctx.fillStyle = '#e2e8f0'; ctx.font = 'bold 12px Arial,sans-serif';
+            let legendLine1 = '';
+            if (!modoProductos) {
+                legendLine1 = 'Por estado: Nuevo=1 · Contactado=2 · Reunión=3 · Propuesta=4 · Cliente=5';
+            } else {
+                const selProds = Array.from(document.querySelectorAll('.mc-producto-cb:checked')).map(cb => cb.value);
+                legendLine1 = 'Productos: ' + (selProds.length ? selProds.join(', ') : 'Todos') + ' · (peso = nº reuniones)';
+            }
+            ctx.fillText(legendLine1, 238, ly + 24);
+
+            const fi = document.getElementById('mc-fecha-inicio')?.value || '';
+            const ff = document.getElementById('mc-fecha-fin')?.value || '';
+            ctx.fillStyle = '#64748b'; ctx.font = '11px Arial,sans-serif';
+            ctx.fillText(`Período: ${fi}  →  ${ff}`, 238, ly + 42);
+
+            // Marca de agua
+            ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.font = 'bold 11px Arial,sans-serif';
+            ctx.fillText('Ferroplast CRM', w - 130, ly + 42);
+
+            // Descargar
+            const link = document.createElement('a');
+            link.download = `mapa-caliente-${new Date().toISOString().split('T')[0]}.png`;
+            link.href = output.toDataURL('image/png');
+            link.click();
+            showNotification('📸 Mapa exportado correctamente', 'success');
         }
 
         async function openPlanificador() {
