@@ -21871,8 +21871,16 @@ ${modalidad === 'real'
 IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin explicaciones, sin markdown. Empieza directamente con { y termina con }.`;
 
             try {
+                // Assistant prefill — forzamos a Claude a continuar un JSON con los campos exactos correctos
+                // Esto impide que invente su propia estructura anidada
+                const esc = s => (s||'').replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,' ');
+                const prefill = `{\n  "empresa": "${esc(studioName)}",\n  "localidad": "${esc(city)}",\n  "direccion": "${esc(address)}",\n  "fecha": "${esc(fechaFormateada)}",\n  `;
+
                 const response = await callClaudeAPI(
-                    [{ role: 'user', content: userMsg }],
+                    [
+                        { role: 'user', content: userMsg },
+                        { role: 'assistant', content: prefill }
+                    ],
                     4000,
                     'claude-sonnet-4-20250514',
                     systemPrompt
@@ -21880,10 +21888,10 @@ IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin ex
 
                 console.log('📄 Claude response completo:', JSON.stringify(response).substring(0, 500));
 
-                // Extraer texto — el proxy puede devolver distintas estructuras
+                // Extraer texto y anteponer el prefill para tener el JSON completo
                 let rawText = '';
                 if (response?.content?.[0]?.text) {
-                    rawText = response.content[0].text;
+                    rawText = prefill + response.content[0].text;
                 } else if (response?.content?.[0]?.value) {
                     rawText = response.content[0].value;
                 } else if (typeof response?.content === 'string') {
