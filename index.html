@@ -7106,6 +7106,7 @@
                                     ${a(data.reports).length > 0 ? a(data.reports).map((r, idx) => `
                                         <div class="info-item" style="margin-bottom:12px;padding:16px;position:relative;border-left:4px solid var(--accent);">
                                             <button onclick="deleteReport(${idx})" style="position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;color:var(--danger);font-size:1rem;" title="Eliminar">🗑️</button>
+                                            <button onclick="editReport(${idx})" style="position:absolute;top:8px;right:38px;background:none;border:none;cursor:pointer;color:var(--accent);font-size:1rem;" title="Editar">✏️</button>
                                             <div style="display:flex;align-items:flex-start;gap:12px;">
                                                 <div style="font-size:2rem;">${getFileIcon(r.fileName)}</div>
                                                 <div style="flex:1;">
