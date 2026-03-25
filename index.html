@@ -21937,7 +21937,6 @@ ${jsonTemplate}`
                 }
 
                 console.log('📄 rawText (primeros 300):', rawText.substring(0, 300));
-                window.__lastRawText = rawText; // debug: captura global del rawText completo
                 if (!rawText) throw new Error(`La IA no devolvió contenido (estructura: ${Object.keys(response||{}).join(',')})`);
 
                 // Parsear JSON — extracción robusta
