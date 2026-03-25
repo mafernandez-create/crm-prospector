@@ -21342,6 +21342,7 @@ Notas:
                 rows:[
                     new TableRow({ children:[hCell('CAMPO',2800), hCell('DETALLE',6226)] }),
                     ...[ ['Fecha',fechaDisp], ['Empresa visitada',data.empresa||studio?.name||'—'], ['Localidad',data.localidad||studio?.city||'—'],
+                         ['Dirección',data.direccion||studio?.data?.contact?.address||'—'],
                          ['Asistentes (empresa)',asist], ['Asistentes (GPF)','Manuel Fernández — Promotor y Prescriptor']
                     ].map(([l,v],i) => new TableRow({ children:[lCell(l,2800), vCell(v,6226,i%2===0)] }))
                 ]
@@ -21997,7 +21998,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin ex
 
                 const html = `
                     ${sh(1,'INFORMACIÓN GENERAL DE LA VISITA')}
-                    ${tbl(row('Fecha',d.fecha)+row('Empresa',d.empresa)+row('Localidad',d.localidad)+row('Asistentes empresa',asist)+row('Asistentes GPF','Manuel Fernández — Promotor y Prescriptor'))}
+                    ${tbl(row('Fecha',d.fecha)+row('Empresa',d.empresa)+row('Localidad',d.localidad)+(d.direccion?row('Dirección',d.direccion):'')+row('Asistentes empresa',asist)+row('Asistentes GPF','Manuel Fernández — Promotor y Prescriptor'))}
                     ${sh(2,'OBJETIVO DE LA VISITA')}${p(d.objetivo)}
                     ${sh(3,'TEMAS TRATADOS')}
                     ${tbl(row('Productos presentados',d.productos_presentados)+row('Muestra física',d.muestra_fisica)+row('Requerimientos técnicos',d.requerimientos_tecnicos)+row('Proyectos activos',d.proyectos_activos)+row('Argumentos utilizados',d.argumentos))}
