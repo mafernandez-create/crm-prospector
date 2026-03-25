@@ -21665,28 +21665,72 @@ ${body}
             const email = studio?.data?.contact?.email || '';
             const phone = studio?.data?.contact?.phone || '';
 
-            // Intentar obtener contenido de la web de la empresa
-            let webContent = '';
-            const webUrl = web || (() => {
-                const slug = studioName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
-                return `https://www.${slug}.es`;
-            })();
-            try {
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(webUrl)}`;
-                const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(7000) });
-                if (res.ok) {
-                    const payload = await res.json();
-                    if (payload.contents) {
-                        const tmp = document.createElement('div');
-                        tmp.innerHTML = payload.contents;
-                        // Eliminar scripts/styles
-                        tmp.querySelectorAll('script,style,nav,footer,header').forEach(el => el.remove());
-                        const raw = (tmp.textContent || '').replace(/\s+/g, ' ').trim();
-                        webContent = raw.substring(0, 2500);
-                    }
-                }
-            } catch(e) { console.log('Web fetch no disponible:', e.message); }
+            // ── Investigación multi-fuente de la empresa ──────────────────────
+            const fetchTextoWeb = async (url, maxChars = 2000, timeout = 7000) => {
+                try {
+                    const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+                        { signal: AbortSignal.timeout(timeout) });
+                    if (!r.ok) return '';
+                    const d = await r.json();
+                    if (!d.contents) return '';
+                    const tmp = document.createElement('div');
+                    tmp.innerHTML = d.contents;
+                    tmp.querySelectorAll('script,style,nav,footer,header,aside,form,button').forEach(e => e.remove());
+                    return (tmp.textContent || '').replace(/\s+/g,' ').trim().substring(0, maxChars);
+                } catch(e) { return ''; }
+            };
 
+            const normalSlug = studioName.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9\s]/g,'').trim();
+            const queryEnc = encodeURIComponent(studioName + (city ? ' ' + city : ''));
+            const sources = [];
+
+            // 1. Web propia de la empresa
+            const webUrl = web || `https://www.${normalSlug.replace(/\s+/g,'').toLowerCase()}.es`;
+            statusDiv.textContent = '🔍 Consultando web de la empresa...';
+            const webText = await fetchTextoWeb(webUrl, 2000);
+            if (webText.length > 80) sources.push(`📌 WEB EMPRESA (${webUrl}):\n${webText}`);
+
+            // 2. DuckDuckGo Instant Answer API (sin CORS, devuelve JSON)
+            statusDiv.textContent = '🔍 Buscando en internet...';
+            try {
+                const ddgRes = await fetch(
+                    `https://api.duckduckgo.com/?q=${queryEnc}&format=json&no_html=1&skip_disambig=1`,
+                    { signal: AbortSignal.timeout(5000) });
+                if (ddgRes.ok) {
+                    const ddg = await ddgRes.json();
+                    let ddgText = [ddg.AbstractText, ddg.Answer,
+                        ...(ddg.RelatedTopics||[]).slice(0,6).map(t => t.Text||t.Topics?.map(x=>x.Text)?.join(' ')||'')
+                    ].filter(Boolean).join(' ').trim();
+                    if (ddgText.length > 50) sources.push(`📌 BUSCADOR (DuckDuckGo):\n${ddgText.substring(0,1200)}`);
+                }
+            } catch(e) {}
+
+            // 3. Páginas Amarillas
+            statusDiv.textContent = '🔍 Consultando directorios...';
+            const paText = await fetchTextoWeb(
+                `https://www.paginasamarillas.es/search/${encodeURIComponent(normalSlug)}/all-spain/`, 1500);
+            if (paText.length > 80) sources.push(`📌 PÁGINAS AMARILLAS:\n${paText}`);
+
+            // 4. Infoempresas / directorio empresas España
+            const ieText = await fetchTextoWeb(
+                `https://www.infoempresas.com.es/Buscar?q=${queryEnc}`, 1000);
+            if (ieText.length > 80) sources.push(`📌 INFO EMPRESAS:\n${ieText}`);
+
+            // 5. Si aún hay poca info, preguntar a Claude directamente qué sabe
+            const totalInfo = sources.join('').length;
+            if (totalInfo < 300) {
+                statusDiv.textContent = '🤖 Consultando base de conocimiento IA...';
+                try {
+                    const researchResp = await callClaudeAPI(
+                        [{ role:'user', content:`¿Qué sabes sobre la empresa "${studioName}"${city ? ` ubicada en ${city}` : ''}? Describe brevemente: sector de actividad, servicios o productos que ofrece, tipo de clientes, proyectos habituales, tamaño aproximado. Si no tienes información específica de esta empresa, describe el tipo de empresa habitual con ese nombre en ese sector y ciudad. Responde en español, máximo 400 palabras, sin preámbulos.` }],
+                        600, 'claude-sonnet-4-20250514', null
+                    );
+                    const researchText = researchResp?.content?.[0]?.text || '';
+                    if (researchText.length > 50) sources.push(`📌 BASE DE CONOCIMIENTO IA:\n${researchText}`);
+                } catch(e) {}
+            }
+
+            const webContent = sources.length ? sources.join('\n\n') : '';
             statusDiv.textContent = '🤖 Generando informe...';
 
             const systemPrompt = `Eres el asistente de informes de visitas comerciales de Manuel Fernández, promotor y prescriptor de Grupo Plásticos Ferro (GPF) en Andalucía.
