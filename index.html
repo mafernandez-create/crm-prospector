@@ -20540,77 +20540,404 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             if (counter) counter.textContent = points.length > 0 ? `${points.length} estudios` : '0 estudios encontrados';
         }
 
+        // Carga dinámica de scripts externos bajo demanda
+        function loadScript(url) {
+            return new Promise((resolve, reject) => {
+                if (document.querySelector(`script[src="${url}"]`)) { resolve(); return; }
+                const s = document.createElement('script');
+                s.src = url; s.onload = resolve; s.onerror = reject;
+                document.head.appendChild(s);
+            });
+        }
+
+        // Helper compartido: recopila datos del CRM para exportaciones del mapa
+        function _mcGatherData() {
+            const fi = document.getElementById('mc-fecha-inicio')?.value || '';
+            const ff = document.getElementById('mc-fecha-fin')?.value || '';
+            const nf = f => { if (!f) return ''; if (f.includes('/')) { const p=f.split('/'); return p.length===3?`${p[2]}-${p[1]}-${p[0]}`:f; } return f.split('T')[0]; };
+            const PROD_MAP = [
+                { re: /mute|insonori/i,                         name: 'Ferroplast Mute' },
+                { re: /ecosan/i,                                 name: 'Ecosan' },
+                { re: /poz/i,                                    name: 'Pozos modulares' },
+                { re: /biopipe/i,                                name: 'Biopipe' },
+                { re: /pvc-?o|orientad|biorientad/i,            name: 'PVC-O (Orientado)' },
+                { re: /polietileno|\bpe[\s_]?100|\bpe\b/i,      name: 'Polietileno (PE)' },
+                { re: /condusan|pead|corrugad/i,                 name: 'Condusan' },
+                { re: /serie[\s_]?b|saneam.*pvc|pvc.*evacuac/i, name: 'Serie B PVC' },
+                { re: /canalon|eume/i,                           name: 'Canalones EUME' },
+                { re: /tuyper/i,                                 name: 'Tuyper' },
+                { re: /braseli|pex|multicapa|suelo.?radiante/i, name: 'Braseli' },
+            ];
+            const extractProds = t => { if (!t) return []; const s=new Set(); PROD_MAP.forEach(({re,name})=>{ if(re.test(t)) s.add(name); }); return [...s]; };
+            const stMap = {};
+            cloudCache.studios.forEach(studio => {
+                (studio.data?.reports||[]).forEach(r => {
+                    const fecha = nf(r.date||r.reportJson?.fecha||r.uploadedAt||'');
+                    if (fi && fecha && fecha < fi) return;
+                    if (ff && fecha && fecha > ff) return;
+                    if (!stMap[studio.id]) stMap[studio.id] = { e:studio.name, c:studio.city||studio.province||'', p:studio.province||'', pr:new Set() };
+                    extractProds(r.reportJson?.productos_presentados||'').forEach(p=>stMap[studio.id].pr.add(p));
+                });
+            });
+            cloudCache.activities.filter(a => {
+                if (a.type !== 'meeting') return false;
+                const fecha = nf(a.createdAt||a.date||'');
+                if (fi && fecha && fecha < fi) return false;
+                if (ff && fecha && fecha > ff) return false;
+                return true;
+            }).forEach(a => {
+                const s = cloudCache.studios.find(s=>s.id==a.studioId); if (!s) return;
+                if (!stMap[s.id]) stMap[s.id] = { e:s.name, c:s.city||s.province||'', p:s.province||'', pr:new Set() };
+                (a.productos||[]).forEach(p=>extractProds(p).forEach(n=>stMap[s.id].pr.add(n)));
+            });
+            const data = Object.values(stMap).filter(s=>s.e).map(s=>({ e:s.e, c:s.c||s.p, p:s.p, pr:[...s.pr] }));
+            const rango = (fi||ff) ? `${fi||'…'} — ${ff||'…'}` : 'Todo el período';
+            return { data, fi, ff, rango };
+        }
+
+        // Captura el mapa Leaflet como canvas (incluye tiles de fondo)
+        async function _captureLeafletMap(containerId, scale) {
+            if (!window.html2canvas) {
+                await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+            }
+            const container = document.getElementById(containerId);
+            if (!container) return null;
+            // Forzar crossOrigin en tiles aún no cargadas
+            container.querySelectorAll('.leaflet-tile').forEach(img => {
+                if (!img.crossOrigin) img.crossOrigin = 'anonymous';
+            });
+            return html2canvas(container, {
+                useCORS: true, allowTaint: false,
+                scale: scale || 2, logging: false, imageTimeout: 20000
+            });
+        }
+
         async function exportarMapaCaliente() {
             const mapContainer = document.getElementById('mc-map');
             if (!mapContainer) { showNotification('⚠️ No hay mapa visible', 'warning'); return; }
-            const canvases = mapContainer.querySelectorAll('canvas');
-            if (canvases.length === 0) { showNotification('⚠️ Actualiza el mapa primero', 'warning'); return; }
+            showNotification('📸 Capturando mapa...', 'info');
+            try {
+                const mapCanvas = await _captureLeafletMap('mc-map', 2);
+                if (!mapCanvas) { showNotification('⚠️ Error al capturar el mapa', 'warning'); return; }
 
-            const w = mapContainer.offsetWidth;
-            const h = mapContainer.offsetHeight;
-            const legendH = 60;
+                const w = mapCanvas.width, h = mapCanvas.height;
+                const legendH = 80;
+                const output = document.createElement('canvas');
+                output.width = w; output.height = h + legendH;
+                const ctx = output.getContext('2d');
 
-            const output = document.createElement('canvas');
-            output.width = w;
-            output.height = h + legendH;
-            const ctx = output.getContext('2d');
+                ctx.drawImage(mapCanvas, 0, 0);
 
-            // Fondo negro para la leyenda
-            ctx.fillStyle = '#0f172a';
-            ctx.fillRect(0, 0, w, h + legendH);
+                // Franja leyenda
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(0, h, w, legendH);
 
-            // Dibujar todas las capas canvas del mapa
-            canvases.forEach(c => { try { ctx.drawImage(c, 0, 0); } catch(e) {} });
+                const modoProductos = document.getElementById('mc-productos-section')?.style.display !== 'none';
+                const grad = ctx.createLinearGradient(40, 0, 440, 0);
+                if (!modoProductos) {
+                    grad.addColorStop(0,'#3b82f6'); grad.addColorStop(0.4,'#10b981');
+                    grad.addColorStop(0.75,'#f59e0b'); grad.addColorStop(1,'#ef4444');
+                } else {
+                    grad.addColorStop(0,'#065f46'); grad.addColorStop(0.4,'#10b981');
+                    grad.addColorStop(0.75,'#f59e0b'); grad.addColorStop(1,'#7c3aed');
+                }
+                ctx.fillStyle = grad;
+                ctx.fillRect(40, h + 20, 400, 18);
+                ctx.fillStyle = '#94a3b8'; ctx.font = '22px Arial,sans-serif';
+                ctx.fillText('Baja', 40, h + 62); ctx.fillText('Alta', 406, h + 62);
 
-            // Franja de leyenda
-            const ly = h;
-            ctx.fillStyle = 'rgba(15,23,42,0.96)';
-            ctx.fillRect(0, ly, w, legendH);
+                const fi = document.getElementById('mc-fecha-inicio')?.value || '';
+                const ff = document.getElementById('mc-fecha-fin')?.value || '';
+                ctx.fillStyle = '#e2e8f0'; ctx.font = 'bold 24px Arial,sans-serif';
+                ctx.fillText(`Período: ${fi} → ${ff}`, 480, h + 38);
+                if (modoProductos) {
+                    const selProds = Array.from(document.querySelectorAll('.mc-producto-cb:checked')).map(cb=>cb.value);
+                    ctx.font = '20px Arial,sans-serif'; ctx.fillStyle = '#94a3b8';
+                    ctx.fillText('Productos: ' + (selProds.length ? selProds.join(', ') : 'Todos'), 480, h + 62);
+                }
+                ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.font = 'bold 22px Arial,sans-serif';
+                ctx.fillText('Ferroplast CRM', w - 280, h + 62);
 
-            // Barra de gradiente
-            const modoProductos = document.getElementById('mc-productos-section')?.style.display !== 'none';
-            const grad = ctx.createLinearGradient(20, 0, 220, 0);
-            if (!modoProductos) {
-                grad.addColorStop(0, '#3b82f6'); grad.addColorStop(0.4, '#10b981');
-                grad.addColorStop(0.75, '#f59e0b'); grad.addColorStop(1, '#ef4444');
-            } else {
-                grad.addColorStop(0, '#065f46'); grad.addColorStop(0.4, '#10b981');
-                grad.addColorStop(0.75, '#f59e0b'); grad.addColorStop(1, '#7c3aed');
+                const link = document.createElement('a');
+                link.download = `mapa-caliente-${new Date().toISOString().split('T')[0]}.png`;
+                link.href = output.toDataURL('image/png');
+                link.click();
+                showNotification('📸 Mapa exportado correctamente', 'success');
+            } catch(e) {
+                console.error('PNG export error:', e);
+                showNotification('⚠️ Error al capturar: ' + e.message, 'warning');
             }
-            ctx.fillStyle = grad;
-            if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(20, ly + 14, 200, 12, 4); ctx.fill(); }
-            else { ctx.fillRect(20, ly + 14, 200, 12); }
+        }
 
-            ctx.fillStyle = '#94a3b8'; ctx.font = '11px Arial,sans-serif';
-            ctx.fillText('Baja', 20, ly + 42);
-            ctx.fillText('Alta', 202, ly + 42);
+        async function exportarMapaCalientePDF() {
+            showNotification('📑 Preparando PDF...', 'info');
+            try {
+                // Cargar dependencias
+                await Promise.all([
+                    loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
+                    loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+                ]);
 
-            // Texto descriptivo
-            ctx.fillStyle = '#e2e8f0'; ctx.font = 'bold 12px Arial,sans-serif';
-            let legendLine1 = '';
-            if (!modoProductos) {
-                legendLine1 = 'Por estado: Nuevo=1 · Contactado=2 · Reunión=3 · Propuesta=4 · Cliente=5';
-            } else {
-                const selProds = Array.from(document.querySelectorAll('.mc-producto-cb:checked')).map(cb => cb.value);
-                legendLine1 = 'Productos: ' + (selProds.length ? selProds.join(', ') : 'Todos') + ' · (peso = nº reuniones)';
+                // Datos CRM
+                const { data, fi, ff, rango } = _mcGatherData();
+                if (!data.length) { showNotification('⚠️ No hay datos para exportar', 'warning'); return; }
+
+                const PROD_COLORS = {
+                    'Ferroplast Mute':[230,57,70], 'Ecosan':[42,157,143], 'Polietileno (PE)':[38,70,83],
+                    'PVC-O (Orientado)':[233,196,106], 'Serie B PVC':[244,162,97], 'Pozos modulares':[106,76,147],
+                    'Biopipe':[25,130,196], 'Condusan':[138,201,38], 'Tuyper':[255,107,53],
+                    'Canalones EUME':[6,182,212], 'Braseli':[236,72,153]
+                };
+                const PROV_COLORS = {
+                    'Málaga':[42,157,143], 'Sevilla':[233,196,106], 'Alicante':[231,111,81],
+                    'Murcia':[106,76,147], 'Granada':[38,70,83], 'Huelva':[25,130,196],
+                    'Almería':[244,162,97], 'Cádiz':[6,182,212], 'Córdoba':[138,201,38],
+                    'Jaén':[236,72,153], 'Badajoz':[239,68,68], 'Cáceres':[168,85,247], 'Madrid':[100,116,139]
+                };
+
+                const allProds = [...new Set(data.flatMap(d=>d.pr))].sort();
+                const provinces = [...new Set(data.map(d=>d.p).filter(Boolean))].sort();
+                const prodCounts = {}; allProds.forEach(p=>{ prodCounts[p]=data.filter(d=>d.pr.includes(p)).length; });
+                const provCounts = {}; provinces.forEach(p=>{ provCounts[p]=data.filter(d=>d.p===p).length; });
+                const prodSorted = [...allProds].sort((a,b)=>(prodCounts[b]||0)-(prodCounts[a]||0));
+                const provSorted = [...provinces].sort((a,b)=>(provCounts[b]||0)-(provCounts[a]||0));
+                const total = data.length;
+                const fecha_hoy = new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'});
+
+                // Capturar mapa
+                showNotification('📸 Capturando mapa...', 'info');
+                let mapImgData = null, mapAspect = 0.55;
+                const mapCanvas = await _captureLeafletMap('mc-map', 1.5);
+                if (mapCanvas) {
+                    mapImgData = mapCanvas.toDataURL('image/jpeg', 0.9);
+                    mapAspect = mapCanvas.height / mapCanvas.width;
+                }
+
+                showNotification('📑 Generando páginas PDF...', 'info');
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+                const W=210, H=297, M=15, CW=180;
+
+                // ── Helpers ──
+                const hdrBlue1=[26,58,92], hdrBlue2=[45,106,160];
+                function drawPageHeader(title, subtitle) {
+                    doc.setFillColor(...hdrBlue1); doc.rect(0,0,W,34,'F');
+                    doc.setFillColor(...hdrBlue2); doc.rect(0,0,W,17,'F');
+                    doc.setFillColor(...hdrBlue1); doc.rect(0,9,W,25,'F');
+                    doc.setTextColor(255,255,255);
+                    doc.setFont('helvetica','bold'); doc.setFontSize(15);
+                    doc.text(title, M, 14);
+                    if (subtitle) {
+                        doc.setFont('helvetica','normal'); doc.setFontSize(8);
+                        doc.setTextColor(190,215,240);
+                        doc.text(subtitle, M, 21.5);
+                    }
+                }
+                function drawStatBoxes(stats) {
+                    const bW=40, bH=22, gap=4;
+                    const startX = W - M - stats.length*(bW+gap) + gap;
+                    stats.forEach((s,i) => {
+                        const x = startX + i*(bW+gap);
+                        doc.setFillColor(55,95,140); doc.roundedRect(x,7,bW,bH,2,2,'F');
+                        doc.setTextColor(255,255,255);
+                        doc.setFont('helvetica','bold'); doc.setFontSize(17);
+                        doc.text(String(s.num), x+bW/2, 17, {align:'center'});
+                        doc.setFont('helvetica','normal'); doc.setFontSize(6);
+                        doc.setTextColor(190,220,255);
+                        doc.text(s.label, x+bW/2, 24.5, {align:'center'});
+                    });
+                }
+                function drawPageFooter(pageNum, totalPages) {
+                    doc.setFillColor(...hdrBlue1); doc.rect(0,H-9,W,9,'F');
+                    doc.setTextColor(140,175,215); doc.setFont('helvetica','normal'); doc.setFontSize(7);
+                    doc.text('Ferroplast CRM · Manuel Fernández · Promotor y Prescriptor', M, H-3.5);
+                    doc.text(`Página ${pageNum} de ${totalPages}`, W-M, H-3.5, {align:'right'});
+                    doc.setTextColor(110,145,185);
+                    doc.text(fecha_hoy, W/2, H-3.5, {align:'center'});
+                }
+
+                // ══════════════════════════
+                // PÁGINA 1 — MAPA
+                // ══════════════════════════
+                drawPageHeader('Mapa de Visitas Comerciales',
+                    `GPF / Grupo Plásticos Ferro — Prescripción Sur · ${rango} · Generado ${fecha_hoy}`);
+                drawStatBoxes([{num:total,label:'EMPRESAS'},{num:provinces.length,label:'PROVINCIAS'},{num:allProds.length,label:'PRODUCTOS'}]);
+
+                if (mapImgData) {
+                    const mapH = Math.min(CW * mapAspect, H - 50);
+                    doc.addImage(mapImgData,'JPEG', M, 37, CW, mapH);
+                } else {
+                    doc.setFillColor(240,242,245); doc.rect(M,37,CW,120,'F');
+                    doc.setTextColor(150,150,150); doc.setFontSize(12);
+                    doc.text('Mapa no disponible', W/2, 100, {align:'center'});
+                }
+
+                // ══════════════════════════
+                // PÁGINA 2 — ANÁLISIS
+                // ══════════════════════════
+                doc.addPage();
+                drawPageHeader('Análisis de Productos y Distribución por Provincia');
+
+                // -- Gráfico barras de productos (izquierda) --
+                let y = 42;
+                doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...hdrBlue1);
+                doc.text('Productos presentados', M, y); y += 5;
+
+                const maxCnt = Math.max(...Object.values(prodCounts), 1);
+                const barMaxW = 78, barH = 5.5, barGap = 2.5;
+                prodSorted.forEach((prod, i) => {
+                    const cnt = prodCounts[prod]||0;
+                    const bw = (cnt/maxCnt)*barMaxW;
+                    const by = y + i*(barH+barGap);
+                    const col = PROD_COLORS[prod]||[120,120,120];
+                    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(70,70,70);
+                    const lbl = prod.length > 20 ? prod.slice(0,19)+'…' : prod;
+                    doc.text(lbl, M, by+barH-0.5);
+                    doc.setFillColor(...col); doc.rect(M+54, by, bw, barH, 'F');
+                    doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(50,50,50);
+                    doc.text(String(cnt), M+54+bw+2, by+barH-0.5);
+                });
+                y = y + prodSorted.length*(barH+barGap) + 5;
+                doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(160,160,160);
+                doc.text('Nº de empresas que trabajan el producto', M+54, y);
+
+                // -- Gráfico donut de provincias (derecha) --
+                const donutCanvas = document.createElement('canvas');
+                donutCanvas.width = 240; donutCanvas.height = 240;
+                const dctx = donutCanvas.getContext('2d');
+                const dCX=120, dCY=120, outerR=100, innerR=55;
+                let ang = -Math.PI/2;
+                provSorted.forEach(prov => {
+                    const cnt = provCounts[prov]||0;
+                    const slice = (cnt/total)*2*Math.PI;
+                    const col = PROV_COLORS[prov]||[120,120,120];
+                    dctx.beginPath(); dctx.moveTo(dCX,dCY);
+                    dctx.arc(dCX,dCY,outerR,ang,ang+slice); dctx.closePath();
+                    dctx.fillStyle=`rgb(${col[0]},${col[1]},${col[2]})`; dctx.fill();
+                    ang += slice;
+                });
+                dctx.beginPath(); dctx.arc(dCX,dCY,innerR,0,2*Math.PI);
+                dctx.fillStyle='white'; dctx.fill();
+                dctx.fillStyle='#1a3a5c'; dctx.textAlign='center';
+                dctx.font='bold 36px Arial'; dctx.fillText(String(total), dCX, dCY+8);
+                dctx.font='14px Arial'; dctx.fillStyle='#666'; dctx.fillText('empresas', dCX, dCY+24);
+
+                const donutImg = donutCanvas.toDataURL('image/png');
+                const donutX = M+100, donutY = 42;
+                doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...hdrBlue1);
+                doc.text('Distribución por provincia', donutX, donutY-2);
+                doc.addImage(donutImg,'PNG', donutX, donutY+2, 55, 55);
+
+                // -- Tabla resumen de provincias --
+                let py = donutY + 60;
+                provSorted.forEach(prov => {
+                    const cnt = provCounts[prov]||0;
+                    const pct = Math.round((cnt/total)*100);
+                    const col = PROV_COLORS[prov]||[120,120,120];
+                    doc.setFillColor(...col); doc.circle(donutX+3, py-1.5, 3, 'F');
+                    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(60,60,60);
+                    doc.text(prov, donutX+9, py);
+                    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...hdrBlue1);
+                    doc.text(String(cnt), donutX+67, py, {align:'right'});
+                    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(130,130,130);
+                    doc.text(pct+'%', donutX+80, py, {align:'right'});
+                    py += 7.5;
+                });
+
+                // ══════════════════════════
+                // PÁGINAS 3+ — LISTADO
+                // ══════════════════════════
+                doc.addPage();
+                drawPageHeader('Listado de Empresas Visitadas por Provincia');
+
+                const COL_W = (CW-8)/2;  // ~86mm por columna
+                const ROW_H = 8.5;
+                const MAX_Y = H - 12;
+                let curY = 40, curCol = 0, curPage = 3;
+
+                function getColX() { return M + curCol*(COL_W+8); }
+                function ensureSpace(need) {
+                    if (curY + need > MAX_Y) {
+                        if (curCol === 0) { curCol = 1; curY = 40; }
+                        else {
+                            doc.addPage(); curPage++;
+                            drawPageHeader('Listado de Empresas Visitadas por Provincia');
+                            curCol = 0; curY = 40;
+                        }
+                    }
+                }
+
+                provSorted.forEach(prov => {
+                    const companies = data.filter(d=>d.p===prov).sort((a,b)=>a.e.localeCompare(b.e));
+                    if (!companies.length) return;
+                    const col = PROV_COLORS[prov]||[120,120,120];
+
+                    ensureSpace(12 + ROW_H*2);
+                    const cx = getColX();
+
+                    // Cabecera de provincia
+                    doc.setFillColor(...col);
+                    doc.rect(cx, curY-1, COL_W, 9, 'F');
+                    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+                    doc.text(`${prov}  (${companies.length} empresa${companies.length!==1?'s':''})`, cx+3, curY+5.5);
+                    curY += 11;
+
+                    companies.forEach(company => {
+                        ensureSpace(ROW_H);
+                        const bx = getColX();
+                        // Nombre empresa
+                        doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(40,40,40);
+                        const name = company.e.length > 26 ? company.e.slice(0,25)+'…' : company.e;
+                        doc.text(name, bx+2, curY+3.5);
+                        // Ciudad
+                        if (company.c && company.c !== company.p) {
+                            doc.setFontSize(6); doc.setTextColor(150,150,150);
+                            doc.text(company.c.slice(0,20), bx+2, curY+7);
+                        }
+                        // Puntos de producto (derecha → izquierda)
+                        let dotX = bx+COL_W-2;
+                        [...company.pr].reverse().forEach(prod => {
+                            const pcol = PROD_COLORS[prod]||[160,160,160];
+                            doc.setFillColor(...pcol); doc.circle(dotX, curY+4, 2, 'F');
+                            dotX -= 5;
+                        });
+                        // Separador
+                        doc.setDrawColor(235,235,235); doc.setLineWidth(0.15);
+                        doc.line(bx, curY+ROW_H-1, bx+COL_W, curY+ROW_H-1);
+                        curY += ROW_H;
+                    });
+                    curY += 4;
+                });
+
+                // -- Leyenda de productos (al final de la última página de lista) --
+                ensureSpace(20);
+                const legX = getColX();
+                doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...hdrBlue1);
+                doc.text('Leyenda de productos:', legX, curY+4); curY += 7;
+                let lx = legX; let ly2 = curY;
+                allProds.forEach((prod, i) => {
+                    const col = PROD_COLORS[prod]||[160,160,160];
+                    if (lx + 45 > legX + COL_W) { lx = legX; ly2 += 6; }
+                    doc.setFillColor(...col); doc.circle(lx+2, ly2-0.5, 2, 'F');
+                    doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(70,70,70);
+                    doc.text(prod, lx+6, ly2);
+                    lx += 45;
+                });
+
+                // -- Footers en todas las páginas --
+                const totalPages = curPage;
+                for (let p = 1; p <= totalPages; p++) {
+                    doc.setPage(p);
+                    drawPageFooter(p, totalPages);
+                }
+
+                doc.save(`Mapa_Visitas_GPF_${new Date().toISOString().slice(0,10)}.pdf`);
+                showNotification(`✅ PDF generado — ${total} empresas, ${provinces.length} provincias`, 'success');
+
+            } catch(e) {
+                console.error('PDF export error:', e);
+                showNotification('⚠️ Error al generar PDF: ' + e.message, 'error');
             }
-            ctx.fillText(legendLine1, 238, ly + 24);
-
-            const fi = document.getElementById('mc-fecha-inicio')?.value || '';
-            const ff = document.getElementById('mc-fecha-fin')?.value || '';
-            ctx.fillStyle = '#64748b'; ctx.font = '11px Arial,sans-serif';
-            ctx.fillText(`Período: ${fi}  →  ${ff}`, 238, ly + 42);
-
-            // Marca de agua
-            ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.font = 'bold 11px Arial,sans-serif';
-            ctx.fillText('Ferroplast CRM', w - 130, ly + 42);
-
-            // Descargar
-            const link = document.createElement('a');
-            link.download = `mapa-caliente-${new Date().toISOString().split('T')[0]}.png`;
-            link.href = output.toDataURL('image/png');
-            link.click();
-            showNotification('📸 Mapa exportado correctamente', 'success');
         }
 
         async function exportarMapaCalienteHTML() {
