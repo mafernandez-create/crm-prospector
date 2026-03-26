@@ -22703,9 +22703,13 @@ ${jsonTemplate}`
                 const nivelColor = nivel==='Alto'?'#1E7B34':(nivel==='Bajo'?'#C0392B':'#B8860B');
                 const nivelBadge = `<span style="color:${nivelColor};font-weight:700;">${nivel==='Alto'?'🟢':nivel==='Bajo'?'🔴':'🟡'} ${nivel}</span>${d.justificacion_interes?' — '+d.justificacion_interes:''}`;
 
+                const gpfAsist = 'Manuel Fernández — Promotor y Prescriptor' +
+                    (d.comercial && d.comercial !== 'Prescripción' ? ` · ${d.comercial} (Comercial zona)` :
+                     d.comercial === 'Prescripción' ? ' · Visita de Prescripción' : '');
+
                 const html = `
                     ${sh(1,'INFORMACIÓN GENERAL DE LA VISITA')}
-                    ${tbl(row('Fecha',d.fecha)+row('Empresa',d.empresa)+row('Localidad',d.localidad)+(d.direccion?row('Dirección',d.direccion):'')+row('Asistentes empresa',asist)+row('Asistentes GPF','Manuel Fernández — Promotor y Prescriptor'))}
+                    ${tbl(row('Fecha',d.fecha)+row('Empresa',d.empresa)+row('Localidad',d.localidad)+(d.direccion?row('Dirección',d.direccion):'')+row('Asistentes empresa',asist)+row('Asistentes GPF',gpfAsist))}
                     ${sh(2,'OBJETIVO DE LA VISITA')}${p(d.objetivo)}
                     ${sh(3,'TEMAS TRATADOS')}
                     ${tbl(row('Productos presentados',d.productos_presentados)+row('Muestra física',d.muestra_fisica)+row('Requerimientos técnicos',d.requerimientos_tecnicos)+row('Proyectos activos',d.proyectos_activos)+row('Argumentos utilizados',d.argumentos))}
