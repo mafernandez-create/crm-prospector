@@ -20455,9 +20455,9 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 const studioCount = {};
                 cloudCache.activities.filter(a => {
                     if (a.type !== 'meeting') return false;
-                    if (!a.productos || !a.productos.length) return false;
-                    if (productosSel.size > 0 && !a.productos.some(p => productosSel.has(p))) return false;
-                    const fecha = normFecha(a.createdAt || '');
+                    // Si hay filtro de producto activo, solo incluir reuniones que lo mencionan
+                    if (productosSel.size > 0 && a.productos?.length && !a.productos.some(p => productosSel.has(p))) return false;
+                    const fecha = normFecha(a.createdAt || a.date || '');
                     if (fi && fecha && fecha < fi) return false;
                     if (ff && fecha && fecha > ff) return false;
                     return true;
