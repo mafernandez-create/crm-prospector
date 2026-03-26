@@ -7136,6 +7136,9 @@
                                                             🔗 Abrir enlace
                                                         </a>
                                                     ` : ''))}
+                                                    <button onclick="editarProductosInforme(${idx})" class="btn btn-sm" style="background:${r.reportJson?.productos_presentados ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)'};color:${r.reportJson?.productos_presentados ? '#34d399' : '#fbbf24'};border:1px solid ${r.reportJson?.productos_presentados ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'};">
+                                                        📦 ${r.reportJson?.productos_presentados ? 'Productos ✓' : 'Añadir productos'}
+                                                    </button>
                                                     </div>
                                                 </div>
                                             </div>
