@@ -22123,6 +22123,13 @@ ${body}
             const studio = cloudCache.studios.find(s => s.id == currentStudioId);
             const studioName = studio?.name || 'Empresa';
             const today = new Date().toISOString().split('T')[0];
+            const province = studio?.province || '';
+            const normProv = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+            const comercialesZona = COMERCIALES.filter(c => normProv(c.zona) === normProv(province));
+            const comercialOptionsHtml = [
+                ...(comercialesZona.length ? comercialesZona.map(c => `<option value="${c.nombre}">${c.empresa}: ${c.nombre}</option>`) : ['<option value="" disabled>— Sin comercial para esta zona —</option>']),
+                `<option value="Prescripción">⭐ Prescripción</option>`
+            ].join('');
 
             const modal = document.createElement('div');
             modal.id = 'informe-ia-modal';
