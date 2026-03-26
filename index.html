@@ -22810,6 +22810,12 @@ ${jsonTemplate}`
                     ${comercialesZona.map(c => `<option value="${esc(c.nombre)}" ${currentComercial===c.nombre?'selected':''}>${c.empresa}: ${c.nombre}</option>`).join('')}
                     <option value="Prescripción" ${currentComercial==='Prescripción'?'selected':''}>⭐ Prescripción</option>
                 </select>
+            </div>
+            <div style="margin-bottom:10px;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:#0f172a;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);">
+                    <input type="checkbox" id="ei-prescripcion" ${d.prescripcion_origen?'checked':''} style="accent-color:#7c3aed;width:15px;height:15px;cursor:pointer;">
+                    <span style="color:#e2e8f0;font-size:0.83rem;">⭐ Visita iniciada por prescripción</span>
+                </label>
             </div>`;
 
             body.innerHTML = `<div style="padding:4px;">
@@ -22889,9 +22895,10 @@ ${jsonTemplate}`
                 if (!studio) throw new Error('Estudio no encontrado');
                 const reports = studio.data?.reports || [];
                 if (!reports[reportIdx]) throw new Error('Informe no encontrado');
-                // Incluir comercial y preservar campos extra (aiGenerated, etc.)
+                // Incluir comercial, prescripcion_origen y preservar campos extra (aiGenerated, etc.)
                 const comercialVal = document.getElementById('ei-comercial')?.value || '';
                 if (comercialVal) updatedJson.comercial = comercialVal;
+                updatedJson.prescripcion_origen = document.getElementById('ei-prescripcion')?.checked || false;
                 reports[reportIdx].reportJson = { ...reports[reportIdx].reportJson, ...updatedJson };
                 if (!studio.data) studio.data = {};
                 studio.data.reports = reports;
