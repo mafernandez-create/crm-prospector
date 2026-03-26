@@ -21903,7 +21903,7 @@ Notas:
                     new TableRow({ children:[hCell('CAMPO',2800), hCell('DETALLE',6226)] }),
                     ...[ ['Fecha',fechaDisp], ['Empresa visitada',data.empresa||studio?.name||'—'], ['Localidad',data.localidad||studio?.city||'—'],
                          ['Dirección',data.direccion||studio?.data?.contact?.address||'—'],
-                         ['Asistentes (empresa)',asist], ['Asistentes (GPF)','Manuel Fernández — Promotor y Prescriptor']
+                         ['Asistentes (empresa)',asist], ['Asistentes (GPF)', 'Manuel Fernández — Promotor y Prescriptor' + (data.comercial && data.comercial !== 'Prescripción' ? ' · ' + data.comercial + ' (Comercial zona)' : data.comercial === 'Prescripción' ? ' · Visita de Prescripción' : '')]
                     ].map(([l,v],i) => new TableRow({ children:[lCell(l,2800), vCell(v,6226,i%2===0)] }))
                 ]
             });
