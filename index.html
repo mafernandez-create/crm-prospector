@@ -22220,6 +22220,7 @@ ${body}
             const notas = document.getElementById('informe-ia-notas')?.value?.trim();
             const fecha = document.getElementById('informe-ia-fecha')?.value || new Date().toISOString().split('T')[0];
             const modalidad = document.querySelector('input[name="informe-modalidad"]:checked')?.value || 'real';
+            const comercialSeleccionado = document.getElementById('informe-ia-comercial')?.value || '';
             const statusDiv = document.getElementById('informe-ia-status');
 
             if (modalidad === 'real' && !notas) {
@@ -22437,6 +22438,7 @@ ${contactName ? `- Contacto principal CRM: ${contactName}` : ''}
 
 Fecha de la visita: ${fechaFormateada}
 Modalidad: ${modalidad === 'real' ? 'Visita Real' : 'Visita Ficticia'}
+${comercialSeleccionado ? `Comercial de zona: ${comercialSeleccionado === 'Prescripción' ? 'Visita de Prescripción (sin comercial asignado)' : comercialSeleccionado}` : ''}
 
 ${webContent ? `INFORMACIÓN OBTENIDA DE LA WEB DE LA EMPRESA (${webUrl}):\n"""\n${webContent}\n"""\n` : ''}
 ${modalidad === 'real'
