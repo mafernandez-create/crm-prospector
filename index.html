@@ -20431,21 +20431,51 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 // ── MODO PRODUCTOS ───────────────────────────────────────────
                 const productosSel = new Set(Array.from(document.querySelectorAll('.mc-producto-cb:checked')).map(cb => cb.value));
 
-                // Filtrar actividades de tipo reunión con los productos seleccionados y en el rango de fechas
-                const acts = cloudCache.activities.filter(a => {
+                // Helper: comprueba si un texto de productos_presentados contiene el producto del filtro
+                const matchProducto = (texto) => {
+                    if (!texto) return false;
+                    const low = texto.toLowerCase();
+                    if (productosSel.size === 0) return true;
+                    return [...productosSel].some(p => {
+                        const kw = p === 'Ecosan Evacuación sanitario suelo' ? 'ecosan'
+                                 : p === 'Pozos' ? 'poz'
+                                 : p.toLowerCase().split(' ')[0]; // primera palabra como keyword
+                        return low.includes(kw);
+                    });
+                };
+
+                // Helper: normaliza fecha a YYYY-MM-DD
+                const normFecha = f => {
+                    if (!f) return '';
+                    if (f.includes('/')) { const p = f.split('/'); return p.length===3 ? `${p[2]}-${p[1]}-${p[0]}` : f; }
+                    return f.split('T')[0];
+                };
+
+                // 1. Actividades de tipo reunión del calendario
+                const studioCount = {};
+                cloudCache.activities.filter(a => {
                     if (a.type !== 'meeting') return false;
                     if (!a.productos || !a.productos.length) return false;
                     if (productosSel.size > 0 && !a.productos.some(p => productosSel.has(p))) return false;
-                    const fecha = (a.createdAt || '').split('T')[0];
+                    const fecha = normFecha(a.createdAt || '');
                     if (fi && fecha && fecha < fi) return false;
                     if (ff && fecha && fecha > ff) return false;
                     return true;
+                }).forEach(a => {
+                    if (a.studioId != null) studioCount[a.studioId] = (studioCount[a.studioId] || 0) + 1;
                 });
 
-                // Agrupar por studioId y contar reuniones
-                const studioCount = {};
-                acts.forEach(a => {
-                    if (a.studioId != null) studioCount[a.studioId] = (studioCount[a.studioId] || 0) + 1;
+                // 2. Informes IA (reportJson.productos_presentados) en todos los estudios
+                cloudCache.studios.forEach(studio => {
+                    (studio.data?.reports || []).forEach(report => {
+                        if (!report.reportJson) return;
+                        const productos = report.reportJson.productos_presentados || '';
+                        if (!matchProducto(productos)) return;
+                        const fecha = normFecha(report.date || report.reportJson.fecha || '');
+                        if (fi && fecha && fecha < fi) return;
+                        if (ff && fecha && fecha > ff) return;
+                        studioCount[studio.id] = (studioCount[studio.id] || 0) + 1;
+                    });
                 });
 
                 const studioIds = new Set(Object.keys(studioCount).map(Number));
