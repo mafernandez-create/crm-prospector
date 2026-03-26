@@ -22754,6 +22754,126 @@ ${jsonTemplate}`
             }
         }
 
+        async function toggleModoEdicion(reportIdx) {
+            const body = document.getElementById('informe-ia-view-body');
+            if (!body) return;
+
+            let studio;
+            try {
+                if (typeof firestoreDB !== 'undefined') {
+                    const snap = await firestoreDB.collection('studios').doc(String(currentStudioId)).get();
+                    studio = snap.exists ? snap.data() : null;
+                }
+            } catch(_) {}
+            if (!studio) studio = await getStudio(currentStudioId);
+
+            const report = (studio?.data?.reports || [])[reportIdx];
+            if (!report) { showNotification('❌ Informe no encontrado', 'error'); return; }
+            const d = report.reportJson || {};
+
+            const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            const a2t = arr => Array.isArray(arr) ? arr.join('\n') : (arr||'');
+            const asist2t = arr => {
+                if (!Array.isArray(arr)) return arr||'';
+                return arr.map(a => typeof a==='string' ? a : `${a.nombre||''}${a.cargo?' — '+a.cargo:''}`).join('\n');
+            };
+            const inp = (id, label, val) => `<div style="margin-bottom:10px;">
+                <div style="color:#94a3b8;font-size:0.72rem;font-weight:600;margin-bottom:3px;text-transform:uppercase;">${label}</div>
+                <input id="ei-${id}" value="${esc(val)}" style="width:100%;background:#1e293b;border:1px solid rgba(124,58,237,0.35);border-radius:6px;padding:6px 10px;color:#e2e8f0;font-size:0.83rem;box-sizing:border-box;outline:none;">
+            </div>`;
+            const ta = (id, label, val, rows=2) => `<div style="margin-bottom:10px;">
+                <div style="color:#94a3b8;font-size:0.72rem;font-weight:600;margin-bottom:3px;text-transform:uppercase;">${label}</div>
+                <textarea id="ei-${id}" rows="${rows}" style="width:100%;background:#1e293b;border:1px solid rgba(124,58,237,0.35);border-radius:6px;padding:6px 10px;color:#e2e8f0;font-size:0.83rem;resize:vertical;box-sizing:border-box;font-family:inherit;outline:none;">${esc(val)}</textarea>
+            </div>`;
+
+            body.innerHTML = `<div style="padding:4px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    ${inp('empresa','Empresa',d.empresa)}
+                    ${inp('localidad','Localidad',d.localidad)}
+                    ${inp('fecha','Fecha (DD/MM/AAAA)',d.fecha)}
+                    ${inp('nivel_interes','Nivel de interés (Alto/Medio/Bajo)',d.nivel_interes)}
+                </div>
+                ${inp('direccion','Dirección',d.direccion)}
+                ${ta('asistentes','Asistentes empresa (Nombre — Cargo, uno por línea)',asist2t(d.asistentes_empresa),3)}
+                ${ta('objetivo','Objetivo de la visita',d.objetivo,3)}
+                ${ta('productos_presentados','Productos presentados',d.productos_presentados,2)}
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    ${inp('muestra_fisica','Muestra física',d.muestra_fisica)}
+                    ${inp('requerimientos_tecnicos','Requerimientos técnicos',d.requerimientos_tecnicos)}
+                </div>
+                ${ta('proyectos_activos','Proyectos activos',d.proyectos_activos,2)}
+                ${ta('argumentos','Argumentos utilizados',d.argumentos,2)}
+                ${ta('oportunidades','Oportunidades detectadas (una por línea)',a2t(d.oportunidades),4)}
+                ${ta('compromisos_empresa','Compromisos empresa (uno por línea)',a2t(d.compromisos_empresa),3)}
+                ${ta('compromisos_gpf','Compromisos GPF (uno por línea)',a2t(d.compromisos_gpf),3)}
+                ${ta('temas_pendientes','Temas pendientes (uno por línea)',a2t(d.temas_pendientes),2)}
+                ${ta('declaraciones','Declaraciones del cliente',d.declaraciones,2)}
+                ${ta('percepcion','Percepción de marca y productos',d.percepcion,2)}
+                ${ta('obstaculos','Obstáculos identificados',d.obstaculos,2)}
+                ${ta('competidores','Competidores referenciados',d.competidores,2)}
+                ${ta('justificacion_interes','Justificación del nivel de interés',d.justificacion_interes,1)}
+                ${ta('acciones_internas','Acciones internas recomendadas (una por línea)',a2t(d.acciones_internas),3)}
+                ${ta('plan_seguimiento','Plan de seguimiento',d.plan_seguimiento,2)}
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);">
+                    <button onclick="verInformeIA(${reportIdx})" style="background:#334155;color:#cbd5e1;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:0.88rem;">Cancelar</button>
+                    <button onclick="guardarEdicionInforme(${reportIdx})" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;border:none;padding:9px 22px;border-radius:8px;cursor:pointer;font-size:0.88rem;font-weight:600;">💾 Guardar cambios</button>
+                </div>
+            </div>`;
+        }
+
+        async function guardarEdicionInforme(reportIdx) {
+            const g = id => document.getElementById('ei-'+id)?.value || '';
+            const t2a = text => text.split('\n').map(l=>l.trim()).filter(Boolean);
+            const t2asist = text => text.split('\n').map(l => {
+                const l2 = l.trim(); if (!l2) return null;
+                const sep = l2.indexOf(' — ');
+                if (sep === -1) return { nombre: l2, cargo: '' };
+                return { nombre: l2.slice(0, sep).trim(), cargo: l2.slice(sep+3).trim() };
+            }).filter(Boolean);
+
+            const updatedJson = {
+                empresa:                g('empresa'),
+                localidad:              g('localidad'),
+                direccion:              g('direccion'),
+                fecha:                  g('fecha'),
+                asistentes_empresa:     t2asist(g('asistentes')),
+                objetivo:               g('objetivo'),
+                productos_presentados:  g('productos_presentados'),
+                muestra_fisica:         g('muestra_fisica'),
+                requerimientos_tecnicos: g('requerimientos_tecnicos'),
+                proyectos_activos:      g('proyectos_activos'),
+                argumentos:             g('argumentos'),
+                oportunidades:          t2a(g('oportunidades')),
+                compromisos_empresa:    t2a(g('compromisos_empresa')),
+                compromisos_gpf:        t2a(g('compromisos_gpf')),
+                temas_pendientes:       t2a(g('temas_pendientes')),
+                declaraciones:          g('declaraciones'),
+                percepcion:             g('percepcion'),
+                obstaculos:             g('obstaculos'),
+                competidores:           g('competidores'),
+                nivel_interes:          g('nivel_interes'),
+                justificacion_interes:  g('justificacion_interes'),
+                acciones_internas:      t2a(g('acciones_internas')),
+                plan_seguimiento:       g('plan_seguimiento')
+            };
+
+            try {
+                const studio = await getStudio(currentStudioId);
+                if (!studio) throw new Error('Estudio no encontrado');
+                const reports = studio.data?.reports || [];
+                if (!reports[reportIdx]) throw new Error('Informe no encontrado');
+                // Preservar campos extra (comercial, aiGenerated, etc.)
+                reports[reportIdx].reportJson = { ...reports[reportIdx].reportJson, ...updatedJson };
+                if (!studio.data) studio.data = {};
+                studio.data.reports = reports;
+                await updateStudio(currentStudioId, { data: studio.data });
+                showNotification('✅ Informe guardado correctamente', 'success');
+                verInformeIA(reportIdx);
+            } catch(e) {
+                showNotification('❌ Error al guardar: ' + e.message, 'error');
+            }
+        }
+
         function openIAPlanner() {
             const prev = document.getElementById('ia-planner-modal');
             if (prev) prev.remove();
