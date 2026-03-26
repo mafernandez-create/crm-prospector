@@ -22172,13 +22172,21 @@ ${body}
                     </div>
 
                     <!-- Comercial -->
-                    <div style="margin-bottom:16px;">
+                    <div style="margin-bottom:12px;">
                         <div style="color:#94a3b8; font-size:0.8rem; margin-bottom:6px; font-weight:500;">COMERCIAL DE ZONA</div>
                         <select id="informe-ia-comercial"
                             style="background:#0f172a; border:1px solid rgba(124,58,237,0.4); border-radius:8px;
                                    padding:8px 12px; color:#e2e8f0; font-size:0.9rem; width:100%; outline:none;">
                             ${comercialOptionsHtml}
                         </select>
+                    </div>
+
+                    <!-- Origen prescripción -->
+                    <div style="margin-bottom:16px;">
+                        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:#0f172a;padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
+                            <input type="checkbox" id="informe-ia-prescripcion" style="accent-color:#7c3aed;width:16px;height:16px;cursor:pointer;">
+                            <span style="color:#e2e8f0;font-size:0.85rem;">⭐ Visita iniciada por prescripción</span>
+                        </label>
                     </div>
 
                     <!-- Notas -->
