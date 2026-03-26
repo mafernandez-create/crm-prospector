@@ -21328,9 +21328,9 @@ function updateMap() {
   filtered.forEach(d => {
     const item = document.createElement('div');
     item.className = 'company-item';
-    const prodsHtml = d.pr.map(p =>
-      '<span class="prod-tag" style="background:' + (PRODUCT_COLORS[p] || '#ccc') + ';color:white">' + p + '</span>'
-    ).join('');
+    const prodsHtml = d.pr.length > 0
+      ? d.pr.map(p => '<span class="prod-tag" style="background:' + (PRODUCT_COLORS[p] || '#ccc') + ';color:white">' + p + '</span>').join('')
+      : '<span style="color:#bbb;font-size:10px;font-style:italic">Sin datos de productos</span>';
     item.innerHTML = '<div class="name">' + d.e + '</div>' +
       '<div class="loc">' + d.c + ', ' + d.p + '</div>' +
       '<div class="prods">' + prodsHtml + '</div>';
