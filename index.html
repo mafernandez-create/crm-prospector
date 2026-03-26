@@ -22229,6 +22229,7 @@ ${body}
             const fecha = document.getElementById('informe-ia-fecha')?.value || new Date().toISOString().split('T')[0];
             const modalidad = document.querySelector('input[name="informe-modalidad"]:checked')?.value || 'real';
             const comercialSeleccionado = document.getElementById('informe-ia-comercial')?.value || '';
+            const visitaPrescripcion = document.getElementById('informe-ia-prescripcion')?.checked || false;
             const statusDiv = document.getElementById('informe-ia-status');
 
             if (modalidad === 'real' && !notas) {
@@ -22633,6 +22634,7 @@ ${jsonTemplate}`
                 // Si Claude no devolvió empresa, usar el nombre del CRM
                 if (!reportJson.empresa) reportJson.empresa = studioName;
                 if (comercialSeleccionado) reportJson.comercial = comercialSeleccionado;
+                reportJson.prescripcion_origen = visitaPrescripcion;
 
                 statusDiv.textContent = '✅ Informe generado. Guardando...';
 
