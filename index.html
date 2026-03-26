@@ -20175,7 +20175,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             if (prev) { prev.remove(); return; }
 
             const today = new Date().toISOString().split('T')[0];
-            const hace6m = new Date(Date.now() - 180*24*60*60*1000).toISOString().split('T')[0];
+            const hace6m = new Date(Date.now() - 548*24*60*60*1000).toISOString().split('T')[0]; // ~18 meses
 
             const modal = document.createElement('div');
             modal.id = 'mapa-caliente-modal';
