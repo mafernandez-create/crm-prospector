@@ -22449,7 +22449,8 @@ ${contactName ? `- Contacto principal CRM: ${contactName}` : ''}
 
 Fecha de la visita: ${fechaFormateada}
 Modalidad: ${modalidad === 'real' ? 'Visita Real' : 'Visita Ficticia'}
-${comercialSeleccionado ? `Comercial de zona: ${comercialSeleccionado === 'Prescripción' ? 'Visita de Prescripción (sin comercial asignado)' : comercialSeleccionado}` : ''}
+${comercialSeleccionado ? `Comercial de zona: ${comercialSeleccionado}` : ''}
+${visitaPrescripcion ? 'Origen visita: Iniciada por prescripción (Manuel propuso la visita al comercial, no al revés)' : 'Origen visita: Visita comercial estándar'}
 
 ${webContent ? `INFORMACIÓN OBTENIDA DE LA WEB DE LA EMPRESA (${webUrl}):\n"""\n${webContent}\n"""\n` : ''}
 ${modalidad === 'real'
