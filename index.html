@@ -20465,15 +20465,19 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                     if (a.studioId != null) studioCount[a.studioId] = (studioCount[a.studioId] || 0) + 1;
                 });
 
-                // 2. Informes IA (reportJson.productos_presentados) en todos los estudios
+                // 2. Todos los informes adjuntos en los estudios (AI y Word subidos)
                 cloudCache.studios.forEach(studio => {
                     (studio.data?.reports || []).forEach(report => {
-                        if (!report.reportJson) return;
-                        const productos = report.reportJson.productos_presentados || '';
-                        if (!matchProducto(productos)) return;
-                        const fecha = normFecha(report.date || report.reportJson.fecha || '');
+                        const fecha = normFecha(report.date || report.reportJson?.fecha || report.uploadedAt || '');
                         if (fi && fecha && fecha < fi) return;
                         if (ff && fecha && fecha > ff) return;
+
+                        if (report.reportJson) {
+                            // Informe IA: aplicar filtro de producto
+                            const productos = report.reportJson.productos_presentados || '';
+                            if (!matchProducto(productos)) return;
+                        }
+                        // Informe Word sin datos estructurados: incluir siempre (peso 1)
                         studioCount[studio.id] = (studioCount[studio.id] || 0) + 1;
                     });
                 });
