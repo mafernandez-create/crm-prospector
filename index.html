@@ -22624,6 +22624,7 @@ ${jsonTemplate}`
                 reportJson.fecha = fechaFormateada;
                 // Si Claude no devolvió empresa, usar el nombre del CRM
                 if (!reportJson.empresa) reportJson.empresa = studioName;
+                if (comercialSeleccionado) reportJson.comercial = comercialSeleccionado;
 
                 statusDiv.textContent = '✅ Informe generado. Guardando...';
 
