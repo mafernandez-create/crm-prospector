@@ -23534,6 +23534,69 @@ ${jsonTemplate}`
             }
         }
 
+        async function editarProductosInforme(reportIdx) {
+            const studio = await getStudioFresh(currentStudioId);
+            if (!studio) return;
+            const report = studio.data?.reports?.[reportIdx];
+            if (!report) return;
+
+            const TODOS_PRODUCTOS = [
+                'Ferroplast Mute', 'Ecosan', 'Pozos modulares', 'Biopipe',
+                'PVC-O (Orientado)', 'Polietileno (PE)', 'Condusan', 'Serie B PVC',
+                'Tuyper', 'Canalones EUME', 'Braseli'
+            ];
+            const actuales = (report.reportJson?.productos_presentados || '')
+                .split(',').map(p => p.trim()).filter(Boolean);
+
+            const modal = document.createElement('div');
+            modal.id = 'productos-modal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+            modal.innerHTML = `
+                <div style="background:#1e293b;border-radius:16px;padding:28px;width:420px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+                    <h3 style="color:#f1f5f9;margin:0 0 6px;font-size:1.1rem;">📦 Productos presentados</h3>
+                    <p style="color:#64748b;font-size:0.8rem;margin:0 0 20px;">${report.fileName || report.title || 'Informe'}</p>
+                    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;">
+                        ${TODOS_PRODUCTOS.map(p => `
+                            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:#0f172a;padding:9px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.07);">
+                                <input type="checkbox" value="${p}" ${actuales.includes(p) ? 'checked' : ''}
+                                    style="accent-color:#7c3aed;width:15px;height:15px;cursor:pointer;">
+                                <span style="color:#e2e8f0;font-size:0.875rem;">${p}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                    <div style="display:flex;gap:10px;justify-content:flex-end;">
+                        <button onclick="document.getElementById('productos-modal').remove()"
+                            style="background:#334155;color:#cbd5e1;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:0.875rem;">
+                            Cancelar
+                        </button>
+                        <button onclick="guardarProductosInforme(${reportIdx})"
+                            style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;border:none;padding:9px 20px;border-radius:8px;cursor:pointer;font-size:0.875rem;font-weight:600;">
+                            💾 Guardar
+                        </button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+        }
+
+        async function guardarProductosInforme(reportIdx) {
+            const checked = [...document.querySelectorAll('#productos-modal input[type=checkbox]:checked')].map(cb => cb.value);
+            document.getElementById('productos-modal')?.remove();
+
+            const studio = await getStudioFresh(currentStudioId);
+            if (!studio) return;
+            const reports = studio.data?.reports || [];
+            if (!reports[reportIdx]) return;
+
+            // Asegurar que existe reportJson
+            if (!reports[reportIdx].reportJson) reports[reportIdx].reportJson = {};
+            reports[reportIdx].reportJson.productos_presentados = checked.join(', ');
+
+            await updateStudio(currentStudioId, { data: { ...studio.data, reports } });
+            showNotification('✅ Productos guardados correctamente', 'success');
+            // Refrescar la vista del estudio
+            if (typeof openStudio === 'function') openStudio(currentStudioId);
+        }
+
         async function verInformeIA(reportIdx) {
             // Leer siempre fresco de Firestore
             let studio;
