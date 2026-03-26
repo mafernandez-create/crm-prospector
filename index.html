@@ -22786,6 +22786,21 @@ ${jsonTemplate}`
                 <textarea id="ei-${id}" rows="${rows}" style="width:100%;background:#1e293b;border:1px solid rgba(124,58,237,0.35);border-radius:6px;padding:6px 10px;color:#e2e8f0;font-size:0.83rem;resize:vertical;box-sizing:border-box;font-family:inherit;outline:none;">${esc(val)}</textarea>
             </div>`;
 
+            // Dropdown de comerciales filtrado por provincia del estudio
+            const province = studio?.province || '';
+            const normP = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+            const comercialesZona = COMERCIALES.filter(c => normP(c.zona) === normP(province));
+            const currentComercial = d.comercial || '';
+            const selStyle = 'width:100%;background:#1e293b;border:1px solid rgba(124,58,237,0.35);border-radius:6px;padding:6px 10px;color:#e2e8f0;font-size:0.83rem;outline:none;';
+            const comercialSelect = `<div style="margin-bottom:10px;">
+                <div style="color:#94a3b8;font-size:0.72rem;font-weight:600;margin-bottom:3px;text-transform:uppercase;">Comercial de zona</div>
+                <select id="ei-comercial" style="${selStyle}">
+                    <option value="">— Sin comercial —</option>
+                    ${comercialesZona.map(c => `<option value="${esc(c.nombre)}" ${currentComercial===c.nombre?'selected':''}>${c.empresa}: ${c.nombre}</option>`).join('')}
+                    <option value="Prescripción" ${currentComercial==='Prescripción'?'selected':''}>⭐ Prescripción</option>
+                </select>
+            </div>`;
+
             body.innerHTML = `<div style="padding:4px;">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                     ${inp('empresa','Empresa',d.empresa)}
@@ -22793,6 +22808,7 @@ ${jsonTemplate}`
                     ${inp('fecha','Fecha (DD/MM/AAAA)',d.fecha)}
                     ${inp('nivel_interes','Nivel de interés (Alto/Medio/Bajo)',d.nivel_interes)}
                 </div>
+                ${comercialSelect}
                 ${inp('direccion','Dirección',d.direccion)}
                 ${ta('asistentes','Asistentes empresa (Nombre — Cargo, uno por línea)',asist2t(d.asistentes_empresa),3)}
                 ${ta('objetivo','Objetivo de la visita',d.objetivo,3)}
