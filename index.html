@@ -22878,7 +22878,9 @@ ${jsonTemplate}`
                 if (!studio) throw new Error('Estudio no encontrado');
                 const reports = studio.data?.reports || [];
                 if (!reports[reportIdx]) throw new Error('Informe no encontrado');
-                // Preservar campos extra (comercial, aiGenerated, etc.)
+                // Incluir comercial y preservar campos extra (aiGenerated, etc.)
+                const comercialVal = document.getElementById('ei-comercial')?.value || '';
+                if (comercialVal) updatedJson.comercial = comercialVal;
                 reports[reportIdx].reportJson = { ...reports[reportIdx].reportJson, ...updatedJson };
                 if (!studio.data) studio.data = {};
                 studio.data.reports = reports;
