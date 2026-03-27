@@ -23289,6 +23289,44 @@ Las 22 claves obligatorias son exactamente estas:
                 if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
                 return fecha || new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric' });
             })();
+            // ── Datos históricos del estudio para modo real ──────────────────────
+            const historialCRM = (() => {
+                if (modalidad !== 'real') return '';
+                const partes = [];
+                // Informes anteriores (reportJson)
+                const reports = studio?.reports || [];
+                if (reports.length > 0) {
+                    const resumenInformes = reports.slice(-3).map((r, i) => {
+                        const rj = r.reportJson || {};
+                        const fecha = rj.fecha || r.date || '';
+                        const obj = rj.objetivo || '';
+                        const prod = rj.productos_presentados || r.productos_presentados || '';
+                        const interes = rj.nivel_interes || '';
+                        const plan = rj.plan_seguimiento || '';
+                        const decl = rj.declaraciones || '';
+                        return `  Informe ${i+1} (${fecha}):
+    - Productos: ${prod || '—'}
+    - Objetivo: ${obj ? obj.substring(0,200) : '—'}
+    - Interés: ${interes || '—'}
+    - Plan seguimiento previo: ${plan ? plan.substring(0,200) : '—'}
+    ${decl ? `- Declaraciones del cliente: "${decl.substring(0,200)}"` : ''}`;
+                    }).join('\n');
+                    partes.push(`HISTORIAL DE INFORMES ANTERIORES (últimos ${Math.min(3, reports.length)}):\n${resumenInformes}`);
+                }
+                // Actividades registradas
+                const activities = studio?.activities || [];
+                if (activities.length > 0) {
+                    const resumenActs = activities.slice(-5).map(a => {
+                        const fecha = a.date || a.fecha || '';
+                        const tipo = a.type || a.tipo || '';
+                        const nota = a.note || a.notas || a.description || '';
+                        return `  • ${fecha} [${tipo}]${nota ? ': ' + nota.substring(0,150) : ''}`;
+                    }).join('\n');
+                    partes.push(`ACTIVIDADES REGISTRADAS EN EL CRM (últimas ${Math.min(5, activities.length)}):\n${resumenActs}`);
+                }
+                return partes.length > 0 ? partes.join('\n\n') + '\n\n' : '';
+            })();
+
             const userMsg = `DATOS DE LA EMPRESA EN EL CRM:
 - Nombre: ${studioName}
 - Tipo de empresa: ${type || 'No especificado'}
