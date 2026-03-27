@@ -5747,7 +5747,8 @@
         
         function formatDateTime(dateStr) {
             if (!dateStr) return '-';
-            const date = new Date(dateStr);
+            const date = normTs(dateStr);
+            if (!date || isNaN(date)) return '-';
             return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
         }
 
@@ -20490,7 +20491,9 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                     if (lastReport?.date) {
                         fecha = lastReport.date.includes('-') ? lastReport.date : lastReport.date.split('/').reverse().join('-');
                     } else if (s.updatedAt) {
-                        fecha = s.updatedAt.split('T')[0];
+                        fecha = (typeof s.updatedAt === 'object' && s.updatedAt?.seconds)
+                            ? new Date(s.updatedAt.seconds * 1000).toISOString().substring(0, 10)
+                            : s.updatedAt.split('T')[0];
                     }
                     if (fi && fecha && fecha < fi) return false;
                     if (ff && fecha && fecha > ff) return false;
