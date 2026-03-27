@@ -12287,7 +12287,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
         // RE-ANALYSIS WITH COMPARISON
         // ============================================
         async function reanalyzeStudio(id) {
-            if (!useCloudStorage) {
+            if (!useCloudStorage && !useFirebase) {
                 alert('⚠️ Se necesita conexión cloud para re-analizar.\n\nVerifica tu conexión a Google Sheets.');
                 return;
             }
