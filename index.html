@@ -22991,8 +22991,9 @@ ${body}
                 -webkit-overflow-scrolling:touch;
             `;
             modal.innerHTML = `
-                <div style="background:#1e293b; border-radius:16px; padding:28px; max-width:680px; width:100%;
-                            box-shadow:0 20px 60px rgba(0,0,0,0.5); border:1px solid rgba(124,58,237,0.3); margin:auto;">
+                <div style="background:#1e293b; border-radius:16px; padding:clamp(16px,4vw,28px); max-width:680px; width:100%;
+                            box-shadow:0 20px 60px rgba(0,0,0,0.5); border:1px solid rgba(124,58,237,0.3); margin:auto;
+                            box-sizing:border-box;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                         <h3 style="margin:0; color:#e2e8f0; font-size:1.1rem;">✍️ Redactar Informe de Visita</h3>
                         <button onclick="document.getElementById('informe-ia-modal').remove()"
