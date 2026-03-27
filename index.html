@@ -10817,7 +10817,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
             clearDebug();
             
             // Verificar conexión cloud (necesaria para el proxy IA)
-            if (!useCloudStorage) {
+            if (!useCloudStorage && !useFirebase) {
                 alert('⚠️ Se necesita conexión cloud para generar análisis.\n\nVerifica tu conexión a Google Sheets.');
                 return;
             }
