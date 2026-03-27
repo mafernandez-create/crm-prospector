@@ -6838,9 +6838,12 @@
                 return true;
             });
             
+            // Guardar resultado filtrado (sin ordenar) para que sortTable pueda reordenar sin re-filtrar
+            lastFilteredStudios = filtered.slice();
+
             // Aplicar ordenación actual
             filtered = sortStudios(filtered, currentSortColumn, currentSortDirection);
-            
+
             renderStudiosTable(filtered);
         }
 
