@@ -23384,11 +23384,17 @@ IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin ex
                 }, null, 2);
 
                 // Sustituir la instrucción final del userMsg por la plantilla
-                const userMsgConPlantilla = userMsg.replace(
-                    'IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin explicaciones, sin markdown. Empieza directamente con { y termina con }.',
-                    `INSTRUCCIÓN FINAL: Devuelve el siguiente JSON con los valores PLACEHOLDER reemplazados por contenido real, verosímil y detallado. Mantén EXACTAMENTE las mismas claves. No añadas ni elimines claves. No cambies el tipo de valor (string→string, array→array). Devuelve SOLO el JSON, sin texto adicional.
+                const instruccionFinal = modalidad === 'real'
+                    ? `INSTRUCCIÓN FINAL: Devuelve el siguiente JSON con los valores PLACEHOLDER reemplazados usando EXCLUSIVAMENTE la información de las notas de Manuel y los datos del CRM. Si no hay información disponible para un campo, escribe "—". NUNCA inventes nombres, proyectos, declaraciones ni datos. Mantén EXACTAMENTE las mismas claves y tipos. Devuelve SOLO el JSON, sin texto adicional.
 
 ${jsonTemplate}`
+                    : `INSTRUCCIÓN FINAL: Devuelve el siguiente JSON con los valores PLACEHOLDER reemplazados por contenido real, verosímil y detallado. Mantén EXACTAMENTE las mismas claves. No añadas ni elimines claves. No cambies el tipo de valor (string→string, array→array). Devuelve SOLO el JSON, sin texto adicional.
+
+${jsonTemplate}`;
+
+                const userMsgConPlantilla = userMsg.replace(
+                    'IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, sin texto adicional, sin explicaciones, sin markdown. Empieza directamente con { y termina con }.',
+                    instruccionFinal
                 );
 
                 const response = await callClaudeAPI(
