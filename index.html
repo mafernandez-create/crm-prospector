@@ -23071,7 +23071,15 @@ ${body}
                     </div>
                 </div>
             `;
-            document.body.appendChild(modal);
+            // En móvil, los elementos de body se ocultan — añadir al mobile-modal-root
+            const mobileRoot = document.getElementById('mobile-modal-root');
+            const isMobileActive = mobileRoot && document.getElementById('mobile-app')?.offsetParent !== null;
+            if (isMobileActive) {
+                mobileRoot.style.pointerEvents = 'auto';
+                mobileRoot.appendChild(modal);
+            } else {
+                document.body.appendChild(modal);
+            }
             setTimeout(() => document.getElementById('informe-ia-notas')?.focus(), 100);
         }
 
