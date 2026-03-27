@@ -7114,12 +7114,12 @@
                                                     ${r.aiGenerated ? `<div style="font-size:0.72rem;background:rgba(124,58,237,0.15);color:#a78bfa;padding:2px 8px;border-radius:8px;display:inline-block;margin-bottom:8px;">✍️ Generado con IA</div>` : (r.fileName ? `<div style="font-size:0.75rem;color:var(--accent);margin-bottom:8px;">📄 ${r.fileName}</div>` : '')}
                                                     ${r.notes ? `<div style="font-size:0.8rem;color:var(--muted);padding:8px;background:var(--surface);border-radius:6px;margin-bottom:8px;">💡 ${s(r.notes)}</div>` : ''}
                                                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                                                    ${r.aiGenerated && (r.reportJson || r.markdownContent) ? `
+                                                    ${(r.reportJson || r.markdownContent) ? `
                                                         <button onclick="verInformeIA(${idx})" class="btn btn-sm" style="background:rgba(124,58,237,0.2);color:#a78bfa;border:1px solid rgba(124,58,237,0.3);">
                                                             👁️ Ver informe
                                                         </button>
                                                     ` : ''}
-                                                    ${r.aiGenerated ? `
+                                                    ${(r.aiGenerated || r.reportJson) ? `
                                                         <button onclick="descargarInformeDocx(${idx})" class="btn btn-sm btn-primary">
                                                             📥 Descargar .docx
                                                         </button>
