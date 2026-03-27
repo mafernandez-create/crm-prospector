@@ -6758,14 +6758,18 @@
         }
         
         function applyFilters() {
-            const typeFilter = document.getElementById('filter-type').value;
-            const statusFilter = document.getElementById('filter-status').value;
-            const priorityFilter = document.getElementById('filter-priority').value;
-            const provinceFilter = document.getElementById('filter-province').value;
-            const cityFilter = document.getElementById('filter-city').value;
-            const cpFilter = document.getElementById('filter-cp').value;
-            const searchTerm = normalizeText(document.getElementById('global-search').value);
-            
+            const typeFilter           = document.getElementById('filter-type').value;
+            const statusFilter         = document.getElementById('filter-status').value;
+            const priorityFilter       = document.getElementById('filter-priority').value;
+            const provinceFilter       = document.getElementById('filter-province').value;
+            const cityFilter           = document.getElementById('filter-city').value;
+            const cpFilter             = document.getElementById('filter-cp').value;
+            const lastActivityFilter   = document.getElementById('filter-last-activity')?.value || '';
+            const hasReportFilter      = document.getElementById('filter-has-report')?.value || '';
+            const searchTerm           = normalizeText(document.getElementById('global-search').value);
+
+            const now = new Date();
+
             let filtered = allStudios.filter(studio => {
                 if (typeFilter && (studio.type || 'arquitectura') !== typeFilter) return false;
                 if (statusFilter && studio.status !== statusFilter) return false;
@@ -6782,13 +6786,44 @@
                     const studioCP = extractCP(studio.data?.contact?.address || '');
                     if (studioCP !== cpFilter) return false;
                 }
+
+                // Filtro última actividad
+                if (lastActivityFilter) {
+                    const acts = studio.data?.activities || studio.activities || [];
+                    const lastAct = acts.length > 0
+                        ? acts.reduce((best, a) => {
+                            const d = a.date || a.fecha || a.createdAt || '';
+                            return d > best ? d : best;
+                          }, '')
+                        : '';
+                    if (lastActivityFilter === 'sin') {
+                        if (lastAct) return false;
+                    } else {
+                        if (!lastAct) return false;
+                        const days = parseInt(lastActivityFilter);
+                        const cutoff = new Date(now.getTime() - days * 86400000);
+                        const actDate = new Date(lastAct.includes('/')
+                            ? lastAct.split('/').reverse().join('-')
+                            : lastAct);
+                        if (isNaN(actDate) || actDate < cutoff) return false;
+                    }
+                }
+
+                // Filtro tiene informe
+                if (hasReportFilter) {
+                    const reports = studio.data?.reports || studio.reports || [];
+                    const hasReport = reports.length > 0;
+                    if (hasReportFilter === 'si' && !hasReport) return false;
+                    if (hasReportFilter === 'no' && hasReport) return false;
+                }
+
                 if (searchTerm) {
                     const nameNorm = normalizeText(studio.name);
                     const shortNameNorm = normalizeText(studio.shortName);
                     const cityNorm = normalizeText(studio.data?.contact?.city);
                     const addressNorm = normalizeText(studio.data?.contact?.address);
-                    if (!nameNorm.includes(searchTerm) && 
-                        !shortNameNorm.includes(searchTerm) && 
+                    if (!nameNorm.includes(searchTerm) &&
+                        !shortNameNorm.includes(searchTerm) &&
                         !cityNorm.includes(searchTerm) &&
                         !addressNorm.includes(searchTerm)) return false;
                 }
