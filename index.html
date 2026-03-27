@@ -5732,9 +5732,16 @@
             }
         }
         
+        function normTs(val) {
+            if (!val) return null;
+            if (typeof val === 'object' && val.seconds) return new Date(val.seconds * 1000);
+            return new Date(val);
+        }
+
         function formatDate(dateStr) {
             if (!dateStr) return '-';
-            const date = new Date(dateStr);
+            const date = normTs(dateStr);
+            if (!date || isNaN(date)) return '-';
             return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
         }
         
