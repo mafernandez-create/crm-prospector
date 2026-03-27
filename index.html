@@ -22985,9 +22985,10 @@ ${body}
             const modal = document.createElement('div');
             modal.id = 'informe-ia-modal';
             modal.style.cssText = `
-                position:fixed; inset:0; background:rgba(0,0,0,0.65);
+                position:fixed; inset:0; background:rgba(0,0,0,0.75);
                 display:flex; align-items:flex-start; justify-content:center;
-                z-index:10000; padding:20px; overflow-y:auto;
+                z-index:25000; padding:16px; overflow-y:auto;
+                -webkit-overflow-scrolling:touch;
             `;
             modal.innerHTML = `
                 <div style="background:#1e293b; border-radius:16px; padding:28px; max-width:680px; width:100%;
@@ -23576,10 +23577,24 @@ ${jsonTemplate}`;
 
                 document.getElementById('informe-ia-modal')?.remove();
                 showNotification('✅ Informe generado y guardado en Informes', 'success');
-                // Recargar la vista de detalle y quedarse en la pestaña de informes
-                await showStudioDetail(studioId);
-                const reportsTab = document.querySelector('[onclick*="switchDetailTab"][onclick*="reports"]');
-                if (reportsTab) switchDetailTab(reportsTab, 'reports');
+
+                // Detectar si estamos en la vista móvil
+                const mobileActive = document.getElementById('mobile-modal-root') &&
+                    document.getElementById('mobile-app')?.offsetParent !== null;
+
+                if (mobileActive) {
+                    // Móvil: limpiar modales y refrescar datos sin ir a vista de escritorio
+                    document.getElementById('mobile-estudio-modal')?.remove();
+                    const mRoot = document.getElementById('mobile-modal-root');
+                    if (mRoot && !mRoot.children.length) mRoot.style.pointerEvents = 'none';
+                    // Refrescar cache para que el informe quede disponible
+                    if (typeof loadStudios === 'function') await loadStudios();
+                } else {
+                    // Escritorio: ir a la pestaña de informes
+                    await showStudioDetail(studioId);
+                    const reportsTab = document.querySelector('[onclick*="switchDetailTab"][onclick*="reports"]');
+                    if (reportsTab) switchDetailTab(reportsTab, 'reports');
+                }
 
             } catch(e) {
                 console.error('Error generando informe:', e);
