@@ -23343,8 +23343,8 @@ ${comercialSeleccionado ? `Comercial de zona: ${comercialSeleccionado}` : ''}
 ${visitaPrescripcion ? 'Origen visita: Iniciada por prescripción (Manuel propuso la visita al comercial, no al revés)' : 'Origen visita: Visita comercial estándar'}
 
 ${webContent ? `INFORMACIÓN OBTENIDA DE LA WEB DE LA EMPRESA (${webUrl}):\n"""\n${webContent}\n"""\n` : ''}
-${modalidad === 'real'
-  ? `NOTAS DE MANUEL SOBRE LA VISITA:\n"${notas}"`
+${historialCRM ? historialCRM : ''}${modalidad === 'real'
+  ? `NOTAS DE MANUEL SOBRE LA VISITA (usa esta información como base exclusiva — no inventes nada más):\n"${notas}"\n\nIMPORTANTE MODO REAL: Completa el informe usando SOLO lo que aparece en las notas, en los datos del CRM arriba y en el historial del cliente. Para cualquier campo sin información disponible escribe "—". Nunca inventes nombres de personas, proyectos, declaraciones ni datos que no estén en las fuentes anteriores.`
   : (notas
       ? `DATOS ADICIONALES PROPORCIONADOS:\n"${notas}"\n\nGenera un informe ficticio completo usando toda la información disponible de la empresa.`
       : `Genera un informe ficticio completo y detallado basándote en toda la información disponible de la empresa (CRM, web si disponible, tipo de cliente). TODOS los campos deben tener contenido realista, ninguno vacío.`
