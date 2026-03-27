@@ -6751,6 +6751,7 @@
         // Variables para ordenación
         let currentSortColumn = 'updatedAt';
         let currentSortDirection = 'desc';
+        let lastFilteredStudios = [];  // Último resultado filtrado para ordenar sin re-filtrar
 
         // Función para normalizar texto (sin acentos, minúsculas)
         function normalizeText(text) {
