@@ -5887,7 +5887,7 @@
             }
 
             const statusColors = { nuevo:'#3b82f6', contactado:'#f59e0b', reunion:'#8b5cf6', negociacion:'#ec4899', traspasado:'#7c3aed', prescripcion:'#10b981', venta:'#059669', ganado:'#16a34a', perdido:'#ef4444', standby:'#9ca3af' };
-            const statusLabels = { nuevo:'Nuevo', contactado:'Contactado', standby:'Standby', reunion:'Reunión', negociacion:'Negociación', traspasado:'Traspasado', prescripcion:'Prescripción', venta:'Venta', ganado:'Ganado', perdido:'Perdido' };
+            const statusLabels = { nuevo:'Nuevo', contactado:'Contactado', standby:'En Standby', reunion:'Reunión', negociacion:'En Negociación', traspasado:'Traspasado a comercial', prescripcion:'Prescripción confirmada', venta:'Venta cerrada', ganado:'Ganado', perdido:'Perdido' };
 
             listEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
                 <thead><tr style="background:#f7f9fc;">
@@ -13609,7 +13609,7 @@ ${comercialCalls.length > 0 ? `
             const funnelEl = document.getElementById('dashboard-funnel');
             if (funnelEl) {
                 const statusOrder = ['nuevo','contactado','reunion','negociacion','traspasado','prescripcion','venta','ganado','perdido','standby'];
-                const statusLabels = { nuevo:'Nuevo', contactado:'Contactado', standby:'Standby', reunion:'Reunión', negociacion:'Negociación', traspasado:'Traspasado', prescripcion:'Prescripción', venta:'Venta', ganado:'Ganado', perdido:'Perdido' };
+                const statusLabels = { nuevo:'Nuevo', contactado:'Contactado', standby:'En Standby', reunion:'Reunión', negociacion:'En Negociación', traspasado:'Traspasado a comercial', prescripcion:'Prescripción confirmada', venta:'Venta cerrada', ganado:'Ganado', perdido:'Perdido' };
                 const statusColors = { nuevo:'#3b82f6', contactado:'#f59e0b', reunion:'#8b5cf6', negociacion:'#ec4899', traspasado:'#7c3aed', prescripcion:'#10b981', venta:'#059669', ganado:'#16a34a', perdido:'#ef4444', standby:'#9ca3af' };
                 const counts = {};
                 studios.forEach(s => { const st = s.status||'nuevo'; counts[st] = (counts[st]||0)+1; });
