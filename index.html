@@ -2840,6 +2840,25 @@
                             <option value="">Todos</option>
                         </select>
                     </div>
+                    <div class="filter-group">
+                        <span class="filter-label">Última actividad:</span>
+                        <select class="filter-select" id="filter-last-activity" onchange="applyFilters()">
+                            <option value="">Cualquier fecha</option>
+                            <option value="7">Últimos 7 días</option>
+                            <option value="14">Últimas 2 semanas</option>
+                            <option value="30">Último mes</option>
+                            <option value="90">Últimos 3 meses</option>
+                            <option value="sin">Sin actividad registrada</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label">Informe:</span>
+                        <select class="filter-select" id="filter-has-report" onchange="applyFilters()">
+                            <option value="">Todos</option>
+                            <option value="si">✅ Con informe</option>
+                            <option value="no">❌ Sin informe</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="card">
