@@ -6853,20 +6853,18 @@
                 currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
             } else {
                 currentSortColumn = column;
-                // Por defecto: fechas descendente, texto ascendente
                 currentSortDirection = (column === 'updatedAt' || column === 'createdAt') ? 'desc' : 'asc';
             }
 
-            // Actualizar iconos visuales
             updateSortIcons();
 
-            // Si hay un resultado filtrado guardado, ordenarlo directamente sin re-filtrar
-            // Esto evita que errores en el filtrado rompan el ordenado
-            if (lastFilteredStudios.length > 0) {
-                const sorted = sortStudios(lastFilteredStudios.slice(), currentSortColumn, currentSortDirection);
+            try {
+                const base = lastFilteredStudios.length > 0 ? lastFilteredStudios.slice() : allStudios.slice();
+                const sorted = sortStudios(base, currentSortColumn, currentSortDirection);
+                lastFilteredStudios = base; // mantener el filtered actualizado
                 renderStudiosTable(sorted);
-            } else {
-                // Fallback: re-filtrar y ordenar desde cero
+            } catch(e) {
+                console.error('Error en sortTable:', e);
                 applyFilters();
             }
         }
