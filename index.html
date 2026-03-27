@@ -5727,19 +5727,16 @@
 
         function getStatusLabel(status) {
             const labels = {
-                'nuevo': '🆕 Nuevo',
-                'contactado': '📞 Contactado',
-                'standby': '⏸️ En Standby',
-                'reunion': '📅 Reunión',
-                'negociacion': '💼 Negociación',
-                'traspasado': '🤝 Traspasado a comercial',
-                'prescripcion': '📋 Prescripción confirmada',
-                'venta': '💰 Venta cerrada',
-                'traspasado': '🤝 Traspasado a comercial',
-                'prescripcion': '📋 Prescripción confirmada',
-                'venta': '💰 Venta cerrada',
-                'ganado': '✅ Ganado',
-                'perdido': '❌ Perdido'
+                'nuevo':       '🆕 Nuevo',
+                'contactado':  '📞 Contactado',
+                'standby':     '⏸️ En Standby',
+                'reunion':     '📅 Reunión',
+                'negociacion': '💼 En Negociación',
+                'traspasado':  '🤝 Traspasado a comercial',
+                'prescripcion':'📋 Prescripción confirmada',
+                'venta':       '💰 Venta cerrada',
+                'ganado':      '✅ Ganado',
+                'perdido':     '❌ Perdido'
             };
             return labels[status] || status;
         }
@@ -5833,11 +5830,16 @@
                             <label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Estado</label>
                             <select id="route-status" class="filter-select" onchange="filterRouteStudios()">
                                 <option value="">Todos</option>
-                                <option value="nuevo">Nuevo</option>
-                                <option value="contactado">Contactado</option>
-                                <option value="reunion">Reunión</option>
-                                <option value="negociacion">Negociación</option>
-                                <option value="standby">Standby</option>
+                                <option value="nuevo">🆕 Nuevo</option>
+                                <option value="contactado">📞 Contactado</option>
+                                <option value="standby">⏸️ En Standby</option>
+                                <option value="reunion">📅 Reunión</option>
+                                <option value="negociacion">💼 En Negociación</option>
+                                <option value="traspasado">🤝 Traspasado a comercial</option>
+                                <option value="prescripcion">📋 Prescripción confirmada</option>
+                                <option value="venta">💰 Venta cerrada</option>
+                                <option value="ganado">✅ Ganado</option>
+                                <option value="perdido">❌ Perdido</option>
                             </select>
                         </div>
                         <div>
