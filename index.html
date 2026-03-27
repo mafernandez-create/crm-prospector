@@ -6856,12 +6856,19 @@
                 // Por defecto: fechas descendente, texto ascendente
                 currentSortDirection = (column === 'updatedAt' || column === 'createdAt') ? 'desc' : 'asc';
             }
-            
+
             // Actualizar iconos visuales
             updateSortIcons();
-            
-            // Reaplicar filtros (que ahora incluye la ordenación)
-            applyFilters();
+
+            // Si hay un resultado filtrado guardado, ordenarlo directamente sin re-filtrar
+            // Esto evita que errores en el filtrado rompan el ordenado
+            if (lastFilteredStudios.length > 0) {
+                const sorted = sortStudios(lastFilteredStudios.slice(), currentSortColumn, currentSortDirection);
+                renderStudiosTable(sorted);
+            } else {
+                // Fallback: re-filtrar y ordenar desde cero
+                applyFilters();
+            }
         }
 
         function updateSortIcons() {
