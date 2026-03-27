@@ -23568,8 +23568,10 @@ ${jsonTemplate}`;
 
                 document.getElementById('informe-ia-modal')?.remove();
                 showNotification('✅ Informe generado y guardado en Informes', 'success');
-                // Recargar la vista de detalle para mostrar el nuevo informe
-                showStudioDetail(studioId);
+                // Recargar la vista de detalle y quedarse en la pestaña de informes
+                await showStudioDetail(studioId);
+                const reportsTab = document.querySelector('[onclick*="switchDetailTab"][onclick*="reports"]');
+                if (reportsTab) switchDetailTab(reportsTab, 'reports');
 
             } catch(e) {
                 console.error('Error generando informe:', e);
