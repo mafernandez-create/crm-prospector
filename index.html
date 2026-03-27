@@ -6808,9 +6808,12 @@
                 // Filtro última actividad — usa actividades reales + lastContact + updatedAt como fallback
                 if (lastActivityFilter) {
                     const sid = String(studio.id);
+                    const updAtStr = (typeof studio.updatedAt === 'object' && studio.updatedAt?.seconds)
+                        ? new Date(studio.updatedAt.seconds * 1000).toISOString().substring(0, 10)
+                        : (studio.updatedAt || '').substring(0, 10);
                     const lastAct = lastActMap[sid]
                         || (studio.lastContact || '').substring(0, 10)
-                        || (studio.updatedAt || '').substring(0, 10)
+                        || updAtStr
                         || '';
                     if (lastActivityFilter === 'sin') {
                         // Sin actividad: no hay en el mapa NI lastContact
@@ -6917,8 +6920,8 @@
                         valB = priorityOrder[b.priority] || 2;
                         break;
                     case 'updatedAt':
-                        valA = new Date(a.updatedAt || 0).getTime();
-                        valB = new Date(b.updatedAt || 0).getTime();
+                        valA = (typeof a.updatedAt === 'object' && a.updatedAt?.seconds) ? a.updatedAt.seconds * 1000 : new Date(a.updatedAt || 0).getTime();
+                        valB = (typeof b.updatedAt === 'object' && b.updatedAt?.seconds) ? b.updatedAt.seconds * 1000 : new Date(b.updatedAt || 0).getTime();
                         break;
                     case 'createdAt':
                         valA = new Date(a.createdAt || 0).getTime();
