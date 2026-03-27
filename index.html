@@ -6770,6 +6770,16 @@
 
             const now = new Date();
 
+            // Pre-computar mapa studioId → fecha última actividad real desde cloudCache.activities
+            let lastActMap = {};
+            if (lastActivityFilter) {
+                (cloudCache.activities || []).forEach(a => {
+                    const sid = String(a.studioId);
+                    const d = (a.createdAt || a.date || a.fecha || '').substring(0, 10);
+                    if (d && (!lastActMap[sid] || d > lastActMap[sid])) lastActMap[sid] = d;
+                });
+            }
+
             let filtered = allStudios.filter(studio => {
                 if (typeFilter && (studio.type || 'arquitectura') !== typeFilter) return false;
                 if (statusFilter && studio.status !== statusFilter) return false;
@@ -6787,32 +6797,29 @@
                     if (studioCP !== cpFilter) return false;
                 }
 
-                // Filtro última actividad
+                // Filtro última actividad — usa actividades reales + lastContact + updatedAt como fallback
                 if (lastActivityFilter) {
-                    const acts = studio.data?.activities || studio.activities || [];
-                    const lastAct = acts.length > 0
-                        ? acts.reduce((best, a) => {
-                            const d = a.date || a.fecha || a.createdAt || '';
-                            return d > best ? d : best;
-                          }, '')
-                        : '';
+                    const sid = String(studio.id);
+                    const lastAct = lastActMap[sid]
+                        || (studio.lastContact || '').substring(0, 10)
+                        || (studio.updatedAt || '').substring(0, 10)
+                        || '';
                     if (lastActivityFilter === 'sin') {
-                        if (lastAct) return false;
+                        // Sin actividad: no hay en el mapa NI lastContact
+                        if (lastActMap[sid] || studio.lastContact) return false;
                     } else {
                         if (!lastAct) return false;
                         const days = parseInt(lastActivityFilter);
                         const cutoff = new Date(now.getTime() - days * 86400000);
-                        const actDate = new Date(lastAct.includes('/')
-                            ? lastAct.split('/').reverse().join('-')
-                            : lastAct);
+                        const actDate = new Date(lastAct);
                         if (isNaN(actDate) || actDate < cutoff) return false;
                     }
                 }
 
                 // Filtro tiene informe
                 if (hasReportFilter) {
-                    const reports = studio.data?.reports || studio.reports || [];
-                    const hasReport = reports.length > 0;
+                    const reports = studio.data?.reports || [];
+                    const hasReport = Array.isArray(reports) && reports.length > 0;
                     if (hasReportFilter === 'si' && !hasReport) return false;
                     if (hasReportFilter === 'no' && hasReport) return false;
                 }
