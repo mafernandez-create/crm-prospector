@@ -22850,11 +22850,13 @@ Notas:
             const NAVY='1F3864', BLUE='2E5DA6', STRIPE='EAF0FB',
                   LABEL='D6E4F7', BORDER='C5D3E8', BODY='1A1A1A',
                   GREY='555555', WHITE='FFFFFF';
+            // Color de cabecera según prioridad: Alta=rojo, Media=naranja, Baja=gris, defecto=azul
+            const HDR_COLOR = (priorityHex||'').replace('#','') || BLUE;
 
             const bd = { style: BorderStyle.SINGLE, size: 1, color: BORDER };
             const borders = { top: bd, bottom: bd, left: bd, right: bd };
 
-            const hCell = (t, w) => new TableCell({ width:{ size:w, type:WidthType.DXA }, borders, shading:{ fill:BLUE, type:ShadingType.CLEAR }, margins:{ top:80, bottom:80, left:150, right:150 },
+            const hCell = (t, w) => new TableCell({ width:{ size:w, type:WidthType.DXA }, borders, shading:{ fill:HDR_COLOR, type:ShadingType.CLEAR }, margins:{ top:80, bottom:80, left:150, right:150 },
                 children:[new Paragraph({ children:[new TextRun({ text:String(t||''), bold:true, color:WHITE, size:20, font:'Calibri' })] })] });
             const lCell = (t, w) => new TableCell({ width:{ size:w, type:WidthType.DXA }, borders, shading:{ fill:LABEL, type:ShadingType.CLEAR }, margins:{ top:80, bottom:80, left:150, right:150 },
                 children:[new Paragraph({ children:[new TextRun({ text:String(t||''), bold:true, size:20, font:'Calibri', color:NAVY })] })] });
@@ -23011,7 +23013,9 @@ Notas:
                     const p = report.date.split('-');
                     if (p.length === 3) data.fecha = `${p[2]}/${p[1]}/${p[0]}`;
                 }
-                const doc = await buildDocxGPF(data, studio);
+                const _pColorMap = { 'Alta':'dc3545', 'Media':'f5a623', 'Baja':'6b7c93' };
+                const _priorityHex = _pColorMap[studio?.priority] || '2E5DA6';
+                const doc = await buildDocxGPF(data, studio, _priorityHex);
                 const blob = await window.docx.Packer.toBlob(doc);
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
