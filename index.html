@@ -23088,9 +23088,8 @@ Notas:
             statusEl.textContent = '🔍 Buscando visitas en el período...';
 
             try {
-                const allStudiosObj = getAllStudios ? getAllStudios() : {};
-                const allStudiosArr = Object.values(allStudiosObj);
-                const allActivities = await getAllActivitiesAsync();
+                const allStudiosArr = await getAllStudios();
+                const allActivities = await getAllActivities();
 
                 const meetingsInRange = allActivities.filter(a => {
                     if (a.type !== 'meeting') return false;
