@@ -391,7 +391,9 @@
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
         .modal-overlay.active { display: flex; }
         .modal { background: var(--card); border-radius: 16px; width: 90%; max-width: 600px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
-        .modal-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .modal-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; cursor: grab; user-select: none; }
+        .modal-header.dragging { cursor: grabbing; }
+        .modal-header button, .modal-header a { cursor: pointer; }
         .modal-title { font-family: 'Sora', sans-serif; font-size: 1.1rem; font-weight: 600; }
         .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--muted); }
         .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
