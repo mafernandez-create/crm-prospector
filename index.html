@@ -3658,6 +3658,58 @@
         </div>
     </div>
 
+    <!-- Informes Período Modal -->
+    <div class="modal-overlay" id="modal-informes-periodo">
+        <div class="modal" style="max-width:720px;max-height:90vh;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#1a3a6c,#7c3aed);color:white;">
+                <h3 class="modal-title" style="display:flex;align-items:center;gap:10px;">📋 Informes de Período</h3>
+                <button class="modal-close" onclick="closeModal('modal-informes-periodo')" style="color:white;">&times;</button>
+            </div>
+            <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
+                <!-- Step 1: Date range -->
+                <div style="background:var(--surface);padding:16px;border-radius:12px;margin-bottom:16px;">
+                    <h4 style="margin:0 0 12px 0;font-size:0.9rem;">📅 Rango del período</h4>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-size:0.8rem;">Fecha inicio</label>
+                            <input type="date" class="form-input" id="periodo-date-start" onchange="_updatePeriodoWeekInfo()">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-size:0.8rem;">Fecha fin</label>
+                            <input type="date" class="form-input" id="periodo-date-end" onchange="_updatePeriodoWeekInfo()">
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+                        <button class="btn btn-sm btn-secondary" onclick="setPeriodoDateRange('week')">Esta semana</button>
+                        <button class="btn btn-sm btn-secondary" onclick="setPeriodoDateRange('last2weeks')">Últimas 2 semanas</button>
+                        <button class="btn btn-sm btn-secondary" onclick="setPeriodoDateRange('month')">Este mes</button>
+                        <button class="btn btn-sm btn-secondary" onclick="setPeriodoDateRange('quarter')">Trimestre</button>
+                    </div>
+                    <div id="periodo-weeks-info" style="font-size:0.8rem;color:var(--muted);padding:8px;background:var(--accent-light);border-radius:8px;display:none;"></div>
+                </div>
+                <!-- Step 2: Check results -->
+                <div id="periodo-check-result" style="display:none;">
+                    <div style="background:var(--surface);padding:16px;border-radius:12px;margin-bottom:16px;">
+                        <h4 style="margin:0 0 12px 0;font-size:0.9rem;">🔍 Estudios con visitas en el período</h4>
+                        <div id="periodo-studios-list" style="max-height:260px;overflow-y:auto;font-size:0.85rem;"></div>
+                    </div>
+                </div>
+                <!-- Status -->
+                <div id="periodo-status" style="display:none;background:rgba(124,58,237,0.1);border-radius:8px;padding:12px;
+                    color:#7c3aed;font-size:0.85rem;text-align:center;margin-bottom:12px;"></div>
+            </div>
+            <div class="modal-footer" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button class="btn btn-secondary" onclick="checkPeriodoStudios()">🔍 Verificar estudios</button>
+                    <button class="btn btn-primary" id="btn-periodo-generate" onclick="generarInformesMissing()" style="display:none;">✍️ Generar pendientes</button>
+                    <button class="btn btn-success" id="btn-periodo-download-all" onclick="descargarTodosInformesPeriodo()" style="display:none;">📥 Descargar todos</button>
+                    <button class="btn btn-info" id="btn-periodo-weekly-summary" onclick="generarResumenSemanal()" style="background:#0ea5e9;color:white;border:none;display:none;">📝 Resumen IA</button>
+                </div>
+                <button class="btn btn-secondary" onclick="closeModal('modal-informes-periodo')">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Import Excel Modal -->
     <div class="modal-overlay" id="modal-import-excel">
         <div class="modal" style="max-width:950px;max-height:90vh;">
@@ -22787,7 +22839,7 @@ Notas:
         // WORD (.DOCX) — GENERADOR DE INFORMES GPF
         // ============================================
 
-        async function buildDocxGPF(data, studio) {
+        async function buildDocxGPF(data, studio, priorityHex) {
             const {
                 Document, Paragraph, TextRun, Table, TableRow, TableCell,
                 WidthType, BorderStyle, ShadingType, AlignmentType,
