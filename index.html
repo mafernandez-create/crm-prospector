@@ -6626,12 +6626,67 @@
             }
         }
 
+        function makeDraggable(overlay) {
+            const modal = overlay.querySelector('.modal');
+            const header = overlay.querySelector('.modal-header');
+            if (!modal || !header) return;
+
+            // Reset position cada vez que se abre
+            modal.style.transform = '';
+            modal._dx = 0;
+            modal._dy = 0;
+
+            let dragging = false, startX, startY;
+
+            function onDown(e) {
+                if (e.target.closest('button, a, input, select, textarea')) return;
+                dragging = true;
+                startX = e.clientX - (modal._dx || 0);
+                startY = e.clientY - (modal._dy || 0);
+                header.classList.add('dragging');
+                e.preventDefault();
+            }
+            function onMove(e) {
+                if (!dragging) return;
+                let dx = e.clientX - startX;
+                let dy = e.clientY - startY;
+                // Limitar para que nunca salga completamente de la pantalla
+                const r = modal.getBoundingClientRect();
+                const minX = -r.left;
+                const maxX = window.innerWidth - r.right;
+                const minY = -r.top;
+                const maxY = window.innerHeight - r.bottom + (modal._dy || 0) - (dy - (modal._dy || 0));
+                dx = Math.max(minX, Math.min(window.innerWidth - 60 - r.left + (modal._dx||0), dx));
+                dy = Math.max(-r.top + (modal._dy||0), Math.min(window.innerHeight - 40 - r.top + (modal._dy||0), dy));
+                modal._dx = dx; modal._dy = dy;
+                modal.style.transform = `translate(${dx}px,${dy}px)`;
+            }
+            function onUp() {
+                if (dragging) { dragging = false; header.classList.remove('dragging'); }
+            }
+
+            header.addEventListener('mousedown', onDown);
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+
+            overlay._dragCleanup = () => {
+                header.removeEventListener('mousedown', onDown);
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+                header.classList.remove('dragging');
+            };
+        }
+
         function openModal(id) {
-            document.getElementById(id).classList.add('active');
+            const overlay = document.getElementById(id);
+            overlay.classList.add('active');
+            makeDraggable(overlay);
         }
 
         function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
+            const overlay = document.getElementById(id);
+            overlay.classList.remove('active');
+            if (overlay._dragCleanup) { overlay._dragCleanup(); delete overlay._dragCleanup; }
         }
 
         // ============================================
