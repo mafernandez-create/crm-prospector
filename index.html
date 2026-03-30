@@ -23091,10 +23091,6 @@ Notas:
                 const allStudiosArr = await getAllStudios();
                 const allActivities = await getAllActivities();
 
-                // Diagnóstico: mostrar qué encontramos
-                const allMeetings = allActivities.filter(a => a.type === 'meeting');
-                statusEl.textContent = `🔍 ${allActivities.length} actividades · ${allMeetings.length} visitas totales · buscando en rango...`;
-
                 const meetingsInRange = allActivities.filter(a => {
                     if (a.type !== 'meeting') return false;
                     const d = new Date(a.createdAt);
