@@ -23028,6 +23028,373 @@ Notas:
             }
         }
 
+        // ============================================
+        // INFORMES DE PERÍODO
+        // ============================================
+
+        function openInformesPeriodoModal() {
+            document.getElementById('periodo-check-result').style.display = 'none';
+            document.getElementById('periodo-status').style.display = 'none';
+            document.getElementById('btn-periodo-generate').style.display = 'none';
+            document.getElementById('btn-periodo-download-all').style.display = 'none';
+            document.getElementById('btn-periodo-weekly-summary').style.display = 'none';
+            document.getElementById('periodo-weeks-info').style.display = 'none';
+            setPeriodoDateRange('last2weeks');
+            openModal('modal-informes-periodo');
+        }
+
+        function setPeriodoDateRange(range) {
+            const today = new Date();
+            let start = new Date(today);
+            switch(range) {
+                case 'week': {
+                    const day = today.getDay();
+                    start.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+                    break;
+                }
+                case 'last2weeks': start.setDate(today.getDate() - 14); break;
+                case 'month': start = new Date(today.getFullYear(), today.getMonth(), 1); break;
+                case 'quarter': start.setMonth(today.getMonth() - 3); break;
+            }
+            document.getElementById('periodo-date-start').value = start.toISOString().split('T')[0];
+            document.getElementById('periodo-date-end').value = today.toISOString().split('T')[0];
+            _updatePeriodoWeekInfo();
+        }
+
+        function _updatePeriodoWeekInfo() {
+            const s = document.getElementById('periodo-date-start')?.value;
+            const e = document.getElementById('periodo-date-end')?.value;
+            const infoEl = document.getElementById('periodo-weeks-info');
+            if (!s || !e || !infoEl) return;
+            const startD = new Date(s), endD = new Date(e);
+            const diffDays = Math.round((endD - startD) / (1000*60*60*24));
+            const weeks = Math.ceil(diffDays / 7);
+            infoEl.style.display = 'block';
+            infoEl.textContent = `Período de ${diffDays} días (~${weeks} semana${weeks!==1?'s':''}) — del ${startD.toLocaleDateString('es-ES')} al ${endD.toLocaleDateString('es-ES')}`;
+        }
+
+        window._periodoCheckData = null;
+
+        async function checkPeriodoStudios() {
+            const startStr = document.getElementById('periodo-date-start').value;
+            const endStr   = document.getElementById('periodo-date-end').value;
+            if (!startStr || !endStr) { showNotification('⚠️ Selecciona las fechas primero', 'warning'); return; }
+            const startD = new Date(startStr); startD.setHours(0,0,0,0);
+            const endD   = new Date(endStr);   endD.setHours(23,59,59,999);
+            if (startD > endD) { showNotification('⚠️ La fecha inicio debe ser anterior a la fecha fin', 'warning'); return; }
+
+            const statusEl = document.getElementById('periodo-status');
+            statusEl.style.display = 'block';
+            statusEl.textContent = '🔍 Buscando visitas en el período...';
+
+            try {
+                const allStudiosObj = getAllStudios ? getAllStudios() : {};
+                const allStudiosArr = Object.values(allStudiosObj);
+                const allActivities = await getAllActivitiesAsync();
+
+                const meetingsInRange = allActivities.filter(a => {
+                    if (a.type !== 'meeting') return false;
+                    const d = new Date(a.createdAt);
+                    return d >= startD && d <= endD;
+                });
+
+                const studiosWithVisits = {};
+                meetingsInRange.forEach(a => {
+                    if (!studiosWithVisits[a.studioId]) {
+                        const studio = allStudiosArr.find(s => String(s.id) === String(a.studioId));
+                        if (studio) studiosWithVisits[a.studioId] = { studio, meetings: [] };
+                    }
+                    if (studiosWithVisits[a.studioId]) studiosWithVisits[a.studioId].meetings.push(a);
+                });
+
+                const entries = Object.values(studiosWithVisits);
+
+                entries.forEach(entry => {
+                    const reports = entry.studio.data?.reports || [];
+                    entry.reportInRange = reports.find(r => {
+                        if (!r.date) return false;
+                        const rd = new Date(r.date); rd.setHours(12,0,0,0);
+                        return rd >= startD && rd <= endD;
+                    }) || null;
+                    entry.reportIdx = entry.reportInRange ? reports.indexOf(entry.reportInRange) : -1;
+                });
+
+                entries.sort((a,b) => {
+                    if (!a.reportInRange && b.reportInRange) return -1;
+                    if (a.reportInRange && !b.reportInRange) return 1;
+                    return (a.studio.name||'').localeCompare(b.studio.name||'');
+                });
+
+                window._periodoCheckData = { entries, startStr, endStr };
+
+                const priorityColors = { 'Alta':'#dc3545', 'Media':'#f5a623', 'Baja':'#6b7c93' };
+                const missingCount = entries.filter(e => !e.reportInRange).length;
+                const hasCount = entries.filter(e => e.reportInRange).length;
+
+                const listEl = document.getElementById('periodo-studios-list');
+                listEl.innerHTML = entries.length === 0
+                    ? '<p style="color:var(--muted);text-align:center;padding:16px;">No se encontraron visitas (meetings) en el período seleccionado.</p>'
+                    : entries.map(e => {
+                        const pColor = priorityColors[e.studio.priority] || '#6b7c93';
+                        const pLabel = e.studio.priority || 'Sin prior.';
+                        const hasReport = !!e.reportInRange;
+                        const statusText = hasReport
+                            ? `✅ <em style="color:var(--muted)">${e.reportInRange.title||'Informe del período'}</em>`
+                            : '⚠️ <span style="color:#f5a623;font-weight:600;">Sin informe para este período</span>';
+                        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+                            <span style="background:${pColor};color:white;border-radius:4px;padding:2px 7px;font-size:0.72rem;font-weight:700;white-space:nowrap;">${pLabel}</span>
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.studio.name}</div>
+                                <div style="font-size:0.75rem;color:var(--muted);">${e.meetings.length} visita${e.meetings.length!==1?'s':''} · ${statusText}</div>
+                            </div>
+                        </div>`;
+                    }).join('');
+
+                statusEl.textContent = entries.length === 0
+                    ? '⚠️ No se encontraron visitas en el período.'
+                    : `${entries.length} estudios visitados — ${missingCount ? `⚠️ ${missingCount} sin informe` : '✅ todos con informe'}${hasCount ? `, ${hasCount} listos para descargar` : ''}`;
+
+                document.getElementById('periodo-check-result').style.display = 'block';
+                document.getElementById('btn-periodo-generate').style.display = missingCount > 0 ? 'inline-flex' : 'none';
+                document.getElementById('btn-periodo-download-all').style.display = hasCount > 0 ? 'inline-flex' : 'none';
+                document.getElementById('btn-periodo-weekly-summary').style.display = entries.length > 0 ? 'inline-flex' : 'none';
+
+            } catch(err) {
+                console.error('checkPeriodoStudios error:', err);
+                statusEl.textContent = '❌ Error al cargar datos: ' + err.message;
+            }
+        }
+
+        async function getAllActivitiesAsync() {
+            // getAllActivities may be sync or async depending on implementation
+            const result = typeof getAllActivities === 'function' ? getAllActivities() : [];
+            return Array.isArray(result) ? result : (await result || []);
+        }
+
+        async function generarInformesMissing() {
+            const data = window._periodoCheckData;
+            if (!data) { showNotification('⚠️ Ejecuta primero la verificación', 'warning'); return; }
+            const missing = data.entries.filter(e => !e.reportInRange);
+            if (missing.length === 0) { showNotification('✅ Todos los estudios ya tienen informe', 'success'); return; }
+
+            const statusEl = document.getElementById('periodo-status');
+            statusEl.style.display = 'block';
+            let done = 0, errors = 0;
+
+            for (const entry of missing) {
+                statusEl.textContent = `✍️ Abriendo informe para ${entry.studio.name} (${done+1}/${missing.length})... Completa el formulario y ciérralo para continuar.`;
+                try {
+                    // Set current studio and open informe modal
+                    window.currentStudioId = entry.studio.id;
+                    if (typeof showStudioDetail === 'function') showStudioDetail(entry.studio.id);
+                    await new Promise(r => setTimeout(r, 400));
+                    if (typeof openInformeIAModal === 'function') openInformeIAModal();
+                    else if (typeof generateReport === 'function') generateReport(entry.studio.id);
+                    done++;
+                    await new Promise(r => setTimeout(r, 600));
+                } catch(err) { console.error(err); errors++; }
+            }
+            statusEl.textContent = `Abiertos ${done} formularios de informe${errors ? ` · ❌ ${errors} errores` : ''}. Genera cada informe y vuelve a verificar.`;
+        }
+
+        async function descargarTodosInformesPeriodo() {
+            const data = window._periodoCheckData;
+            if (!data) { showNotification('⚠️ Ejecuta primero la verificación', 'warning'); return; }
+            const withReport = data.entries.filter(e => e.reportInRange);
+            if (withReport.length === 0) { showNotification('⚠️ Ningún estudio tiene informe para este período', 'warning'); return; }
+            if (typeof window.docx === 'undefined') { showNotification('❌ Librería Word no cargada', 'error'); return; }
+
+            const statusEl = document.getElementById('periodo-status');
+            statusEl.style.display = 'block';
+            const pColorMap = { 'Alta':'dc3545', 'Media':'f5a623', 'Baja':'6b7c93' };
+            let downloaded = 0, errors = 0;
+
+            for (const entry of withReport) {
+                statusEl.textContent = `📥 Descargando ${entry.studio.name} (${downloaded+1}/${withReport.length})...`;
+                try {
+                    const studio = entry.studio;
+                    const report = entry.reportInRange;
+                    if (!report.reportJson) { errors++; continue; }
+                    const docData = { ...(report.reportJson || {}) };
+                    if (!docData.fecha && report.date) {
+                        const p = report.date.split('-');
+                        if (p.length === 3) docData.fecha = `${p[2]}/${p[1]}/${p[0]}`;
+                    }
+                    const priorityHex = pColorMap[studio.priority] || '2E5DA6';
+                    const doc = await buildDocxGPF(docData, studio, priorityHex);
+                    const blob = await window.docx.Packer.toBlob(doc);
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = report.fileName || `informe_${(studio.name||'estudio').replace(/\s+/g,'_')}.docx`;
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                    setTimeout(() => URL.revokeObjectURL(url), 2000);
+                    downloaded++;
+                    await new Promise(r => setTimeout(r, 700));
+                } catch(err) { console.error(err); errors++; }
+            }
+            statusEl.textContent = `✅ Descargados ${downloaded} archivos${errors ? ` · ❌ ${errors} errores` : ''}.`;
+            showNotification(`${downloaded} informes descargados`, 'success');
+        }
+
+        async function generarResumenSemanal() {
+            const data = window._periodoCheckData;
+            if (!data) { showNotification('⚠️ Ejecuta primero la verificación', 'warning'); return; }
+            if (data.entries.length === 0) { showNotification('⚠️ No hay visitas en el período', 'warning'); return; }
+            if (typeof window.docx === 'undefined') { showNotification('❌ Librería Word no cargada', 'error'); return; }
+
+            const statusEl = document.getElementById('periodo-status');
+            statusEl.style.display = 'block';
+            statusEl.textContent = '🤖 Generando resumen con IA...';
+
+            try {
+                const { entries, startStr, endStr } = data;
+                const startD = new Date(startStr), endD = new Date(endStr);
+
+                const studiosContext = entries.map(e => {
+                    const r = e.reportInRange;
+                    const rj = r?.reportJson || {};
+                    const arr = v => Array.isArray(v) ? v.join('; ') : (v||'N/D');
+                    return [
+                        `## ${e.studio.name} (${e.studio.priority||'Sin prioridad'})`,
+                        `Fecha: ${r?.date||'N/D'} | Provincia: ${e.studio.province||'N/D'} | Tipo: ${e.studio.type||'N/D'}`,
+                        `Productos presentados: ${rj.productos_presentados||'N/D'}`,
+                        `Nivel de interés: ${rj.nivel_interes||'N/D'} — ${rj.justificacion_interes||''}`,
+                        `Objetivo: ${rj.objetivo||'N/D'}`,
+                        `Oportunidades: ${arr(rj.oportunidades)}`,
+                        `Compromisos GPF: ${arr(rj.compromisos_gpf)}`,
+                        `Competidores: ${rj.competidores||'N/D'}`,
+                        `Temas pendientes: ${arr(rj.temas_pendientes)}`,
+                        `Plan seguimiento: ${rj.plan_seguimiento||'N/D'}`,
+                        ''
+                    ].join('\n');
+                }).join('\n');
+
+                const prompt = `Eres el asistente comercial de Manuel Fernández, Promotor y Prescriptor de Grupo Plásticos Ferro (Ferroplast/Tuyper) en Andalucía y Murcia.
+Genera un informe de resumen ejecutivo del período de visitas del ${startD.toLocaleDateString('es-ES')} al ${endD.toLocaleDateString('es-ES')}.
+
+VISITAS REALIZADAS (${entries.length} estudios):
+${studiosContext}
+
+Redacta el informe en Markdown con estas secciones:
+# Resumen Ejecutivo — ${startD.toLocaleDateString('es-ES')} al ${endD.toLocaleDateString('es-ES')}
+
+## 1. Resumen del Período
+Visitas realizadas, distribución, provincias.
+
+## 2. Panorama por Empresa
+Puntos clave de cada visita.
+
+## 3. Productos Destacados
+Qué productos generaron más interés y por qué.
+
+## 4. Niveles de Interés
+Distribución Alta/Media/Baja, empresas destacadas.
+
+## 5. Diferencias entre Clientes
+Comparativa de perfiles, necesidades, actitudes.
+
+## 6. Acciones y Compromisos Pendientes
+Lista consolidada de todos los compromisos adquiridos.
+
+## 7. Próximos Pasos
+Prioridades de seguimiento recomendadas.
+
+Sé conciso, directo, sin relleno. Usa bullet points.`;
+
+                const response = await callClaudeAPI([{ role:'user', content: prompt }], 6000);
+                const markdown = response?.content?.[0]?.text || '';
+                if (!markdown) throw new Error('La IA no devolvió contenido');
+
+                statusEl.textContent = '📄 Generando archivo Word...';
+                const doc = _buildWeeklySummaryDocx(markdown, startStr, endStr, entries.length);
+                const blob = await window.docx.Packer.toBlob(doc);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const fileName = `resumen-visitas_${startStr}_${endStr}.docx`;
+                a.href = url; a.download = fileName;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 2000);
+                statusEl.textContent = `✅ Resumen descargado: ${fileName}`;
+                showNotification('✅ Resumen generado correctamente', 'success');
+
+            } catch(err) {
+                console.error('generarResumenSemanal error:', err);
+                statusEl.textContent = '❌ Error: ' + err.message;
+            }
+        }
+
+        function _buildWeeklySummaryDocx(markdown, startStr, endStr, totalStudios) {
+            const { Document, Paragraph, TextRun, WidthType, BorderStyle, ShadingType,
+                    AlignmentType, TabStopType, Header, Footer, PageNumber } = window.docx;
+
+            const NAVY='1F3864', BLUE='2E5DA6', GREY='555555', WHITE='FFFFFF', BODY='1A1A1A';
+            const startDisp = new Date(startStr).toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'});
+            const endDisp   = new Date(endStr).toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'});
+
+            const children = [];
+            for (const line of markdown.split('\n')) {
+                const t = line.trim();
+                if (t.startsWith('# ')) {
+                    children.push(new Paragraph({ spacing:{before:360,after:120},
+                        shading:{fill:NAVY,type:ShadingType.CLEAR}, indent:{left:160,right:160},
+                        children:[new TextRun({text:t.slice(2),font:'Calibri',size:28,bold:true,color:WHITE})] }));
+                } else if (t.startsWith('## ')) {
+                    children.push(new Paragraph({ spacing:{before:280,after:100},
+                        shading:{fill:BLUE,type:ShadingType.CLEAR}, indent:{left:160,right:160},
+                        children:[new TextRun({text:t.slice(3),font:'Calibri',size:24,bold:true,color:WHITE})] }));
+                } else if (t.startsWith('### ')) {
+                    children.push(new Paragraph({ spacing:{before:200,after:80},
+                        children:[new TextRun({text:t.slice(4),font:'Calibri',size:22,bold:true,color:BLUE})] }));
+                } else if (/^[-*] /.test(t)) {
+                    const txt = t.slice(2).replace(/\*\*(.+?)\*\*/g,'$1');
+                    children.push(new Paragraph({ spacing:{after:80}, indent:{left:500,hanging:260},
+                        children:[
+                            new TextRun({text:'• ',font:'Calibri',size:20,color:BLUE,bold:true}),
+                            new TextRun({text:txt,font:'Calibri',size:20,color:BODY})
+                        ] }));
+                } else if (t === '') {
+                    children.push(new Paragraph({spacing:{after:80},children:[new TextRun('')]}));
+                } else {
+                    const txt = t.replace(/\*\*(.+?)\*\*/g,'$1');
+                    children.push(new Paragraph({spacing:{after:120},
+                        children:[new TextRun({text:txt,font:'Calibri',size:21,color:BODY})]}));
+                }
+            }
+
+            const header = new Header({ children:[new Paragraph({
+                border:{bottom:{style:BorderStyle.SINGLE,size:6,color:BLUE}},
+                tabStops:[{type:TabStopType.RIGHT,position:9026}],
+                children:[
+                    new TextRun({text:'Grupo Plásticos Ferro — Resumen de Visitas',size:18,font:'Calibri',color:BLUE,italics:true}),
+                    new TextRun({text:'\t',size:18}),
+                    new TextRun({text:`${startDisp} – ${endDisp}`,size:18,font:'Calibri',color:GREY})
+                ]
+            })] });
+
+            const footer = new Footer({ children:[new Paragraph({
+                border:{top:{style:BorderStyle.SINGLE,size:6,color:BLUE}},
+                tabStops:[{type:TabStopType.RIGHT,position:9026}],
+                children:[
+                    new TextRun({text:'Manuel Fernández — Promotor y Prescriptor GPF',size:18,font:'Calibri',color:GREY,italics:true}),
+                    new TextRun({text:'\t',size:18}),
+                    new TextRun({text:'Pág. ',size:18,font:'Calibri',color:GREY}),
+                    new TextRun({children:[PageNumber.CURRENT],size:18,font:'Calibri',color:GREY}),
+                    new TextRun({text:' / ',size:18,font:'Calibri',color:GREY}),
+                    new TextRun({children:[PageNumber.TOTAL_PAGES],size:18,font:'Calibri',color:GREY})
+                ]
+            })] });
+
+            return new Document({
+                sections:[{
+                    properties:{page:{size:{width:11906,height:16838},margin:{top:1134,right:1134,bottom:1134,left:1134}}},
+                    headers:{default:header},
+                    footers:{default:footer},
+                    children
+                }]
+            });
+        }
+
         // marcador de reemplazo — eliminar función antigua
         function markdownToWordHtml(markdown, studioName) {
             // Escapar HTML básico antes de procesar
