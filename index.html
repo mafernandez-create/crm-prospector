@@ -22619,9 +22619,11 @@ updateMap();
         
         async function exportarCalendarioXLSX() {
             const schedule = planificadorData.schedule || {};
+            console.log('📆 exportarCalendarioXLSX - schedule keys:', Object.keys(schedule));
             const days = Object.keys(schedule).filter(d => (schedule[d] || []).some(s => !s.reserva)).sort();
+            console.log('📆 días con visitas principales:', days);
             if (days.length === 0) {
-                showNotification('No hay visitas planificadas', 'warning');
+                showNotification('⚠️ No hay visitas planificadas en el planificador', 'warning');
                 return;
             }
 
