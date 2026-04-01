@@ -22638,7 +22638,6 @@ updateMap();
             const tokenValido = sheetsSettings.accessToken && sheetsSettings.tokenExpiry > Date.now();
 
             if (!tokenValido) {
-                // Necesitamos autorización — reutilizamos el clientId de Calendar
                 loadCalendarSettings();
                 const clientId = calendarSettings.clientId;
                 if (!clientId) {
@@ -22658,72 +22657,120 @@ updateMap();
                 return;
             }
 
-            // 2. Construir texto por día y calcular referencia de celda
+            // 2. Mapa de URLs por estudio (id → url)
+            const allStudios = await getAllStudios();
+            const studioUrlMap = {};
+            allStudios.forEach(s => {
+                const web = s.data?.contact?.web || '';
+                if (web && s.id != null) {
+                    studioUrlMap[String(s.id)] = web.startsWith('http') ? web : 'https://' + web;
+                }
+            });
+
+            // 3. Calcular referencia de celda
             const COL_LETTERS = ['C', 'H', 'M'];
             function getCellRef(dateStr) {
                 const [year, month, day] = dateStr.split('-').map(Number);
                 if (year !== 2026) return null;
                 const m = month - 1;
-                const blockIndex   = Math.floor(m / 3);
-                const monthInBlock = m % 3;
-                const col = COL_LETTERS[monthInBlock];
-                const blockStartRow = 2 + blockIndex * 35;
-                const row = blockStartRow + day;
+                const col = COL_LETTERS[m % 3];
+                const row = (2 + Math.floor(m / 3) * 35) + day;
                 return `${col}${row}`;
             }
+            function cellRefTo0Based(ref) {
+                return { row: parseInt(ref.slice(1)) - 1, col: ref.charCodeAt(0) - 65 };
+            }
 
-            // Nombre de la hoja dentro del spreadsheet
-            const sheetName = 'CALENDARIO 2026 MANOLO';
-
-            // Construir lista de actualizaciones para la Sheets API (batchUpdate)
-            const data = [];
+            // 4. Construir texto + posiciones de hipervínculos por día
+            const visitasDia = [];
             days.forEach(dateStr => {
-                const visitas = (schedule[dateStr] || []).filter(s => !s.reserva);
-                if (!visitas.length) return;
+                const studios = (schedule[dateStr] || []).filter(s => !s.reserva);
+                if (!studios.length) return;
                 const byProv = {};
-                visitas.forEach(s => {
+                studios.forEach(s => {
                     const prov = s.province || 'Sin provincia';
                     if (!byProv[prov]) byProv[prov] = [];
-                    byProv[prov].push(s.name || '');
+                    byProv[prov].push({ name: s.name || '', url: studioUrlMap[String(s.id ?? '')] || '' });
                 });
-                const texto = Object.entries(byProv)
-                    .map(([prov, names]) => `${prov}: ${names.join(', ')}`)
-                    .join(' | ');
+                let text = '';
+                const links = [];
+                const provEntries = Object.entries(byProv);
+                provEntries.forEach(([prov, provStudios], pi) => {
+                    text += prov + ': ';
+                    provStudios.forEach((s, si) => {
+                        const start = text.length;
+                        text += s.name;
+                        if (s.url) links.push([start, text.length, s.url]);
+                        if (si < provStudios.length - 1) text += ', ';
+                    });
+                    if (pi < provEntries.length - 1) text += ' | ';
+                });
                 const cellRef = getCellRef(dateStr);
-                if (!cellRef) return;
-                data.push({ range: `'${sheetName}'!${cellRef}`, values: [[texto]] });
+                if (cellRef) visitasDia.push({ cellRef, text, links });
             });
 
-            if (!data.length) {
+            if (!visitasDia.length) {
                 showNotification('⚠️ No hay celdas para actualizar', 'warning');
                 return;
             }
 
-            showNotification(`☁️ Subiendo ${data.length} días al Sheet...`, 'info');
+            showNotification(`☁️ Subiendo ${visitasDia.length} días con hipervínculos...`, 'info');
 
-            // 3. Llamar a la Sheets API batchUpdate
             try {
+                // 5. Obtener el ID numérico de la hoja (gid)
+                const metaResp = await fetch(
+                    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_JEFE_ID}?fields=sheets(properties(sheetId,title))`,
+                    { headers: { 'Authorization': `Bearer ${sheetsSettings.accessToken}` } }
+                );
+                if (!metaResp.ok) throw new Error((await metaResp.json()).error?.message || metaResp.statusText);
+                const meta = await metaResp.json();
+                const sheetGid = meta.sheets?.find(s => s.properties.title === 'CALENDARIO 2026 MANOLO')?.properties?.sheetId ?? 0;
+
+                // 6. Construir textFormatRuns
+                function buildFormatRuns(links, textLen) {
+                    if (!links.length) return [];
+                    const runs = [];
+                    links.sort((a, b) => a[0] - b[0]);
+                    links.forEach(([start, end, url], i) => {
+                        runs.push({ startIndex: start, format: { link: { uri: url } } });
+                        const nextStart = links[i + 1]?.[0];
+                        if ((nextStart === undefined || nextStart > end) && end < textLen) {
+                            runs.push({ startIndex: end, format: {} });
+                        }
+                    });
+                    return runs;
+                }
+
+                // 7. Construir requests de updateCells
+                const requests = visitasDia.map(({ cellRef, text, links }) => {
+                    const { row, col } = cellRefTo0Based(cellRef);
+                    return {
+                        updateCells: {
+                            rows: [{ values: [{
+                                userEnteredValue: { stringValue: text },
+                                textFormatRuns: buildFormatRuns(links, text.length)
+                            }] }],
+                            fields: 'userEnteredValue,textFormatRuns',
+                            range: { sheetId: sheetGid, startRowIndex: row, endRowIndex: row + 1, startColumnIndex: col, endColumnIndex: col + 1 }
+                        }
+                    };
+                });
+
+                // 8. Llamar a spreadsheets:batchUpdate
                 const resp = await fetch(
-                    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_JEFE_ID}/values:batchUpdate`,
+                    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_JEFE_ID}:batchUpdate`,
                     {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${sheetsSettings.accessToken}`,
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({
-                            valueInputOption: 'RAW',
-                            data
-                        })
+                        body: JSON.stringify({ requests })
                     }
                 );
-                if (!resp.ok) {
-                    const err = await resp.json();
-                    throw new Error(err.error?.message || resp.statusText);
-                }
-                const result = await resp.json();
-                const celdas = result.responses?.reduce((acc, r) => acc + (r.updatedCells || 0), 0) || data.length;
-                showNotification(`✅ ${data.length} días subidos al Sheet del jefe`, 'success');
+                if (!resp.ok) throw new Error((await resp.json()).error?.message || resp.statusText);
+                const conEnlaces = visitasDia.filter(v => v.links.length > 0).length;
+                showNotification(`✅ ${visitasDia.length} días subidos al Sheet del jefe (${conEnlaces} con hipervínculos)`, 'success');
             } catch(e) {
                 console.error('Error Sheets API:', e);
                 showNotification('❌ Error: ' + e.message, 'error');
