@@ -22616,6 +22616,82 @@ updateMap();
             showNotification('Calendario limpiado', 'info');
         }
         
+        async function exportarCalendarioXLSX() {
+            const schedule = planificadorData.schedule || {};
+            const days = Object.keys(schedule).filter(d => (schedule[d] || []).some(s => !s.reserva)).sort();
+            if (days.length === 0) {
+                showNotification('No hay visitas planificadas', 'warning');
+                return;
+            }
+
+            showNotification('📆 Descargando plantilla del calendario...', 'info');
+
+            // 1. Descargar el xlsx de Google Sheets como plantilla
+            let arrayBuffer;
+            try {
+                const resp = await fetch('https://docs.google.com/spreadsheets/d/1vgTEqYYfgpP-dvla_hV6HIaz32kP3OPgxqn8YR_QqpQ/export?format=xlsx');
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                arrayBuffer = await resp.arrayBuffer();
+            } catch(e) {
+                showNotification('❌ No se pudo descargar la plantilla: ' + e.message, 'error');
+                return;
+            }
+
+            // 2. Parsear el xlsx
+            const wb = XLSX.read(arrayBuffer, { type: 'array', cellStyles: true });
+            // Buscar la hoja de 2026
+            const sheetName = wb.SheetNames.find(n => n.includes('2026')) || wb.SheetNames[wb.SheetNames.length - 1];
+            const ws = wb.Sheets[sheetName];
+
+            // 3. Función para calcular fila y columna de la celda de evento dado un Date
+            // Estructura: 3 meses por bloque, bloque 0 empieza en fila 1 (header), días en filas 2-32
+            // Columnas por mes dentro del bloque: mes0→col2, mes1→col7, mes2→col12
+            function getCellAddress(date) {
+                const m = date.getMonth(); // 0-based
+                const d = date.getDate();  // 1-based
+                const blockIndex   = Math.floor(m / 3);
+                const monthInBlock = m % 3;
+                const eventCol     = monthInBlock * 5 + 2;       // C=2, H=7, M=12
+                const blockStartRow = 1 + blockIndex * 35;       // fila del header del bloque
+                const row          = blockStartRow + d;          // día 1 → header+1
+                return XLSX.utils.encode_cell({ r: row, c: eventCol });
+            }
+
+            // 4. Agrupar visitas por día y construir texto "Provincia: E1, E2..."
+            days.forEach(dateStr => {
+                const visitas = (schedule[dateStr] || []).filter(s => !s.reserva);
+                if (!visitas.length) return;
+
+                // Agrupar por provincia
+                const byProv = {};
+                visitas.forEach(s => {
+                    const prov = s.province || 'Sin provincia';
+                    if (!byProv[prov]) byProv[prov] = [];
+                    byProv[prov].push(s.name || '');
+                });
+
+                const texto = Object.entries(byProv)
+                    .map(([prov, names]) => `${prov}: ${names.join(', ')}`)
+                    .join(' | ');
+
+                const [year, month, day] = dateStr.split('-').map(Number);
+                const date = new Date(year, month - 1, day);
+                if (date.getFullYear() !== 2026) return; // solo año 2026
+
+                const addr = getCellAddress(date);
+                // Escribir la celda preservando estilo si existe
+                const existing = ws[addr];
+                ws[addr] = { ...(existing || {}), v: texto, w: texto, t: 's' };
+            });
+
+            // 5. Descargar el xlsx modificado
+            const weekStart = days[0];
+            const weekEnd   = days[days.length - 1];
+            const fileName  = `Calendario_visitas_${weekStart}_${weekEnd}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+            showNotification(`✅ ${fileName} descargado`, 'success');
+        }
+
         function exportPlanToExcel() {
             if (!planificadorData.schedule || Object.keys(planificadorData.schedule).length === 0) {
                 showNotification('No hay visitas planificadas', 'warning');
