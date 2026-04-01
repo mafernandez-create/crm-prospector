@@ -22617,7 +22617,7 @@ updateMap();
             showNotification('Calendario limpiado', 'info');
         }
         
-        async function exportarCalendarioXLSX() {
+        function exportarSemanaJSON() {
             const schedule = planificadorData.schedule || {};
             const days = Object.keys(schedule).filter(d => (schedule[d] || []).some(s => !s.reserva)).sort();
             if (days.length === 0) {
