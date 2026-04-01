@@ -16652,12 +16652,17 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                         calendarSettings.accessToken = accessToken;
                         calendarSettings.tokenExpiry = Date.now() + (expiresIn * 1000);
                         localStorage.setItem('ferroplast_test_calendar_settings', JSON.stringify(calendarSettings));
-                        
-                        // Limpiar URL
                         window.history.replaceState({}, document.title, window.location.pathname);
-                        
                         alert('✅ Conectado a Google Calendar correctamente');
                         setTimeout(() => openCalendarSettingsModal(), 500);
+                    } else if (state === 'sheets_auth') {
+                        // Google Sheets OAuth
+                        const sheetsSettings = JSON.parse(localStorage.getItem('ferroplast_sheets_settings') || '{}');
+                        sheetsSettings.accessToken = accessToken;
+                        sheetsSettings.tokenExpiry = Date.now() + (expiresIn * 1000);
+                        localStorage.setItem('ferroplast_sheets_settings', JSON.stringify(sheetsSettings));
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                        alert('✅ Conectado a Google Sheets. Vuelve a pulsar "☁️ Sheet Jefe" para subir las visitas.');
                     } else {
                         // Gmail OAuth (comportamiento original)
                         gmailSettings.accessToken = accessToken;
