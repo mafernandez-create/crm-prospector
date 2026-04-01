@@ -22655,65 +22655,73 @@ updateMap();
                 });
             }
 
-            // 3. Abrir el xlsx como ZIP y leer la shared strings table
+            // 3. Abrir el xlsx como ZIP
             const zip = await JSZip.loadAsync(fileData.buffer);
 
-            // Leer shared strings (las cadenas de texto del xlsx se guardan aquí)
-            const ssXml = await zip.file('xl/sharedStrings.xml').async('text');
-            const parser = new DOMParser();
-            const ssDoc = parser.parseFromString(ssXml, 'application/xml');
-            const siNodes = Array.from(ssDoc.querySelectorAll('si'));
-            // Construir array de strings existentes
-            const sharedStrings = siNodes.map(si => si.textContent);
+            // 4. Encontrar la hoja de 2026 mediante el workbook.xml (manipulación de texto)
+            const wbXml = await zip.file('xl/workbook.xml').async('text');
+            const sheet2026Match = wbXml.match(/<sheet[^>]*name="([^"]*2026[^"]*)"[^>]*r:id="([^"]+)"/i)
+                                || wbXml.match(/<sheet[^>]*r:id="([^"]+)"[^>]*>/g)?.slice(-1);
+            let rId, sheetPath;
+            if (sheet2026Match) {
+                rId = sheet2026Match[2];
+            } else {
+                // Tomar la última hoja
+                const allRids = [...wbXml.matchAll(/r:id="(rId\d+)"/g)];
+                rId = allRids[allRids.length - 1]?.[1];
+            }
+            const relsXml = await zip.file('xl/_rels/workbook.xml.rels').async('text');
+            const relMatch = relsXml.match(new RegExp(`Id="${rId}"[^>]*Target="([^"]+)"`));
+            sheetPath = relMatch ? 'xl/' + relMatch[1].replace(/^\/xl\//, '') : 'xl/worksheets/sheet2.xml';
 
-            // Función para añadir o reutilizar un string compartido
-            function getOrAddSharedString(text) {
-                const idx = sharedStrings.indexOf(text);
-                if (idx !== -1) return idx;
-                sharedStrings.push(text);
-                const si = ssDoc.createElementNS('', 'si');
-                const t = ssDoc.createElementNS('', 't');
-                t.setAttribute('xml:space', 'preserve');
-                t.textContent = text;
-                si.appendChild(t);
-                ssDoc.querySelector('sst').appendChild(si);
-                return sharedStrings.length - 1;
+            // 5. Leer shared strings como texto
+            let ssXml = await zip.file('xl/sharedStrings.xml').async('text');
+
+            // Extraer strings existentes
+            const ssMatches = [...ssXml.matchAll(/<si>.*?<\/si>/gs)];
+            const sharedStrings = ssMatches.map(m => {
+                const inner = m[0].replace(/<[^>]+>/g, '');
+                return inner;
+            });
+
+            // Función para escapar XML
+            function escXml(s) {
+                return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
             }
 
-            // 4. Determinar qué archivo de hoja corresponde a la de 2026
-            const wbXml = await zip.file('xl/workbook.xml').async('text');
-            const wbDoc = parser.parseFromString(wbXml, 'application/xml');
-            const sheets = Array.from(wbDoc.querySelectorAll('sheet'));
-            const sheet2026 = sheets.find(s => s.getAttribute('name')?.includes('2026')) || sheets[sheets.length - 1];
-            const rId = sheet2026.getAttribute('r:id');
-            // Leer relationships para mapear rId a archivo
-            const relsXml = await zip.file('xl/_rels/workbook.xml.rels').async('text');
-            const relsDoc = parser.parseFromString(relsXml, 'application/xml');
-            const rel = Array.from(relsDoc.querySelectorAll('Relationship')).find(r => r.getAttribute('Id') === rId);
-            const sheetPath = 'xl/' + rel.getAttribute('Target').replace(/^\/xl\//, '');
+            // Añadir nuevo string compartido al XML
+            function addSharedString(text) {
+                const idx = sharedStrings.length;
+                sharedStrings.push(text);
+                const newSi = `<si><t xml:space="preserve">${escXml(text)}</t></si>`;
+                ssXml = ssXml.replace('</sst>', newSi + '</sst>');
+                return idx;
+            }
 
-            // 5. Leer y parsear el XML de la hoja
-            const sheetXml = await zip.file(sheetPath).async('text');
-            const sheetDoc = parser.parseFromString(sheetXml, 'application/xml');
+            function getOrAddSharedString(text) {
+                const idx = sharedStrings.findIndex(s => s === text);
+                if (idx !== -1) return idx;
+                return addSharedString(text);
+            }
 
-            // 6. Función para calcular dirección de celda Excel (ej: "C4")
-            // Estructura del calendario: 3 meses por bloque de 35 filas
-            // Bloque 0: fila 2 (header Enero/Feb/Mar), días en filas 3-33
-            // Columnas de evento: C(mes0), H(mes1), M(mes2) → índices 2,7,12 → letras C,H,M
+            // 6. Leer el XML de la hoja como texto
+            let sheetXml = await zip.file(sheetPath).async('text');
+
+            // 7. Calcular referencia de celda
             const colLetters = ['C', 'H', 'M'];
             function getCellRef(dateStr) {
                 const [year, month, day] = dateStr.split('-').map(Number);
                 if (year !== 2026) return null;
-                const m = month - 1; // 0-based
+                const m = month - 1;
                 const blockIndex   = Math.floor(m / 3);
                 const monthInBlock = m % 3;
                 const col = colLetters[monthInBlock];
-                const blockStartRow = 2 + blockIndex * 35; // fila del header del bloque (1-based Excel)
-                const row = blockStartRow + day;           // día 1 → blockStartRow+1
+                const blockStartRow = 2 + blockIndex * 35;
+                const row = blockStartRow + day;
                 return `${col}${row}`;
             }
 
-            // 7. Para cada día, calcular el texto y actualizar la celda en el XML
+            // 8. Para cada día planificado, modificar la celda en el XML de la hoja
             days.forEach(dateStr => {
                 const visitas = (schedule[dateStr] || []).filter(s => !s.reserva);
                 if (!visitas.length) return;
@@ -22733,42 +22741,36 @@ updateMap();
 
                 const ssIdx = getOrAddSharedString(texto);
 
-                // Buscar la celda en el XML o crearla
-                let cNode = sheetDoc.querySelector(`c[r="${cellRef}"]`);
-                if (!cNode) {
-                    // Buscar la fila correcta
-                    const rowNum = parseInt(cellRef.match(/\d+/)[0]);
-                    let rowNode = sheetDoc.querySelector(`row[r="${rowNum}"]`);
-                    if (!rowNode) {
-                        rowNode = sheetDoc.createElementNS(sheetDoc.documentElement.namespaceURI, 'row');
-                        rowNode.setAttribute('r', rowNum);
-                        sheetDoc.querySelector('sheetData').appendChild(rowNode);
+                // Buscar si la celda ya existe en el XML
+                const cellRegex = new RegExp(`(<c[^>]*r="${cellRef}"[^>]*>)(.*?)(</c>)`, 's');
+                if (cellRegex.test(sheetXml)) {
+                    // Reemplazar el contenido de la celda existente, cambiando tipo a 's'
+                    sheetXml = sheetXml.replace(cellRegex, (match, open, inner, close) => {
+                        const newOpen = open.replace(/t="[^"]*"/, '').replace(/<c /, `<c t="s" `);
+                        return `${newOpen}<v>${ssIdx}</v>${close}`;
+                    });
+                } else {
+                    // Insertar nueva celda en la fila correspondiente
+                    const rowNum = cellRef.match(/\d+/)[0];
+                    const rowRegex = new RegExp(`(<row[^>]*r="${rowNum}"[^>]*>)(.*?)(</row>)`, 's');
+                    const newCell = `<c r="${cellRef}" t="s"><v>${ssIdx}</v></c>`;
+                    if (rowRegex.test(sheetXml)) {
+                        sheetXml = sheetXml.replace(rowRegex, `$1$2${newCell}$3`);
+                    } else {
+                        sheetXml = sheetXml.replace('</sheetData>', `<row r="${rowNum}">${newCell}</row></sheetData>`);
                     }
-                    cNode = sheetDoc.createElementNS(sheetDoc.documentElement.namespaceURI, 'c');
-                    cNode.setAttribute('r', cellRef);
-                    rowNode.appendChild(cNode);
                 }
-                // Establecer tipo string compartido y valor
-                cNode.setAttribute('t', 's');
-                let vNode = cNode.querySelector('v');
-                if (!vNode) {
-                    vNode = sheetDoc.createElementNS(sheetDoc.documentElement.namespaceURI, 'v');
-                    cNode.appendChild(vNode);
-                }
-                vNode.textContent = ssIdx;
             });
 
-            // 8. Actualizar el count en sst
-            const sstNode = ssDoc.querySelector('sst');
-            sstNode.setAttribute('count', sharedStrings.length);
-            sstNode.setAttribute('uniqueCount', sharedStrings.length);
+            // 9. Actualizar counts en sharedStrings
+            ssXml = ssXml.replace(/(<sst[^>]*count=")[^"]*(")/,  `$1${sharedStrings.length}$2`);
+            ssXml = ssXml.replace(/(<sst[^>]*uniqueCount=")[^"]*(")/,  `$1${sharedStrings.length}$2`);
 
-            // 9. Serializar y reempaquetar el ZIP
-            const serializer = new XMLSerializer();
-            zip.file(sheetPath, serializer.serializeToString(sheetDoc));
-            zip.file('xl/sharedStrings.xml', serializer.serializeToString(ssDoc));
+            // 10. Guardar archivos modificados en el ZIP
+            zip.file(sheetPath, sheetXml);
+            zip.file('xl/sharedStrings.xml', ssXml);
 
-            // 10. Descargar
+            // 11. Descargar
             const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
