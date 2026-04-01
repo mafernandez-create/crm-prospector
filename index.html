@@ -22625,16 +22625,16 @@ updateMap();
                 return;
             }
 
-            showNotification('📆 Descargando plantilla del calendario...', 'info');
+            showNotification('📆 Cargando plantilla del calendario...', 'info');
 
-            // 1. Descargar el xlsx de Google Sheets como plantilla
+            // 1. Cargar el xlsx local como plantilla
             let arrayBuffer;
             try {
-                const resp = await fetch('https://docs.google.com/spreadsheets/d/1vgTEqYYfgpP-dvla_hV6HIaz32kP3OPgxqn8YR_QqpQ/export?format=xlsx');
-                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                const resp = await fetch('/CALENDARIO_2026_MANOLO.xlsx');
+                if (!resp.ok) throw new Error('Archivo no encontrado en el servidor local (HTTP ' + resp.status + ')');
                 arrayBuffer = await resp.arrayBuffer();
             } catch(e) {
-                showNotification('❌ No se pudo descargar la plantilla: ' + e.message, 'error');
+                showNotification('❌ ' + e.message, 'error');
                 return;
             }
 
