@@ -22627,18 +22627,24 @@ updateMap();
                 return;
             }
 
-            showNotification('📆 Cargando plantilla del calendario...', 'info');
-
-            // 1. Cargar el xlsx local como plantilla
-            let arrayBuffer;
-            try {
-                const resp = await fetch('/CALENDARIO_2026_MANOLO.xlsx');
-                if (!resp.ok) throw new Error('Archivo no encontrado en el servidor local (HTTP ' + resp.status + ')');
-                arrayBuffer = await resp.arrayBuffer();
-            } catch(e) {
-                showNotification('❌ ' + e.message, 'error');
-                return;
-            }
+            // 1. Pedir al usuario que seleccione el xlsx del calendario
+            showNotification('📆 Selecciona el archivo CALENDARIO_2026_MANOLO.xlsx', 'info');
+            const arrayBuffer = await new Promise((resolve, reject) => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.xlsx';
+                input.onchange = e => {
+                    const file = e.target.files[0];
+                    if (!file) { reject(new Error('No se seleccionó archivo')); return; }
+                    const reader = new FileReader();
+                    reader.onload = ev => resolve(ev.target.result);
+                    reader.onerror = () => reject(new Error('Error leyendo el archivo'));
+                    reader.readAsArrayBuffer(file);
+                };
+                input.oncancel = () => reject(new Error('Cancelado'));
+                input.click();
+            }).catch(e => { showNotification('⚠️ ' + e.message, 'warning'); return null; });
+            if (!arrayBuffer) return;
 
             // 2. Parsear el xlsx
             const wb = XLSX.read(arrayBuffer, { type: 'array', cellStyles: true });
