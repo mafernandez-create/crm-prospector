@@ -22619,9 +22619,7 @@ updateMap();
         
         async function exportarCalendarioXLSX() {
             const schedule = planificadorData.schedule || {};
-            console.log('📆 exportarCalendarioXLSX - schedule keys:', Object.keys(schedule));
             const days = Object.keys(schedule).filter(d => (schedule[d] || []).some(s => !s.reserva)).sort();
-            console.log('📆 días con visitas principales:', days);
             if (days.length === 0) {
                 showNotification('⚠️ No hay visitas planificadas en el planificador', 'warning');
                 return;
@@ -22629,7 +22627,7 @@ updateMap();
 
             // 1. Pedir al usuario que seleccione el xlsx del calendario
             showNotification('📆 Selecciona el archivo CALENDARIO_2026_MANOLO.xlsx', 'info');
-            const arrayBuffer = await new Promise((resolve, reject) => {
+            const fileData = await new Promise((resolve, reject) => {
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = '.xlsx';
@@ -22637,68 +22635,150 @@ updateMap();
                     const file = e.target.files[0];
                     if (!file) { reject(new Error('No se seleccionó archivo')); return; }
                     const reader = new FileReader();
-                    reader.onload = ev => resolve(ev.target.result);
+                    reader.onload = ev => resolve({ buffer: ev.target.result, name: file.name });
                     reader.onerror = () => reject(new Error('Error leyendo el archivo'));
                     reader.readAsArrayBuffer(file);
                 };
-                input.oncancel = () => reject(new Error('Cancelado'));
                 input.click();
             }).catch(e => { showNotification('⚠️ ' + e.message, 'warning'); return null; });
-            if (!arrayBuffer) return;
+            if (!fileData) return;
 
-            // 2. Parsear el xlsx
-            const wb = XLSX.read(arrayBuffer, { type: 'array', cellStyles: true });
-            // Buscar la hoja de 2026
-            const sheetName = wb.SheetNames.find(n => n.includes('2026')) || wb.SheetNames[wb.SheetNames.length - 1];
-            const ws = wb.Sheets[sheetName];
+            showNotification('📆 Procesando...', 'info');
 
-            // 3. Función para calcular fila y columna de la celda de evento dado un Date
-            // Estructura: 3 meses por bloque, bloque 0 empieza en fila 1 (header), días en filas 2-32
-            // Columnas por mes dentro del bloque: mes0→col2, mes1→col7, mes2→col12
-            function getCellAddress(date) {
-                const m = date.getMonth(); // 0-based
-                const d = date.getDate();  // 1-based
-                const blockIndex   = Math.floor(m / 3);
-                const monthInBlock = m % 3;
-                const eventCol     = monthInBlock * 5 + 2;       // C=2, H=7, M=12
-                const blockStartRow = 1 + blockIndex * 35;       // fila del header del bloque
-                const row          = blockStartRow + d;          // día 1 → header+1
-                return XLSX.utils.encode_cell({ r: row, c: eventCol });
+            // 2. Cargar JSZip dinámicamente si no está disponible
+            if (!window.JSZip) {
+                await new Promise((res, rej) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+                    s.onload = res; s.onerror = rej;
+                    document.head.appendChild(s);
+                });
             }
 
-            // 4. Agrupar visitas por día y construir texto "Provincia: E1, E2..."
+            // 3. Abrir el xlsx como ZIP y leer la shared strings table
+            const zip = await JSZip.loadAsync(fileData.buffer);
+
+            // Leer shared strings (las cadenas de texto del xlsx se guardan aquí)
+            const ssXml = await zip.file('xl/sharedStrings.xml').async('text');
+            const parser = new DOMParser();
+            const ssDoc = parser.parseFromString(ssXml, 'application/xml');
+            const siNodes = Array.from(ssDoc.querySelectorAll('si'));
+            // Construir array de strings existentes
+            const sharedStrings = siNodes.map(si => si.textContent);
+
+            // Función para añadir o reutilizar un string compartido
+            function getOrAddSharedString(text) {
+                const idx = sharedStrings.indexOf(text);
+                if (idx !== -1) return idx;
+                sharedStrings.push(text);
+                const si = ssDoc.createElementNS('', 'si');
+                const t = ssDoc.createElementNS('', 't');
+                t.setAttribute('xml:space', 'preserve');
+                t.textContent = text;
+                si.appendChild(t);
+                ssDoc.querySelector('sst').appendChild(si);
+                return sharedStrings.length - 1;
+            }
+
+            // 4. Determinar qué archivo de hoja corresponde a la de 2026
+            const wbXml = await zip.file('xl/workbook.xml').async('text');
+            const wbDoc = parser.parseFromString(wbXml, 'application/xml');
+            const sheets = Array.from(wbDoc.querySelectorAll('sheet'));
+            const sheet2026 = sheets.find(s => s.getAttribute('name')?.includes('2026')) || sheets[sheets.length - 1];
+            const rId = sheet2026.getAttribute('r:id');
+            // Leer relationships para mapear rId a archivo
+            const relsXml = await zip.file('xl/_rels/workbook.xml.rels').async('text');
+            const relsDoc = parser.parseFromString(relsXml, 'application/xml');
+            const rel = Array.from(relsDoc.querySelectorAll('Relationship')).find(r => r.getAttribute('Id') === rId);
+            const sheetPath = 'xl/' + rel.getAttribute('Target').replace(/^\/xl\//, '');
+
+            // 5. Leer y parsear el XML de la hoja
+            const sheetXml = await zip.file(sheetPath).async('text');
+            const sheetDoc = parser.parseFromString(sheetXml, 'application/xml');
+
+            // 6. Función para calcular dirección de celda Excel (ej: "C4")
+            // Estructura del calendario: 3 meses por bloque de 35 filas
+            // Bloque 0: fila 2 (header Enero/Feb/Mar), días en filas 3-33
+            // Columnas de evento: C(mes0), H(mes1), M(mes2) → índices 2,7,12 → letras C,H,M
+            const colLetters = ['C', 'H', 'M'];
+            function getCellRef(dateStr) {
+                const [year, month, day] = dateStr.split('-').map(Number);
+                if (year !== 2026) return null;
+                const m = month - 1; // 0-based
+                const blockIndex   = Math.floor(m / 3);
+                const monthInBlock = m % 3;
+                const col = colLetters[monthInBlock];
+                const blockStartRow = 2 + blockIndex * 35; // fila del header del bloque (1-based Excel)
+                const row = blockStartRow + day;           // día 1 → blockStartRow+1
+                return `${col}${row}`;
+            }
+
+            // 7. Para cada día, calcular el texto y actualizar la celda en el XML
             days.forEach(dateStr => {
                 const visitas = (schedule[dateStr] || []).filter(s => !s.reserva);
                 if (!visitas.length) return;
 
-                // Agrupar por provincia
                 const byProv = {};
                 visitas.forEach(s => {
                     const prov = s.province || 'Sin provincia';
                     if (!byProv[prov]) byProv[prov] = [];
                     byProv[prov].push(s.name || '');
                 });
-
                 const texto = Object.entries(byProv)
                     .map(([prov, names]) => `${prov}: ${names.join(', ')}`)
                     .join(' | ');
 
-                const [year, month, day] = dateStr.split('-').map(Number);
-                const date = new Date(year, month - 1, day);
-                if (date.getFullYear() !== 2026) return; // solo año 2026
+                const cellRef = getCellRef(dateStr);
+                if (!cellRef) return;
 
-                const addr = getCellAddress(date);
-                // Escribir la celda preservando estilo si existe
-                const existing = ws[addr];
-                ws[addr] = { ...(existing || {}), v: texto, w: texto, t: 's' };
+                const ssIdx = getOrAddSharedString(texto);
+
+                // Buscar la celda en el XML o crearla
+                let cNode = sheetDoc.querySelector(`c[r="${cellRef}"]`);
+                if (!cNode) {
+                    // Buscar la fila correcta
+                    const rowNum = parseInt(cellRef.match(/\d+/)[0]);
+                    let rowNode = sheetDoc.querySelector(`row[r="${rowNum}"]`);
+                    if (!rowNode) {
+                        rowNode = sheetDoc.createElementNS(sheetDoc.documentElement.namespaceURI, 'row');
+                        rowNode.setAttribute('r', rowNum);
+                        sheetDoc.querySelector('sheetData').appendChild(rowNode);
+                    }
+                    cNode = sheetDoc.createElementNS(sheetDoc.documentElement.namespaceURI, 'c');
+                    cNode.setAttribute('r', cellRef);
+                    rowNode.appendChild(cNode);
+                }
+                // Establecer tipo string compartido y valor
+                cNode.setAttribute('t', 's');
+                let vNode = cNode.querySelector('v');
+                if (!vNode) {
+                    vNode = sheetDoc.createElementNS(sheetDoc.documentElement.namespaceURI, 'v');
+                    cNode.appendChild(vNode);
+                }
+                vNode.textContent = ssIdx;
             });
 
-            // 5. Descargar el xlsx modificado
+            // 8. Actualizar el count en sst
+            const sstNode = ssDoc.querySelector('sst');
+            sstNode.setAttribute('count', sharedStrings.length);
+            sstNode.setAttribute('uniqueCount', sharedStrings.length);
+
+            // 9. Serializar y reempaquetar el ZIP
+            const serializer = new XMLSerializer();
+            zip.file(sheetPath, serializer.serializeToString(sheetDoc));
+            zip.file('xl/sharedStrings.xml', serializer.serializeToString(ssDoc));
+
+            // 10. Descargar
+            const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
             const weekStart = days[0];
             const weekEnd   = days[days.length - 1];
-            const fileName  = `Calendario_visitas_${weekStart}_${weekEnd}.xlsx`;
-            XLSX.writeFile(wb, fileName);
-            showNotification(`✅ ${fileName} descargado`, 'success');
+            a.download = `Calendario_visitas_${weekStart}_${weekEnd}.xlsx`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showNotification(`✅ Calendario descargado con visitas del ${weekStart} al ${weekEnd}`, 'success');
         }
 
         function exportPlanToExcel() {
