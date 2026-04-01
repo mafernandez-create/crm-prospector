@@ -22776,41 +22776,6 @@ updateMap();
             }
         }
 
-        function exportarSemanaJSON() {
-            const schedule = planificadorData.schedule || {};
-            const days = Object.keys(schedule).filter(d => (schedule[d] || []).some(s => !s.reserva)).sort();
-            if (days.length === 0) {
-                showNotification('⚠️ No hay visitas planificadas en el planificador', 'warning');
-                return;
-            }
-
-            // Construir objeto con fecha → "Provincia: E1, E2..."
-            const resultado = {};
-            days.forEach(dateStr => {
-                const visitas = (schedule[dateStr] || []).filter(s => !s.reserva);
-                if (!visitas.length) return;
-                const byProv = {};
-                visitas.forEach(s => {
-                    const prov = s.province || 'Sin provincia';
-                    if (!byProv[prov]) byProv[prov] = [];
-                    byProv[prov].push(s.name || '');
-                });
-                resultado[dateStr] = Object.entries(byProv)
-                    .map(([prov, names]) => `${prov}: ${names.join(', ')}`)
-                    .join(' | ');
-            });
-
-            // Descargar como JSON
-            const json = JSON.stringify(resultado, null, 2);
-            const blob = new Blob([json], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `visitas_semana_${days[0]}_${days[days.length-1]}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            showNotification(`✅ JSON exportado — ejecútalo con: node insertar_calendario.js`, 'success');
-        }
 
         function exportPlanToExcel() {
             if (!planificadorData.schedule || Object.keys(planificadorData.schedule).length === 0) {
