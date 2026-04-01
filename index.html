@@ -22623,6 +22623,113 @@ updateMap();
             showNotification('Calendario limpiado', 'info');
         }
         
+        const SHEET_JEFE_ID = '1vgTEqYYfgpP-dvla_hV6HIaz32kP3OPgxqn8YR_QqpQ';
+
+        async function subirVisitasSheet() {
+            const schedule = planificadorData.schedule || {};
+            const days = Object.keys(schedule).filter(d => (schedule[d] || []).some(s => !s.reserva)).sort();
+            if (days.length === 0) {
+                showNotification('⚠️ No hay visitas planificadas', 'warning');
+                return;
+            }
+
+            // 1. Comprobar token de Sheets
+            let sheetsSettings = JSON.parse(localStorage.getItem('ferroplast_sheets_settings') || '{}');
+            const tokenValido = sheetsSettings.accessToken && sheetsSettings.tokenExpiry > Date.now();
+
+            if (!tokenValido) {
+                // Necesitamos autorización — reutilizamos el clientId de Calendar
+                loadCalendarSettings();
+                const clientId = calendarSettings.clientId;
+                if (!clientId) {
+                    alert('⚠️ Primero configura el Client ID de Google en Ajustes → Google Calendar.');
+                    return;
+                }
+                const redirectUri = window.location.href.split('?')[0].split('#')[0];
+                const scope = 'https://www.googleapis.com/auth/spreadsheets';
+                const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' +
+                    `client_id=${encodeURIComponent(clientId)}` +
+                    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+                    '&response_type=token' +
+                    `&scope=${encodeURIComponent(scope)}` +
+                    '&state=sheets_auth' +
+                    '&prompt=consent';
+                window.location.href = authUrl;
+                return;
+            }
+
+            // 2. Construir texto por día y calcular referencia de celda
+            const COL_LETTERS = ['C', 'H', 'M'];
+            function getCellRef(dateStr) {
+                const [year, month, day] = dateStr.split('-').map(Number);
+                if (year !== 2026) return null;
+                const m = month - 1;
+                const blockIndex   = Math.floor(m / 3);
+                const monthInBlock = m % 3;
+                const col = COL_LETTERS[monthInBlock];
+                const blockStartRow = 2 + blockIndex * 35;
+                const row = blockStartRow + day;
+                return `${col}${row}`;
+            }
+
+            // Nombre de la hoja dentro del spreadsheet
+            const sheetName = 'CALENDARIO 2026 MANOLO';
+
+            // Construir lista de actualizaciones para la Sheets API (batchUpdate)
+            const data = [];
+            days.forEach(dateStr => {
+                const visitas = (schedule[dateStr] || []).filter(s => !s.reserva);
+                if (!visitas.length) return;
+                const byProv = {};
+                visitas.forEach(s => {
+                    const prov = s.province || 'Sin provincia';
+                    if (!byProv[prov]) byProv[prov] = [];
+                    byProv[prov].push(s.name || '');
+                });
+                const texto = Object.entries(byProv)
+                    .map(([prov, names]) => `${prov}: ${names.join(', ')}`)
+                    .join(' | ');
+                const cellRef = getCellRef(dateStr);
+                if (!cellRef) return;
+                data.push({ range: `'${sheetName}'!${cellRef}`, values: [[texto]] });
+            });
+
+            if (!data.length) {
+                showNotification('⚠️ No hay celdas para actualizar', 'warning');
+                return;
+            }
+
+            showNotification(`☁️ Subiendo ${data.length} días al Sheet...`, 'info');
+
+            // 3. Llamar a la Sheets API batchUpdate
+            try {
+                const resp = await fetch(
+                    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_JEFE_ID}/values:batchUpdate`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${sheetsSettings.accessToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            valueInputOption: 'RAW',
+                            data
+                        })
+                    }
+                );
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    throw new Error(err.error?.message || resp.statusText);
+                }
+                const result = await resp.json();
+                const celdas = result.responses?.reduce((acc, r) => acc + (r.updatedCells || 0), 0) || data.length;
+                showNotification(`✅ ${data.length} días subidos al Sheet del jefe`, 'success');
+            } catch(e) {
+                console.error('Error Sheets API:', e);
+                showNotification('❌ Error: ' + e.message, 'error');
+            }
+        }
+
         function exportarSemanaJSON() {
             const schedule = planificadorData.schedule || {};
             const days = Object.keys(schedule).filter(d => (schedule[d] || []).some(s => !s.reserva)).sort();
