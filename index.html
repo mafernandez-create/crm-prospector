@@ -25355,20 +25355,25 @@ ${jsonTemplate}`;
                         ${row('🌐', 'Web', web, webUrl)}
                         ${row('📍', 'Dirección', address || city, wazeUrl)}
                     </div>
-                    <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
+                    <div id="hoy-modal-actions" style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
                         ${phone ? `<a href="tel:${escapeHtml(phone.replace(/\s/g,''))}" class="m-btn m-btn-ghost" style="text-decoration:none;text-align:center;">📞 Llamar</a>` : ''}
-                        <button class="m-btn" style="background:#6366f1;color:white;font-weight:700;padding:13px;border:none;border-radius:12px;cursor:pointer;font-size:0.9rem;width:100%;"
-                            onclick="document.getElementById('mobile-estudio-modal').remove();mobileRegistroRapido('${escapeHtml(String(id))}','${escapeHtml(name||'').replace(/'/g,"\\'")}')">⚡ Registro rápido</button>
-                        <button class="m-btn m-btn-ghost" style="text-align:center;"
-                            onclick="document.getElementById('mobile-estudio-modal').remove();mobileIrARegistrar('${escapeHtml(String(id))}','${escapeHtml(name||'').replace(/'/g,"\\'")}')">📝 Registro completo</button>
-                        <button onclick="document.getElementById('mobile-estudio-modal').remove();"
-                            style="margin-top:4px;width:100%;padding:14px;background:#334155;border:none;border-radius:12px;color:#f1f5f9;font-size:0.95rem;cursor:pointer;">Cerrar</button>
+                        <button id="hoy-btn-rapido" class="m-btn" style="background:#6366f1;color:white;font-weight:700;padding:13px;border:none;border-radius:12px;cursor:pointer;font-size:0.9rem;width:100%;">⚡ Registro rápido</button>
+                        <button id="hoy-btn-completo" class="m-btn m-btn-ghost" style="text-align:center;">📝 Registro completo</button>
+                        <button id="hoy-btn-ia" class="m-btn" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;font-weight:700;padding:13px;border:none;border-radius:12px;cursor:pointer;font-size:0.9rem;width:100%;text-align:center;">✍️ Redactar Informe con IA</button>
+                        <button id="hoy-btn-cerrar" style="margin-top:4px;width:100%;padding:14px;background:#334155;border:none;border-radius:12px;color:#f1f5f9;font-size:0.95rem;cursor:pointer;">Cerrar</button>
                     </div>
                 </div>`;
 
             const root = document.getElementById('mobile-modal-root') || document.getElementById('mobile-app') || document.body;
             root.style.pointerEvents = 'auto';
             root.appendChild(modal);
+
+            // Asignar eventos con addEventListener (evita problemas de escape en Safari)
+            const closeModal = () => { modal.remove(); if (root && !root.children.length) root.style.pointerEvents = 'none'; };
+            modal.querySelector('#hoy-btn-rapido').addEventListener('click', () => { closeModal(); mobileRegistroRapido(String(id), name || ''); });
+            modal.querySelector('#hoy-btn-completo').addEventListener('click', () => { closeModal(); mobileIrARegistrar(String(id), name || ''); });
+            modal.querySelector('#hoy-btn-ia').addEventListener('click', () => { currentStudioId = id; openInformeIAModal(); });
+            modal.querySelector('#hoy-btn-cerrar').addEventListener('click', closeModal);
         }
 
         function mobileOpenEstudioHoy(studioId) {
