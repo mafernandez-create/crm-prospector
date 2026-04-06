@@ -22433,44 +22433,42 @@ updateMap();
             });
         }
 
-        function updateCalendarDays() {
+        async function updateCalendarDays() {
             const fechaInicio = document.getElementById('plan-fecha-inicio').value;
             const fechaFin = document.getElementById('plan-fecha-fin').value;
             const visitasDia = parseInt(document.getElementById('plan-visitas-dia').value);
-            
+
             if (!fechaInicio || !fechaFin) return;
-            
+
             const start = new Date(fechaInicio);
             const end = new Date(fechaFin);
-            
+
             if (start > end) {
                 showNotification('La fecha de inicio debe ser anterior a la fecha fin', 'warning');
                 return;
             }
-            
+
             // Actualizar rango mostrado
             const rangeEl = document.getElementById('calendar-range');
-            if (rangeEl) {
-                rangeEl.textContent = `${start.toLocaleDateString('es-ES')} - ${end.toLocaleDateString('es-ES')}`;
-            }
-            
-            // Actualizar rango para impresión
+            if (rangeEl) rangeEl.textContent = `${start.toLocaleDateString('es-ES')} - ${end.toLocaleDateString('es-ES')}`;
             const printRangeEl = document.getElementById('print-date-range');
-            if (printRangeEl) {
-                printRangeEl.textContent = `${start.toLocaleDateString('es-ES')} - ${end.toLocaleDateString('es-ES')}`;
-            }
-            
+            if (printRangeEl) printRangeEl.textContent = `${start.toLocaleDateString('es-ES')} - ${end.toLocaleDateString('es-ES')}`;
+
             const container = document.getElementById('calendar-grid');
             const days = [];
             const current = new Date(start);
-            
             while (current <= end) {
                 days.push(new Date(current));
                 current.setDate(current.getDate() + 1);
             }
-            
+
             window.plannerVisitasDia = visitasDia;
-            
+
+            // Cargar festivos de todos los años del rango
+            const years = [...new Set(days.map(d => d.getFullYear()))];
+            const holidaysByYear = {};
+            await Promise.all(years.map(async y => { holidaysByYear[y] = await loadHolidays(y); }));
+
             container.innerHTML = days.map(day => {
                 const dateStr = day.toISOString().split('T')[0];
                 const dayOfWeek = day.getDay();
@@ -22478,12 +22476,17 @@ updateMap();
                 const dayName = day.toLocaleDateString('es-ES', { weekday: 'short' });
                 const dayNum = day.getDate();
                 const monthName = day.toLocaleDateString('es-ES', { month: 'short' });
-                
-                // Obtener estudios asignados a este día
+
                 const dayStudios = planificadorData.schedule?.[dateStr] || [];
                 const countPrincipales = dayStudios.filter(s => !s.reserva).length;
                 const countReservas = dayStudios.filter(s => s.reserva).length;
                 const count = countPrincipales;
+
+                // Calcular festivos para las provincias del día
+                const provinciasDia = [...new Set(dayStudios.filter(s => !s.reserva).map(s => s.province).filter(Boolean))];
+                const holidays = holidaysByYear[day.getFullYear()] || [];
+                const festivosDia = getHolidaysForDay(dateStr, provinciasDia, holidays);
+                const hasFestivo = !isWeekend && festivosDia.length > 0;
 
                 let statusClass = '';
                 if (!isWeekend) {
@@ -22491,15 +22494,22 @@ updateMap();
                     else if (count < visitasDia) statusClass = 'incomplete';
                     else statusClass = 'complete';
                 }
-                
+
+                const festivoHtml = hasFestivo ? `
+                    <div style="background:rgba(251,191,36,0.2);border:1px solid rgba(251,191,36,0.5);
+                                border-radius:6px;padding:4px 8px;margin-bottom:6px;
+                                font-size:0.75rem;color:#fbbf24;display:flex;align-items:center;gap:4px;">
+                        ⚠️ Festivo: ${festivosDia.map(h => h.localName).join(', ')}
+                    </div>` : '';
+
                 return `
-                    <div class="calendar-day ${isWeekend ? 'weekend' : ''} ${statusClass}"
+                    <div class="calendar-day ${isWeekend ? 'weekend' : ''} ${statusClass}${hasFestivo ? ' has-festivo' : ''}"
                          data-date="${dateStr}"
                          ondragover="handleDragOver(event)"
                          ondragleave="handleDragLeave(event)"
                          ondrop="handleDrop(event, '${dateStr}')">
-                        <div class="calendar-day-header">
-                            <span>${dayName} ${dayNum} ${monthName}</span>
+                        <div class="calendar-day-header" style="${hasFestivo ? 'border-bottom-color:rgba(251,191,36,0.4);' : ''}">
+                            <span>${dayName} ${dayNum} ${monthName}${hasFestivo ? ' ⚠️' : ''}</span>
                             <span class="calendar-day-count">${count}/${visitasDia}${countReservas > 0 ? ' +' + countReservas : ''}</span>
                         </div>
                         <div class="calendar-day-body" id="day-${dateStr}">
@@ -22507,7 +22517,8 @@ updateMap();
                               (function() {
                                 const principales = dayStudios.filter(s => !s.reserva);
                                 const reservas = dayStudios.filter(s => s.reserva);
-                                let html = principales.map((s, idx) => `
+                                let html = festivoHtml;
+                                html += principales.map((s, idx) => `
                                     <div class="calendar-visit">
                                         <button class="calendar-visit-remove" onclick="removeFromDay('${dateStr}', ${s.id})">✕</button>
                                         <div class="calendar-visit-name">${idx + 1}. ${s.name}</div>
@@ -22531,7 +22542,7 @@ updateMap();
                     </div>
                 `;
             }).join('');
-            
+
             updatePlannerStats();
         }
         
