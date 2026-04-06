@@ -25373,7 +25373,7 @@ ${jsonTemplate}`;
             const closeModal = () => { modal.remove(); if (root && !root.children.length) root.style.pointerEvents = 'none'; };
             modal.querySelector('#hoy-btn-rapido').addEventListener('click', () => { closeModal(); mobileRegistroRapido(String(id), name || ''); });
             modal.querySelector('#hoy-btn-completo').addEventListener('click', () => { closeModal(); mobileIrARegistrar(String(id), name || ''); });
-            modal.querySelector('#hoy-btn-ia').addEventListener('click', () => { currentStudioId = id; openInformeIAModal(); });
+            modal.querySelector('#hoy-btn-ia').addEventListener('click', () => { currentStudioId = id; window._currentStudioName = name; openInformeIAModal(); });
             modal.querySelector('#hoy-btn-cerrar').addEventListener('click', closeModal);
         }
 
@@ -25524,7 +25524,7 @@ ${jsonTemplate}`;
             const closeEstudio = () => { modal.remove(); if (root && !root.children.length) root.style.pointerEvents = 'none'; };
             modal.querySelector('#estudio-btn-rapido').addEventListener('click', () => { closeEstudio(); mobileRegistroRapido(safeId, s.name || ''); });
             modal.querySelector('#estudio-btn-completo').addEventListener('click', () => { closeEstudio(); mobileIrARegistrar(safeId, s.name || ''); });
-            modal.querySelector('#estudio-btn-ia').addEventListener('click', () => { currentStudioId = s.id; openInformeIAModal(); });
+            modal.querySelector('#estudio-btn-ia').addEventListener('click', () => { currentStudioId = s.id; window._currentStudioName = s.name; openInformeIAModal(); });
             modal.querySelector('#estudio-btn-cerrar').addEventListener('click', closeEstudio);
         }
 
