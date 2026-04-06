@@ -23878,17 +23878,12 @@ ${body}
                     </div>
                 </div>
             `;
-            // En móvil, añadir al mobile-modal-root (que está dentro de #mobile-app z-index:999999)
-            // NOTA: offsetParent es null para position:fixed, usar getComputedStyle para detectar móvil
-            const mobileRoot = document.getElementById('mobile-modal-root');
+            // Siempre añadir al body con z-index superior al mobile-app (999999)
+            // para evitar problemas de stacking context en iOS Safari
             const mobileApp = document.getElementById('mobile-app');
-            const isMobileActive = mobileRoot && mobileApp && getComputedStyle(mobileApp).display !== 'none';
-            if (isMobileActive) {
-                mobileRoot.style.pointerEvents = 'auto';
-                mobileRoot.appendChild(modal);
-            } else {
-                document.body.appendChild(modal);
-            }
+            const onMobile = mobileApp && getComputedStyle(mobileApp).display !== 'none';
+            if (onMobile) modal.style.zIndex = '1000100';
+            document.body.appendChild(modal);
             setTimeout(() => document.getElementById('informe-ia-notas')?.focus(), 100);
         }
 
