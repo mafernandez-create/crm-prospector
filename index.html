@@ -23775,8 +23775,9 @@ ${body}
             const prev = document.getElementById('informe-ia-modal');
             if (prev) prev.remove();
 
-            const studio = cloudCache.studios.find(s => s.id == currentStudioId);
-            const studioName = studio?.name || 'Empresa';
+            const studiosList = (typeof cloudCache !== 'undefined' && cloudCache?.studios) ? cloudCache.studios : (typeof allStudios !== 'undefined' ? allStudios : []);
+            const studio = studiosList.find(s => s.id == currentStudioId);
+            const studioName = studio?.name || window._currentStudioName || 'Empresa';
             const today = new Date().toISOString().split('T')[0];
             const province = studio?.province || '';
             const normProv = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
