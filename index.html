@@ -25525,11 +25525,11 @@ ${jsonTemplate}`;
             root.appendChild(modal);
 
             // Asignar eventos con addEventListener (evita problemas de escape en Safari)
-            const closeEstudio = () => { modal.remove(); if (root && !root.children.length) root.style.pointerEvents = 'none'; };
-            modal.querySelector('#estudio-btn-rapido').addEventListener('click', () => { closeEstudio(); mobileRegistroRapido(safeId, s.name || ''); });
-            modal.querySelector('#estudio-btn-completo').addEventListener('click', () => { closeEstudio(); mobileIrARegistrar(safeId, s.name || ''); });
+            const closeEstudioModal = () => { modal.remove(); if (root && !root.children.length) root.style.pointerEvents = 'none'; };
+            modal.querySelector('#estudio-btn-rapido').addEventListener('click', () => { closeEstudioModal(); mobileRegistroRapido(safeId, s.name || ''); });
+            modal.querySelector('#estudio-btn-completo').addEventListener('click', () => { closeEstudioModal(); mobileIrARegistrar(safeId, s.name || ''); });
             modal.querySelector('#estudio-btn-ia').addEventListener('click', () => { currentStudioId = s.id; window._currentStudioName = s.name; openInformeIAModal(); });
-            modal.querySelector('#estudio-btn-cerrar').addEventListener('click', closeEstudio);
+            modal.querySelector('#estudio-btn-cerrar').addEventListener('click', closeEstudioModal);
         }
 
         // ── TAB BUSCAR ────────────────────────────────────────
