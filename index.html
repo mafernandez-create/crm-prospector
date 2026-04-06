@@ -25289,6 +25289,69 @@ ${jsonTemplate}`;
             root.appendChild(modal);
         }
 
+        function mobileOpenEstudioHoy(studioId) {
+            // Intentar con el estudio en caché primero
+            const fromCache = mobileGetStudios().find(x => String(x.id) === String(studioId));
+            if (fromCache) { mobileOpenEstudio(studioId); return; }
+            // Fallback: usar los datos guardados del planificador
+            const v = (window.mobileHoyVisitasData || {})[String(studioId)];
+            if (!v) return;
+            const s = { id: v.id, name: v.name, province: v.province, data: v.data || {}, status: 'nuevo' };
+            const phone   = mobileStudioPhone(s);
+            const city    = mobileStudioCity(s);
+            const dc      = s.data?.contact || {};
+            const email   = dc.email   || '';
+            const web     = dc.web     || '';
+            const address = dc.address || '';
+            const safeId   = escapeHtml(String(s.id));
+            const safeName = escapeHtml(s.name || '').replace(/'/g,"\\'");
+
+            const modal = document.createElement('div');
+            modal.id = 'mobile-estudio-modal';
+            modal.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:20000;display:flex;align-items:flex-end;justify-content:center;';
+            const closeEstudio = () => { modal.remove(); const r = document.getElementById('mobile-modal-root'); if(r && !r.children.length) r.style.pointerEvents='none'; };
+            modal.onclick = e => { if (e.target === modal) closeEstudio(); };
+
+            const row = (icon, label, val, href) => val ? `
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <span style="font-size:1.1rem;width:24px;text-align:center;">${icon}</span>
+                    <div style="flex:1;min-width:0;">
+                        <p style="margin:0;font-size:0.7rem;color:#64748b;">${label}</p>
+                        ${href ? `<a href="${escapeHtml(href)}" style="margin:0;font-size:0.88rem;color:#818cf8;text-decoration:none;">${escapeHtml(val)}</a>`
+                               : `<p style="margin:0;font-size:0.88rem;color:#e2e8f0;">${escapeHtml(val)}</p>`}
+                    </div>
+                </div>` : '';
+
+            modal.innerHTML = `
+                <div style="background:#1e293b;border-radius:20px 20px 0 0;width:100%;max-height:85vh;overflow-y:auto;padding:24px 20px 32px;">
+                    <div style="width:40px;height:4px;background:#334155;border-radius:2px;margin:0 auto 20px;"></div>
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+                        <div style="flex:1;min-width:0;">
+                            <h3 style="margin:0 0 4px;color:#f1f5f9;font-size:1.05rem;line-height:1.3;">${escapeHtml(s.name||'')}</h3>
+                            <p style="margin:0;font-size:0.82rem;color:#94a3b8;">${escapeHtml([city, s.province||''].filter(Boolean).join(' · '))}</p>
+                        </div>
+                    </div>
+                    <div style="background:#0f172a;border-radius:12px;padding:4px 14px;">
+                        ${row('📞', 'Teléfono', phone, phone ? 'tel:' + phone.replace(/\s/g,'') : '')}
+                        ${row('✉️', 'Email', email, email ? 'mailto:' + email : '')}
+                        ${row('🌐', 'Web', web, web ? (web.startsWith('http') ? web : 'https://'+web) : '')}
+                        ${row('📍', 'Dirección', address || city, (address || city) ? 'https://waze.com/ul?q=' + encodeURIComponent((address || s.name) + (city ? ', ' + city : '')) + '&navigate=yes' : '')}
+                    </div>
+                    <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;" onclick="event.stopPropagation();">
+                        ${phone ? `<a href="tel:${escapeHtml(phone.replace(/\s/g,''))}" class="m-btn m-btn-ghost" style="text-decoration:none;text-align:center;">📞 Llamar</a>` : ''}
+                        <button class="m-btn" style="background:#6366f1;color:white;font-weight:700;padding:13px;border:none;border-radius:12px;cursor:pointer;font-size:0.9rem;width:100%;"
+                            onclick="modal.remove();mobileRegistroRapido('${safeId}','${safeName}')">⚡ Registro rápido</button>
+                        <button class="m-btn m-btn-ghost" style="text-align:center;"
+                            onclick="modal.remove();mobileIrARegistrar('${safeId}','${safeName}')">📝 Registro completo</button>
+                    </div>
+                    <button onclick="closeEstudio()"
+                        style="margin-top:10px;width:100%;padding:14px;background:#334155;border:none;border-radius:12px;color:#f1f5f9;font-size:0.95rem;cursor:pointer;">Cerrar</button>
+                </div>`;
+            const root = document.getElementById('mobile-modal-root') || document.getElementById('mobile-app') || document.body;
+            root.style.pointerEvents = 'auto';
+            root.appendChild(modal);
+        }
+
         function mobileOpenEstudio(studioId) {
             const s = mobileGetStudios().find(x => String(x.id) === String(studioId));
             if (!s) return;
