@@ -25154,9 +25154,6 @@ ${jsonTemplate}`;
         }
 
         // ── TAB HOY ──────────────────────────────────────────
-        // Mapa de datos de visitas de hoy (fallback cuando el estudio no está en caché)
-        window.mobileHoyVisitasData = {};
-
         function loadMobileHoy() {
             const hoy = new Date().toISOString().split('T')[0];
             const schedule = (typeof planificadorData !== 'undefined' && planificadorData?.schedule) ? planificadorData.schedule : (() => { try { return JSON.parse(localStorage.getItem('crm_test_planificador') || '{}').schedule || {}; } catch(e) { return {}; } })();
@@ -25168,36 +25165,68 @@ ${jsonTemplate}`;
             if (visitasHoy.length === 0) {
                 contVisitas.innerHTML = `<div class="m-empty">📅<p>Sin visitas planificadas para hoy</p></div>`;
             } else {
-                // Guardar datos del planificador como fallback
-                window.mobileHoyVisitasData = {};
-                visitasHoy.forEach(v => { window.mobileHoyVisitasData[String(v.id)] = v; });
-
-                contVisitas.innerHTML = visitasHoy.map(v => {
+                contVisitas.innerHTML = '';
+                visitasHoy.forEach(v => {
                     const studio = studios.find(s => String(s.id) === String(v.id));
-                    const merged = studio || { id: v.id, name: v.name, province: v.province, data: v.data };
+                    const merged = studio || { id: v.id, name: v.name, province: v.province, data: v.data || {} };
                     const phone  = mobileStudioPhone(merged);
                     const city   = mobileStudioCity(merged);
                     const status = merged.status || 'nuevo';
-                    const safeId   = escapeHtml(String(v.id));
-                    const safeName = escapeHtml(v.name || '').replace(/'/g,"\\'");
-                    return `<div class="m-card">
-                        <button onclick="mobileOpenEstudioHoy('${safeId}')"
-                            style="display:block;width:100%;text-align:left;background:none;border:none;padding:0;cursor:pointer;color:inherit;-webkit-tap-highlight-color:rgba(99,102,241,0.15);">
-                            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-                                <div style="flex:1;min-width:0;">
-                                    <p class="m-card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(v.name||'')}</p>
-                                    <p class="m-card-sub">${escapeHtml(city)}</p>
-                                </div>
-                                <span class="m-badge s-${status}" style="white-space:nowrap;">${status}</span>
+                    const dc     = merged.data?.contact || {};
+                    const email   = dc.email   || '';
+                    const web     = dc.web     || '';
+                    const address = dc.address || '';
+
+                    const card = document.createElement('div');
+                    card.className = 'm-card';
+
+                    // Botón principal — abre ficha
+                    const btn = document.createElement('button');
+                    btn.style.cssText = 'display:block;width:100%;text-align:left;background:none;border:none;padding:0;cursor:pointer;color:inherit;-webkit-tap-highlight-color:rgba(99,102,241,0.15);';
+                    btn.innerHTML = `
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                            <div style="flex:1;min-width:0;">
+                                <p class="m-card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(v.name||'')}</p>
+                                <p class="m-card-sub">${escapeHtml(city)}</p>
                             </div>
-                        </button>
-                        <div class="m-action-row" style="margin-top:10px;">
-                            ${phone ? `<a href="tel:${escapeHtml(phone)}" class="m-btn m-btn-ghost" style="text-decoration:none;">📞 ${escapeHtml(phone)}</a>` : ''}
-                            <button class="m-btn m-btn-ghost" onclick="mobileIrARegistrar('${safeId}','${safeName}')">📝 Completo</button>
-                            <button class="m-btn m-btn-primary" onclick="mobileRegistroRapido('${safeId}','${safeName}')">⚡ Rápido</button>
-                        </div>
-                    </div>`;
-                }).join('');
+                            <span class="m-badge s-${status}" style="white-space:nowrap;">${status}</span>
+                        </div>`;
+                    btn.addEventListener('click', () => {
+                        // Intentar abrir ficha completa si el estudio está en caché
+                        const cached = mobileGetStudios().find(s => String(s.id) === String(v.id));
+                        if (cached) { mobileOpenEstudio(String(v.id)); return; }
+                        // Fallback: mostrar modal con los datos disponibles del planificador
+                        mobileShowHoyModal({ name: v.name, province: v.province, phone, city, email, web, address, status, id: v.id });
+                    });
+                    card.appendChild(btn);
+
+                    // Fila de acciones
+                    const actions = document.createElement('div');
+                    actions.className = 'm-action-row';
+                    actions.style.marginTop = '10px';
+                    if (phone) {
+                        const tel = document.createElement('a');
+                        tel.href = 'tel:' + phone.replace(/\s/g, '');
+                        tel.className = 'm-btn m-btn-ghost';
+                        tel.style.textDecoration = 'none';
+                        tel.textContent = '📞 ' + phone;
+                        actions.appendChild(tel);
+                    }
+                    const btnCompleto = document.createElement('button');
+                    btnCompleto.className = 'm-btn m-btn-ghost';
+                    btnCompleto.textContent = '📝 Completo';
+                    btnCompleto.addEventListener('click', () => mobileIrARegistrar(String(v.id), v.name || ''));
+                    actions.appendChild(btnCompleto);
+
+                    const btnRapido = document.createElement('button');
+                    btnRapido.className = 'm-btn m-btn-primary';
+                    btnRapido.textContent = '⚡ Rápido';
+                    btnRapido.addEventListener('click', () => mobileRegistroRapido(String(v.id), v.name || ''));
+                    actions.appendChild(btnRapido);
+
+                    card.appendChild(actions);
+                    contVisitas.appendChild(card);
+                });
             }
 
             // Seguimientos pendientes (actividades con followupDate <= hoy)
