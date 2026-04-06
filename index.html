@@ -25344,7 +25344,7 @@ ${jsonTemplate}`;
                         <button class="m-btn m-btn-ghost" style="text-align:center;"
                             onclick="modal.remove();mobileIrARegistrar('${safeId}','${safeName}')">📝 Registro completo</button>
                     </div>
-                    <button onclick="closeEstudio()"
+                    <button onclick="document.getElementById('mobile-estudio-modal')?.remove(); const r=document.getElementById('mobile-modal-root');if(r&&!r.children.length)r.style.pointerEvents='none';"
                         style="margin-top:10px;width:100%;padding:14px;background:#334155;border:none;border-radius:12px;color:#f1f5f9;font-size:0.95rem;cursor:pointer;">Cerrar</button>
                 </div>`;
             const root = document.getElementById('mobile-modal-root') || document.getElementById('mobile-app') || document.body;
