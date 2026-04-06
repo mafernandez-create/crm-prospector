@@ -22387,6 +22387,52 @@ updateMap();
             updatePlannerStats();
         }
         
+        // ── Festivos ────────────────────────────────────────────────────────────────
+        // Mapa provincia → código comunidad autónoma (ISO 3166-2:ES)
+        const PROVINCIA_CCAA = {
+            'Álava': 'ES-PV', 'Albacete': 'ES-CM', 'Alicante': 'ES-VC', 'Almería': 'ES-AN',
+            'Asturias': 'ES-AS', 'Ávila': 'ES-CL', 'Badajoz': 'ES-EX', 'Baleares': 'ES-IB',
+            'Barcelona': 'ES-CT', 'Burgos': 'ES-CL', 'Cáceres': 'ES-EX', 'Cádiz': 'ES-AN',
+            'Cantabria': 'ES-CB', 'Castellón': 'ES-VC', 'Ciudad Real': 'ES-CM',
+            'Córdoba': 'ES-AN', 'Cuenca': 'ES-CM', 'Gerona': 'ES-CT', 'Granada': 'ES-AN',
+            'Guadalajara': 'ES-CM', 'Guipúzcoa': 'ES-PV', 'Huelva': 'ES-AN', 'Huesca': 'ES-AR',
+            'Jaén': 'ES-AN', 'La Rioja': 'ES-RI', 'Las Palmas': 'ES-CN', 'León': 'ES-CL',
+            'Lérida': 'ES-CT', 'Lugo': 'ES-GA', 'Madrid': 'ES-MD', 'Málaga': 'ES-AN',
+            'Murcia': 'ES-MC', 'Navarra': 'ES-NC', 'Orense': 'ES-GA', 'Palencia': 'ES-CL',
+            'Pontevedra': 'ES-GA', 'Salamanca': 'ES-CL', 'Santa Cruz de Tenerife': 'ES-CN',
+            'Segovia': 'ES-CL', 'Sevilla': 'ES-AN', 'Soria': 'ES-CL', 'Tarragona': 'ES-CT',
+            'Teruel': 'ES-AR', 'Toledo': 'ES-CM', 'Valencia': 'ES-VC', 'Valladolid': 'ES-CL',
+            'Vizcaya': 'ES-PV', 'Zamora': 'ES-CL', 'Zaragoza': 'ES-AR',
+            'Canarias': 'ES-CN', 'Andalucía': 'ES-AN'
+        };
+
+        // Cache de festivos: year → [{ date, localName, counties }]
+        const holidaysCache = {};
+
+        async function loadHolidays(year) {
+            if (holidaysCache[year]) return holidaysCache[year];
+            try {
+                const resp = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/ES`);
+                if (!resp.ok) return [];
+                holidaysCache[year] = await resp.json();
+            } catch(e) {
+                holidaysCache[year] = [];
+            }
+            return holidaysCache[year];
+        }
+
+        // Devuelve los festivos que afectan a una lista de provincias en una fecha dada
+        function getHolidaysForDay(dateStr, provinces, holidays) {
+            const ccaas = new Set(
+                provinces.map(p => PROVINCIA_CCAA[p]).filter(Boolean)
+            );
+            return holidays.filter(h => {
+                if (h.date !== dateStr) return false;
+                if (!h.counties) return true; // nacional
+                return h.counties.some(c => ccaas.has(c));
+            });
+        }
+
         function updateCalendarDays() {
             const fechaInicio = document.getElementById('plan-fecha-inicio').value;
             const fechaFin = document.getElementById('plan-fecha-fin').value;
