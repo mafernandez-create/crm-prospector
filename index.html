@@ -25506,21 +25506,25 @@ ${jsonTemplate}`;
                             ${p.insight ? `<p style="margin:6px 0 0;font-size:0.73rem;color:#64748b;font-style:italic;line-height:1.4;">"${escapeHtml(p.insight)}"</p>` : ''}
                         </div>`).join('')}
                     </div>` : ''}
-                    <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;" onclick="event.stopPropagation();">
+                    <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
                         ${phone ? `<a href="tel:${escapeHtml(phone.replace(/\s/g,''))}" class="m-btn m-btn-ghost" style="text-decoration:none;text-align:center;">📞 Llamar</a>` : ''}
-                        <button class="m-btn" style="background:#6366f1;color:white;font-weight:700;padding:13px;border:none;border-radius:12px;cursor:pointer;font-size:0.9rem;width:100%;"
-                            onclick="const r=document.getElementById('mobile-modal-root');document.getElementById('mobile-estudio-modal')?.remove();if(r&&!r.children.length)r.style.pointerEvents='none';mobileRegistroRapido('${safeId}','${safeName}')">⚡ Registro rápido</button>
-                        <button class="m-btn m-btn-ghost" style="text-align:center;"
-                            onclick="this.closest('[id=mobile-estudio-modal]')?.remove();const r=document.getElementById('mobile-modal-root');if(r&&!r.children.length)r.style.pointerEvents='none';mobileIrARegistrar('${safeId}','${safeName}')">📝 Registro completo</button>
-                        <button class="m-btn" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;font-weight:700;padding:13px;border:none;border-radius:12px;cursor:pointer;font-size:0.9rem;width:100%;text-align:center;"
-                            onclick="currentStudioId=${safeId}; openInformeIAModal();">✍️ Redactar Informe con IA</button>
+                        <button id="estudio-btn-rapido" class="m-btn" style="background:#6366f1;color:white;font-weight:700;padding:13px;border:none;border-radius:12px;cursor:pointer;font-size:0.9rem;width:100%;">⚡ Registro rápido</button>
+                        <button id="estudio-btn-completo" class="m-btn m-btn-ghost" style="text-align:center;">📝 Registro completo</button>
+                        <button id="estudio-btn-ia" class="m-btn" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;font-weight:700;padding:13px;border:none;border-radius:12px;cursor:pointer;font-size:0.9rem;width:100%;text-align:center;">✍️ Redactar Informe con IA</button>
                     </div>
-                    <button onclick="this.closest('[id=mobile-estudio-modal]')?.remove(); const r=document.getElementById('mobile-modal-root');if(r&&!r.children.length)r.style.pointerEvents='none';"
+                    <button id="estudio-btn-cerrar"
                         style="margin-top:10px;width:100%;padding:14px;background:#334155;border:none;border-radius:12px;color:#f1f5f9;font-size:0.95rem;cursor:pointer;">Cerrar</button>
                 </div>`;
             const root = document.getElementById('mobile-modal-root') || document.getElementById('mobile-app') || document.body;
             root.style.pointerEvents = 'auto';
             root.appendChild(modal);
+
+            // Asignar eventos con addEventListener (evita problemas de escape en Safari)
+            const closeEstudio = () => { modal.remove(); if (root && !root.children.length) root.style.pointerEvents = 'none'; };
+            modal.querySelector('#estudio-btn-rapido').addEventListener('click', () => { closeEstudio(); mobileRegistroRapido(safeId, s.name || ''); });
+            modal.querySelector('#estudio-btn-completo').addEventListener('click', () => { closeEstudio(); mobileIrARegistrar(safeId, s.name || ''); });
+            modal.querySelector('#estudio-btn-ia').addEventListener('click', () => { currentStudioId = s.id; openInformeIAModal(); });
+            modal.querySelector('#estudio-btn-cerrar').addEventListener('click', closeEstudio);
         }
 
         // ── TAB BUSCAR ────────────────────────────────────────
