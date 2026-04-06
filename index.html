@@ -25154,6 +25154,9 @@ ${jsonTemplate}`;
         }
 
         // ── TAB HOY ──────────────────────────────────────────
+        // Mapa de datos de visitas de hoy (fallback cuando el estudio no está en caché)
+        window.mobileHoyVisitasData = {};
+
         function loadMobileHoy() {
             const hoy = new Date().toISOString().split('T')[0];
             const schedule = (typeof planificadorData !== 'undefined' && planificadorData?.schedule) ? planificadorData.schedule : (() => { try { return JSON.parse(localStorage.getItem('crm_test_planificador') || '{}').schedule || {}; } catch(e) { return {}; } })();
@@ -25165,19 +25168,24 @@ ${jsonTemplate}`;
             if (visitasHoy.length === 0) {
                 contVisitas.innerHTML = `<div class="m-empty">📅<p>Sin visitas planificadas para hoy</p></div>`;
             } else {
+                // Guardar datos del planificador como fallback
+                window.mobileHoyVisitasData = {};
+                visitasHoy.forEach(v => { window.mobileHoyVisitasData[String(v.id)] = v; });
+
                 contVisitas.innerHTML = visitasHoy.map(v => {
-                    const studio = studios.find(s => s.id === v.id);
-                    const phone  = mobileStudioPhone(studio || {});
-                    const city   = mobileStudioCity(studio || {});
-                    const status = studio?.status || 'nuevo';
-                    const safeId   = escapeHtml(String(v.id ?? studio?.id ?? ''));
-                    const safeName = escapeHtml(v.name || studio?.name || '').replace(/'/g,"\\'");
+                    const studio = studios.find(s => String(s.id) === String(v.id));
+                    const merged = studio || { id: v.id, name: v.name, province: v.province, data: v.data };
+                    const phone  = mobileStudioPhone(merged);
+                    const city   = mobileStudioCity(merged);
+                    const status = merged.status || 'nuevo';
+                    const safeId   = escapeHtml(String(v.id));
+                    const safeName = escapeHtml(v.name || '').replace(/'/g,"\\'");
                     return `<div class="m-card">
-                        <button onclick="mobileOpenEstudio('${safeId}')"
+                        <button onclick="mobileOpenEstudioHoy('${safeId}')"
                             style="display:block;width:100%;text-align:left;background:none;border:none;padding:0;cursor:pointer;color:inherit;-webkit-tap-highlight-color:rgba(99,102,241,0.15);">
                             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
                                 <div style="flex:1;min-width:0;">
-                                    <p class="m-card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(v.name||studio?.name||'')}</p>
+                                    <p class="m-card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(v.name||'')}</p>
                                     <p class="m-card-sub">${escapeHtml(city)}</p>
                                 </div>
                                 <span class="m-badge s-${status}" style="white-space:nowrap;">${status}</span>
