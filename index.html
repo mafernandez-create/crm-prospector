@@ -25173,13 +25173,16 @@ ${jsonTemplate}`;
                     const safeId   = escapeHtml(String(v.id||''));
                     const safeName = escapeHtml(v.name || studio?.name || '').replace(/'/g,"\\'");
                     return `<div class="m-card">
-                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-                            <div style="flex:1;min-width:0;">
-                                <p class="m-card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(v.name||studio?.name||'')}</p>
-                                <p class="m-card-sub">${escapeHtml(city)}</p>
+                        <button onclick="mobileOpenEstudio('${safeId}')"
+                            style="display:block;width:100%;text-align:left;background:none;border:none;padding:0;cursor:pointer;color:inherit;-webkit-tap-highlight-color:rgba(99,102,241,0.15);">
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                                <div style="flex:1;min-width:0;">
+                                    <p class="m-card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(v.name||studio?.name||'')}</p>
+                                    <p class="m-card-sub">${escapeHtml(city)}</p>
+                                </div>
+                                <span class="m-badge s-${status}" style="white-space:nowrap;">${status}</span>
                             </div>
-                            <span class="m-badge s-${status}" style="white-space:nowrap;">${status}</span>
-                        </div>
+                        </button>
                         <div class="m-action-row" style="margin-top:10px;">
                             ${phone ? `<a href="tel:${escapeHtml(phone)}" class="m-btn m-btn-ghost" style="text-decoration:none;">📞 ${escapeHtml(phone)}</a>` : ''}
                             <button class="m-btn m-btn-ghost" onclick="mobileIrARegistrar('${safeId}','${safeName}')">📝 Completo</button>
