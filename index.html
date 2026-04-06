@@ -23878,9 +23878,11 @@ ${body}
                     </div>
                 </div>
             `;
-            // En móvil, los elementos de body se ocultan — añadir al mobile-modal-root
+            // En móvil, añadir al mobile-modal-root (que está dentro de #mobile-app z-index:999999)
+            // NOTA: offsetParent es null para position:fixed, usar getComputedStyle para detectar móvil
             const mobileRoot = document.getElementById('mobile-modal-root');
-            const isMobileActive = mobileRoot && document.getElementById('mobile-app')?.offsetParent !== null;
+            const mobileApp = document.getElementById('mobile-app');
+            const isMobileActive = mobileRoot && mobileApp && getComputedStyle(mobileApp).display !== 'none';
             if (isMobileActive) {
                 mobileRoot.style.pointerEvents = 'auto';
                 mobileRoot.appendChild(modal);
