@@ -22232,6 +22232,25 @@ updateMap();
                 `✅ ${totalPrincipales} visitas + ${totalReservas} reservas en ${diasUsados} días · ~${kmEstimado} km`,
                 'success'
             );
+
+            // Comprobar festivos en los días planificados
+            const years = [...new Set(Object.keys(dayAssignments).map(d => d.slice(0, 4)))];
+            Promise.all(years.map(y => loadHolidays(Number(y)))).then(results => {
+                const allHolidays = results.flat();
+                const avisos = [];
+                for (const [dateStr, { principales }] of Object.entries(dayAssignments)) {
+                    const provincias = [...new Set(principales.map(s => s.province).filter(Boolean))];
+                    const festivos = getHolidaysForDay(dateStr, provincias, allHolidays);
+                    if (festivos.length > 0) {
+                        const d = new Date(dateStr + 'T12:00:00');
+                        const label = d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+                        avisos.push(`${label}: ${festivos.map(h => h.localName).join(', ')} (${provincias.join(', ')})`);
+                    }
+                }
+                if (avisos.length > 0) {
+                    setTimeout(() => showNotification(`⚠️ Festivos detectados:\n${avisos.join('\n')}`, 'warning'), 1500);
+                }
+            });
         }
 
         function updateCiudadesFilter() {
