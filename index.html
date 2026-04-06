@@ -23910,8 +23910,9 @@ ${body}
             statusDiv.style.color = '#c4b5fd';
             statusDiv.textContent = '🔍 Buscando información de la empresa...';
 
-            const studio = cloudCache.studios.find(s => s.id == studioId);
-            const studioName = studio?.name || 'Empresa';
+            const _studiosList = (typeof cloudCache !== 'undefined' && cloudCache?.studios) ? cloudCache.studios : (typeof allStudios !== 'undefined' ? allStudios : []);
+            const studio = _studiosList.find(s => s.id == studioId);
+            const studioName = studio?.name || window._currentStudioName || 'Empresa';
             const city = studio?.city || studio?.data?.contact?.city || studio?.province || '';
             const type = studio?.type || '';
             const contactName = studio?.data?.contact?.contactName || '';
