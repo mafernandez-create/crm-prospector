@@ -5171,11 +5171,88 @@
             };
         }
         
+        // ── Extracción automática de ciudad a partir del nombre ──────────────────
+        const _MUNICIPIOS_ES = {
+          'Málaga':['Málaga','Marbella','Fuengirola','Torremolinos','Benalmádena','Estepona','Vélez-Málaga','Antequera','Ronda','Mijas','Nerja','Alhaurín de la Torre','Alhaurín el Grande','Coín','Manilva','Campillos','Archidona','Torrox','Frigiliana'],
+          'Sevilla':['Sevilla','Dos Hermanas','Alcalá de Guadaíra','Utrera','Écija','Lebrija','Morón de la Frontera','Carmona','Marchena','Osuna','Arahal','La Rinconada','Sanlúcar la Mayor','Coria del Río','Mairena del Aljarafe','Tomares','Estepa','Lora del Río','Peñaflor','Alcalá del Río'],
+          'Granada':['Granada','Motril','Almuñécar','Baza','Guadix','Loja','Armilla','Maracena','Albolote','Las Gabias','Salobreña','Órgiva','Huéscar','Montefrío','Alhama de Granada'],
+          'Almería':['Almería','Roquetas de Mar','El Ejido','Adra','Huércal-Overa','Níjar','Berja','Vícar','Vera','Cuevas del Almanzora','Mojácar','Albox','Macael','Olula del Río'],
+          'Jaén':['Jaén','Linares','Úbeda','Baeza','Andújar','Martos','Alcalá la Real','Mengíbar','Cazorla','La Carolina','Bailén','Marmolejo'],
+          'Córdoba':['Córdoba','Lucena','Montilla','Puente Genil','Priego de Córdoba','Cabra','Baena','Pozoblanco','Palma del Río','Aguilar de la Frontera','La Carlota','Montoro','Rute'],
+          'Huelva':['Huelva','Almonte','Lepe','Ayamonte','Moguer','Isla Cristina','Nerva','Valverde del Camino','Bollullos Par del Condado'],
+          'Cádiz':['Cádiz','Jerez de la Frontera','Algeciras','San Fernando','La Línea','El Puerto de Santa María','Sanlúcar de Barrameda','Chiclana de la Frontera','Rota','Arcos de la Frontera','Ubrique','Barbate','Tarifa','Conil de la Frontera'],
+          'Cáceres':['Cáceres','Plasencia','Coria','Trujillo','Navalmoral de la Mata','Moraleja','Valencia de Alcántara','Jaraíz de la Vera'],
+          'Badajoz':['Badajoz','Mérida','Almendralejo','Don Benito','Villanueva de la Serena','Zafra','Azuaga','Montijo','Olivenza','Guareña','Llerena','Villafranca de los Barros'],
+          'Toledo':['Toledo','Talavera de la Reina','Illescas','Torrijos','Madridejos','Ocaña','Consuegra','Mora','Villacañas','Sonseca'],
+          'Cuenca':['Cuenca','Tarancón','Motilla del Palancar','San Clemente','Quintanar del Rey','Mota del Cuervo','Las Pedroñeras'],
+          'Ciudad Real':['Ciudad Real','Puertollano','Tomelloso','Valdepeñas','Alcázar de San Juan','Manzanares','Daimiel','Almadén','Almagro'],
+          'Albacete':['Albacete','Hellín','Almansa','Villarrobledo','La Roda','Caudete','Tobarra'],
+          'Guadalajara':['Guadalajara','Azuqueca de Henares','Alovera','El Casar','Cabanillas del Campo','Sigüenza'],
+          'Alicante':['Alicante','Elche','Torrevieja','Orihuela','Benidorm','Alcoy','Villena','Petrer','Elda','Novelda','Guardamar','Altea','Calpe','Dénia','Jávea'],
+          'Valencia':['Valencia','Gandía','Torrent','Paterna','Alzira','Sagunto','Burjassot','Oliva','Cullera','Xàtiva','Ontinyent','Requena'],
+          'Castellón':['Castellón','Vila-real','Burriana','Vinaròs','Onda','Segorbe','Benicàssim','Peñíscola'],
+          'Murcia':['Murcia','Cartagena','Lorca','Molina de Segura','Alcantarilla','Yecla','Cieza','Jumilla','San Javier','Mazarrón','Águilas','Totana','Puerto Lumbreras','Calasparra','Blanca','Mula','Caravaca de la Cruz'],
+          'Ávila':['Ávila','Arenas de San Pedro','El Barco de Ávila','Sotillo de la Adrada','Arévalo'],
+          'Salamanca':['Salamanca','Béjar','Ciudad Rodrigo','Peñaranda de Bracamonte','Guijuelo'],
+          'Zamora':['Zamora','Benavente','Toro'],
+          'Valladolid':['Valladolid','Medina del Campo','Laguna de Duero','Tordesillas'],
+          'Las Palmas':['Las Palmas de Gran Canaria','Telde','Santa Lucía de Tirajana','Arucas','Arrecife','Puerto del Rosario'],
+          'Santa Cruz de Tenerife':['Santa Cruz de Tenerife','San Cristóbal de La Laguna','Arona','Adeje','Granadilla de Abona','Puerto de la Cruz','La Orotava'],
+          'Islas Baleares':['Palma','Inca','Manacor','Llucmajor','Ibiza','Mahón'],
+        };
+        function _normStr(s) {
+            return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+        }
+        function extractCityFromStudioName(name, province) {
+            if (!name || !province) return null;
+            const nameLow = _normStr(name);
+            // Patrones directos: "Ayuntamiento de X", "Aguas de X", "de X" al final
+            const patterns = [
+                /(?:ayuntamiento|ayto\.?)\s+de\s+(.+)/i,
+                /aguas\s+de(?:l|la|los|las)?\s+(.+)/i,
+                /\bde\s+([A-ZÁÉÍÓÚÑ][a-záéíóúüñ][\w\s\-áéíóúüñ]{2,25})$/i,
+                /\-\s+([A-ZÁÉÍÓÚÑ][a-záéíóúüñ][\w\s\-]{2,20})$/i,
+            ];
+            for (const re of patterns) {
+                const m = name.match(re);
+                if (m) {
+                    const candidate = m[1].trim().replace(/\s*[\(\-].*$/, '').trim();
+                    const cn = _normStr(candidate);
+                    // Buscar en todos los municipios
+                    for (const cities of Object.values(_MUNICIPIOS_ES)) {
+                        for (const city of cities) {
+                            if (_normStr(city) === cn || cn.startsWith(_normStr(city)) || _normStr(city).startsWith(cn)) {
+                                if (_normStr(city).length > 3) return city;
+                            }
+                        }
+                    }
+                }
+            }
+            // Buscar municipio de la provincia dentro del nombre
+            const provCities = _MUNICIPIOS_ES[province] || [];
+            for (const city of [...provCities].sort((a,b) => b.length - a.length)) {
+                if (_normStr(city).length > 4 && nameLow.includes(_normStr(city))) return city;
+            }
+            // Buscar cualquier municipio conocido
+            for (const cities of Object.values(_MUNICIPIOS_ES)) {
+                for (const city of [...cities].sort((a,b) => b.length - a.length)) {
+                    if (_normStr(city).length > 5 && nameLow.includes(_normStr(city))) return city;
+                }
+            }
+            return null;
+        }
+
         async function addStudio(studio) {
             studio.createdAt = new Date().toISOString();
             studio.updatedAt = new Date().toISOString();
             studio.status = studio.status || 'nuevo';
-            
+
+            // Extraer ciudad automáticamente si no viene informada
+            if (!studio.city && studio.name && studio.province) {
+                const autoCity = extractCityFromStudioName(studio.name, studio.province);
+                if (autoCity) studio.city = autoCity;
+            }
+
             // Calcular prioridad automáticamente si no se especifica o es por defecto
             if (!studio.priority || studio.priority === 'Media') {
                 const autoPriority = calculateAutoPriority(studio);
