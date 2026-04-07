@@ -20604,17 +20604,27 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 const STATUS_WEIGHT = { nuevo:1, contactado:2, reunion:3, propuesta:4, cliente:5 };
                 const statusSel = new Set(Array.from(document.querySelectorAll('.mc-status-cb:checked')).map(cb => cb.value));
 
+                const normD = d => {
+                    if (!d) return '';
+                    if (typeof d === 'object' && d.seconds) return new Date(d.seconds * 1000).toISOString().substring(0, 10);
+                    const s = String(d);
+                    if (s.includes('/')) { const p = s.split('/'); return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : s; }
+                    return s.split('T')[0];
+                };
                 const studios = cloudCache.studios.filter(s => {
                     if (!statusSel.has(s.status || '')) return false;
-                    let fecha = null;
-                    const lastReport = s.data?.reports?.[0];
-                    if (lastReport?.date) {
-                        fecha = lastReport.date.includes('-') ? lastReport.date : lastReport.date.split('/').reverse().join('-');
-                    } else if (s.updatedAt) {
-                        fecha = (typeof s.updatedAt === 'object' && s.updatedAt?.seconds)
-                            ? new Date(s.updatedAt.seconds * 1000).toISOString().substring(0, 10)
-                            : s.updatedAt.split('T')[0];
-                    }
+                    // Usar la fecha más reciente disponible: lastContact > lastActivity > último informe > updatedAt
+                    let fecha = normD(s.lastContact)
+                             || normD(s.lastActivity)
+                             || (() => {
+                                    const reps = s.data?.reports || [];
+                                    // Buscar el informe con fecha más reciente
+                                    let best = '';
+                                    reps.forEach(r => { const d = normD(r.date); if (d > best) best = d; });
+                                    return best;
+                                })()
+                             || normD(s.updatedAt)
+                             || null;
                     if (fi && fecha && fecha < fi) return false;
                     if (ff && fecha && fecha > ff) return false;
                     return true;
