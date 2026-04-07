@@ -23046,17 +23046,18 @@ updateMap();
             })] });
 
             // ── TABLA INFORMACIÓN GENERAL ────────────────────────────────────────
+            const resultColorHex = getResultColor(nivel);
             const infoTable = new Table({ width: { size: 9638, type: WidthType.DXA }, columnWidths: [3000, 6638], rows: [
-                infoRow('Fecha de visita',    fechaDisp),
-                infoRow('Empresa visitada',   empresaNom),
-                infoRow('Tipo de visita',     data.prescripcion_origen ? 'Visita de prescripción' : (data.tipo_visita || 'Visita comercial')),
-                infoRow('Lugar de visita',    localidad),
-                infoRow('Contacto(s)',        asist),
-                infoRow('Sede / Dirección',   data.direccion || stCont.address || '—'),
-                infoRow('Web',                stCont.web  || studio?.web  || '—'),
-                infoRow('Email',              stCont.email || studio?.email || '—'),
-                infoRow('Teléfono',           stCont.phone || studio?.phone || '—'),
-                infoRow('Comercial GPF',      comercialGPF),
+                infoRowC('Fecha de visita',    fechaDisp,                                                                            resultColorHex),
+                infoRowC('Empresa visitada',   empresaNom,                                                                           resultColorHex),
+                infoRowC('Tipo de visita',     data.prescripcion_origen ? 'Visita de prescripción' : (data.tipo_visita || 'Visita comercial'), resultColorHex),
+                infoRowC('Lugar de visita',    localidad,                                                                            resultColorHex),
+                infoRowC('Contacto(s)',        asist,                                                                                resultColorHex),
+                infoRowC('Sede / Dirección',   data.direccion || stCont.address || '—',                                             resultColorHex),
+                infoRowC('Web',                stCont.web  || studio?.web  || '—',                                                  resultColorHex),
+                infoRowC('Email',              stCont.email || studio?.email || '—',                                                 resultColorHex),
+                infoRowC('Teléfono',           stCont.phone || studio?.phone || '—',                                                 resultColorHex),
+                infoRowC('Comercial GPF',      comercialGPF,                                                                         resultColorHex),
             ] });
 
             // ── TABLA EVALUACIÓN (Sección 7 — solo una vez) ──────────────────────
