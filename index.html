@@ -23498,14 +23498,23 @@ Notas:
             const withReport = data.entries.filter(e => e.reportInRange);
             if (withReport.length === 0) { showNotification('⚠️ Ningún estudio tiene informe para este período', 'warning'); return; }
             if (typeof window.docx === 'undefined') { showNotification('❌ Librería Word no cargada', 'error'); return; }
+            if (typeof JSZip === 'undefined') { showNotification('❌ Librería ZIP no cargada, recarga la página', 'error'); return; }
 
             const statusEl = document.getElementById('periodo-status');
             statusEl.style.display = 'block';
             const pColorMap = { 'Alta':'dc3545', 'Media':'f5a623', 'Baja':'6b7c93' };
-            let downloaded = 0, errors = 0;
+            let processed = 0, errors = 0;
+
+            // Nombre del ZIP con el rango de fechas
+            const startStr = (data.startStr || '').replace(/-/g, '');
+            const endStr   = (data.endStr   || '').replace(/-/g, '');
+            const zipName  = `Informes_${startStr}_${endStr}.zip`;
+
+            const zip = new JSZip();
 
             for (const entry of withReport) {
-                statusEl.textContent = `📥 Descargando ${entry.studio.name} (${downloaded+1}/${withReport.length})...`;
+                processed++;
+                statusEl.textContent = `📦 Preparando ${entry.studio.name} (${processed}/${withReport.length})...`;
                 try {
                     const studio = entry.studio;
                     const report = entry.reportInRange;
@@ -23518,18 +23527,29 @@ Notas:
                     const priorityHex = pColorMap[studio.priority] || '2E5DA6';
                     const doc = await buildDocxGPF(docData, studio, priorityHex);
                     const blob = await window.docx.Packer.toBlob(doc);
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = report.fileName || `informe_${(studio.name||'estudio').replace(/\s+/g,'_')}.docx`;
-                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                    setTimeout(() => URL.revokeObjectURL(url), 2000);
-                    downloaded++;
-                    await new Promise(r => setTimeout(r, 700));
+                    const fileName = report.fileName ||
+                        `informe_${(studio.name||'estudio').replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g,'').replace(/\s+/g,'_')}.docx`;
+                    zip.file(fileName, blob);
                 } catch(err) { console.error(err); errors++; }
             }
-            statusEl.textContent = `✅ Descargados ${downloaded} archivos${errors ? ` · ❌ ${errors} errores` : ''}.`;
-            showNotification(`${downloaded} informes descargados`, 'success');
+
+            const okCount = processed - errors;
+            if (okCount === 0) {
+                statusEl.textContent = `❌ No se pudo generar ningún informe.`;
+                return;
+            }
+
+            statusEl.textContent = `🗜️ Comprimiendo ${okCount} informes...`;
+            const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+            const url = URL.createObjectURL(zipBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = zipName;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+            statusEl.textContent = `✅ ZIP descargado: ${zipName} (${okCount} informes${errors ? ` · ❌ ${errors} errores` : ''})`;
+            showNotification(`📦 ${okCount} informes comprimidos en ${zipName}`, 'success');
         }
 
         async function generarResumenSemanal() {
