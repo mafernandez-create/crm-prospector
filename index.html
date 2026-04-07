@@ -8592,9 +8592,17 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 if (!studio.data) studio.data = {};
                 if (!studio.data.reports) studio.data.reports = [];
                 studio.data.reports.unshift(newReport);
-                
+
+                // Si el estado es inferior a "reunion", ascender automáticamente
+                const _sOrd = { nuevo:1, contactado:2, standby:2, reunion:3, negociacion:4, traspasado:5, prescripcion:6, venta:7, ganado:8, perdido:9 };
+                const _updateFields = { data: studio.data };
+                if ((_sOrd[studio.status] || 0) < _sOrd['reunion']) {
+                    _updateFields.status = 'reunion';
+                    _updateFields.lastContact = date;
+                }
+
                 // Guardar cambios
-                await updateStudio(currentStudioId, { data: studio.data });
+                await updateStudio(currentStudioId, _updateFields);
                 
                 // Añadir actividad
                 await addActivity({
