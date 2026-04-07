@@ -22996,6 +22996,15 @@ updateMap();
             const evalRow  = (l, v)    => new TableRow({ children: [lCell(l, 3000), vCell(v, 6638)] });
             const resultRow = (l, v)   => new TableRow({ children: [lCell(l, 3000), vCellResult(v, 6638)] });
 
+            // Celda etiqueta con color dinámico según resultado (para tabla info general)
+            const lCellC = (t, w=3000, fill='922B21') => new TableCell({
+                width: { size: w, type: WidthType.DXA }, borders: bAll,
+                shading: { fill, type: ShadingType.CLEAR },
+                margins: { top: 80, bottom: 80, left: 120, right: 120 },
+                children: [new Paragraph({ children: [new TextRun({ text: String(t||''), bold: true, font: 'Calibri', size: 22, color: C.BLANCO })] })]
+            });
+            const infoRowC = (l, v, fill) => new TableRow({ children: [lCellC(l, 3000, fill), vCell(v, 6638)] });
+
             // Heading 1: 32pt docx = size:64 (granate)
             const h1 = t => new Paragraph({ spacing: { before: 300, after: 200 }, children: [new TextRun({ text: String(t||''), font: 'Calibri', size: 64, bold: true, color: C.GRANATE })] });
             // Heading 2: 26pt docx = size:52 (rojo)
