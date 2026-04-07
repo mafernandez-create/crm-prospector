@@ -23436,12 +23436,16 @@ Notas:
                         const statusText = hasReport
                             ? `✅ <em style="color:var(--muted)">${e.reportInRange.title||'Informe del período'}</em>`
                             : '⚠️ <span style="color:#f5a623;font-weight:600;">Sin informe para este período</span>';
+                        const actionBtn = hasReport
+                            ? `<button onclick="descargarInformeDocx(${e.reportIdx})" class="btn btn-sm btn-primary" style="white-space:nowrap;font-size:0.75rem;padding:4px 10px;">📥 Descargar</button>`
+                            : `<button onclick="closeModal('modal-informes-periodo');currentStudioId=${e.studio.id};window._currentStudioName=${JSON.stringify(e.studio.name)};showStudioDetail(${e.studio.id});setTimeout(()=>openInformeIAModal(),400);" class="btn btn-sm" style="white-space:nowrap;font-size:0.75rem;padding:4px 10px;background:#7c3aed;color:white;border:none;border-radius:6px;cursor:pointer;">✍️ Redactar</button>`;
                         return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
                             <span style="background:${pColor};color:white;border-radius:4px;padding:2px 7px;font-size:0.72rem;font-weight:700;white-space:nowrap;">${pLabel}</span>
                             <div style="flex:1;min-width:0;">
                                 <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.studio.name}</div>
                                 <div style="font-size:0.75rem;color:var(--muted);">${e.meetings.length} visita${e.meetings.length!==1?'s':''} · ${statusText}</div>
                             </div>
+                            ${actionBtn}
                         </div>`;
                     }).join('');
 
