@@ -24311,7 +24311,15 @@ ${jsonTemplate}`;
                 if (!s.data) s.data = {};
                 if (!s.data.reports) s.data.reports = [];
                 s.data.reports.unshift(newReport);
-                await updateStudio(studioId, { data: s.data });
+
+                // Si el estado es inferior a "reunion", ascender automáticamente
+                const _sOrdIA = { nuevo:1, contactado:2, standby:2, reunion:3, negociacion:4, traspasado:5, prescripcion:6, venta:7, ganado:8, perdido:9 };
+                const _updIA = { data: s.data };
+                if ((_sOrdIA[s.status] || 0) < _sOrdIA['reunion']) {
+                    _updIA.status = 'reunion';
+                    _updIA.lastContact = fecha;
+                }
+                await updateStudio(studioId, _updIA);
 
                 await addActivity({
                     studioId,
