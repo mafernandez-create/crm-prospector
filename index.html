@@ -23371,6 +23371,16 @@ Notas:
 
         window._periodoCheckData = null;
 
+        function abrirInformeDesdeperiodo(studioId) {
+            const studio = (typeof allStudios !== 'undefined' ? allStudios : cloudCache?.studios || [])
+                .find(s => String(s.id) === String(studioId));
+            closeModal('modal-informes-periodo');
+            currentStudioId = studioId;
+            window._currentStudioName = studio?.name || '';
+            if (typeof showStudioDetail === 'function') showStudioDetail(studioId);
+            setTimeout(() => openInformeIAModal(), 400);
+        }
+
         async function checkPeriodoStudios() {
             const startStr = document.getElementById('periodo-date-start').value;
             const endStr   = document.getElementById('periodo-date-end').value;
