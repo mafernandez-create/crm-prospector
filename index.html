@@ -23139,144 +23139,217 @@ Notas:
             const {
                 Document, Paragraph, TextRun, Table, TableRow, TableCell,
                 WidthType, BorderStyle, ShadingType, AlignmentType,
-                LevelFormat, TabStopType, Header, Footer, PageBreak,
-                PageNumber
+                Header, Footer, PageNumber
             } = window.docx;
 
-            const NAVY='1F3864', BLUE='2E5DA6', STRIPE='EAF0FB',
-                  LABEL='D6E4F7', BORDER='C5D3E8', BODY='1A1A1A',
-                  GREY='555555', WHITE='FFFFFF';
-            // Color de cabecera según prioridad: Alta=rojo, Media=naranja, Baja=gris, defecto=azul
-            const HDR_COLOR = (priorityHex||'').replace('#','') || BLUE;
+            // ── PALETA CORPORATIVA GPF ──────────────────────────────────────────
+            const C = {
+                GRANATE:    '922B21',
+                ROJO:       'C0392B',
+                ROSA_CLARO: 'FADBD8',
+                GRIS_BORDE: 'CCCCCC',
+                GRIS_TEXTO: '666666',
+                GRIS_CLARO: '999999',
+                BLANCO:     'FFFFFF',
+                VERDE:      '228B22',
+                ROJO_NEG:   'DC143C',
+            };
 
-            const bd = { style: BorderStyle.SINGLE, size: 1, color: BORDER };
-            const borders = { top: bd, bottom: bd, left: bd, right: bd };
+            const bd   = { style: BorderStyle.SINGLE, size: 1, color: C.GRIS_BORDE };
+            const bAll = { top: bd, bottom: bd, left: bd, right: bd };
 
-            const hCell = (t, w) => new TableCell({ width:{ size:w, type:WidthType.DXA }, borders, shading:{ fill:HDR_COLOR, type:ShadingType.CLEAR }, margins:{ top:80, bottom:80, left:150, right:150 },
-                children:[new Paragraph({ children:[new TextRun({ text:String(t||''), bold:true, color:WHITE, size:20, font:'Calibri' })] })] });
-            const lCell = (t, w) => new TableCell({ width:{ size:w, type:WidthType.DXA }, borders, shading:{ fill:LABEL, type:ShadingType.CLEAR }, margins:{ top:80, bottom:80, left:150, right:150 },
-                children:[new Paragraph({ children:[new TextRun({ text:String(t||''), bold:true, size:20, font:'Calibri', color:NAVY })] })] });
-            const vCell = (t, w, even) => new TableCell({ width:{ size:w, type:WidthType.DXA }, borders, shading:{ fill:even?STRIPE:WHITE, type:ShadingType.CLEAR }, margins:{ top:80, bottom:80, left:150, right:150 },
-                children:[new Paragraph({ children:[new TextRun({ text:String(t||'—'), size:20, font:'Calibri', color:BODY })] })] });
-            const sHdr = (n, title) => new Paragraph({ spacing:{ before:360, after:120 }, shading:{ fill:NAVY, type:ShadingType.CLEAR },
-                children:[new TextRun({ text:`${n}. ${title}`, font:'Calibri', size:26, bold:true, color:WHITE })] });
-            const bodyP = (t, sp=160) => new Paragraph({ spacing:{ before:0, after:sp }, children:[new TextRun({ text:String(t||''), size:22, font:'Calibri', color:BODY })] });
-            const bullet = (t) => new Paragraph({ numbering:{ reference:'gpf-bullets', level:0 }, spacing:{ after:80 }, children:[new TextRun({ text:String(t||''), size:20, font:'Calibri', color:BODY })] });
-            const sub = (t) => new Paragraph({ spacing:{ before:160, after:80 }, children:[new TextRun({ text:String(t||''), bold:true, size:22, font:'Calibri', color:BLUE })] });
-            const sep = () => new Paragraph({ border:{ bottom:{ style:BorderStyle.SINGLE, size:12, color:BLUE, space:1 } }, spacing:{ after:200 }, children:[new TextRun('')] });
-            const arr = (v) => Array.isArray(v) && v.length > 0 ? v : null;
+            // Color del resultado global según nivel de interés
+            function getResultColor(nivel) {
+                const u = (nivel||'').toUpperCase();
+                if (u.includes('MUY ALTO') || u.includes('ALTO') || u.includes('POSITIVO')) return C.VERDE;
+                if (u.includes('BAJO') || u.includes('NEGATIVO')) return C.ROJO_NEG;
+                return C.GRANATE;
+            }
 
-            const fechaDisp = data.fecha || new Date().toLocaleDateString('es-ES',{ day:'2-digit', month:'2-digit', year:'numeric' });
+            // ── HELPERS ─────────────────────────────────────────────────────────
+            const lCell = (t, w=3000) => new TableCell({
+                width: { size: w, type: WidthType.DXA }, borders: bAll,
+                shading: { fill: C.ROSA_CLARO, type: ShadingType.CLEAR },
+                margins: { top: 80, bottom: 80, left: 120, right: 120 },
+                children: [new Paragraph({ children: [new TextRun({ text: String(t||''), bold: true, font: 'Calibri', size: 22 })] })]
+            });
+            const vCell = (t, w=6638) => new TableCell({
+                width: { size: w, type: WidthType.DXA }, borders: bAll,
+                margins: { top: 80, bottom: 80, left: 120, right: 120 },
+                children: [new Paragraph({ children: [new TextRun({ text: String(t||'—'), font: 'Calibri', size: 22 })] })]
+            });
+            const vCellResult = (t, w=6638) => new TableCell({
+                width: { size: w, type: WidthType.DXA }, borders: bAll,
+                margins: { top: 80, bottom: 80, left: 120, right: 120 },
+                children: [new Paragraph({ children: [new TextRun({ text: String(t||'—'), font: 'Calibri', size: 48, bold: true, color: getResultColor(t) })] })]
+            });
+            const hCellAct = (t, w) => new TableCell({
+                width: { size: w, type: WidthType.DXA }, borders: bAll,
+                shading: { fill: C.GRANATE, type: ShadingType.CLEAR },
+                margins: { top: 80, bottom: 80, left: 120, right: 120 },
+                children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: String(t||''), bold: true, color: C.BLANCO, font: 'Calibri', size: 22 })] })]
+            });
+            const vCellAct = (t, w) => new TableCell({
+                width: { size: w, type: WidthType.DXA }, borders: bAll,
+                margins: { top: 80, bottom: 80, left: 120, right: 120 },
+                children: [new Paragraph({ children: [new TextRun({ text: String(t||'—'), font: 'Calibri', size: 22 })] })]
+            });
 
-            // PORTADA
-            const cover = [
-                new Paragraph({ spacing:{ before:2880, after:400 }, children:[new TextRun({ text:'INFORME DE VISITA COMERCIAL', font:'Calibri', size:64, bold:true, color:NAVY })] }),
-                new Paragraph({ spacing:{ before:0, after:200 }, children:[new TextRun({ text:data.empresa||studio?.name||'', font:'Calibri', size:40, color:BLUE })] }),
-                new Paragraph({ spacing:{ before:0, after:600 }, children:[new TextRun({ text:`${data.localidad||studio?.city||''}${data.direccion ? ' · ' + data.direccion : ''} — ${fechaDisp}`, font:'Calibri', size:28, color:GREY })] }),
-                sep(),
-                new Paragraph({ spacing:{ before:200, after:80 }, children:[new TextRun({ text:'Grupo Plásticos Ferro', font:'Calibri', size:24, bold:true, color:NAVY })] }),
-                new Paragraph({ spacing:{ before:0, after:80 }, children:[new TextRun({ text:'Promoción y Prescripción — Andalucía', font:'Calibri', size:20, color:GREY })] }),
-                new Paragraph({ spacing:{ before:0, after:0 }, children:[new TextRun({ text:'Manuel Fernández', font:'Calibri', size:20, italics:true, color:GREY })] }),
-                new Paragraph({ children:[new PageBreak()] })
-            ];
+            const infoRow  = (l, v)    => new TableRow({ children: [lCell(l, 3000), vCell(v, 6638)] });
+            const evalRow  = (l, v)    => new TableRow({ children: [lCell(l, 3000), vCell(v, 6638)] });
+            const resultRow = (l, v)   => new TableRow({ children: [lCell(l, 3000), vCellResult(v, 6638)] });
 
-            // SECCIÓN 1 — tabla info general
+            // Heading 1: 32pt docx = size:64 (granate)
+            const h1 = t => new Paragraph({ spacing: { before: 300, after: 200 }, children: [new TextRun({ text: String(t||''), font: 'Calibri', size: 64, bold: true, color: C.GRANATE })] });
+            // Heading 2: 26pt docx = size:52 (rojo)
+            const h2 = t => new Paragraph({ spacing: { before: 240, after: 160 }, children: [new TextRun({ text: String(t||''), font: 'Calibri', size: 52, bold: true, color: C.ROJO })] });
+            // Cuerpo normal
+            const bodyP = t => new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: String(t||''), font: 'Calibri', size: 22 })] });
+            // Bullet con símbolo
+            const bullet = t => new Paragraph({ spacing: { after: 100 }, children: [new TextRun({ text: '• ' + String(t||''), font: 'Calibri', size: 22 })] });
+            const arr = v => Array.isArray(v) && v.length > 0 ? v : null;
+
+            // ── DATOS ───────────────────────────────────────────────────────────
+            const fechaDisp   = data.fecha || new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const empresaNom  = data.empresa || studio?.name || '';
+            const localidad   = data.localidad || studio?.city || studio?.data?.contact?.city || studio?.province || '';
+            const stCont      = studio?.data?.contact || {};
             const asist = arr(data.asistentes_empresa)
-                ? data.asistentes_empresa.map(a => typeof a==='string' ? a : `${a.nombre||''}${a.cargo?' — '+a.cargo:''}`).join(' / ')
-                : (data.asistentes_empresa_texto||'—');
-            const infoTable = new Table({ width:{ size:9026, type:WidthType.DXA }, columnWidths:[2800,6226],
-                rows:[
-                    new TableRow({ children:[hCell('CAMPO',2800), hCell('DETALLE',6226)] }),
-                    ...[ ['Fecha',fechaDisp], ['Empresa visitada',data.empresa||studio?.name||'—'], ['Localidad',data.localidad||studio?.city||'—'],
-                         ['Dirección',data.direccion||studio?.data?.contact?.address||'—'],
-                         ['Asistentes (empresa)',asist], ['Asistentes (GPF)','Manuel Fernández — Promotor y Prescriptor'],
-                         ...(data.comercial && data.comercial !== 'Prescripción' ? [['Comercial de zona', data.comercial]] : []),
-                         ['Origen visita', data.prescripcion_origen ? '⭐ Iniciada por prescripción' : 'Visita comercial']
-                    ].map(([l,v],i) => new TableRow({ children:[lCell(l,2800), vCell(v,6226,i%2===0)] }))
-                ]
-            });
+                ? data.asistentes_empresa.map(a => typeof a === 'string' ? a : `${a.nombre||''}${a.cargo ? ' ('+a.cargo+')' : ''}`).join(', ')
+                : (data.asistentes_empresa_texto || '—');
+            const comercialGPF = (data.comercial && data.comercial !== 'Prescripción')
+                ? `Manuel Fernández (Prescriptor) + ${data.comercial} (Comercial de zona)`
+                : 'Manuel Fernández — Promotor y Prescriptor';
+            const nivel = data.nivel_interes || 'Medio';
 
-            // SECCIÓN 3 — tabla temas tratados
-            const temasTable = new Table({ width:{ size:9026, type:WidthType.DXA }, columnWidths:[3200,5826],
-                rows:[
-                    new TableRow({ children:[hCell('ÍTEM',3200), hCell('DETALLE',5826)] }),
-                    ...[ ['Productos presentados',data.productos_presentados||'Ferroplast Mute + Ecosan'],
-                         ['Entrega de muestra física',data.muestra_fisica||'No'],
-                         ['Requerimientos técnicos identificados',data.requerimientos_tecnicos||'—'],
-                         ['Proyectos activos del cliente',data.proyectos_activos||'—'],
-                         ['Argumentos diferenciadores utilizados',data.argumentos||'—']
-                    ].map(([l,v],i) => new TableRow({ children:[lCell(l,3200), vCell(v,5826,i%2===0)] }))
-                ]
-            });
-
-            // SECCIÓN 8 — nivel de interés
-            const nivel = data.nivel_interes||'Medio';
-            const iColor = nivel==='Alto'?'1E7B34':(nivel==='Bajo'?'C0392B':'B8860B');
-            const iLabel = nivel==='Alto'?'🟢 Alto':(nivel==='Bajo'?'🔴 Bajo':'🟡 Medio');
-
-            // CABECERA Y PIE
-            const header = new Header({ children:[new Paragraph({
-                border:{ bottom:{ style:BorderStyle.SINGLE, size:6, color:BLUE } },
-                tabStops:[{ type:TabStopType.RIGHT, position:9026 }],
-                children:[
-                    new TextRun({ text:'Grupo Plásticos Ferro — Informe de Visita Comercial', size:18, font:'Calibri', color:BLUE, italics:true }),
-                    new TextRun({ text:'\t', size:18 }),
-                    new TextRun({ text:fechaDisp, size:18, font:'Calibri', color:GREY })
-                ]
+            // ── HEADER Y FOOTER ─────────────────────────────────────────────────
+            const docHeader = new Header({ children: [new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: C.GRIS_BORDE } },
+                spacing: { after: 120 },
+                children: [new TextRun({ text: 'GPF / Ferroplast | Informe de Visita Comercial', font: 'Calibri', size: 18, color: C.GRIS_TEXTO })]
             })] });
-            const footer = new Footer({ children:[new Paragraph({
-                border:{ top:{ style:BorderStyle.SINGLE, size:6, color:BLUE } },
-                tabStops:[{ type:TabStopType.RIGHT, position:9026 }],
-                children:[
-                    new TextRun({ text:'Manuel Fernández — Promotor y Prescriptor GPF', size:18, font:'Calibri', color:GREY, italics:true }),
-                    new TextRun({ text:'\t', size:18 }),
-                    new TextRun({ text:'Pág. ', size:18, font:'Calibri', color:GREY }),
-                    new TextRun({ children:[PageNumber.CURRENT], size:18, font:'Calibri', color:GREY }),
-                    new TextRun({ text:' / ', size:18, font:'Calibri', color:GREY }),
-                    new TextRun({ children:[PageNumber.TOTAL_PAGES], size:18, font:'Calibri', color:GREY })
+            const docFooter = new Footer({ children: [new Paragraph({
+                alignment: AlignmentType.CENTER,
+                border: { top: { style: BorderStyle.SINGLE, size: 6, color: C.GRIS_BORDE } },
+                spacing: { before: 120 },
+                children: [
+                    new TextRun({ text: 'Página ', font: 'Calibri', size: 18, color: C.GRIS_TEXTO }),
+                    new TextRun({ children: [PageNumber.CURRENT], font: 'Calibri', size: 18, color: C.GRIS_TEXTO }),
+                    new TextRun({ text: ' | Documento confidencial', font: 'Calibri', size: 18, color: C.GRIS_TEXTO })
                 ]
             })] });
 
-            // CUERPO DEL DOCUMENTO
-            const body = [
-                sHdr(1,'INFORMACIÓN GENERAL DE LA VISITA'), infoTable, sep(),
-                sHdr(2,'OBJETIVO DE LA VISITA'),
-                bodyP(data.objetivo||'Visita de prescripción con el objetivo de presentar los sistemas Ferroplast Mute (evacuación insonorizada) y Ecosan (saneamiento con material reciclado) de Grupo Plásticos Ferro, identificar oportunidades en cartera de proyectos activos y evaluar el nivel de conocimiento previo de la marca.'),
-                sep(),
-                sHdr(3,'TEMAS TRATADOS'), temasTable, sep(),
-                sHdr(4,'OPORTUNIDADES DETECTADAS'),
-                ...(arr(data.oportunidades) ? data.oportunidades.map(bullet) : [bodyP('Sin oportunidades específicas identificadas en esta visita.')]),
-                sep(),
-                sHdr(5,'DECISIONES TOMADAS Y COMPROMISOS'),
-                sub('Por parte de la empresa visitada:'),
-                ...(arr(data.compromisos_empresa) ? data.compromisos_empresa.map(bullet) : [bodyP('Visita informativa sin compromisos formales adquiridos.')]),
-                sub('Por parte de GPF (Manuel Fernández):'),
-                ...(arr(data.compromisos_gpf) ? data.compromisos_gpf.map(bullet) : [bodyP('Visita informativa sin compromisos formales adquiridos.')]),
-                sep(),
-                sHdr(6,'TEMAS PENDIENTES NO ABORDADOS'),
-                ...(arr(data.temas_pendientes) ? data.temas_pendientes.map(bullet) : [bodyP('Se abordaron todos los temas previstos para esta visita.')]),
-                sep(),
-                sHdr(7,'OBSERVACIONES ADICIONALES'),
-                sub('Declaraciones relevantes del cliente:'), bodyP(data.declaraciones||'—'),
-                sub('Percepción de la marca y productos:'), bodyP(data.percepcion||'—'),
-                sub('Obstáculos identificados:'), bodyP(data.obstaculos||'—'),
-                sub('Competidores referenciados:'), bodyP(data.competidores||'—'),
-                sep(),
-                sHdr(8,'EVALUACIÓN GENERAL DE LA VISITA'),
-                sub('Nivel de interés del cliente:'),
-                new Paragraph({ spacing:{ before:0, after:160 }, children:[
-                    new TextRun({ text:iLabel, size:24, bold:true, font:'Calibri', color:iColor }),
-                    ...(data.justificacion_interes ? [new TextRun({ text:` — ${data.justificacion_interes}`, size:22, font:'Calibri', color:BODY })] : [])
-                ] }),
-                sub('Acciones internas recomendadas:'),
-                ...(arr(data.acciones_internas) ? data.acciones_internas.map(bullet) : [bodyP('—')]),
-                sub('Plan de seguimiento propuesto:'),
-                bodyP(data.plan_seguimiento||'—')
+            // ── TABLA INFORMACIÓN GENERAL ────────────────────────────────────────
+            const infoTable = new Table({ width: { size: 9638, type: WidthType.DXA }, columnWidths: [3000, 6638], rows: [
+                infoRow('Fecha de visita',    fechaDisp),
+                infoRow('Empresa visitada',   empresaNom),
+                infoRow('Tipo de visita',     data.prescripcion_origen ? 'Visita de prescripción' : (data.tipo_visita || 'Visita comercial')),
+                infoRow('Lugar de visita',    localidad),
+                infoRow('Contacto(s)',        asist),
+                infoRow('Sede / Dirección',   data.direccion || stCont.address || '—'),
+                infoRow('Web',                stCont.web  || studio?.web  || '—'),
+                infoRow('Email',              stCont.email || studio?.email || '—'),
+                infoRow('Teléfono',           stCont.phone || studio?.phone || '—'),
+                infoRow('Comercial GPF',      comercialGPF),
+            ] });
+
+            // ── TABLA EVALUACIÓN (Sección 7 — solo una vez) ──────────────────────
+            const evalTable = new Table({ width: { size: 9638, type: WidthType.DXA }, columnWidths: [3000, 6638], rows: [
+                evalRow('Interés del cliente',     nivel),
+                evalRow('Potencial estimado',      data.justificacion_interes || '—'),
+                evalRow('Obstáculos identificados', data.obstaculos || '—'),
+                evalRow('Competidores mencionados', data.competidores || '—'),
+                resultRow('Resultado global',      nivel),
+            ] });
+
+            // ── TABLA PLAN DE ACCIÓN (Sección 8 — 3 columnas) ───────────────────
+            const accionesData = arr(data.acciones_internas)
+                ? data.acciones_internas.map((acc, i) => ({
+                    fecha:       typeof acc === 'object' && acc.fecha ? acc.fecha : (i === 0 ? 'Próximo contacto' : '—'),
+                    accion:      typeof acc === 'string' ? acc : (acc.accion || String(acc)),
+                    responsable: typeof acc === 'object' && acc.responsable ? acc.responsable : 'Manuel Fernández'
+                  }))
+                : [{ fecha: 'Próximo contacto', accion: data.plan_seguimiento || '—', responsable: 'Manuel Fernández' }];
+
+            const actionTable = new Table({ width: { size: 9636, type: WidthType.DXA }, columnWidths: [2000, 4799, 2837], rows: [
+                new TableRow({ children: [hCellAct('FECHA', 2000), hCellAct('ACCIÓN', 4799), hCellAct('RESPONSABLE', 2837)] }),
+                ...accionesData.map(a => new TableRow({ children: [vCellAct(a.fecha, 2000), vCellAct(a.accion, 4799), vCellAct(a.responsable, 2837)] }))
+            ] });
+
+            // ── DOCUMENTO ───────────────────────────────────────────────────────
+            const children = [
+                // CABECERA
+                new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 480, after: 240 },
+                    children: [new TextRun({ text: 'INFORME DE VISITA COMERCIAL', font: 'Calibri', size: 72, bold: true, color: C.GRANATE })] }),
+                new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 0, after: 480 },
+                    children: [new TextRun({ text: empresaNom, font: 'Calibri', size: 56, bold: true, color: C.ROJO })] }),
+
+                // TABLA INFO GENERAL
+                infoTable,
+                new Paragraph({ spacing: { after: 240 }, children: [new TextRun('')] }),
+
+                // SECCIÓN 1 — Perfil de la empresa
+                h1('1. Perfil de la Empresa'),
+                bodyP(data.percepcion || `${empresaNom} es una empresa ubicada en ${localidad}.`),
+                ...(data.proyectos_activos ? [h2('Proyectos activos:'), bodyP(data.proyectos_activos)] : []),
+                ...(data.requerimientos_tecnicos ? [h2('Requerimientos técnicos:'), bodyP(data.requerimientos_tecnicos)] : []),
+
+                // SECCIÓN 2 — Origen y objetivos
+                h1('2. Origen y Objetivos de la Visita'),
+                ...(data.prescripcion_origen ? [bodyP('⭐ Esta visita ha sido iniciada por prescripción.')] : []),
+                ...(data.objetivo ? [h2('Objetivo principal:'), bodyP(data.objetivo)] : [bodyP('Visita de prescripción para presentar los sistemas Ferroplast Mute y Ecosan.')]),
+
+                // SECCIÓN 3 — Desarrollo
+                h1('3. Desarrollo de la Visita'),
+                ...(asist && asist !== '—' ? [h2('3.1 Contacto principal:'), bodyP(asist)] : []),
+                h2('3.3 Productos presentados:'),
+                ...(arr(data.productos_presentados)
+                    ? data.productos_presentados.map(bullet)
+                    : [bodyP(data.productos_presentados || 'Ferroplast Mute + Ecosan')]),
+                ...(data.muestra_fisica && data.muestra_fisica !== 'No' ? [bullet(`Muestra física: ${data.muestra_fisica}`)] : []),
+                ...(data.argumentos ? [h2('3.4 Argumentos y observaciones:'), bodyP(data.argumentos)] : []),
+                ...(data.declaraciones ? [bodyP(data.declaraciones)] : []),
+                ...(data.competidores ? [h2('3.5 Competencia referenciada:'), bodyP(data.competidores)] : []),
+
+                // SECCIÓN 4 — Oportunidades
+                h1('4. Oportunidades Detectadas'),
+                ...(arr(data.oportunidades)
+                    ? data.oportunidades.map(o => bullet(typeof o === 'string' ? o : (o.descripcion || o.oportunidad || JSON.stringify(o))))
+                    : [bodyP('Sin oportunidades específicas identificadas.')]),
+
+                // SECCIÓN 5 — Compromisos
+                h1('5. Compromisos Adquiridos'),
+                h2('5.1 Por parte de GPF:'),
+                ...(arr(data.compromisos_gpf) ? data.compromisos_gpf.map(bullet) : [bodyP('Sin compromisos formales.')]),
+                h2('5.2 Por parte del cliente:'),
+                ...(arr(data.compromisos_empresa) ? data.compromisos_empresa.map(bullet) : [bodyP('Sin compromisos formales.')]),
+
+                // SECCIÓN 6 — Temas pendientes
+                h1('6. Temas Pendientes'),
+                ...(arr(data.temas_pendientes) ? data.temas_pendientes.map(bullet) : [bodyP('Se abordaron todos los temas previstos.')]),
+
+                // SECCIÓN 7 — Evaluación (ÚNICA, sin duplicados)
+                h1('7. Evaluación de la Visita'),
+                evalTable,
+                new Paragraph({ spacing: { after: 160 }, children: [new TextRun('')] }),
+                bodyP(data.declaraciones || data.percepcion || '—'),
+
+                // SECCIÓN 8 — Plan de acción
+                h1('8. Plan de Acción y Seguimiento'),
+                actionTable,
+                new Paragraph({ spacing: { before: 240, after: 100 }, children: [new TextRun('')] }),
+                new Paragraph({ spacing: { before: 160, after: 100 }, children: [new TextRun({ text: 'NOTA ESTRATÉGICA:', font: 'Calibri', size: 22, bold: true, color: C.GRANATE })] }),
+                bodyP(data.plan_seguimiento || '—'),
             ];
 
             return new Document({
-                numbering:{ config:[{ reference:'gpf-bullets', levels:[{ level:0, format:LevelFormat.BULLET, text:'•', alignment:AlignmentType.LEFT, style:{ paragraph:{ indent:{ left:600, hanging:300 } }, run:{ font:'Calibri', size:20, color:BLUE } } }] }] },
-                sections:[{ properties:{ page:{ size:{ width:11906, height:16838 }, margin:{ top:1134, right:1134, bottom:1134, left:1134 } } }, headers:{ default:header }, footers:{ default:footer }, children:[...cover, ...body] }]
+                sections: [{
+                    properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
+                    headers: { default: docHeader },
+                    footers: { default: docFooter },
+                    children
+                }]
             });
         }
 
