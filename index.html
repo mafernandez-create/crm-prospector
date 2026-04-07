@@ -20605,6 +20605,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const counter = document.getElementById('mc-counter');
             if (counter) counter.textContent = '⏳ Cargando...';
 
+            try {
             // Detectar modo activo
             const modoProductos = document.getElementById('mc-productos-section')?.style.display !== 'none';
 
