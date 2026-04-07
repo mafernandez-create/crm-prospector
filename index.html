@@ -23105,9 +23105,8 @@ updateMap();
                 ...(data.proyectos_activos ? [h2('Proyectos activos:'), bodyP(data.proyectos_activos)] : []),
                 ...(data.requerimientos_tecnicos ? [h2('Requerimientos técnicos:'), bodyP(data.requerimientos_tecnicos)] : []),
 
-                // SECCIÓN 2 — Origen y objetivos
-                h1('2. Origen y Objetivos de la Visita'),
-                ...(data.prescripcion_origen ? [bodyP('⭐ Esta visita ha sido iniciada por prescripción.')] : []),
+                // SECCIÓN 2 — Objetivos
+                h1('2. Objetivos de la Visita'),
                 ...(data.objetivo ? [h2('Objetivo principal:'), bodyP(data.objetivo)] : [bodyP('Visita de prescripción para presentar los sistemas Ferroplast Mute y Ecosan.')]),
 
                 // SECCIÓN 3 — Desarrollo
