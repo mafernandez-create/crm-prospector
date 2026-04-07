@@ -20682,18 +20682,21 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                     });
                 };
 
-                // Helper: normaliza fecha a YYYY-MM-DD
+                // Helper: normaliza fecha a YYYY-MM-DD — maneja strings, ISO y Timestamps Firestore
                 const normFecha = f => {
-                    if (!f) return '';
-                    if (f.includes('/')) { const p = f.split('/'); return p.length===3 ? `${p[2]}-${p[1]}-${p[0]}` : f; }
-                    return f.split('T')[0];
+                    try {
+                        if (!f) return '';
+                        if (typeof f === 'object' && f.seconds) return new Date(f.seconds * 1000).toISOString().substring(0, 10);
+                        const s = String(f);
+                        if (s.includes('/')) { const p = s.split('/'); return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : s; }
+                        return s.split('T')[0];
+                    } catch(e) { return ''; }
                 };
 
                 // 1. Actividades de tipo reunión del calendario
                 const studioCount = {};
-                cloudCache.activities.filter(a => {
+                (cloudCache.activities || []).filter(a => {
                     if (a.type !== 'meeting') return false;
-                    // Si hay filtro de producto activo, solo incluir reuniones que lo mencionan
                     if (productosSel.size > 0 && a.productos?.length && !a.productos.some(p => productosSel.has(p))) return false;
                     const fecha = normFecha(a.createdAt || a.date || '');
                     if (fi && fecha && fecha < fi) return false;
@@ -20704,31 +20707,33 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 });
 
                 // 2. Todos los informes adjuntos en los estudios (AI y Word subidos)
-                cloudCache.studios.forEach(studio => {
+                (cloudCache.studios || []).forEach(studio => {
                     (studio.data?.reports || []).forEach(report => {
-                        const fecha = normFecha(report.date || report.reportJson?.fecha || report.uploadedAt || '');
-                        if (fi && fecha && fecha < fi) return;
-                        if (ff && fecha && fecha > ff) return;
-
-                        if (report.reportJson) {
-                            // Informe IA: aplicar filtro de producto
-                            const productos = report.reportJson.productos_presentados || '';
-                            if (!matchProducto(productos)) return;
-                        }
-                        // Informe Word sin datos estructurados: incluir siempre (peso 1)
-                        studioCount[studio.id] = (studioCount[studio.id] || 0) + 1;
+                        try {
+                            const fecha = normFecha(report.date || report.reportJson?.fecha || report.uploadedAt || '');
+                            if (fi && fecha && fecha < fi) return;
+                            if (ff && fecha && fecha > ff) return;
+                            if (report.reportJson) {
+                                const productos = report.reportJson.productos_presentados || '';
+                                if (!matchProducto(productos)) return;
+                            }
+                            studioCount[studio.id] = (studioCount[studio.id] || 0) + 1;
+                        } catch(e) { /* ignorar informe con datos corruptos */ }
                     });
                 });
 
                 const studioIds = new Set(Object.keys(studioCount).map(Number));
                 const studios = cloudCache.studios.filter(s => studioIds.has(s.id));
 
+                if (counter) counter.textContent = `⏳ Geocodificando ${studios.length} estudios...`;
+
+                // Geocodificar ciudades de forma secuencial para no saturar Nominatim
                 const uniqueCities = [...new Set(studios.map(s => (s.city || s.province || '') + '|' + (s.province || '')))];
-                await Promise.all(uniqueCities.map(async ck => {
+                for (const ck of uniqueCities) {
                     const [city, prov] = ck.split('|');
                     await geocodeCity(city, prov);
-                    await new Promise(r => setTimeout(r, 50));
-                }));
+                    await new Promise(r => setTimeout(r, 80));
+                }
 
                 points = await Promise.all(studios.map(async s => {
                     const city = s.city || s.province || '';
