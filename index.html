@@ -20768,6 +20768,11 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             }
 
             if (counter) counter.textContent = points.length > 0 ? `${points.length} estudios` : '0 estudios encontrados';
+
+            } catch(e) {
+                console.error('renderMapaCaliente error:', e);
+                if (counter) counter.textContent = `❌ Error: ${e.message}`;
+            }
         }
 
         // Carga dinámica de scripts externos bajo demanda
