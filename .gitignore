@@ -1,0 +1,16 @@
+node_modules/
+.DS_Store
+*.log
+.auto-push.log
+google_credentials.json
+.sheets_token.json
+*.py
+*.js
+!index.js
+gen_*.js
+insertar_*.js
+import_*.js
+dunsSegmentacion_fix.js
+*.xlsx
+*.csv
+.claude/

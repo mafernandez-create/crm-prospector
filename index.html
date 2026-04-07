@@ -25262,27 +25262,34 @@ Notas:
             const visitasHoy = schedule[hoy] || [];
             const studios = mobileGetStudios();
 
+            // Separar visitas confirmadas (las 4 primeras, que coinciden con el calendario)
+            // y estudios de reserva (el resto). Umbral configurable.
+            const MAX_CONFIRMADAS = 4;
+            const visitasConfirmadas = visitasHoy.slice(0, MAX_CONFIRMADAS);
+            const visitasReserva    = visitasHoy.slice(MAX_CONFIRMADAS);
+
             // Visitas planificadas
             const contVisitas = document.getElementById('mobile-hoy-visitas');
-            if (visitasHoy.length === 0) {
+            if (visitasConfirmadas.length === 0 && visitasHoy.length === 0) {
                 contVisitas.innerHTML = `<div class="m-empty">📅<p>Sin visitas planificadas para hoy</p></div>`;
             } else {
                 contVisitas.innerHTML = '';
-                visitasHoy.forEach(v => {
+                // Helper para crear card de visita
+                function buildVisitaCard(v, esReserva) {
                     const studio = studios.find(s => String(s.id) === String(v.id));
                     const merged = studio || { id: v.id, name: v.name, province: v.province, data: v.data || {} };
                     const phone  = mobileStudioPhone(merged);
                     const city   = mobileStudioCity(merged);
                     const status = merged.status || 'nuevo';
                     const dc     = merged.data?.contact || {};
-                    const email   = dc.email   || '';
-                    const web     = dc.web     || '';
+                    const email  = dc.email   || '';
+                    const web    = dc.web     || '';
                     const address = dc.address || '';
 
                     const card = document.createElement('div');
                     card.className = 'm-card';
+                    if (esReserva) card.style.cssText = 'border-left:3px solid #f59e0b;opacity:0.92;';
 
-                    // Botón principal — abre ficha
                     const btn = document.createElement('button');
                     btn.style.cssText = 'display:block;width:100%;text-align:left;background:none;border:none;padding:0;cursor:pointer;color:inherit;-webkit-tap-highlight-color:rgba(99,102,241,0.15);';
                     btn.innerHTML = `
@@ -25294,15 +25301,12 @@ Notas:
                             <span class="m-badge s-${status}" style="white-space:nowrap;">${status}</span>
                         </div>`;
                     btn.addEventListener('click', () => {
-                        // Intentar abrir ficha completa si el estudio está en caché
                         const cached = mobileGetStudios().find(s => String(s.id) === String(v.id));
                         if (cached) { mobileOpenEstudio(String(v.id)); return; }
-                        // Fallback: mostrar modal con los datos disponibles del planificador
                         mobileShowHoyModal({ name: v.name, province: v.province, phone, city, email, web, address, status, id: v.id });
                     });
                     card.appendChild(btn);
 
-                    // Fila de acciones
                     const actions = document.createElement('div');
                     actions.className = 'm-action-row';
                     actions.style.marginTop = '10px';
@@ -25327,8 +25331,24 @@ Notas:
                     actions.appendChild(btnRapido);
 
                     card.appendChild(actions);
-                    contVisitas.appendChild(card);
-                });
+                    return card;
+                }
+
+                // Renderizar visitas confirmadas
+                visitasConfirmadas.forEach(v => contVisitas.appendChild(buildVisitaCard(v, false)));
+
+                // Renderizar sección de reserva
+                const seccionReserva = document.getElementById('mobile-hoy-reserva-section');
+                const contReserva    = document.getElementById('mobile-hoy-reserva');
+                const countBadge     = document.getElementById('mobile-reserva-count');
+                if (visitasReserva.length > 0) {
+                    seccionReserva.style.display = 'block';
+                    countBadge.textContent = visitasReserva.length;
+                    contReserva.innerHTML = '';
+                    visitasReserva.forEach(v => contReserva.appendChild(buildVisitaCard(v, true)));
+                } else {
+                    seccionReserva.style.display = 'none';
+                }
             }
 
             // Seguimientos pendientes (actividades con followupDate <= hoy)
@@ -25418,6 +25438,14 @@ Notas:
             const root = document.getElementById('mobile-modal-root') || document.getElementById('mobile-app') || document.body;
             root.style.pointerEvents = 'auto';
             root.appendChild(modal);
+        }
+
+        function mobileToggleReserva() {
+            const cont  = document.getElementById('mobile-hoy-reserva');
+            const icon  = document.getElementById('mobile-reserva-toggle-icon');
+            const open  = cont.style.display === 'none';
+            cont.style.display  = open ? 'block' : 'none';
+            icon.textContent    = open ? '▼' : '▶';
         }
 
         function mobileShowHoyModal({ name, province, phone, city, email, web, address, status, id }) {
@@ -26174,6 +26202,13 @@ Notas:
         <div id="mobile-tab-hoy" class="mobile-tab-content active">
             <div class="m-section-title">Visitas planificadas hoy</div>
             <div id="mobile-hoy-visitas"></div>
+            <div id="mobile-hoy-reserva-section" style="display:none;">
+                <div class="m-section-title" style="cursor:pointer;user-select:none;" onclick="mobileToggleReserva()">
+                    <span id="mobile-reserva-toggle-icon">▶</span> Estudios de reserva
+                    <span id="mobile-reserva-count" style="background:rgba(245,158,11,0.25);color:#fbbf24;border-radius:10px;padding:1px 8px;font-size:0.72rem;margin-left:6px;font-weight:700;"></span>
+                </div>
+                <div id="mobile-hoy-reserva" style="display:none;"></div>
+            </div>
             <div class="m-section-title">Tareas pendientes</div>
             <div id="mobile-hoy-tareas"></div>
         </div>

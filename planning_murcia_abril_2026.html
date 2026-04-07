@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Planning Visitas Murcia – 6-9 Abril 2026</title>
+<style>
+  body { font-family: Arial, sans-serif; font-size: 13px; color: #222; margin: 20px; }
+  h1 { background: #1a3a5c; color: white; padding: 12px 18px; border-radius: 6px; font-size: 20px; margin-bottom: 4px; }
+  .subtitle { color: #555; font-size: 12px; margin-bottom: 20px; }
+  .day-block { margin-bottom: 28px; page-break-inside: avoid; }
+  .day-header { background: #2e6da4; color: white; padding: 8px 14px; border-radius: 5px; font-size: 15px; font-weight: bold; }
+  .route-bar { background: #e8f0f8; border-left: 4px solid #2e6da4; padding: 6px 12px; font-size: 12px; color: #444; margin: 6px 0; }
+  .visit-card { border: 1px solid #d0d8e8; border-radius: 5px; margin: 8px 0; padding: 10px 14px; background: white; }
+  .visit-card.ingenieria { border-left: 5px solid #e67e22; }
+  .visit-card.regantes { border-left: 5px solid #27ae60; }
+  .visit-num { display: inline-block; background: #2e6da4; color: white; border-radius: 50%; width: 22px; height: 22px; text-align: center; line-height: 22px; font-size: 12px; font-weight: bold; margin-right: 8px; }
+  .visit-num.reserva { background: #95a5a6; }
+  .company-name { font-size: 14px; font-weight: bold; color: #1a3a5c; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 6px; }
+  .tag-ing { background: #fdebd0; color: #b7770d; }
+  .tag-reg { background: #d5f5e3; color: #1e8449; }
+  .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 6px; font-size: 12px; }
+  .contact-item { color: #444; }
+  .contact-item strong { color: #222; }
+  .products { background: #f0f8ff; border-radius: 4px; padding: 5px 10px; margin-top: 6px; font-size: 12px; color: #1a3a5c; }
+  .notes { font-size: 12px; color: #555; margin-top: 5px; font-style: italic; }
+  .argument { font-size: 12px; color: #3d3d3d; margin-top: 6px; background: #fffbe6; border-left: 3px solid #f1c40f; padding: 5px 10px; border-radius: 3px; }
+  .reservas-block { margin-top: 10px; padding: 8px 12px; background: #f9f9f9; border-radius: 5px; font-size: 12px; }
+  .reservas-block h4 { margin: 0 0 6px 0; color: #888; font-size: 12px; }
+  table.res { width: 100%; border-collapse: collapse; }
+  table.res th { background: #e8f0f8; color: #1a3a5c; font-size: 11px; padding: 4px 8px; text-align: left; border-bottom: 2px solid #2e6da4; }
+  table.res td { padding: 4px 8px; border-bottom: 1px solid #eee; font-size: 12px; }
+  table.res tr:last-child td { border-bottom: none; }
+  table.res tr:hover td { background: #f5f9ff; }
+  .legend { display: flex; gap: 16px; margin: 12px 0 20px 0; font-size: 12px; align-items: center; flex-wrap: wrap; }
+  .leg-item { display: flex; align-items: center; gap: 6px; }
+  .leg-color { width: 14px; height: 14px; border-radius: 3px; }
+  .section-header { font-size: 13px; font-weight: bold; color: #555; margin: 14px 0 4px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+  .header-meta { display: flex; gap: 30px; margin: 8px 0 16px 0; font-size: 12px; color: #555; flex-wrap: wrap; }
+  .header-meta span { display: flex; align-items: center; gap: 5px; }
+  .products-badge { display: inline-block; background: #1a3a5c; color: #aed6f1; border-radius: 10px; font-size: 10px; padding: 2px 7px; margin: 2px 2px 0 0; }
+  .summary-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+  .summary-table th { background: #1a3a5c; color: white; padding: 7px 12px; text-align: left; font-size: 12px; }
+  .summary-table td { padding: 6px 12px; border-bottom: 1px solid #dde5f0; font-size: 12px; }
+  .summary-table tr:nth-child(even) td { background: #f0f5fc; }
+  .summary-table tr:last-child td { background: #e8f0f8; font-weight: bold; border-top: 2px solid #2e6da4; }
+  .prod-matrix th { background: #1a3a5c; color: white; padding: 7px 12px; text-align: left; font-size: 12px; }
+  .prod-matrix td { padding: 6px 12px; border-bottom: 1px solid #dde5f0; font-size: 12px; }
+  .prod-matrix tr:nth-child(even) td { background: #f0f5fc; }
+  .star { color: #e67e22; }
+  .visit-time { font-size: 12px; font-weight: bold; color: #2e6da4; margin-bottom: 4px; }
+  .visit-header-row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+  .project-label { font-size: 11px; font-weight: bold; color: #888; text-transform: uppercase; margin-top: 7px; margin-bottom: 2px; }
+  .almuerzo-note { background: #fdfae8; border: 1px dashed #c8b44a; border-radius: 5px; padding: 7px 14px; margin: 8px 0; font-size: 12px; color: #7d6a00; }
+  .footer { margin-top: 30px; border-top: 1px solid #ccc; padding-top: 10px; font-size: 11px; color: #888; display: flex; justify-content: space-between; }
+  @media print {
+    .day-block { page-break-inside: avoid; }
+    body { margin: 10px; }
+    h1 { font-size: 17px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Planning Visitas Comerciales &mdash; Murcia</h1>
+<div class="subtitle">6&ndash;9 de Abril 2026 &nbsp;|&nbsp; Ferroplast &ndash; Tuyper &nbsp;|&nbsp; Uso interno</div>
+
+<div class="header-meta">
+  <span><strong>Productos a presentar:</strong></span>
+  <span class="products-badge">MUTE</span>
+  <span class="products-badge">ECOSAN</span>
+  <span class="products-badge">BIORIENTADO</span>
+  <span class="products-badge">PVC PRESIÓN</span>
+  <span class="products-badge">PE PRESIÓN P100</span>
+</div>
+
+<div class="legend">
+  <strong>Leyenda:</strong>
+  <div class="leg-item"><div class="leg-color" style="background:#e67e22;"></div> Ingeniería / Prescriptor</div>
+  <div class="leg-item"><div class="leg-color" style="background:#27ae60;"></div> Comunidad de Regantes</div>
+  <div class="leg-item"><div class="leg-color" style="background:#95a5a6;"></div> Visita de reserva (si falla principal)</div>
+</div>
+
+<!-- ==================== DÍA 1 ==================== -->
+<div class="day-block">
+  <div class="day-header">Día 1 &mdash; Lunes 6 de Abril &nbsp;|&nbsp; Lorca · Totana · Librilla</div>
+  <div class="route-bar">
+    <strong>Trayecto:</strong> Málaga &rarr; A-7/E-15 &rarr; Puerto Lumbreras &rarr; Lorca &rarr; Totana &rarr; Librilla &rarr; Murcia capital &nbsp;&nbsp;|&nbsp;&nbsp;
+    <strong>Conducción:</strong> ~3,5h &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Pernoctación:</strong> Murcia capital &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Km aprox.:</strong> ~380 km
+  </div>
+
+  <!-- VISITA 1 -->
+  <div class="visit-card regantes">
+    <div class="visit-time">10:00h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">1</span>
+      <span class="company-name">Comunidad de Regantes de Puerto Lumbreras</span>
+      <span class="tag tag-reg">REGANTES</span>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> Av. Astudillo, 14 &middot; 30890 Puerto Lumbreras</div>
+      <div class="contact-item"><strong>Tel:</strong> 968 400 375 / 968 402 320</div>
+      <div class="contact-item"><strong>Email:</strong> info@crpuertolumbreras.com</div>
+      <div class="contact-item"><strong>Web:</strong> crpuertolumbreras.com</div>
+      <div class="contact-item"><strong>Contacto:</strong> Presidente / Gerente (llamar previo)</div>
+    </div>
+    <div class="project-label">Proyecto en curso</div>
+    <div class="notes">Modernización del regadío con trasvase Tajo-Segura. 880 comuneros. Red de distribución de agua a presión.</div>
+    <div class="products"><strong>Productos relevantes:</strong> PE Presión P100 (red principal) &middot; PVC Presión (ramales secundarios) &middot; Biorientado (impulsiones)</div>
+    <div class="argument"><strong>Argumento:</strong> "Estamos trabajando con varias comunidades de la zona en la modernización de redes. Nuestro PE P100 es el más utilizado en las nuevas conducciones del trasvase por su relación calidad-precio y facilidad de montaje."</div>
+  </div>
+
+  <!-- VISITA 2 -->
+  <div class="visit-card regantes">
+    <div class="visit-time">11:30h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">2</span>
+      <span class="company-name">Comunidad de Regantes de Lorca &ndash; Fase I y II</span>
+      <span class="tag tag-reg">REGANTES</span>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> C/ Corredera, 22 &middot; 30800 Lorca</div>
+      <div class="contact-item"><strong>Tel:</strong> 968 466 145 / 968 482 382 (regadío consolidado)</div>
+      <div class="contact-item"><strong>Email:</strong> info@cr-lorca.es</div>
+      <div class="contact-item"><strong>Web:</strong> cr-lorca.com</div>
+      <div class="contact-item"><strong>Contacto:</strong> Gerente / Responsable técnico</div>
+    </div>
+    <div class="project-label">Proyecto en curso</div>
+    <div class="notes">Modernización de redes de riego Lorca Fase I y II. 12.000 comuneros, 23.700 ha. Continúan con ampliaciones de la red de distribución.</div>
+    <div class="products"><strong>Productos relevantes:</strong> PVC Presión &middot; PE Presión P100 &middot; Biorientado (grandes diámetros en impulsiones)</div>
+    <div class="argument"><strong>Argumento:</strong> "Con la magnitud de vuestras instalaciones, el PE P100 os ofrece mayor vida útil y menor coste de mantenimiento. Podemos hablar de un suministro continuado adaptado a vuestros planes de obra."</div>
+  </div>
+
+  <!-- VISITA 3 -->
+  <div class="visit-card regantes">
+    <div class="visit-time">12:30h &nbsp;<span style="font-weight:normal;color:#888;">(mismo municipio, Lorca)</span></div>
+    <div class="visit-header-row">
+      <span class="visit-num">3</span>
+      <span class="company-name">Lorca y V. Guadalentín S.VIII &ndash; La Tercia</span>
+      <span class="tag tag-reg">REGANTES</span>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Municipio:</strong> Lorca (zona La Tercia / Valle del Guadalentín)</div>
+      <div class="contact-item"><strong>Tel ref.:</strong> 968 466 145 (CR Lorca)</div>
+      <div class="contact-item" style="grid-column: span 2;"><strong>Contacto:</strong> Preguntar en CR Lorca por la Junta de La Tercia o dirigirse al Ayto. de Lorca para localizar sede</div>
+    </div>
+    <div class="project-label">Proyecto en curso</div>
+    <div class="notes">Proyecto de redes principales y secundarias de riego. Sector VIII &ndash; Subsector La Tercia. 869 comuneros, 930 ha. Financiado con fondos FEDER. En fase de consolidación y ampliaciones.</div>
+    <div class="products"><strong>Productos relevantes:</strong> PVC Presión &middot; PE P100</div>
+    <div class="notes">Esta visita puede combinarse con la anterior al estar en el mismo municipio.</div>
+  </div>
+
+  <!-- VISITA 4 -->
+  <div class="visit-card regantes">
+    <div class="visit-time">14:30h &nbsp;<span style="font-weight:normal;color:#888;">(tras almuerzo en Lorca o Totana)</span></div>
+    <div class="visit-header-row">
+      <span class="visit-num">4</span>
+      <span class="company-name">C.R. Trasvase Tajo-Segura de Totana</span>
+      <span class="tag tag-reg">REGANTES</span>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> C/ La Balsa, 6 &middot; 30850 Totana</div>
+      <div class="contact-item"><strong>Tel:</strong> 968 420 524 / 626 998 480 (móvil)</div>
+      <div class="contact-item"><strong>Email:</strong> crtotana@trasvasetajosegura.org</div>
+      <div class="contact-item"><strong>Web:</strong> trasvasetajosegura.org</div>
+      <div class="contact-item"><strong>Contacto:</strong> Secretario o Presidente de la comunidad</div>
+    </div>
+    <div class="project-label">Proyecto en curso</div>
+    <div class="notes">Red de distribución del trasvase Tajo-Segura para la comarca de Totana. Embalses reguladores, tomas 1-9. Obras de modernización en curso.</div>
+    <div class="products"><strong>Productos relevantes:</strong> PE Presión P100 &middot; PVC Presión &middot; MUTE/ECOSAN (saneamiento asociado a urbanizaciones agrícolas)</div>
+    <div class="argument"><strong>Argumento:</strong> "Vuestros proyectos de modernización de tomas son exactamente el tipo de obra donde más rendimiento se saca de nuestro PE P100. ¿Tenéis previstas obras de ampliación en 2026-2027?"</div>
+  </div>
+
+  <!-- VISITA 5 -->
+  <div class="visit-card ingenieria">
+    <div class="visit-time">16:30h &nbsp;<span style="font-weight:normal;color:#888;">(de paso hacia Murcia)</span></div>
+    <div class="visit-header-row">
+      <span class="visit-num">5</span>
+      <span class="company-name">Gestiriego S.L.</span>
+      <span class="tag tag-ing">INGENIERÍA / INSTALADOR</span>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> Paraje Vistabella s/n &middot; 30892 Librilla (A-7 camino a Murcia)</div>
+      <div class="contact-item"><strong>Tel:</strong> 968 658 326</div>
+      <div class="contact-item"><strong>Email:</strong> info@gestiriego.com</div>
+      <div class="contact-item"><strong>Web:</strong> gestiriego.com</div>
+      <div class="contact-item"><strong>Contacto:</strong> Director Comercial / Responsable de proyectos</div>
+      <div class="contact-item"><strong>Empleados:</strong> 200+ &middot; Certificación AENOR tuberías PE</div>
+    </div>
+    <div class="project-label">Actividad</div>
+    <div class="notes">Empresa instaladora de sistemas de riego agrícola. 200+ empleados. Certificación AENOR para tuberías PE. Distribución en toda la Península.</div>
+    <div class="products"><strong>Productos relevantes:</strong> PE Presión P100 (instalaciones riego) &middot; PVC Presión &middot; Biorientado</div>
+    <div class="argument"><strong>Argumento:</strong> "Con vuestra certificación AENOR de producto en PE, sabéis exactamente qué exigir a los fabricantes. Nuestro P100 cumple la norma UNE-EN 12201 y tenemos disponibilidad inmediata de stock para vuestros proyectos de la próxima temporada."</div>
+  </div>
+
+  <!-- RESERVAS DÍA 1 -->
+  <div class="reservas-block">
+    <h4>Reservas Día 1 &mdash; activar si falla alguna principal</h4>
+    <table class="res">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Empresa</th>
+          <th>Tel</th>
+          <th>Motivo / Nota</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R1</span></td>
+          <td>C.G.R. Sierra Espuña</td>
+          <td>&ndash;</td>
+          <td>Si hay hueco camino Totana-Lorca</td>
+        </tr>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R2</span></td>
+          <td>HIDRALIA (Aguas de Lorca)</td>
+          <td>&ndash;</td>
+          <td>Visita institucional si CR Lorca no disponible</td>
+        </tr>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R3</span></td>
+          <td>Aguas de Totana</td>
+          <td>&ndash;</td>
+          <td>Alternativa en Totana</td>
+        </tr>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R4</span></td>
+          <td>Ayuntamiento de Aledo</td>
+          <td>&ndash;</td>
+          <td>Zona Sierra Espuña, si pasa por allí</td>
+        </tr>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R5</span></td>
+          <td>C.R. Trasvase Librilla</td>
+          <td>968 658 326 (vía Gestiriego)</td>
+          <td>En Librilla, junto a Gestiriego</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== DÍA 2 ==================== -->
+<div class="day-block">
+  <div class="day-header">Día 2 &mdash; Martes 7 de Abril &nbsp;|&nbsp; Alcantarilla · Molina de Segura · Cartagena · Mar Menor</div>
+  <div class="route-bar">
+    <strong>Trayecto:</strong> Murcia capital &rarr; Alcantarilla (5 km) &rarr; Molina de Segura (18 km) &rarr; Cartagena (55 km) &rarr; Mar Menor &rarr; Murcia &nbsp;&nbsp;|&nbsp;&nbsp;
+    <strong>Conducción:</strong> ~2,5h &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Pernoctación:</strong> Murcia capital &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Km aprox.:</strong> ~180 km
+  </div>
+
+  <!-- VISITA 1 -->
+  <div class="visit-card ingenieria">
+    <div class="visit-time">09:00h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">1</span>
+      <span class="company-name">Moval Agroingeniería S.L.</span>
+      <span class="tag tag-ing">INGENIERÍA AGRARIA / HIDRÁULICA</span>
+      <span style="font-size:11px;color:#c0392b;margin-left:8px;">&#11088; PRESCRIPTORES CLAVE</span>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> C/ Poeta Vicente Aleixandre, 9 &middot; 30820 Alcantarilla</div>
+      <div class="contact-item"><strong>Tel:</strong> 868 453 090</div>
+      <div class="contact-item"><strong>Email:</strong> info@moval.es</div>
+      <div class="contact-item"><strong>Web:</strong> moval.es</div>
+      <div class="contact-item"><strong>Contacto:</strong> Director técnico / Responsable de proyectos de riego</div>
+      <div class="contact-item"><strong>Empleados:</strong> 30</div>
+    </div>
+    <div class="project-label">Actividad</div>
+    <div class="notes">Consultoría especializada en regadíos y comunidades de regantes. Diseñan proyectos de transformación de regadío, modernización, bombeo e impulsión. Asesoran a múltiples comunidades de regantes de la Región de Murcia.</div>
+    <div class="products"><strong>Productos relevantes:</strong> PE P100 y PVC Presión (prescriben en proyectos) &middot; Biorientado (grandes impulsiones)</div>
+    <div class="argument"><strong>Argumento:</strong> "Como consultores de comunidades de regantes, vuestras especificaciones de materiales impactan directamente en las decisiones de compra. Nos gustaría presentaros nuestro catálogo y hablar de homologación para futuras licitaciones."</div>
+  </div>
+
+  <!-- VISITA 2 -->
+  <div class="visit-card regantes">
+    <div class="visit-time">10:30h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">2</span>
+      <span class="company-name">CR Heredamiento Regante de Molina de Segura</span>
+      <span class="tag tag-reg">REGANTES</span>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> C/ Ernesto Cardenal, 23 &middot; 30500 Molina de Segura / Huerto Capote s/n</div>
+      <div class="contact-item"><strong>Tel:</strong> 968 645 336</div>
+      <div class="contact-item"><strong>Web:</strong> heredamientoregantemolina.es</div>
+      <div class="contact-item"><strong>Contacto:</strong> Presidente o Secretario del Heredamiento</div>
+    </div>
+    <div class="project-label">Proyecto en curso</div>
+    <div class="notes">Comunidad con larga tradición de regadío en Molina de Segura. Convenio con la Comunidad Autónoma de Murcia. Planes de modernización de red de distribución.</div>
+    <div class="products"><strong>Productos relevantes:</strong> PE Presión P100 &middot; PVC Presión</div>
+    <div class="argument"><strong>Argumento:</strong> "Tenemos referencias de trabajo en la zona de la Vega Media del Segura. Nuestro PE P100 es la solución estándar para las redes secundarias de los proyectos de modernización de la CARM."</div>
+  </div>
+
+  <!-- VISITA 3 -->
+  <div class="visit-card regantes">
+    <div class="visit-time">12:00h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">3</span>
+      <span class="company-name">Comunidad de Regantes del Campo de Cartagena (CRCC)</span>
+      <span class="tag tag-reg">REGANTES</span>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> Paseo Alfonso XIII, 22 (Palacete "El Regidor") &middot; 30201 Cartagena</div>
+      <div class="contact-item"><strong>Tel:</strong> 968 514 200</div>
+      <div class="contact-item"><strong>Email:</strong> administracion@crcc.es / crcc@crcc.es</div>
+      <div class="contact-item"><strong>Web:</strong> crcc.es</div>
+      <div class="contact-item"><strong>Contacto:</strong> Director técnico o responsable de obras</div>
+      <div class="contact-item"><strong>Dimensión:</strong> 41.166 ha &middot; 9.276 comuneros</div>
+    </div>
+    <div class="project-label">Proyecto en curso</div>
+    <div class="notes">Una de las mayores comunidades de regantes de Europa. Proyectos "Cota 120" y "2ª Fase" son ampliaciones de la red de distribución a presión. Obras de envergadura con tuberías de gran diámetro.</div>
+    <div class="products"><strong>Productos relevantes:</strong> PE Presión P100 (grandes diámetros, conducciones principales) &middot; PVC Presión (ramales) &middot; Biorientado (impulsiones de alta presión)</div>
+    <div class="argument"><strong>Argumento:</strong> "Proyectos de la magnitud de Cota 120 requieren un suministrador fiable con capacidad de entregar grandes volúmenes en plazos ajustados. Somos proveedores de referencia para la administración en obras de regadío."</div>
+  </div>
+
+  <!-- VISITA 4 -->
+  <div class="visit-card regantes">
+    <div class="visit-time">16:00h &nbsp;<span style="font-weight:normal;color:#888;">(zona Mar Menor)</span></div>
+    <div class="visit-header-row">
+      <span class="visit-num">4</span>
+      <span class="company-name">CR Arco Sur Mar Menor &ndash; Fase II</span>
+      <span class="tag tag-reg">REGANTES</span>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Zona:</strong> Campo de Cartagena / Mar Menor (área sur)</div>
+      <div class="contact-item"><strong>Contacto ref.:</strong> CRCC &ndash; 968 514 200</div>
+      <div class="contact-item" style="grid-column: span 2;"><strong>Nota:</strong> La CRCC puede facilitar el contacto con esta comunidad</div>
+    </div>
+    <div class="project-label">Proyecto en curso</div>
+    <div class="notes">Red de riego Fase II en la zona Arco Sur del Mar Menor. Modernización y ampliación de infraestructuras hidráulicas en zona de alta producción agrícola.</div>
+    <div class="products"><strong>Productos relevantes:</strong> PE P100 &middot; PVC Presión</div>
+    <div class="argument"><strong>Argumento:</strong> Similar a CRCC. Enfatizar disponibilidad y certificaciones de producto.</div>
+  </div>
+
+  <!-- RESERVAS DÍA 2 -->
+  <div class="reservas-block">
+    <h4>Reservas Día 2 &mdash; activar si falla alguna principal</h4>
+    <table class="res">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Empresa</th>
+          <th>Tel</th>
+          <th>Motivo / Nota</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R1</span></td>
+          <td>Prointer Ingeniería</td>
+          <td>968 235 966</td>
+          <td>Ingeniería civil en Murcia capital, si se adelanta la vuelta</td>
+        </tr>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R2</span></td>
+          <td>CR Azarbe del Merancho</td>
+          <td>&ndash;</td>
+          <td>Zona Murcia / Huerta</td>
+        </tr>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R3</span></td>
+          <td>CR Casablanca</td>
+          <td>&ndash;</td>
+          <td>Zona Murcia / Huerta</td>
+        </tr>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R4</span></td>
+          <td>Aguas de Alguazas</td>
+          <td>&ndash;</td>
+          <td>Zona Molina</td>
+        </tr>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R5</span></td>
+          <td>HIDRALIA Aguas de Murcia</td>
+          <td>&ndash;</td>
+          <td>Visita institucional</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== DÍA 3 ==================== -->
+<div class="day-block">
+  <div class="day-header">Día 3 &mdash; Miércoles 8 de Abril &nbsp;|&nbsp; Murcia capital · Blanca · Abarán</div>
+  <div class="route-bar">
+    <strong>Trayecto:</strong> Murcia capital &rarr; (Proinaqua, en Murcia) &rarr; Blanca (50 km) &rarr; Abarán (8 km desde Blanca) &rarr; vuelta Murcia &nbsp;&nbsp;|&nbsp;&nbsp;
+    <strong>Conducción:</strong> ~2h &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Pernoctación:</strong> Murcia capital &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Km aprox.:</strong> ~120 km
+  </div>
+
+  <!-- VISITA 1 -->
+  <div class="visit-card ingenieria">
+    <div class="visit-time">09:00h &nbsp;<span style="font-weight:normal;color:#888;">(en Murcia capital, antes de salir)</span></div>
+    <div class="visit-header-row">
+      <span class="visit-num">1</span>
+      <span class="company-name">Proinaqua &ndash; Proyectos e Ingeniería del Agua S.L.</span>
+      <span class="tag tag-ing">INGENIERÍA HIDRÁULICA</span>
+      <span style="font-size:11px;color:#c0392b;margin-left:8px;">&#11088; PRESCRIPTORES DIRECTOS</span>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> Av. Alicante, 251 &middot; 30007 Murcia</div>
+      <div class="contact-item"><strong>Tel:</strong> 968 235 071</div>
+      <div class="contact-item"><strong>Email:</strong> adpenalver@adpenalver.net</div>
+      <div class="contact-item"><strong>Web:</strong> proinaqua.es</div>
+      <div class="contact-item"><strong>Contacto:</strong> Ing. A.D. Peñalver (gerente) / Director técnico</div>
+      <div class="contact-item"><strong>Ranking:</strong> Posición 1.261 sectorial nacional</div>
+    </div>
+    <div class="project-label">Actividad</div>
+    <div class="notes">Ingeniería especializada en obra hidráulica, agua potable y saneamientos. Proyectos de infraestructuras hidráulicas en la Región de Murcia. Abastecimiento, saneamiento, EDAR.</div>
+    <div class="products"><strong>Productos relevantes:</strong> PVC Presión y PE P100 (redes abastecimiento) &middot; MUTE / ECOSAN (saneamiento y colectores) &middot; Biorientado (impulsiones)</div>
+    <div class="argument"><strong>Argumento:</strong> "Vuestra especialización en hidráulica encaja perfectamente con toda nuestra gama. Os traigo muestras y ficha técnica de nuestro MUTE para colectores y el PE P100 para conducciones a presión. ¿Tenéis algún proyecto en fase de especificación de materiales ahora mismo?"</div>
+  </div>
+
+  <!-- VISITA 2 -->
+  <div class="visit-card regantes">
+    <div class="visit-time">11:00h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">2</span>
+      <span class="company-name">CR Zona II &ndash; Vegas Alta y Media del Segura (CR Blanca)</span>
+      <span class="tag tag-reg">REGANTES</span>
+    </div>
+    <div class="notes" style="margin-top:4px;margin-bottom:4px;color:#27ae60;">Atiende: CR Blanca Fase I + Compl. cuneta perimetral + Compl. filtrado del rellano (misma sede)</div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> C/ Villa de Blanca, 12 &middot; Pol. Ind. San Roque &middot; 30540 Blanca (Murcia)</div>
+      <div class="contact-item"><strong>Tel:</strong> 968 778 122 / 968 459 864</div>
+      <div class="contact-item"><strong>Email:</strong> comunidad@crblanca.es</div>
+      <div class="contact-item"><strong>Web:</strong> crblanca.es</div>
+      <div class="contact-item"><strong>Contacto:</strong> Gerente / Secretario de la Comunidad</div>
+    </div>
+    <div class="project-label">Proyecto en curso</div>
+    <div class="notes">Tres fases activas de modernización: Fase I de red principal, complementarios de cuneta perimetral y sistema de filtrado del rellano. Obras financiadas. Captación y distribución del Río Segura para Vegas Alta y Media.</div>
+    <div class="products"><strong>Productos relevantes:</strong> PE P100 (red de distribución principal) &middot; PVC Presión (ramales) &middot; ECOSAN (saneamiento rural)</div>
+    <div class="argument"><strong>Argumento:</strong> "Con tres proyectos activos en curso, sois de los clientes con mayor potencial de la zona. Podemos hablar de un acuerdo de suministro continuado para las tres fases."</div>
+  </div>
+
+  <!-- ALMUERZO -->
+  <div class="almuerzo-note">Almuerzo 13:30h &mdash; Blanca o Abarán</div>
+
+  <!-- VISITA 4 -->
+  <div class="visit-card regantes">
+    <div class="visit-time">15:30h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">4</span>
+      <span class="company-name">CR Sector A Abarán &ndash; Vegas Altas y Media Segura Z.II</span>
+      <span class="tag tag-reg">REGANTES</span>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> C/ Venta de la Aurora, 124 &middot; 30550 Abarán (Murcia)</div>
+      <div class="contact-item"><strong>Tel:</strong> Contactar a través de CR Blanca &ndash; 968 778 122</div>
+      <div class="contact-item" style="grid-column: span 2;"><strong>Nota:</strong> Misma federación de regantes que CR Blanca</div>
+    </div>
+    <div class="project-label">Proyecto en curso</div>
+    <div class="notes">Modernización del regadío en la zona de Abarán con balsa Casa Pinar (332.000 m&sup3;). Inversión de 4,75 M&euro; subvencionada por la CARM. Red de distribución en construcción.</div>
+    <div class="products"><strong>Productos relevantes:</strong> PE P100 &middot; PVC Presión</div>
+    <div class="argument"><strong>Argumento:</strong> "Hemos visto la noticia de la obra de la balsa Casa Pinar. Es exactamente el tipo de proyecto donde nuestro PE P100 da mejor resultado en las conducciones de la balsa a las parcelas."</div>
+  </div>
+
+  <!-- RESERVAS DÍA 3 -->
+  <div class="reservas-block">
+    <h4>Reservas Día 3 &mdash; activar si falla alguna principal</h4>
+    <table class="res">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Empresa</th>
+          <th>Tel</th>
+          <th>Motivo / Nota</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R1</span></td>
+          <td>C.R. Vegas Altas y Media Blanca &ndash; Fase III</td>
+          <td>968 778 122</td>
+          <td>Misma sede CR Blanca</td>
+        </tr>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R2</span></td>
+          <td>CR Blanca II</td>
+          <td>968 778 122</td>
+          <td>Misma sede CR Blanca</td>
+        </tr>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R3</span></td>
+          <td>Servicios de agua de Blanca</td>
+          <td>&ndash;</td>
+          <td>Operador agua potable Blanca</td>
+        </tr>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R4</span></td>
+          <td>Ayuntamiento de Ojós</td>
+          <td>&ndash;</td>
+          <td>Gestor agua Ojós</td>
+        </tr>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R5</span></td>
+          <td>HIDRALIA Aguas de Cieza</td>
+          <td>&ndash;</td>
+          <td>Zona Cieza</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== DÍA 4 ==================== -->
+<div class="day-block">
+  <div class="day-header">Día 4 &mdash; Jueves 9 de Abril &nbsp;|&nbsp; Campotejar · Mula · Calasparra · Murcia capital</div>
+  <div class="route-bar">
+    <strong>Trayecto:</strong> Murcia capital &rarr; Molina de Segura (13 km, CR Campotejar) &rarr; Mula (35 km, Ecohidro) &rarr; Calasparra (50 km, CR Argos) &rarr; Murcia (85 km, Daproyect) &rarr; opcional: vuelta a Málaga por la tarde &nbsp;&nbsp;|&nbsp;&nbsp;
+    <strong>Conducción:</strong> ~3,5h &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Pernoctación:</strong> opcional regreso a Málaga &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Km aprox.:</strong> ~200 km
+  </div>
+
+  <!-- VISITA 1 -->
+  <div class="visit-card regantes">
+    <div class="visit-time">09:00h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">1</span>
+      <span class="company-name">CR Campotejar + CR Campotejar Complementario</span>
+      <span class="tag tag-reg">REGANTES</span>
+    </div>
+    <div class="notes" style="margin-top:4px;margin-bottom:4px;color:#27ae60;">Atiende ambas fases (misma entidad)</div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Sede:</strong> Molina de Segura (Murcia) &middot; Zona Campotejar</div>
+      <div class="contact-item"><strong>Tel:</strong> 968 629 556</div>
+      <div class="contact-item"><strong>CNAE:</strong> 3600 &ndash; Captación, Depuración y Distribución de Agua</div>
+    </div>
+    <div class="project-label">Proyecto en curso</div>
+    <div class="notes">Comunidad activa desde 1983. Dos fases de proyecto de modernización de red de riego en la zona de Campotejar.</div>
+    <div class="products"><strong>Productos relevantes:</strong> PE P100 &middot; PVC Presión</div>
+    <div class="argument"><strong>Argumento:</strong> "Lleváis muchos años gestionando el regadío de la zona. Con los planes de modernización de la CARM, ¿tenéis prevista alguna renovación de la red principal en 2026 o 2027?"</div>
+  </div>
+
+  <!-- VISITA 2 -->
+  <div class="visit-card ingenieria">
+    <div class="visit-time">11:00h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">2</span>
+      <span class="company-name">Ecohidro Agua y Medio Ambiente EBT S.L.</span>
+      <span class="tag tag-ing">INGENIERÍA AGUA / INDUSTRIAL</span>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> Pol. Ind. El Arreaque, Manzana 10 &middot; 30170 Mula (Murcia)</div>
+      <div class="contact-item"><strong>Tel:</strong> 902 107 186 / 968 637 056</div>
+      <div class="contact-item"><strong>Email:</strong> ecohidro@ecohidro.es</div>
+      <div class="contact-item"><strong>Web:</strong> ecohidro.es</div>
+      <div class="contact-item"><strong>Horario:</strong> L-V 7:30&ndash;14:00</div>
+      <div class="contact-item"><strong>Contacto:</strong> Director técnico / Responsable comercial</div>
+      <div class="contact-item"><strong>Empleados:</strong> 20 &middot; 7% facturación en I+D &middot; EBT</div>
+    </div>
+    <div class="project-label">Actividad</div>
+    <div class="notes">Diseño y fabricación de equipos de tratamiento de aguas. Planta potabilizadora móvil para emergencias. Empresa de Base Tecnológica. Plantas de tratamiento de aguas para municipios y comunidades rurales.</div>
+    <div class="products"><strong>Productos relevantes:</strong> PVC Presión (tuberías en sus instalaciones) &middot; PE P100 (conducciones en sus plantas)</div>
+    <div class="argument"><strong>Argumento:</strong> "Vuestras plantas de tratamiento necesitan tuberías que aguanten presión y sean resistentes a productos químicos. Nuestro PVC presión y PE P100 son los materiales de referencia para estas instalaciones. ¿Especificáis vosotros los materiales o lo decide el cliente final?"</div>
+  </div>
+
+  <!-- ALMUERZO -->
+  <div class="almuerzo-note">Almuerzo 13:00h &mdash; Ruta hacia Calasparra</div>
+
+  <!-- VISITA 4 -->
+  <div class="visit-card regantes">
+    <div class="visit-time">15:30h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">4</span>
+      <span class="company-name">CR Aguas Reguladas por el Embalse del Argos &ndash; Calasparra</span>
+      <span class="tag tag-reg">REGANTES</span>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Web:</strong> crargos.org</div>
+      <div class="contact-item"><strong>Sede electrónica:</strong> crargos.sedelectronica.es</div>
+      <div class="contact-item"><strong>NIF:</strong> G30290290</div>
+      <div class="contact-item"><strong>Presidente:</strong> Antonio José Abellán Martínez</div>
+      <div class="contact-item"><strong>Contacto:</strong> Comunicarse previo por web crargos.org</div>
+      <div class="contact-item"><strong>Zona:</strong> Calasparra y Cehegín (confluencia ríos Argos y Segura)</div>
+      <div class="contact-item"><strong>Dimensión:</strong> 1.002 ha &middot; 1.400 regantes</div>
+    </div>
+    <div class="project-label">Proyecto en curso</div>
+    <div class="notes">Modernización de regadíos del Embalse del Argos. Proyecto de digitalización activo en 2025-2026 (IrriWeb). Red de distribución en modernización.</div>
+    <div class="products"><strong>Productos relevantes:</strong> PE P100 (red distribución) &middot; PVC Presión (tomas y ramales) &middot; Biorientado (conducciones principales)</div>
+    <div class="argument"><strong>Argumento:</strong> "Con el proyecto de digitalización IrriWeb en marcha, estáis en plena modernización. Las nuevas redes necesitan materiales de calidad certificada. Nuestro PE P100 se está instalando en los proyectos del Plan de Regadíos de Murcia."</div>
+  </div>
+
+  <!-- VISITA 5 -->
+  <div class="visit-card ingenieria">
+    <div class="visit-time">17:30h &nbsp;<span style="font-weight:normal;color:#888;">(de vuelta en Murcia capital)</span></div>
+    <div class="visit-header-row">
+      <span class="visit-num">5</span>
+      <span class="company-name">Daproyect Ingeniería y Nuevas Tecnologías</span>
+      <span class="tag tag-ing">INGENIERÍA EDIFICACIÓN</span>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> C/ San Antonio, 8 entresuelo H &middot; 30001 Murcia</div>
+      <div class="contact-item"><strong>Tel:</strong> 868 670 490 &nbsp;|&nbsp; Móvil: 671 520 788</div>
+      <div class="contact-item"><strong>Email:</strong> info@daproyect.com / dario@daproyect.com</div>
+      <div class="contact-item"><strong>Web:</strong> daproyect.com</div>
+      <div class="contact-item"><strong>Contacto:</strong> Darío (gerente) / Director técnico</div>
+    </div>
+    <div class="project-label">Actividad</div>
+    <div class="notes">Proyectos de instalaciones para arquitectos, constructoras y promotores. Licencias de actividad, instalaciones industriales, certificados energéticos. Proyectos de fontanería e instalaciones en edificios en Murcia y Región.</div>
+    <div class="products"><strong>Productos relevantes:</strong> PVC Presión (instalaciones fontanería y ACS) &middot; MUTE / ECOSAN (saneamiento en edificios)</div>
+    <div class="argument"><strong>Argumento:</strong> "Para vuestros proyectos de instalaciones en edificios, la gama de PVC presión y saneamiento de Ferroplast os da una solución completa con un solo proveedor. Precio competitivo y entrega garantizada."</div>
+  </div>
+
+  <!-- RESERVAS DÍA 4 -->
+  <div class="reservas-block">
+    <h4>Reservas Día 4 &mdash; activar si falla alguna principal</h4>
+    <table class="res">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Empresa</th>
+          <th>Tel</th>
+          <th>Motivo / Nota</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R1</span></td>
+          <td>Mancomunidad Aguas del Tabilla</td>
+          <td>&ndash;</td>
+          <td>Si CR Argos no disponible</td>
+        </tr>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R2</span></td>
+          <td>HIDRALIA Aguas de Jumilla</td>
+          <td>&ndash;</td>
+          <td>Zona norte si se alarga el día</td>
+        </tr>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R3</span></td>
+          <td>HIDRALIA / HIDROGEA</td>
+          <td>&ndash;</td>
+          <td>Murcia capital</td>
+        </tr>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R4</span></td>
+          <td>Ingenalium S.L. (Alcantarilla)</td>
+          <td>968 103 083</td>
+          <td>Ingeniería edificación</td>
+        </tr>
+        <tr>
+          <td><span class="visit-num reserva" style="width:18px;height:18px;line-height:18px;font-size:11px;">R5</span></td>
+          <td>Agritech Murcia</td>
+          <td>968 362 800</td>
+          <td>Murcia capital, si queda tiempo</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== RESUMEN EJECUTIVO ==================== -->
+<div class="day-block" style="page-break-before: always;">
+  <div class="day-header" style="background:#1a3a5c;">Resumen Ejecutivo &mdash; 4 días &middot; 19 visitas principales &middot; 20 reservas</div>
+
+  <table class="summary-table" style="margin-top:12px;">
+    <thead>
+      <tr>
+        <th>Día</th>
+        <th>Fecha</th>
+        <th>Zona</th>
+        <th>Visitas principales</th>
+        <th>Reservas</th>
+        <th>Km aprox.</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Lunes</strong></td>
+        <td>6 Abr</td>
+        <td>Lorca &middot; Totana &middot; Librilla</td>
+        <td>5</td>
+        <td>5</td>
+        <td>~380 km</td>
+      </tr>
+      <tr>
+        <td><strong>Martes</strong></td>
+        <td>7 Abr</td>
+        <td>Molina &middot; Cartagena &middot; Mar Menor</td>
+        <td>4&ndash;5</td>
+        <td>5</td>
+        <td>~180 km</td>
+      </tr>
+      <tr>
+        <td><strong>Miércoles</strong></td>
+        <td>8 Abr</td>
+        <td>Blanca &middot; Abarán</td>
+        <td>4</td>
+        <td>5</td>
+        <td>~120 km</td>
+      </tr>
+      <tr>
+        <td><strong>Jueves</strong></td>
+        <td>9 Abr</td>
+        <td>Campotejar &middot; Mula &middot; Calasparra</td>
+        <td>5</td>
+        <td>5</td>
+        <td>~200 km</td>
+      </tr>
+      <tr>
+        <td><strong>TOTAL</strong></td>
+        <td colspan="2">&mdash;</td>
+        <td><strong>19 visitas</strong></td>
+        <td><strong>20 reservas</strong></td>
+        <td><strong>~880 km</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-header" style="margin-top:18px;">Productos por tipo de cliente</div>
+  <table class="summary-table prod-matrix">
+    <thead>
+      <tr>
+        <th>Producto</th>
+        <th>Regantes</th>
+        <th>Ingeniería hidráulica</th>
+        <th>Ingeniería edificación</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>PE Presión P100</strong></td>
+        <td><span class="star">&#9733;&#9733;&#9733;</span> Principal</td>
+        <td><span class="star">&#9733;&#9733;&#9733;</span> Prescriptor</td>
+        <td>&ndash;</td>
+      </tr>
+      <tr>
+        <td><strong>PVC Presión</strong></td>
+        <td><span class="star">&#9733;&#9733;&#9733;</span> Secundario</td>
+        <td><span class="star">&#9733;&#9733;&#9733;</span> Prescriptor</td>
+        <td><span class="star">&#9733;&#9733;</span> Instalaciones</td>
+      </tr>
+      <tr>
+        <td><strong>Biorientado</strong></td>
+        <td><span class="star">&#9733;&#9733;</span> Impulsiones</td>
+        <td><span class="star">&#9733;&#9733;</span> Prescriptor</td>
+        <td>&ndash;</td>
+      </tr>
+      <tr>
+        <td><strong>MUTE / ECOSAN</strong></td>
+        <td>&ndash;</td>
+        <td><span class="star">&#9733;&#9733;</span> Saneamiento</td>
+        <td><span class="star">&#9733;&#9733;&#9733;</span> Saneamiento edificios</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="footer">
+  <span>Documento generado: 30 Marzo 2026</span>
+  <span>Ferroplast &ndash; Tuyper &nbsp;|&nbsp; Uso interno</span>
+  <span>Planning Visitas Comerciales Murcia &middot; 6&ndash;9 Abril 2026</span>
+</div>
+
+</body>
+</html>
