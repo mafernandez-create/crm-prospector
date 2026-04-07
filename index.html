@@ -23047,9 +23047,12 @@ updateMap();
 
             // ── TABLA INFORMACIÓN GENERAL ────────────────────────────────────────
             const resultColorHex = getResultColor(nivel);
+            const origenVisita   = data.origen || (data.prescripcion_origen ? 'Prescripción' : (data.tipo_visita || '—'));
+            const comercialZona  = (data.comercial && data.comercial !== 'Prescripción') ? data.comercial : '—';
             const infoTable = new Table({ width: { size: 9638, type: WidthType.DXA }, columnWidths: [3000, 6638], rows: [
                 infoRowC('Fecha de visita',    fechaDisp,                                                                            resultColorHex),
                 infoRowC('Empresa visitada',   empresaNom,                                                                           resultColorHex),
+                infoRowC('Origen de la visita', origenVisita,                                                                        resultColorHex),
                 infoRowC('Tipo de visita',     data.prescripcion_origen ? 'Visita de prescripción' : (data.tipo_visita || 'Visita comercial'), resultColorHex),
                 infoRowC('Lugar de visita',    localidad,                                                                            resultColorHex),
                 infoRowC('Contacto(s)',        asist,                                                                                resultColorHex),
@@ -23057,7 +23060,8 @@ updateMap();
                 infoRowC('Web',                stCont.web  || studio?.web  || '—',                                                  resultColorHex),
                 infoRowC('Email',              stCont.email || studio?.email || '—',                                                 resultColorHex),
                 infoRowC('Teléfono',           stCont.phone || studio?.phone || '—',                                                 resultColorHex),
-                infoRowC('Comercial GPF',      comercialGPF,                                                                         resultColorHex),
+                infoRowC('Prescriptor GPF',    'Manuel Fernández — Promotor y Prescriptor',                                         resultColorHex),
+                infoRowC('Comercial de zona',  comercialZona,                                                                        resultColorHex),
             ] });
 
             // ── TABLA EVALUACIÓN (Sección 7 — solo una vez) ──────────────────────
