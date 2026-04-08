@@ -13669,7 +13669,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 '</div>' +
                 '<div style="background:' + res.bg + ';border-radius:10px;padding:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">' +
                 '<div style="font-weight:700;color:' + res.color + ';font-size:1rem;">' + res.label + '</div>' +
-                '<button class="btn btn-primary btn-sm" onclick="showHandoffResultModal(' + studio.id + ')">' + (h.resultado === 'pendiente' ? 'Actualizar resultado' : 'Editar resultado') + '</button>' +
+                '<button class="btn btn-primary btn-sm" onclick="showHandoffResultModal(\'' + studio.id + '\')">' + (h.resultado === 'pendiente' ? 'Actualizar resultado' : 'Editar resultado') + '</button>' +
                 '</div></div>';
         }
 
