@@ -5964,7 +5964,7 @@
                     </div>
                     <div class="card-body" style="padding:12px;">
                         ${alerts.map(s => `
-                            <div onclick="showStudioDetail(${s.id})" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;cursor:pointer;margin-bottom:4px;border:1px solid var(--border);" onmouseover="this.style.background='#f7f9fc'" onmouseout="this.style.background=''">
+                            <div onclick="showStudioDetail('${s.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;cursor:pointer;margin-bottom:4px;border:1px solid var(--border);" onmouseover="this.style.background='#f7f9fc'" onmouseout="this.style.background=''">
                                 <div style="flex:1;min-width:0;">
                                     <div style="font-weight:600;font-size:0.875rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.name || '')}</div>
                                     <div style="font-size:0.75rem;color:var(--muted);">${escapeHtml(s.province || s.city || '')} · <span style="color:${statusColors[s.status||'nuevo']};font-weight:600;">${s.status||'nuevo'}</span></div>
