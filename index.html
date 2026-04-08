@@ -12198,9 +12198,9 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             
             // Usar el ID guardado al abrir el modal, o currentStudioId como fallback
             const studioIdToUpdate = editingContactStudioId || currentStudioId;
-            
-            if (!studioIdToUpdate) {
-                alert('Error: No se pudo identificar la empresa a actualizar');
+
+            if (!studioIdToUpdate || studioIdToUpdate === 'undefined') {
+                alert('Error: No se pudo identificar la empresa. Cierra el panel y ábrelo de nuevo.');
                 if (saveBtn) {
                     saveBtn.disabled = false;
                     saveBtn.textContent = 'Guardar';
