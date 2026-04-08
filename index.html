@@ -8657,7 +8657,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             // Verificar tamaño (máx 5MB)
             const maxSize = 5 * 1024 * 1024;
             if (file.size > maxSize) {
-                alert('⚠️ El archivo es demasiado grande. Máximo 5MB.');
+                showNotification('⚠️ El archivo es demasiado grande. Máximo 5MB.', 'warning');
                 input.value = '';
                 return;
             }
@@ -8944,7 +8944,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             const file = input.files[0];
             if (!file) return;
             if (file.size > 5 * 1024 * 1024) {
-                alert('⚠️ El archivo es demasiado grande. Máximo 5MB.');
+                showNotification('⚠️ El archivo es demasiado grande. Máximo 5MB.', 'warning');
                 input.value = '';
                 return;
             }
