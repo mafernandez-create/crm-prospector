@@ -19633,7 +19633,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                                 <div style="font-weight:600;margin-bottom:8px;">🎯 Objetivos del prescriptor:</div>
                                 ${objectives.map(o => `<div style="margin-bottom:4px;font-size:0.875rem;">• ${o}</div>`).join('')}
                             </div>` : ''}
-                            <button class="btn btn-primary" onclick="startB2BProcess(${studio.id})" style="font-size:1rem;padding:12px 24px;">
+                            <button class="btn btn-primary" onclick="startB2BProcess('${studio.id}')" style="font-size:1rem;padding:12px 24px;">
                                 🚀 Iniciar Proceso de Prescripción
                             </button>
                         </div>
@@ -20123,7 +20123,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 if (studio.b2bTimeline) {
                     return `<span class="task-indicator none">✓ Completado</span>`;
                 }
-                return `<span class="task-indicator none" onclick="event.stopPropagation(); startB2BProcess(${studio.id})" title="Iniciar proceso B2B">🎯 Iniciar</span>`;
+                return `<span class="task-indicator none" onclick="event.stopPropagation(); startB2BProcess('${studio.id}')" title="Iniciar proceso B2B">🎯 Iniciar</span>`;
             }
             
             const labels = {
