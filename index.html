@@ -6088,7 +6088,7 @@
                         <td style="padding:8px 10px;"><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:600;background:${statusColors[st]}22;color:${statusColors[st]};">${statusLabels[st]||st}</span></td>
                         <td style="padding:8px 10px;">${phone ? `<a href="tel:${escapeHtml(phone)}" style="color:var(--primary);text-decoration:none;">${escapeHtml(phone)}</a>` : '—'}</td>
                         <td style="padding:8px 10px;color:var(--muted);font-size:0.8rem;">${escapeHtml(addr)}${addr && city ? ', ' : ''}${escapeHtml(city)}</td>
-                        <td style="padding:8px 10px;"><button class="btn btn-sm btn-secondary" onclick="document.getElementById('route-panel').remove();showStudioDetail(${s.id})">Ver</button></td>
+                        <td style="padding:8px 10px;"><button class="btn btn-sm btn-secondary" onclick="document.getElementById('route-panel').remove();showStudioDetail('${s.id}')">Ver</button></td>
                     </tr>`;
                 }).join('')}
                 </tbody>
