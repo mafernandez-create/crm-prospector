@@ -14637,10 +14637,10 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
         // UTILITIES
         // ============================================
         function copyToClipboard(text) {
-            if (!text) { alert('No hay texto para copiar'); return; }
-            navigator.clipboard.writeText(text).then(() => {
-                alert('Copiado al portapapeles');
-            });
+            if (!text) { showNotification('⚠️ No hay texto para copiar', 'warning'); return; }
+            navigator.clipboard.writeText(text)
+                .then(() => showNotification('✅ Copiado al portapapeles', 'success'))
+                .catch(() => showNotification('❌ No se pudo copiar al portapapeles', 'error'));
         }
         
         function makePhoneCall(phone) {
