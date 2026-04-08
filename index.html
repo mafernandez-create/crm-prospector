@@ -7184,7 +7184,7 @@
                     : `<div class="table-avatar">${escapeHtml(initials(logoName))}</div>`;
 
                 return `
-                <tr onclick="showStudioDetail(${studio.id})" style="cursor:pointer;">
+                <tr onclick="showStudioDetail('${studio.id}')" style="cursor:pointer;">
                     <td>
                         <div class="table-studio">
                             <div class="table-logo-container">${logoHtml}</div>
@@ -7201,8 +7201,8 @@
                     <td data-label="Creado">${formatDate(studio.createdAt)}</td>
                     <td data-label="Tarea B2B">${renderTaskIndicator(studio)}</td>
                     <td data-label="Acciones" class="table-actions-cell">
-                        <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); showStudioDetail(${studio.id})">👁️ Ver</button>
-                        <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); confirmDeleteStudio(${studio.id})" style="margin-left:4px;">🗑️</button>
+                        <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); showStudioDetail('${studio.id}')">👁️ Ver</button>
+                        <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); confirmDeleteStudio('${studio.id}')" style="margin-left:4px;">🗑️</button>
                     </td>
                 </tr>
             `}).join('');
