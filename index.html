@@ -26270,7 +26270,8 @@ Notas:
             notasContainer.insertBefore(wrapper, notasContainer.firstChild);
         }
 
-        function mobileGrabarReunion_UNUSED(studioId, studioName) {
+        function mobileGrabarReunion_DEPRECATED(studioId, studioName) { return; // eliminado
+        function mobileGrabarReunion__DELETED(studioId, studioName) {
             const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SR) {
                 showNotification('Grabación de voz no disponible. Usa Safari en iOS 14+.', 'warning');
