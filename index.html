@@ -22464,14 +22464,21 @@ updateMap();
                 if (remaining.length === 0) break;
 
                 const dayList = [];
-                let currentPos = MALAGA_COORDS;
+                const _pernDia = planificadorData.pernoctas?.[dateStr] || {};
+                let currentPos = _pernDia.salidaCoords || MALAGA_COORDS;
+                const _hotelCoords = _pernDia.llegadaCoords || MALAGA_COORDS;
 
-                // Seleccionar principales: nearest-neighbor
+                // Seleccionar principales: nearest-neighbor (última visita biasea hacia hotel)
                 for (let v = 0; v < visitasDia && remaining.length > 0; v++) {
                     let minDist = Infinity;
                     let minIdx = 0;
+                    const esUltima = (v === visitasDia - 1) || (remaining.length === 1);
                     for (let i = 0; i < remaining.length; i++) {
-                        const d = haversineKm(currentPos[0], currentPos[1], remaining[i].coords[0], remaining[i].coords[1]);
+                        let d = haversineKm(currentPos[0], currentPos[1], remaining[i].coords[0], remaining[i].coords[1]);
+                        if (esUltima) {
+                            // Minimizar distancia total: actual→candidato + candidato→hotel
+                            d += haversineKm(remaining[i].coords[0], remaining[i].coords[1], _hotelCoords[0], _hotelCoords[1]);
+                        }
                         if (d < minDist) {
                             minDist = d;
                             minIdx = i;
