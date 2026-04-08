@@ -8326,7 +8326,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             const name = document.getElementById('manual-name').value.trim();
             
             if (!name) {
-                alert('⚠️ El nombre dla empresa es obligatorio');
+                showNotification('⚠️ El nombre de la empresa es obligatorio', 'warning');
                 return;
             }
             
