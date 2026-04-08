@@ -12166,11 +12166,18 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
         let editingContactStudioId = null;
         
         async function openEditContactModal(studioId) {
-            editingContactStudioId = studioId; // Guardar el ID dla empresa que estamos editando
-            const studio = await getStudio(studioId);
+            // Guardar ID en variable global y en el modal como respaldo
+            editingContactStudioId = studioId;
+            const modal = document.getElementById('modal-edit-contact');
+            if (modal) modal.dataset.studioId = studioId;
+
+            const studio = await getStudio(studioId) || cloudCache.studios.find(s => s.id == studioId);
             if (!studio) {
-                alert('Estudio no encontrado');
-                return;
+                // Si no encontramos el estudio, intentar por currentStudioId
+                const fallbackStudio = await getStudio(currentStudioId);
+                if (!fallbackStudio) { alert('Estudio no encontrado'); return; }
+                editingContactStudioId = currentStudioId;
+                if (modal) modal.dataset.studioId = currentStudioId;
             }
             
             const data = studio.data || {};
