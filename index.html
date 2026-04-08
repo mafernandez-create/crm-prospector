@@ -26151,6 +26151,7 @@ Notas:
                     </div>` : ''}
                     <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
                         ${phone ? `<a href="tel:${escapeHtml(phone.replace(/\s/g,''))}" class="m-btn m-btn-ghost" style="text-decoration:none;text-align:center;">📞 Llamar</a>` : ''}
+                        <button id="estudio-btn-grabar" class="m-btn" style="background:linear-gradient(135deg,#dc2626,#b91c1c);color:white;font-weight:700;padding:13px;border:none;border-radius:12px;cursor:pointer;font-size:0.9rem;width:100%;text-align:center;">🎙️ Grabar reunión</button>
                         <button id="estudio-btn-rapido" class="m-btn" style="background:#6366f1;color:white;font-weight:700;padding:13px;border:none;border-radius:12px;cursor:pointer;font-size:0.9rem;width:100%;">⚡ Registro rápido</button>
                         <button id="estudio-btn-completo" class="m-btn m-btn-ghost" style="text-align:center;">📝 Registro completo</button>
                         <button id="estudio-btn-ia" class="m-btn" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;font-weight:700;padding:13px;border:none;border-radius:12px;cursor:pointer;font-size:0.9rem;width:100%;text-align:center;">✍️ Redactar Informe con IA</button>
@@ -26164,6 +26165,7 @@ Notas:
 
             // Asignar eventos con addEventListener (evita problemas de escape en Safari)
             const closeEstudioModal = () => { modal.remove(); if (root && !root.children.length) root.style.pointerEvents = 'none'; };
+            modal.querySelector('#estudio-btn-grabar').addEventListener('click', () => { closeEstudioModal(); mobileGrabarReunion(s.id, s.name || ''); });
             modal.querySelector('#estudio-btn-rapido').addEventListener('click', () => { closeEstudioModal(); mobileRegistroRapido(safeId, s.name || ''); });
             modal.querySelector('#estudio-btn-completo').addEventListener('click', () => { closeEstudioModal(); mobileIrARegistrar(safeId, s.name || ''); });
             modal.querySelector('#estudio-btn-ia').addEventListener('click', () => { currentStudioId = s.id; window._currentStudioName = s.name; openInformeIAModal(); });
