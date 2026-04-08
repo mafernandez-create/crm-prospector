@@ -26120,48 +26120,51 @@ Notas:
                 </div>` : '';
 
             modal.innerHTML = `
-                <div style="background:#1e293b;border-radius:20px 20px 0 0;width:100%;max-height:85vh;overflow-y:auto;padding:24px 20px 32px;">
-                    <div style="width:40px;height:4px;background:#334155;border-radius:2px;margin:0 auto 20px;"></div>
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
-                        <div style="flex:1;min-width:0;">
-                            <h3 style="margin:0 0 4px;color:#f1f5f9;font-size:1.05rem;line-height:1.3;">${escapeHtml(s.name||'')}</h3>
-                            <p style="margin:0;font-size:0.82rem;color:#94a3b8;">${escapeHtml([city, s.province||''].filter(Boolean).join(' · '))}</p>
-                        </div>
-                        <span class="m-badge s-${status}" style="flex-shrink:0;margin-top:2px;">${status}</span>
-                    </div>
-                    <div style="background:#0f172a;border-radius:12px;padding:4px 14px;">
-                        ${row('🏢', 'Tipo', tipoLabel)}
-                        ${row('👤', 'Contacto', contact)}
-                        ${row('📞', 'Teléfono', phone, phone ? 'tel:' + phone.replace(/\s/g,'') : '')}
-                        ${row('✉️', 'Email', email, email ? 'mailto:' + email : '')}
-                        ${row('🌐', 'Web', web, web ? (web.startsWith('http') ? web : 'https://'+web) : '')}
-                        ${row('📍', 'Dirección', address || city, (address || city) ? 'https://waze.com/ul?q=' + encodeURIComponent((address || s.name) + (city ? ', ' + city : '')) + '&navigate=yes' : '')}
-                    </div>
-                    ${team.length > 0 ? `
-                    <p style="margin:16px 0 8px;font-size:0.7rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">👥 Personas de contacto</p>
-                    <div style="display:flex;flex-direction:column;gap:8px;">
-                        ${team.map(p => `
-                        <div style="background:#0f172a;border-radius:10px;padding:12px 14px;">
-                            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-                                <div style="flex:1;min-width:0;">
-                                    <p style="margin:0;font-size:0.88rem;color:#f1f5f9;font-weight:600;">${escapeHtml(p.name||'')}</p>
-                                    <p style="margin:2px 0 0;font-size:0.75rem;color:#94a3b8;">${escapeHtml(p.role||'')}</p>
-                                </div>
-                                ${p.isDecisionMaker ? '<span style="font-size:0.65rem;background:rgba(99,102,241,0.2);color:#a5b4fc;padding:2px 7px;border-radius:99px;flex-shrink:0;">Decision maker</span>' : ''}
+                <div style="background:#1e293b;border-radius:20px 20px 0 0;width:100%;max-height:90vh;display:flex;flex-direction:column;">
+                    <!-- Contenido scrollable -->
+                    <div style="overflow-y:auto;padding:24px 20px 12px;flex:1;-webkit-overflow-scrolling:touch;">
+                        <div style="width:40px;height:4px;background:#334155;border-radius:2px;margin:0 auto 20px;"></div>
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+                            <div style="flex:1;min-width:0;">
+                                <h3 style="margin:0 0 4px;color:#f1f5f9;font-size:1.05rem;line-height:1.3;">${escapeHtml(s.name||'')}</h3>
+                                <p style="margin:0;font-size:0.82rem;color:#94a3b8;">${escapeHtml([city, s.province||''].filter(Boolean).join(' · '))}</p>
                             </div>
-                            ${p.email ? `<a href="mailto:${escapeHtml(p.email)}" style="display:inline-block;margin-top:6px;font-size:0.75rem;color:#818cf8;text-decoration:none;">✉️ ${escapeHtml(p.email)}</a>` : ''}
-                            ${p.insight ? `<p style="margin:6px 0 0;font-size:0.73rem;color:#64748b;font-style:italic;line-height:1.4;">"${escapeHtml(p.insight)}"</p>` : ''}
-                        </div>`).join('')}
-                    </div>` : ''}
-                    <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
+                            <span class="m-badge s-${status}" style="flex-shrink:0;margin-top:2px;">${status}</span>
+                        </div>
+                        <div style="background:#0f172a;border-radius:12px;padding:4px 14px;">
+                            ${row('🏢', 'Tipo', tipoLabel)}
+                            ${row('👤', 'Contacto', contact)}
+                            ${row('📞', 'Teléfono', phone, phone ? 'tel:' + phone.replace(/\s/g,'') : '')}
+                            ${row('✉️', 'Email', email, email ? 'mailto:' + email : '')}
+                            ${row('🌐', 'Web', web, web ? (web.startsWith('http') ? web : 'https://'+web) : '')}
+                            ${row('📍', 'Dirección', address || city, (address || city) ? 'https://waze.com/ul?q=' + encodeURIComponent((address || s.name) + (city ? ', ' + city : '')) + '&navigate=yes' : '')}
+                        </div>
+                        ${team.length > 0 ? `
+                        <p style="margin:16px 0 8px;font-size:0.7rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">👥 Personas de contacto</p>
+                        <div style="display:flex;flex-direction:column;gap:8px;">
+                            ${team.map(p => `
+                            <div style="background:#0f172a;border-radius:10px;padding:12px 14px;">
+                                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                                    <div style="flex:1;min-width:0;">
+                                        <p style="margin:0;font-size:0.88rem;color:#f1f5f9;font-weight:600;">${escapeHtml(p.name||'')}</p>
+                                        <p style="margin:2px 0 0;font-size:0.75rem;color:#94a3b8;">${escapeHtml(p.role||'')}</p>
+                                    </div>
+                                    ${p.isDecisionMaker ? '<span style="font-size:0.65rem;background:rgba(99,102,241,0.2);color:#a5b4fc;padding:2px 7px;border-radius:99px;flex-shrink:0;">Decision maker</span>' : ''}
+                                </div>
+                                ${p.email ? `<a href="mailto:${escapeHtml(p.email)}" style="display:inline-block;margin-top:6px;font-size:0.75rem;color:#818cf8;text-decoration:none;">✉️ ${escapeHtml(p.email)}</a>` : ''}
+                                ${p.insight ? `<p style="margin:6px 0 0;font-size:0.73rem;color:#64748b;font-style:italic;line-height:1.4;">"${escapeHtml(p.insight)}"</p>` : ''}
+                            </div>`).join('')}
+                        </div>` : ''}
+                    </div>
+                    <!-- Botones fijos en la parte inferior -->
+                    <div style="padding:12px 20px 28px;border-top:1px solid rgba(255,255,255,0.06);background:#1e293b;display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
                         ${phone ? `<a href="tel:${escapeHtml(phone.replace(/\s/g,''))}" class="m-btn m-btn-ghost" style="text-decoration:none;text-align:center;">📞 Llamar</a>` : ''}
                         <button id="estudio-btn-grabar" class="m-btn" style="background:linear-gradient(135deg,#dc2626,#b91c1c);color:white;font-weight:700;padding:13px;border:none;border-radius:12px;cursor:pointer;font-size:0.9rem;width:100%;text-align:center;">🎙️ Grabar reunión</button>
                         <button id="estudio-btn-rapido" class="m-btn" style="background:#6366f1;color:white;font-weight:700;padding:13px;border:none;border-radius:12px;cursor:pointer;font-size:0.9rem;width:100%;">⚡ Registro rápido</button>
                         <button id="estudio-btn-completo" class="m-btn m-btn-ghost" style="text-align:center;">📝 Registro completo</button>
                         <button id="estudio-btn-ia" class="m-btn" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;font-weight:700;padding:13px;border:none;border-radius:12px;cursor:pointer;font-size:0.9rem;width:100%;text-align:center;">✍️ Redactar Informe con IA</button>
+                        <button id="estudio-btn-cerrar" style="width:100%;padding:14px;background:#334155;border:none;border-radius:12px;color:#f1f5f9;font-size:0.95rem;cursor:pointer;">Cerrar</button>
                     </div>
-                    <button id="estudio-btn-cerrar"
-                        style="margin-top:10px;width:100%;padding:14px;background:#334155;border:none;border-radius:12px;color:#f1f5f9;font-size:0.95rem;cursor:pointer;">Cerrar</button>
                 </div>`;
             const root = document.getElementById('mobile-modal-root') || document.getElementById('mobile-app') || document.body;
             root.style.pointerEvents = 'auto';
