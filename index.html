@@ -6583,7 +6583,7 @@
             const empresa = document.getElementById('ho-empresa').value;
             const comercial = document.getElementById('ho-comercial').value.trim();
             const notas = document.getElementById('ho-notas').value.trim();
-            if (!comercial) { alert('Indica el nombre del comercial'); return; }
+            if (!comercial) { showNotification('⚠️ Indica el nombre del comercial', 'warning'); return; }
 
             const handoff = {
                 empresa, comercial, notas,
@@ -8710,12 +8710,12 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             const date = document.getElementById('report-date').value;
             
             if (!title || !date) {
-                alert('⚠️ El título y la fecha son obligatorios');
+                showNotification('⚠️ El título y la fecha son obligatorios', 'warning');
                 return;
             }
             
             if (!selectedReportFile) {
-                alert('⚠️ Debes seleccionar un archivo');
+                showNotification('⚠️ Debes seleccionar un archivo', 'warning');
                 return;
             }
             
@@ -8962,7 +8962,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             const notes = document.getElementById('er-notes')?.value.trim();
 
             if (!title || !date) {
-                alert('⚠️ El título y la fecha son obligatorios');
+                showNotification('⚠️ El título y la fecha son obligatorios', 'warning');
                 return;
             }
 
@@ -13670,7 +13670,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const empresa = document.getElementById('ho-empresa').value;
             const comercial = document.getElementById('ho-comercial').value.trim();
             const notas = document.getElementById('ho-notas').value.trim();
-            if (!comercial) { alert('Indica el nombre del comercial'); return; }
+            if (!comercial) { showNotification('⚠️ Indica el nombre del comercial', 'warning'); return; }
             const handoff = { empresa, comercial, notas, fechaTraspaso: new Date().toISOString(), resultado: 'pendiente', fechaResultado: null };
             await updateStudio(studioId, { status: 'traspasado', handoff });
             await addActivity({ studioId, type: 'status', text: '🤝 Traspasado a ' + comercial + ' (' + empresa + '). ' + notas });
