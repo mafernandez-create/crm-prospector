@@ -8438,7 +8438,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             const role = document.getElementById('team-member-role').value.trim();
             
             if (!name || !role) {
-                alert('⚠️ El nombre y el cargo son obligatorios');
+                showNotification('⚠️ El nombre y el cargo son obligatorios', 'warning');
                 return;
             }
             
@@ -8574,7 +8574,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             const role = document.getElementById('edit-team-member-role').value.trim();
             
             if (!name || !role) {
-                alert('⚠️ El nombre y el cargo son obligatorios');
+                showNotification('⚠️ El nombre y el cargo son obligatorios', 'warning');
                 return;
             }
             
