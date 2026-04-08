@@ -12118,7 +12118,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const text = document.getElementById('activity-text').value.trim();
             const followup = document.getElementById('activity-followup').value;
             
-            if (!text) { alert('Añade una descripción'); return; }
+            if (!text) { showNotification('⚠️ Añade una descripción', 'warning'); return; }
             
             // Obtener productos seleccionados si es una reunión
             let productos = [];
