@@ -26185,71 +26185,85 @@ Notas:
         async function mobileGrabarReunion(studioId, studioName) {
             if (window._grabSession) { window._grabSession.cancel(); }
 
-            // 1. Pedir permiso de micrófono con getUserMedia (no recarga la página en iOS)
+            if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+                showNotification('Grabación no disponible. Usa Safari en iOS 14.3+.', 'warning'); return;
+            }
+
+            // 1. BANNER PRIMERO — antes del diálogo de permisos de iOS
+            document.getElementById('grab-banner')?.remove();
+            const banner = document.createElement('div');
+            banner.id = 'grab-banner';
+            banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#991b1b;padding:max(env(safe-area-inset-top,14px),14px) 16px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 20px rgba(0,0,0,0.7);font-family:-apple-system,sans-serif;';
+            banner.innerHTML = `
+                <div style="width:11px;height:11px;border-radius:50%;background:#fca5a5;flex-shrink:0;animation:gDot 1.2s ease-in-out infinite;"></div>
+                <div style="flex:1;min-width:0;">
+                    <p id="grab-status-txt" style="margin:0;font-size:0.68rem;color:#fca5a5;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Solicitando micrófono…</p>
+                    <p style="margin:2px 0 0;font-size:0.82rem;color:white;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(studioName)}</p>
+                </div>
+                <span id="grab-timer" style="font-size:1rem;font-weight:700;color:rgba(255,255,255,0.4);font-variant-numeric:tabular-nums;flex-shrink:0;">0:00</span>
+                <button id="grab-stop" style="background:white;color:#991b1b;border:none;border-radius:8px;padding:9px 16px;font-size:0.9rem;font-weight:700;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent;">⏹ Parar</button>
+                <style>@keyframes gDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.2;transform:scale(.6)}}</style>`;
+            document.body.appendChild(banner);
+
+            // 2. AHORA pedir permiso — el banner ya es visible
             let stream;
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             } catch(e) {
-                showNotification('No se pudo acceder al micrófono. Actívalo en Ajustes > Safari > Micrófono.', 'warning');
+                document.getElementById('grab-banner')?.remove();
+                window._grabSession = null;
+                showNotification(
+                    (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError')
+                        ? 'Permiso denegado. Ve a Ajustes > Safari > Micrófono.'
+                        : 'Error micrófono: ' + (e.message || e.name),
+                    'warning');
                 return;
             }
 
-            // 2. Configurar MediaRecorder
-            const mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4'
-                           : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+            // Actualizar estado a grabando
+            const st = document.getElementById('grab-status-txt');
+            const tm = document.getElementById('grab-timer');
+            if (st) st.textContent = '● GRABANDO';
+            if (tm) tm.style.color = 'white';
+
+            // 3. MediaRecorder
+            const mimeType = ['audio/mp4','audio/aac','audio/webm','audio/ogg']
+                .find(t => { try { return MediaRecorder.isTypeSupported(t); } catch(_){ return false; } }) || '';
             const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
-            const chunks = [];
+            const chunks   = [];
             recorder.ondataavailable = e => { if (e.data?.size > 0) chunks.push(e.data); };
 
-            // 3. Mostrar banner de control (z-index máximo, sobrevive a todo)
-            const banner = document.createElement('div');
-            banner.id = 'grab-banner';
-            banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#991b1b;padding:max(env(safe-area-inset-top,14px),14px) 16px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 16px rgba(0,0,0,0.6);';
-            banner.innerHTML = `
-                <div style="width:10px;height:10px;border-radius:50%;background:#fca5a5;flex-shrink:0;animation:gDot 1s ease-in-out infinite;"></div>
-                <div style="flex:1;min-width:0;overflow:hidden;">
-                    <p style="margin:0;font-size:0.7rem;color:#fca5a5;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">● REC</p>
-                    <p style="margin:1px 0 0;font-size:0.8rem;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(studioName)}</p>
-                </div>
-                <span id="grab-timer" style="font-size:1rem;font-weight:700;color:white;font-variant-numeric:tabular-nums;flex-shrink:0;">0:00</span>
-                <button id="grab-stop" style="background:white;color:#991b1b;border:none;border-radius:8px;padding:9px 16px;font-size:0.9rem;font-weight:700;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent;">⏹ Parar</button>
-                <style>@keyframes gDot{0%,100%{opacity:1}50%{opacity:.2}}</style>`;
-            document.body.appendChild(banner);
-
-            // Timer
+            // 4. Timer
             let seconds = 0;
-            const timerEl = () => document.getElementById('grab-timer');
             const timerInt = setInterval(() => {
                 seconds++;
-                const el = timerEl();
+                const el = document.getElementById('grab-timer');
                 if (el) el.textContent = `${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
             }, 1000);
 
-            function stopSession(andOpenReport) {
+            // 5. Parar
+            function stopSession(openReport) {
                 clearInterval(timerInt);
-                if (recorder.state !== 'inactive') recorder.stop();
-                stream.getTracks().forEach(t => t.stop());
-                document.getElementById('grab-banner')?.remove();
                 window._grabSession = null;
-                if (!andOpenReport) return;
-
-                recorder.onstop = () => {
+                stream.getTracks().forEach(t => t.stop());
+                const finish = () => {
+                    document.getElementById('grab-banner')?.remove();
+                    if (!openReport) return;
                     const blob = new Blob(chunks, { type: mimeType || 'audio/mpeg' });
                     window._grabAudioUrl  = URL.createObjectURL(blob);
                     window._grabAudioSecs = seconds;
                     currentStudioId = studioId;
                     window._currentStudioName = studioName;
                     openInformeIAModal();
-                    // Inyectar reproductor de audio en el modal de informe
-                    setTimeout(() => _inyectarAudioEnInforme(), 200);
+                    setTimeout(_inyectarAudioEnInforme, 250);
                 };
+                if (recorder.state !== 'inactive') { recorder.onstop = finish; recorder.stop(); }
+                else finish();
             }
 
             window._grabSession = { cancel: () => stopSession(false) };
-
             document.getElementById('grab-stop').addEventListener('click', () => stopSession(true));
-
-            recorder.start(1000); // chunk cada segundo
+            recorder.start(1000);
         }
 
         function _inyectarAudioEnInforme() {
