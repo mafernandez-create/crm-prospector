@@ -4683,7 +4683,14 @@
                     firestoreDB.collection('activities').get(),
                     firestoreDB.collection('_meta').doc('counters').get()
                 ]);
-                cloudCache.studios = studiosSnap.docs.map(d => d.data());
+                cloudCache.studios = studiosSnap.docs.map(d => {
+                    const data = d.data();
+                    // Si el doc no tiene 'id' como campo, usar el nombre del documento como fallback
+                    if (data.id === undefined || data.id === null) {
+                        data.id = parseInt(d.id) || d.id;
+                    }
+                    return data;
+                });
                 cloudCache.activities = activitiesSnap.docs.map(d => d.data());
                 cloudCache.lastSync = new Date().toISOString();
                 if (countersSnap.exists) {
