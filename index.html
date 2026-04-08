@@ -6502,7 +6502,7 @@
                     </div>
                     <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
                         <button class="btn btn-secondary" onclick="document.getElementById('handoff-modal').remove()">Cancelar</button>
-                        <button class="btn btn-primary" onclick="confirmHandoff(${studioId})">✅ Confirmar traspaso</button>
+                        <button class="btn btn-primary" onclick="confirmHandoff('${studioId}')">✅ Confirmar traspaso</button>
                     </div>
                 </div>
             `;
@@ -6559,7 +6559,7 @@
                     </div>
                     <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
                         <button class="btn btn-secondary" onclick="document.getElementById('handoff-result-modal').remove()">Cancelar</button>
-                        <button class="btn btn-primary" onclick="confirmHandoffResult(${studioId})">✅ Guardar resultado</button>
+                        <button class="btn btn-primary" onclick="confirmHandoffResult('${studioId}')">✅ Guardar resultado</button>
                     </div>
                 </div>
             `;
@@ -6597,7 +6597,7 @@
                     <div style="text-align:center;padding:32px;color:var(--muted);">
                         <div style="font-size:3rem;margin-bottom:12px;">🤝</div>
                         <p style="margin-bottom:16px;">Registra el traspaso al comercial cuando el proceso de prescripción esté listo.</p>
-                        <button class="btn btn-primary" onclick="showHandoffModal(${studio.id})">🤝 Registrar traspaso</button>
+                        <button class="btn btn-primary" onclick="showHandoffModal('${studio.id}')">🤝 Registrar traspaso</button>
                     </div>`;
             }
 
