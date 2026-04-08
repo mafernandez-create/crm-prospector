@@ -5314,6 +5314,9 @@
         }
 
         async function updateStudio(id, updates) {
+            if (!id || id === 'undefined' || id === undefined) {
+                throw new Error('ID de estudio no válido: ' + id);
+            }
             // FIREBASE
             if (useFirebase) {
                 const updatesWithTs = { ...updates, updatedAt: new Date().toISOString() };
