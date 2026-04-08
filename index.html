@@ -7291,7 +7291,7 @@
                             <div class="card">
                                 <div class="card-header">
                                     <h3 class="card-title">📞 Contacto</h3>
-                                    <button class="btn btn-sm btn-secondary" onclick="openEditContactModal(${id})">✏️ Editar</button>
+                                    <button class="btn btn-sm btn-secondary" onclick="openEditContactModal('${id}')">✏️ Editar</button>
                                 </div>
                                 <div class="card-body">
                                     <div class="info-grid">
@@ -19873,7 +19873,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 const urgencyLabel = urgencyLabels[action.urgency];
 
                 return `
-                    <div class="action-card ${action.urgency}" onclick="showStudioDetail(${action.studioId})">
+                    <div class="action-card ${action.urgency}" onclick="showStudioDetail('${action.studioId}')">
                         <div class="action-icon ${action.step.channel}">
                             ${action.step.icon}
                         </div>
