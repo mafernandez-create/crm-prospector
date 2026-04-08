@@ -22850,6 +22850,24 @@ updateMap();
                         ⚠️ Festivo: ${festivosDia.map(h => h.localName).join(', ')}
                     </div>` : '';
 
+                const _pern = planificadorData.pernoctas?.[dateStr] || {};
+                const _salidaLbl = _pern.salida || '';
+                const _llegadaLbl = _pern.llegada || '';
+                const _pernRow = !isWeekend ? `
+                    <div onclick="editPernocta('${dateStr}')" style="
+                        display:flex;align-items:center;justify-content:space-between;
+                        padding:4px 10px;font-size:0.7rem;cursor:pointer;
+                        background:rgba(0,0,0,0.2);border-bottom:1px solid rgba(255,255,255,0.04);
+                        color:#64748b;gap:6px;transition:background 0.15s;"
+                        onmouseenter="this.style.background='rgba(99,102,241,0.1)'"
+                        onmouseleave="this.style.background='rgba(0,0,0,0.2)'"
+                        title="Salida y pernocta del día">
+                        <span>📍 <span style="color:${_salidaLbl ? '#a5b4fc' : '#475569'}">${_salidaLbl || 'Salida…'}</span></span>
+                        <span style="color:#334155">→</span>
+                        <span>🏨 <span style="color:${_llegadaLbl ? '#a5b4fc' : '#475569'}">${_llegadaLbl || 'Hotel…'}</span></span>
+                        <span style="font-size:0.6rem;color:#334155;">✏️</span>
+                    </div>` : '';
+
                 return `
                     <div class="calendar-day ${isWeekend ? 'weekend' : ''} ${statusClass}${hasFestivo ? ' has-festivo' : ''}"
                          data-date="${dateStr}"
@@ -22860,6 +22878,7 @@ updateMap();
                             <span>${dayName} ${dayNum} ${monthName}${hasFestivo ? ' ⚠️' : ''}</span>
                             <span class="calendar-day-count">${count}/${visitasDia}${countReservas > 0 ? ' +' + countReservas : ''}</span>
                         </div>
+                        ${_pernRow}
                         <div class="calendar-day-body" id="day-${dateStr}">
                             ${isWeekend ? '<div style="text-align:center;color:#94a3b8;font-size:0.75rem;padding:20px;">Fin de semana</div>' :
                               (function() {
