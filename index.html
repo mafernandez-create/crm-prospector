@@ -13854,6 +13854,7 @@ ${comercialCalls.length > 0 ? `
 
             // Open in new window for print/save
             const win = window.open('', '_blank');
+            if (!win) { showNotification('⚠️ El navegador bloqueó la ventana emergente. Permite ventanas emergentes para esta página.', 'warning'); return; }
             win.document.write(reportHtml);
             win.document.close();
 
