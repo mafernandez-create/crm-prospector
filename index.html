@@ -6638,7 +6638,7 @@
 
         async function confirmHandoffResult(studioId) {
             const resultadoVal = document.querySelector('input[name="hr-resultado"]:checked')?.value;
-            if (!resultadoVal) { alert('Selecciona un resultado'); return; }
+            if (!resultadoVal) { showNotification('⚠️ Selecciona un resultado', 'warning'); return; }
             const notas = document.getElementById('hr-notas').value.trim();
 
             const studio = await getStudio(studioId);
@@ -13700,7 +13700,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
 
         async function confirmHandoffResult(studioId) {
             const resultadoVal = document.querySelector('input[name="hr-resultado"]:checked') && document.querySelector('input[name="hr-resultado"]:checked').value;
-            if (!resultadoVal) { alert('Selecciona un resultado'); return; }
+            if (!resultadoVal) { showNotification('⚠️ Selecciona un resultado', 'warning'); return; }
             const notas = document.getElementById('hr-notas').value.trim();
             const studio = await getStudio(studioId);
             const handoff = studio.handoff || {};
