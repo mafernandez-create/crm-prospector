@@ -24436,7 +24436,7 @@ ${webContent ? `INFORMACIÓN OBTENIDA DE LA WEB DE LA EMPRESA (${webUrl}):\n"""\
 ${historialCRM ? historialCRM : ''}${modalidad === 'real'
   ? (notas
       ? `NOTAS DE MANUEL SOBRE LA VISITA (usa esta información como base exclusiva — no inventes nada más):\n"${notas}"\n\nIMPORTANTE MODO REAL: Completa el informe usando SOLO lo que aparece en las notas, en los datos del CRM arriba y en el historial del cliente. Para cualquier campo sin información disponible escribe "—". Nunca inventes nombres de personas, proyectos, declaraciones ni datos que no estén en las fuentes anteriores.`
-      : `NOTA: La visita fue grabada en audio. No hay notas escritas disponibles aún. Genera el informe con los datos del CRM, el historial del cliente y la información de la empresa obtenida de internet. Para cualquier campo sin datos escribe "—". No inventes nombres, proyectos ni declaraciones.`
+      : `Genera un informe ficticio completo y detallado basándote en toda la información disponible de la empresa (CRM, web si disponible, tipo de cliente). TODOS los campos deben tener contenido realista, ninguno vacío.`
     )
   : (notas
       ? `DATOS ADICIONALES PROPORCIONADOS:\n"${notas}"\n\nGenera un informe ficticio completo usando toda la información disponible de la empresa.`
