@@ -14350,6 +14350,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             var printContent = '<!DOCTYPE html><html><head><title>Reporte de Actividades</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;padding:20px;font-size:12px}h1{font-size:18px;margin-bottom:10px}.period{color:#666;margin-bottom:20px}.studio{margin-bottom:15px;border:1px solid #ddd;border-radius:8px;overflow:hidden;page-break-inside:avoid}.studio-header{background:#f5f5f5;padding:10px;border-bottom:1px solid #ddd;display:flex;justify-content:space-between}.studio-name{font-weight:bold}.studio-meta{color:#666;font-size:11px}table{width:100%;border-collapse:collapse}th,td{padding:6px 8px;text-align:left;border-bottom:1px solid #eee}th{font-size:10px;color:#666;text-transform:uppercase}</style></head><body><h1>📊 Reporte de Actividades - Ferroplast CRM</h1><div class="period">📅 Período: ' + lastReportData.startDate + ' - ' + lastReportData.endDate + ' | Total: ' + lastReportData.totalActivities + ' actividades</div>' + studiosHtml + '<scr' + 'ipt>window.onload=function(){window.print();}</scr' + 'ipt></body></html>';
             
             var printWindow = window.open('', '_blank');
+            if (!printWindow) { showNotification('⚠️ El navegador bloqueó la ventana emergente. Permite ventanas emergentes para esta página.', 'warning'); return; }
             printWindow.document.write(printContent);
             printWindow.document.close();
         }
@@ -14973,6 +14974,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             
             // Abrir en nueva ventana
             const printWindow = window.open('', '_blank');
+            if (!printWindow) { showNotification('⚠️ El navegador bloqueó la ventana emergente. Permite ventanas emergentes para esta página.', 'warning'); return; }
             printWindow.document.write(reportHtml);
             printWindow.document.close();
         }
