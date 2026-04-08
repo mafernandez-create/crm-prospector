@@ -24166,8 +24166,15 @@ ${body}
             const visitaPrescripcion = document.getElementById('informe-ia-prescripcion')?.checked || false;
             const statusDiv = document.getElementById('informe-ia-status');
 
-            if (modalidad === 'real' && !notas) {
-                showNotification('⚠️ Escribe las notas de la visita antes de generar', 'warning');
+            const hasAudio = !!window._grabAudioUrl;
+            if (modalidad === 'real' && !notas && !hasAudio) {
+                // Mostrar aviso dentro del modal (showNotification queda oculto detrás en iOS)
+                if (statusDiv) {
+                    statusDiv.style.display = 'block';
+                    statusDiv.style.background = 'rgba(245,158,11,0.15)';
+                    statusDiv.style.color = '#fbbf24';
+                    statusDiv.textContent = '⚠️ Escribe las notas de la visita antes de generar el informe.';
+                }
                 return;
             }
 
