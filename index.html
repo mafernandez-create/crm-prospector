@@ -26180,10 +26180,97 @@ Notas:
         }
 
         // ── GRABACIÓN DE REUNIÓN ──────────────────────────────
-        // Estado global para que el banner de stop siempre funcione
         window._grabSession = null;
 
-        function mobileGrabarReunion(studioId, studioName) {
+        async function mobileGrabarReunion(studioId, studioName) {
+            if (window._grabSession) { window._grabSession.cancel(); }
+
+            // 1. Pedir permiso de micrófono con getUserMedia (no recarga la página en iOS)
+            let stream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            } catch(e) {
+                showNotification('No se pudo acceder al micrófono. Actívalo en Ajustes > Safari > Micrófono.', 'warning');
+                return;
+            }
+
+            // 2. Configurar MediaRecorder
+            const mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4'
+                           : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+            const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+            const chunks = [];
+            recorder.ondataavailable = e => { if (e.data?.size > 0) chunks.push(e.data); };
+
+            // 3. Mostrar banner de control (z-index máximo, sobrevive a todo)
+            const banner = document.createElement('div');
+            banner.id = 'grab-banner';
+            banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#991b1b;padding:max(env(safe-area-inset-top,14px),14px) 16px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 16px rgba(0,0,0,0.6);';
+            banner.innerHTML = `
+                <div style="width:10px;height:10px;border-radius:50%;background:#fca5a5;flex-shrink:0;animation:gDot 1s ease-in-out infinite;"></div>
+                <div style="flex:1;min-width:0;overflow:hidden;">
+                    <p style="margin:0;font-size:0.7rem;color:#fca5a5;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">● REC</p>
+                    <p style="margin:1px 0 0;font-size:0.8rem;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(studioName)}</p>
+                </div>
+                <span id="grab-timer" style="font-size:1rem;font-weight:700;color:white;font-variant-numeric:tabular-nums;flex-shrink:0;">0:00</span>
+                <button id="grab-stop" style="background:white;color:#991b1b;border:none;border-radius:8px;padding:9px 16px;font-size:0.9rem;font-weight:700;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent;">⏹ Parar</button>
+                <style>@keyframes gDot{0%,100%{opacity:1}50%{opacity:.2}}</style>`;
+            document.body.appendChild(banner);
+
+            // Timer
+            let seconds = 0;
+            const timerEl = () => document.getElementById('grab-timer');
+            const timerInt = setInterval(() => {
+                seconds++;
+                const el = timerEl();
+                if (el) el.textContent = `${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
+            }, 1000);
+
+            function stopSession(andOpenReport) {
+                clearInterval(timerInt);
+                if (recorder.state !== 'inactive') recorder.stop();
+                stream.getTracks().forEach(t => t.stop());
+                document.getElementById('grab-banner')?.remove();
+                window._grabSession = null;
+                if (!andOpenReport) return;
+
+                recorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: mimeType || 'audio/mpeg' });
+                    window._grabAudioUrl  = URL.createObjectURL(blob);
+                    window._grabAudioSecs = seconds;
+                    currentStudioId = studioId;
+                    window._currentStudioName = studioName;
+                    openInformeIAModal();
+                    // Inyectar reproductor de audio en el modal de informe
+                    setTimeout(() => _inyectarAudioEnInforme(), 200);
+                };
+            }
+
+            window._grabSession = { cancel: () => stopSession(false) };
+
+            document.getElementById('grab-stop').addEventListener('click', () => stopSession(true));
+
+            recorder.start(1000); // chunk cada segundo
+        }
+
+        function _inyectarAudioEnInforme() {
+            const notasContainer = document.getElementById('informe-ia-notas')?.parentElement;
+            if (!notasContainer || !window._grabAudioUrl) return;
+            const prev = document.getElementById('grab-audio-player');
+            if (prev) prev.remove();
+            const mins = Math.floor((window._grabAudioSecs||0) / 60);
+            const secs = (window._grabAudioSecs||0) % 60;
+            const durStr = `${mins}:${String(secs).padStart(2,'0')}`;
+            const wrapper = document.createElement('div');
+            wrapper.id = 'grab-audio-player';
+            wrapper.style.cssText = 'background:#0f172a;border:1px solid rgba(220,38,38,0.4);border-radius:10px;padding:12px 14px;margin-bottom:10px;';
+            wrapper.innerHTML = `
+                <p style="margin:0 0 8px;font-size:0.72rem;color:#fca5a5;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">🎙️ Grabación · ${durStr}</p>
+                <audio controls style="width:100%;border-radius:6px;" src="${window._grabAudioUrl}"></audio>
+                <p style="margin:8px 0 0;font-size:0.75rem;color:#475569;">Escucha la grabación y añade tus notas abajo antes de generar el informe.</p>`;
+            notasContainer.insertBefore(wrapper, notasContainer.firstChild);
+        }
+
+        function mobileGrabarReunion_UNUSED(studioId, studioName) {
             const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SR) {
                 showNotification('Grabación de voz no disponible. Usa Safari en iOS 14+.', 'warning');
