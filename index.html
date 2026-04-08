@@ -12203,8 +12203,10 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 saveBtn.textContent = 'Guardando...';
             }
             
-            // Usar el ID guardado al abrir el modal, o currentStudioId como fallback
-            const studioIdToUpdate = editingContactStudioId || currentStudioId;
+            // Triple fallback: variable global → dataset del modal → currentStudioId
+            const _modalId = document.getElementById('modal-edit-contact')?.dataset?.studioId;
+            const studioIdToUpdate = editingContactStudioId || _modalId || currentStudioId;
+            console.log('[saveContactEdit] studioIdToUpdate:', studioIdToUpdate, '| editingContactStudioId:', editingContactStudioId, '| _modalId:', _modalId, '| currentStudioId:', currentStudioId);
 
             if (!studioIdToUpdate || studioIdToUpdate === 'undefined') {
                 alert('Error: No se pudo identificar la empresa. Cierra el panel y ábrelo de nuevo.');
