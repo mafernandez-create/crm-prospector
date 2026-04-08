@@ -6624,7 +6624,7 @@
                     </div>
                     <div style="background:${res.bg};border-radius:10px;padding:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
                         <div style="font-weight:700;color:${res.color};font-size:1rem;">${res.label}</div>
-                        ${h.resultado === 'pendiente' ? `<button class="btn btn-primary btn-sm" onclick="showHandoffResultModal(${studio.id})">Actualizar resultado</button>` : `<button class="btn btn-secondary btn-sm" onclick="showHandoffResultModal(${studio.id})">Editar resultado</button>`}
+                        ${h.resultado === 'pendiente' ? `<button class="btn btn-primary btn-sm" onclick="showHandoffResultModal('${studio.id}')">Actualizar resultado</button>` : `<button class="btn btn-secondary btn-sm" onclick="showHandoffResultModal('${studio.id}')">Editar resultado</button>`}
                     </div>
                     ${h.resultado === 'pendiente' ? `
                     <div style="background:#eff6ff;border-radius:8px;padding:12px 16px;font-size:0.875rem;color:#1e40af;">
@@ -20047,10 +20047,10 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                                 </div>
                             </div>
                             <div class="pending-task-buttons">
-                                <button class="btn-complete-task" onclick="completeTaskFromModal(${action.studioId}, ${action.stepIndex})">
+                                <button class="btn-complete-task" onclick="completeTaskFromModal('${action.studioId}', ${action.stepIndex})">
                                     ✓ Completar
                                 </button>
-                                <button class="btn-view-studio" onclick="viewStudioFromModal(${action.studioId})">
+                                <button class="btn-view-studio" onclick="viewStudioFromModal('${action.studioId}')">
                                     👁️ Ver ficha
                                 </button>
                             </div>
