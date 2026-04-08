@@ -26019,7 +26019,6 @@ Notas:
 
             // Asignar eventos con addEventListener (evita problemas de escape en Safari)
             const closeModal = () => { modal.remove(); if (root && !root.children.length) root.style.pointerEvents = 'none'; };
-            modal.querySelector('#hoy-btn-grabar').addEventListener('click', () => { closeModal(); mobileGrabarReunion(id, name || ''); });
             modal.querySelector('#hoy-btn-rapido').addEventListener('click', () => { closeModal(); mobileRegistroRapido(String(id), name || ''); });
             modal.querySelector('#hoy-btn-completo').addEventListener('click', () => { closeModal(); mobileIrARegistrar(String(id), name || ''); });
             modal.querySelector('#hoy-btn-ia').addEventListener('click', () => { currentStudioId = id; window._currentStudioName = name; openInformeIAModal(); });
