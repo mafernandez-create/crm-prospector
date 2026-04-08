@@ -6460,7 +6460,7 @@
                         ? '<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:0.78rem;">—</div>'
                         : cards.map(s => {
                             const lastAct = s.updatedAt ? formatDate(s.updatedAt) : '';
-                            return `<div class="kanban-card" onclick="showStudioDetail(${s.id})" style="border-left-color:${col.color};">
+                            return `<div class="kanban-card" onclick="showStudioDetail('${s.id}')" style="border-left-color:${col.color};">
                                 <div class="kanban-card-name">${escapeHtml(s.name || '')}</div>
                                 <div class="kanban-card-meta">${escapeHtml(s.province || s.city || '')}${lastAct ? ' · ' + lastAct : ''}</div>
                                 ${s.type ? `<span class="kanban-card-type">${escapeHtml(s.type)}</span>` : ''}
@@ -6812,7 +6812,7 @@
                     ${recentActivities.map(act => {
                         const studio = studios.find(s => s.id === act.studioId);
                         return `
-                            <div class="timeline-item" style="cursor:pointer;" onclick="showStudioDetail(${act.studioId})">
+                            <div class="timeline-item" style="cursor:pointer;" onclick="showStudioDetail('${act.studioId}')">
                                 <div class="timeline-dot ${act.type}"></div>
                                 <div class="timeline-date">${formatDateTime(act.createdAt)}</div>
                                 <div class="timeline-content">
@@ -6838,7 +6838,7 @@
                             <div class="timeline-item">
                                 <div class="timeline-dot ${act.type}"></div>
                                 <div class="timeline-date">📅 ${formatDate(act.followupDate)}</div>
-                                <div class="timeline-content" style="cursor:pointer;" onclick="showStudioDetail(${act.studioId})">
+                                <div class="timeline-content" style="cursor:pointer;" onclick="showStudioDetail('${act.studioId}')">
                                     <div class="timeline-type">${escapeHtml(studio?.name || 'Estudio')}</div>
                                     <div class="timeline-text">${escapeHtml(act.text)}</div>
                                 </div>
