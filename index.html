@@ -25605,25 +25605,79 @@ Notas:
         }
 
         // ── TAB HOY ──────────────────────────────────────────
+        // Coordenadas de provincia para proximidad en ruta
+        const _PROV_COORDS = {
+            'Almería':[36.83,-2.46],'Cádiz':[36.53,-6.29],'Córdoba':[37.89,-4.78],'Granada':[37.18,-3.60],
+            'Huelva':[37.26,-6.95],'Jaén':[37.78,-3.79],'Málaga':[36.72,-4.42],'Sevilla':[37.39,-5.98],
+            'Badajoz':[38.88,-6.97],'Cáceres':[39.48,-6.37],'Albacete':[38.99,-1.86],'Ciudad Real':[38.99,-3.93],
+            'Cuenca':[40.07,-2.14],'Guadalajara':[40.63,-3.17],'Toledo':[39.86,-4.02],'Alicante':[38.35,-0.49],
+            'Castellón':[39.99,-0.05],'Valencia':[39.47,-0.38],'Murcia':[37.98,-1.13],'Lorca':[37.67,-1.70],
+            'Puerto Lumbreras':[37.56,-1.81],'Ávila':[40.66,-4.70],'Salamanca':[40.97,-5.66],
+            'Zamora':[41.50,-5.75],'Valladolid':[41.65,-4.72],'Las Palmas':[28.12,-15.43],
+            'Santa Cruz de Tenerife':[28.46,-16.25],'Islas Baleares':[39.57,2.65],
+            'Madrid':[40.42,-3.70],'Barcelona':[41.39,2.17],'Zaragoza':[41.66,-0.88],
+        };
+        function _provCoords(prov) { return _PROV_COORDS[prov] || [40.0,-3.7]; }
+        function _geoDist(a, b) { const dl=a[0]-b[0],dn=a[1]-b[1]; return Math.sqrt(dl*dl+dn*dn); }
+
+        // Intercala confirmadas y reservas ordenadas por proximidad geográfica
+        function _intercalarPorProximidad(confirmadas, reservas, studios) {
+            function getInfo(v) {
+                const s = studios.find(x => String(x.id) === String(v.id));
+                const city = s?.city || v.data?.contact?.city || '';
+                const prov = s?.province || v.province || '';
+                return { city: city.toLowerCase(), prov, coords: _provCoords(prov) };
+            }
+            // Asignar cada reserva a la confirmada más cercana
+            const grupos = confirmadas.map(() => []);
+            const pendientes = [...reservas];
+            pendientes.forEach(r => {
+                const ri = getInfo(r);
+                let mejorIdx = 0, mejorDist = Infinity;
+                confirmadas.forEach((c, idx) => {
+                    const ci = getInfo(c);
+                    // Mismo municipio = distancia 0, misma provincia = 0.1, resto = distancia real
+                    let dist = _geoDist(ci.coords, ri.coords);
+                    if (ci.city && ri.city && ci.city === ri.city) dist = 0;
+                    else if (ci.prov && ri.prov && ci.prov === ri.prov) dist = 0.1;
+                    if (dist < mejorDist) { mejorDist = dist; mejorIdx = idx; }
+                });
+                grupos[mejorIdx].push(r);
+            });
+            // Construir lista final: confirmada → sus reservas más cercanas
+            const result = [];
+            confirmadas.forEach((c, idx) => {
+                result.push({ v: c, esReserva: false });
+                grupos[idx].forEach(r => result.push({ v: r, esReserva: true }));
+            });
+            return result;
+        }
+
         function loadMobileHoy() {
             const hoy = new Date().toISOString().split('T')[0];
             const schedule = (typeof planificadorData !== 'undefined' && planificadorData?.schedule) ? planificadorData.schedule : (() => { try { return JSON.parse(localStorage.getItem('crm_test_planificador') || '{}').schedule || {}; } catch(e) { return {}; } })();
             const visitasHoy = schedule[hoy] || [];
             const studios = mobileGetStudios();
 
-            // Separar visitas confirmadas (las 4 primeras, que coinciden con el calendario)
-            // y estudios de reserva (el resto). Umbral configurable.
             const MAX_CONFIRMADAS = 4;
             const visitasConfirmadas = visitasHoy.slice(0, MAX_CONFIRMADAS);
             const visitasReserva    = visitasHoy.slice(MAX_CONFIRMADAS);
 
-            // Visitas planificadas
+            // Ocultar la sección de reserva separada (ya no se usa)
+            const seccionReserva = document.getElementById('mobile-hoy-reserva-section');
+            if (seccionReserva) seccionReserva.style.display = 'none';
+
             const contVisitas = document.getElementById('mobile-hoy-visitas');
-            if (visitasConfirmadas.length === 0 && visitasHoy.length === 0) {
+            if (visitasHoy.length === 0) {
                 contVisitas.innerHTML = `<div class="m-empty">📅<p>Sin visitas planificadas para hoy</p></div>`;
             } else {
                 contVisitas.innerHTML = '';
-                // Helper para crear card de visita
+
+                // Intercalar confirmadas con sus reservas más cercanas
+                const listaOrdenada = visitasConfirmadas.length > 0
+                    ? _intercalarPorProximidad(visitasConfirmadas, visitasReserva, studios)
+                    : visitasReserva.map(v => ({ v, esReserva: true }));
+
                 function buildVisitaCard(v, esReserva) {
                     const studio = studios.find(s => String(s.id) === String(v.id));
                     const merged = studio || { id: v.id, name: v.name, province: v.province, data: v.data || {} };
@@ -25637,14 +25691,23 @@ Notas:
 
                     const card = document.createElement('div');
                     card.className = 'm-card';
-                    if (esReserva) card.style.cssText = 'border-left:3px solid #f59e0b;opacity:0.92;';
+                    if (esReserva) {
+                        card.style.cssText = 'border-left:3px solid #f59e0b;opacity:0.93;';
+                    } else {
+                        card.style.cssText = 'border-left:3px solid #6366f1;';
+                    }
 
                     const btn = document.createElement('button');
                     btn.style.cssText = 'display:block;width:100%;text-align:left;background:none;border:none;padding:0;cursor:pointer;color:inherit;-webkit-tap-highlight-color:rgba(99,102,241,0.15);';
+                    const reservaBadge = esReserva
+                        ? `<span style="font-size:0.65rem;font-weight:700;background:rgba(245,158,11,0.2);color:#fbbf24;border-radius:6px;padding:2px 6px;margin-left:4px;vertical-align:middle;">RESERVA</span>`
+                        : '';
                     btn.innerHTML = `
                         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
                             <div style="flex:1;min-width:0;">
-                                <p class="m-card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(v.name||'')}</p>
+                                <p class="m-card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                                    ${escapeHtml(v.name||'')}${reservaBadge}
+                                </p>
                                 <p class="m-card-sub">${escapeHtml(city)}</p>
                             </div>
                             <span class="m-badge s-${status}" style="white-space:nowrap;">${status}</span>
@@ -25683,21 +25746,7 @@ Notas:
                     return card;
                 }
 
-                // Renderizar visitas confirmadas
-                visitasConfirmadas.forEach(v => contVisitas.appendChild(buildVisitaCard(v, false)));
-
-                // Renderizar sección de reserva
-                const seccionReserva = document.getElementById('mobile-hoy-reserva-section');
-                const contReserva    = document.getElementById('mobile-hoy-reserva');
-                const countBadge     = document.getElementById('mobile-reserva-count');
-                if (visitasReserva.length > 0) {
-                    seccionReserva.style.display = 'block';
-                    countBadge.textContent = visitasReserva.length;
-                    contReserva.innerHTML = '';
-                    visitasReserva.forEach(v => contReserva.appendChild(buildVisitaCard(v, true)));
-                } else {
-                    seccionReserva.style.display = 'none';
-                }
+                listaOrdenada.forEach(({ v, esReserva }) => contVisitas.appendChild(buildVisitaCard(v, esReserva)));
             }
 
             // Seguimientos pendientes (actividades con followupDate <= hoy)
