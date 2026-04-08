@@ -5320,6 +5320,61 @@
             });
         }
 
+        // Cola de escrituras pendientes cuando Firestore tiene quota agotada
+        const PENDING_KEY = 'crm_pending_writes';
+        function getPendingWrites() {
+            try { return JSON.parse(localStorage.getItem(PENDING_KEY) || '[]'); } catch { return []; }
+        }
+        function savePendingWrite(id, updates) {
+            const queue = getPendingWrites();
+            // Merge si ya hay una entrada pendiente para este id
+            const existing = queue.findIndex(e => String(e.id) === String(id));
+            if (existing !== -1) { Object.assign(queue[existing].updates, updates); queue[existing].ts = Date.now(); }
+            else { queue.push({ id, updates, ts: Date.now() }); }
+            localStorage.setItem(PENDING_KEY, JSON.stringify(queue));
+        }
+        async function flushPendingWrites() {
+            const queue = getPendingWrites();
+            if (!queue.length || !useFirebase) return;
+            let flushed = 0;
+            const remaining = [];
+            for (const entry of queue) {
+                try {
+                    const updatesWithTs = { ...entry.updates, updatedAt: new Date().toISOString() };
+                    await firestoreDB.collection('studios').doc(String(entry.id)).update(updatesWithTs);
+                    const idx = cloudCache.studios.findIndex(s => s.id == entry.id);
+                    if (idx !== -1) Object.assign(cloudCache.studios[idx], updatesWithTs);
+                    flushed++;
+                } catch(e) {
+                    if (e.code === 'resource-exhausted' || (e.message||'').toLowerCase().includes('quota')) {
+                        remaining.push(entry); break; // sigue sin quota, parar
+                    }
+                    // otro error: descartar entrada para no bloquear la cola
+                    console.warn('[pendingWrites] descartando entrada por error:', e.message);
+                }
+            }
+            localStorage.setItem(PENDING_KEY, JSON.stringify(remaining));
+            if (flushed > 0) showNotification(`☁️ ${flushed} cambio(s) sincronizados con Firestore`, 'success');
+            updatePendingBadge();
+        }
+        function updatePendingBadge() {
+            const n = getPendingWrites().length;
+            let badge = document.getElementById('pending-writes-badge');
+            if (n === 0) { if (badge) badge.remove(); return; }
+            if (!badge) {
+                badge = document.createElement('div');
+                badge.id = 'pending-writes-badge';
+                badge.style.cssText = 'position:fixed;bottom:70px;right:16px;background:#f59e0b;color:#fff;' +
+                    'border-radius:20px;padding:6px 14px;font-size:0.8rem;font-weight:700;z-index:9999;cursor:pointer;' +
+                    'box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+                badge.onclick = () => { flushPendingWrites(); };
+                document.body.appendChild(badge);
+            }
+            badge.textContent = `⏳ ${n} cambio(s) pendiente(s) — toca para reintentar`;
+        }
+        // Intentar flush al cargar (quota puede haberse recuperado)
+        setTimeout(() => { if (getPendingWrites().length) flushPendingWrites(); }, 5000);
+
         async function updateStudio(id, updates) {
             if (!id || id === 'undefined' || id === undefined) {
                 throw new Error('ID de estudio no válido: ' + id);
@@ -5327,7 +5382,22 @@
             // FIREBASE
             if (useFirebase) {
                 const updatesWithTs = { ...updates, updatedAt: new Date().toISOString() };
-                await firestoreDB.collection('studios').doc(String(id)).update(updatesWithTs);
+                try {
+                    await firestoreDB.collection('studios').doc(String(id)).update(updatesWithTs);
+                } catch(e) {
+                    if (e.code === 'resource-exhausted' || (e.message||'').toLowerCase().includes('quota')) {
+                        // Guardar localmente y encolar para sync posterior
+                        const index = cloudCache.studios.findIndex(s => s.id == id);
+                        if (index !== -1) Object.assign(cloudCache.studios[index], updatesWithTs);
+                        const localIndex = localData.studios.findIndex(s => s.id == id);
+                        if (localIndex !== -1) { Object.assign(localData.studios[localIndex], updatesWithTs); saveToLocalStorage(); }
+                        savePendingWrite(id, updates);
+                        updatePendingBadge();
+                        showNotification('⚠️ Cuota de Firestore agotada — cambios guardados localmente', 'warning');
+                        return cloudCache.studios[index];
+                    }
+                    throw e;
+                }
                 const index = cloudCache.studios.findIndex(s => s.id == id);
                 if (index !== -1) Object.assign(cloudCache.studios[index], updatesWithTs);
                 const localIndex = localData.studios.findIndex(s => s.id == id);
