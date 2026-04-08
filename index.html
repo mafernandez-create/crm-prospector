@@ -7334,8 +7334,8 @@
                     <div class="detail-actions">
                         <button class="btn btn-primary" onclick="openActivityModal()">📝 Añadir Actividad</button>
                         <button class="btn btn-secondary" onclick="openStatusModal()">🔄 Cambiar Estado</button>
-                        <button class="btn btn-success" onclick="generateReport(${id})">🖨️ Generar Informe</button>
-                        <button class="btn" style="background:var(--warning);color:white;" onclick="reanalyzeStudio(${id})">🔬 Re-analizar</button>
+                        <button class="btn btn-success" onclick="generateReport('${id}')">🖨️ Generar Informe</button>
+                        <button class="btn" style="background:var(--warning);color:white;" onclick="reanalyzeStudio('${id}')">🔬 Re-analizar</button>
                         <button class="btn btn-secondary" onclick="showView('studios')">← Volver</button>
                     </div>
                 </div>
@@ -7726,13 +7726,13 @@
                         <div class="card">
                             <div class="card-header"><h3 class="card-title">⚡ Acciones Rápidas</h3></div>
                             <div class="card-body">
-                                <button class="btn btn-primary" style="width:100%;margin-bottom:8px;" onclick="quickSendEmail(${id})">📤 Enviar Email Rápido</button>
-                                <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;" onclick="openSendEmailModal(${id})">✉️ Redactar Email</button>
+                                <button class="btn btn-primary" style="width:100%;margin-bottom:8px;" onclick="quickSendEmail('${id}')">📤 Enviar Email Rápido</button>
+                                <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;" onclick="openSendEmailModal('${id}')">✉️ Redactar Email</button>
                                 <hr style="margin:12px 0;border:none;border-top:1px solid var(--border);">
                                 <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;" onclick="copyToClipboard(${jsAttr(data.contact?.email || '')})">📧 Copiar Email</button>
                                 <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;" onclick="makePhoneCall(${jsAttr(data.contact?.phone || '')})">📞 Llamar</button>
-                                <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;" onclick="copyTemplate('email', ${id})">📋 Copiar Email Template</button>
-                                <button class="btn btn-secondary" style="width:100%;" onclick="copyTemplate('linkedin', ${id})">💼 Copiar LinkedIn</button>
+                                <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;" onclick="copyTemplate('email', '${id}')">📋 Copiar Email Template</button>
+                                <button class="btn btn-secondary" style="width:100%;" onclick="copyTemplate('linkedin', '${id}')">💼 Copiar LinkedIn</button>
                             </div>
                         </div>
                         
@@ -13639,81 +13639,6 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const remaining = document.querySelectorAll('[id^="dup-pair-"]').length;
             const el = document.getElementById('dup-count');
             if (el) el.textContent = `${remaining} posibles coincidencias restantes`;
-        }
-
-        // ============================================
-        // SEGUIMIENTO POST-TRASPASO AL COMERCIAL
-        // ============================================
-
-        function showHandoffModal(studioId) {
-            const modal = document.createElement('div');
-            modal.id = 'handoff-modal';
-            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;';
-            modal.innerHTML = '<div style="background:#ffffff;border-radius:12px;padding:28px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
-                '<h3 style="margin:0 0 20px;font-size:1.2rem;">🤝 Registrar traspaso al comercial</h3>' +
-                '<div style="display:flex;flex-direction:column;gap:14px;">' +
-                '<div><label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:4px;">Empresa comercial</label>' +
-                '<select id="ho-empresa" class="form-select"><option value="ferroplast">Ferroplast</option><option value="tuyper">Tuyper</option><option value="otro">Otro</option></select></div>' +
-                '<div><label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:4px;">Nombre del comercial</label>' +
-                '<input id="ho-comercial" type="text" class="form-input" placeholder="Nombre del comercial asignado"></div>' +
-                '<div><label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:4px;">Notas del traspaso</label>' +
-                '<textarea id="ho-notas" class="form-input" rows="3" placeholder="Qué se ha prescrito, contexto..."></textarea></div>' +
-                '</div>' +
-                '<div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">' +
-                '<button class="btn btn-secondary" onclick="document.getElementById(\'handoff-modal\').remove()">Cancelar</button>' +
-                '<button class="btn btn-primary" onclick="confirmHandoff(' + studioId + ')">✅ Confirmar traspaso</button>' +
-                '</div></div>';
-            document.body.appendChild(modal);
-        }
-
-        async function confirmHandoff(studioId) {
-            const empresa = document.getElementById('ho-empresa').value;
-            const comercial = document.getElementById('ho-comercial').value.trim();
-            const notas = document.getElementById('ho-notas').value.trim();
-            if (!comercial) { showNotification('⚠️ Indica el nombre del comercial', 'warning'); return; }
-            const handoff = { empresa, comercial, notas, fechaTraspaso: new Date().toISOString(), resultado: 'pendiente', fechaResultado: null };
-            await updateStudio(studioId, { status: 'traspasado', handoff });
-            await addActivity({ studioId, type: 'status', text: '🤝 Traspasado a ' + comercial + ' (' + empresa + '). ' + notas });
-            document.getElementById('handoff-modal').remove();
-            showNotification('✅ Traspaso registrado', 'success');
-            showStudioDetail(studioId);
-        }
-
-        function showHandoffResultModal(studioId) {
-            const modal = document.createElement('div');
-            modal.id = 'handoff-result-modal';
-            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;';
-            modal.innerHTML = '<div style="background:#ffffff;border-radius:12px;padding:28px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
-                '<h3 style="margin:0 0 20px;font-size:1.2rem;">📋 Actualizar resultado del traspaso</h3>' +
-                '<div style="display:flex;flex-direction:column;gap:12px;">' +
-                '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;border:1px solid #d9e2ec;border-radius:8px;"><input type="radio" name="hr-resultado" value="prescripcion_confirmada"> 📋 Prescripción confirmada</label>' +
-                '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;border:1px solid #d9e2ec;border-radius:8px;"><input type="radio" name="hr-resultado" value="venta_cerrada"> 💰 Venta cerrada</label>' +
-                '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;border:1px solid #d9e2ec;border-radius:8px;"><input type="radio" name="hr-resultado" value="perdido"> ❌ No prosperó</label>' +
-                '<textarea id="hr-notas" class="form-input" rows="2" placeholder="Notas del resultado..."></textarea>' +
-                '</div>' +
-                '<div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">' +
-                '<button class="btn btn-secondary" onclick="document.getElementById(\'handoff-result-modal\').remove()">Cancelar</button>' +
-                '<button class="btn btn-primary" onclick="confirmHandoffResult(' + studioId + ')">✅ Guardar resultado</button>' +
-                '</div></div>';
-            document.body.appendChild(modal);
-        }
-
-        async function confirmHandoffResult(studioId) {
-            const resultadoVal = document.querySelector('input[name="hr-resultado"]:checked') && document.querySelector('input[name="hr-resultado"]:checked').value;
-            if (!resultadoVal) { showNotification('⚠️ Selecciona un resultado', 'warning'); return; }
-            const notas = document.getElementById('hr-notas').value.trim();
-            const studio = await getStudio(studioId);
-            const handoff = studio.handoff || {};
-            handoff.resultado = resultadoVal;
-            handoff.notasResultado = notas;
-            handoff.fechaResultado = new Date().toISOString();
-            const statusMap = { prescripcion_confirmada: 'prescripcion', venta_cerrada: 'venta', perdido: 'perdido' };
-            await updateStudio(studioId, { status: statusMap[resultadoVal], handoff });
-            const resultLabel = { prescripcion_confirmada: '📋 Prescripción confirmada', venta_cerrada: '💰 Venta cerrada', perdido: '❌ No prosperó' }[resultadoVal];
-            await addActivity({ studioId, type: 'status', text: resultLabel + (notas ? '. ' + notas : '') });
-            document.getElementById('handoff-result-modal').remove();
-            showNotification('✅ Resultado guardado', 'success');
-            showStudioDetail(studioId);
         }
 
         function renderHandoffPanel(studio) {
