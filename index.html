@@ -4666,7 +4666,7 @@
             try {
                 if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
                 firestoreDB = firebase.firestore();
-                try { await firestoreDB.enablePersistence({ synchronizeTabs: true }); }
+                try { await firestoreDB.enablePersistence({ synchronizeTabs: false }); }
                 catch(e) { console.warn('Firebase persistencia:', e.code); }
                 await firestoreDB.collection('_meta').doc('ping').set({ ts: Date.now() });
                 return true;
