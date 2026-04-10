@@ -8580,7 +8580,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             try {
                 const studio = await getStudio(currentStudioId);
                 if (!studio || !studio.data?.team || !studio.data.team[editingTeamMemberIndex]) {
-                    alert('❌ Error: No se encontró la persona');
+                    showNotification('❌ Error: No se encontró la persona', 'error');
                     return;
                 }
                 
@@ -8618,7 +8618,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 
             } catch (error) {
                 console.error('Error actualizando persona:', error);
-                alert('❌ Error al guardar: ' + error.message);
+                showNotification('❌ Error al guardar: ' + error.message, 'error');
             }
         }
 
@@ -8738,10 +8738,10 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 // Obtener la empresa actual
                 const studio = await getStudio(currentStudioId);
                 if (!studio) {
-                    alert('❌ No se encontró la empresa');
+                    showNotification('❌ No se encontró la empresa', 'error');
                     return;
                 }
-                
+
                 // Añadir el informe
                 if (!studio.data) studio.data = {};
                 if (!studio.data.reports) studio.data.reports = [];
