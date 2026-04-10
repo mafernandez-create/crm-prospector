@@ -5772,7 +5772,7 @@
                             throw new Error('Error importando a cloud');
                         } catch (err) {
                             console.error('Error cloud import:', err);
-                            alert('❌ Error importando a la nube: ' + err.message);
+                            showNotification('❌ Error importando a la nube: ' + err.message, 'error');
                             return;
                         }
                     }
@@ -5806,12 +5806,12 @@
                         }
                     }
                     
-                    alert('✅ Datos importados correctamente!');
+                    showNotification('✅ Datos importados correctamente!', 'success');
                     location.reload();
                     
                 } catch (e) {
                     console.error('Error importando:', e);
-                    alert('❌ Error al importar: ' + e.message);
+                    showNotification('❌ Error al importar: ' + e.message, 'error');
                 }
             };
             
