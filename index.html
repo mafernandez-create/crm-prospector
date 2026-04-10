@@ -19909,7 +19909,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             
             // Si no hay estudios, mostrar mensaje
             if (filteredStudios.length === 0) {
-                alert('No hay estudios en esta categoría');
+                showNotification('No hay estudios en esta categoría', 'info');
                 return;
             }
             
@@ -23081,7 +23081,7 @@ updateMap();
                 loadCalendarSettings();
                 const clientId = calendarSettings.clientId;
                 if (!clientId) {
-                    alert('⚠️ Primero configura el Client ID de Google en Ajustes → Google Calendar.');
+                    showNotification('⚠️ Primero configura el Client ID de Google en Ajustes → Google Calendar.', 'warning');
                     return;
                 }
                 const redirectUri = window.location.href.split('?')[0].split('#')[0];
@@ -23268,7 +23268,7 @@ updateMap();
 
         async function syncPlanificadorFirebase() {
             if (!useFirebase || !firestoreDB) {
-                alert('⚠️ Firebase no está conectado'); return;
+                showNotification('⚠️ Firebase no está conectado', 'warning'); return;
             }
             // Leer siempre del localStorage para garantizar datos actuales
             let dataToSync = null;
