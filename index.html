@@ -16873,8 +16873,8 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 window.open(gmailUrl, '_blank');
                 
                 if (hasAttachments) {
-                    alert('⚠️ Los archivos adjuntos no se pueden añadir automáticamente en Gmail Web.\n\nPor favor, añade manualmente los siguientes archivos:\n' + 
-                        Array.from(attachments).map(f => '• ' + f.name).join('\n'));
+                    showNotification('⚠️ Los archivos adjuntos no se pueden añadir automáticamente en Gmail Web.\n\nPor favor, añade manualmente los siguientes archivos:\n' +
+                        Array.from(attachments).map(f => '• ' + f.name).join('\n'), 'warning');
                 }
                 
                 closeModal('modal-send-email');
@@ -16921,7 +16921,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                         throw new Error(error.error?.message || 'Error al enviar');
                     }
                     
-                    alert('✅ Email enviado correctamente' + (hasAttachments ? ` con ${attachments.length} adjunto/s` : ''));
+                    showNotification('✅ Email enviado correctamente' + (hasAttachments ? ` con ${attachments.length} adjunto/s` : ''), 'success');
                     closeModal('modal-send-email');
                     
                     // Registrar actividad
