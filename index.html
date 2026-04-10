@@ -12344,7 +12344,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const activity = activities.find(a => a.id == activityId);
             
             if (!activity) {
-                alert('Actividad no encontrada');
+                showNotification('Actividad no encontrada', 'warning');
                 return;
             }
             
@@ -12404,9 +12404,9 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 let text = document.getElementById('edit-activity-text').value.trim();
                 const followup = document.getElementById('edit-activity-followup').value;
                 
-                if (!text) { 
-                    alert('Añade una descripción'); 
-                    return; 
+                if (!text) {
+                    showNotification('Añade una descripción', 'warning');
+                    return;
                 }
                 
                 // Obtener productos seleccionados si es una reunión
@@ -12435,7 +12435,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 
             } catch (error) {
                 console.error('Error actualizando actividad:', error);
-                alert('Error al guardar: ' + (error.message || 'Error desconocido'));
+                showNotification('Error al guardar: ' + (error.message || 'Error desconocido'), 'error');
             } finally {
                 if (saveBtn) {
                     saveBtn.disabled = false;
@@ -12443,7 +12443,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 }
             }
         }
-        
+
         async function deleteActivityFromModal() {
             const activityId = parseInt(document.getElementById('edit-activity-id').value);
             
