@@ -16762,7 +16762,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                         sheetsSettings.tokenExpiry = Date.now() + (expiresIn * 1000);
                         localStorage.setItem('ferroplast_sheets_settings', JSON.stringify(sheetsSettings));
                         window.history.replaceState({}, document.title, window.location.pathname);
-                        alert('✅ Conectado a Google Sheets. Vuelve a pulsar "☁️ Sheet Jefe" para subir las visitas.');
+                        showNotification('✅ Conectado a Google Sheets. Vuelve a pulsar "☁️ Sheet Jefe" para subir las visitas.', 'success');
                     } else {
                         // Gmail OAuth (comportamiento original)
                         gmailSettings.accessToken = accessToken;
@@ -16771,7 +16771,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                         // Limpiar URL
                         window.history.replaceState({}, document.title, window.location.pathname);
                         
-                        alert('✅ Conectado a Gmail correctamente');
+                        showNotification('✅ Conectado a Gmail correctamente', 'success');
                     }
                 }
             }
@@ -16824,7 +16824,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const saveTemplate = document.getElementById('email-save-template').checked;
             
             if (!to) {
-                alert('Introduce un destinatario');
+                showNotification('Introduce un destinatario', 'warning');
                 return;
             }
             
