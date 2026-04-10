@@ -4536,7 +4536,7 @@
          */
         async function syncAllTasksToCalendar() {
             if (!useCloudStorage) {
-                alert('⚠️ La sincronización con Calendar solo está disponible cuando el CRM está conectado a la nube (Google Sheets).\n\nPrimero asegúrate de que la sincronización cloud esté activa.');
+                showNotification('⚠️ La sincronización con Calendar solo está disponible cuando el CRM está conectado a la nube (Google Sheets).\n\nPrimero asegúrate de que la sincronización cloud esté activa.', 'warning');
                 return;
             }
             
