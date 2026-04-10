@@ -8774,11 +8774,11 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 const reportsTab = document.querySelector('[onclick*="switchDetailTab"][onclick*="reports"]');
                 if (reportsTab) switchDetailTab(reportsTab, 'reports');
                 
-                alert('✅ Informe adjuntado correctamente');
+                showNotification('✅ Informe adjuntado correctamente', 'success');
                 
             } catch (error) {
                 console.error('Error guardando informe:', error);
-                alert('❌ Error al guardar: ' + error.message);
+                showNotification('❌ Error al guardar: ' + error.message, 'error');
             } finally {
                 document.getElementById('btn-save-report').disabled = false;
                 document.getElementById('btn-save-report').textContent = '💾 Guardar Informe';
