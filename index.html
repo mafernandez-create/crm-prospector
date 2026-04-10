@@ -14178,7 +14178,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const endDateStr = document.getElementById('report-date-end').value;
             
             if (!startDateStr || !endDateStr) {
-                alert('Por favor, selecciona las fechas de inicio y fin');
+                showNotification('Por favor, selecciona las fechas de inicio y fin', 'warning');
                 return;
             }
             
@@ -14188,7 +14188,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             endDate.setHours(23, 59, 59, 999);
             
             if (startDate > endDate) {
-                alert('La fecha de inicio debe ser anterior a la fecha fin');
+                showNotification('La fecha de inicio debe ser anterior a la fecha fin', 'warning');
                 return;
             }
             
@@ -14282,7 +14282,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
         
         function exportActivityReportExcel() {
             if (!lastReportData || lastReportData.studios.length === 0) {
-                alert('No hay datos para exportar');
+                showNotification('No hay datos para exportar', 'warning');
                 return;
             }
             try {
