@@ -13457,7 +13457,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 
             } catch (error) {
                 console.error('Error limpiando duplicados:', error);
-                alert('Error al limpiar duplicados: ' + (error.message || 'Error desconocido'));
+                showNotification('Error al limpiar duplicados: ' + (error.message || 'Error desconocido'), 'error');
             }
         }
         
@@ -14117,12 +14117,12 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
 • 🟡 Media: ${stats.Media} estudios
 • ⚪ Baja: ${stats.Baja} estudios`;
                 
-                alert(resumen);
+                showNotification(resumen, 'info');
                 showNotification(`${updated} estudios actualizados`, 'success');
                 
             } catch (error) {
                 console.error('Error recalculando prioridades:', error);
-                alert('Error al recalcular: ' + (error.message || 'Error desconocido'));
+                showNotification('Error al recalcular: ' + (error.message || 'Error desconocido'), 'error');
             }
         }
 
