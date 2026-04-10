@@ -8034,7 +8034,7 @@
             });
             
             if (selectedIndexes.length === 0) {
-                alert('Selecciona al menos una empresa para analizar');
+                showNotification('Selecciona al menos una empresa para analizar', 'warning');
                 return;
             }
             
@@ -8075,10 +8075,10 @@
             // Refrescar la lista de empresas
             await loadStudios();
             
-            alert(`✅ Análisis completado:\n\n` +
+            showNotification(`✅ Análisis completado:\n\n` +
                   `• ${successCount} estudios analizados correctamente\n` +
                   `• ${errorCount} errores\n\n` +
-                  `Los nuevos estudios ya están disponibles en tu CRM.`);
+                  `Los nuevos estudios ya están disponibles en tu CRM.`, 'success');
             
             // Resetear el botón del modal
             document.getElementById('btn-generate').onclick = generateAndSaveStudio;
@@ -8402,7 +8402,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 await loadStudios();
                 showStudioDetail(id);
                 
-                alert('✅ Empresa guardada correctamente');
+                showNotification('✅ Empresa guardada correctamente', 'success');
                 
             } catch (error) {
                 console.error('Error guardando estudio:', error);
