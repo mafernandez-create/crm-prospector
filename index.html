@@ -23145,6 +23145,19 @@ updateMap();
                     });
                     if (pi < provEntries.length - 1) text += ' | ';
                 });
+                // Añadir reservas entre paréntesis
+                const reservas = (schedule[dateStr] || []).filter(s => s.reserva);
+                if (reservas.length) {
+                    text += ' (';
+                    reservas.forEach((s, si) => {
+                        const start = text.length;
+                        text += s.name || '';
+                        const url = studioUrlMap[String(s.id ?? '')] || '';
+                        if (url) links.push([start, text.length, url]);
+                        if (si < reservas.length - 1) text += ', ';
+                    });
+                    text += ')';
+                }
                 const cellRef = getCellRef(dateStr);
                 if (cellRef) visitasDia.push({ cellRef, text, links });
             });
