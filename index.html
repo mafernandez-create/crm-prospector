@@ -12245,7 +12245,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             if (!studio) {
                 // Si no encontramos el estudio, intentar por currentStudioId
                 const fallbackStudio = await getStudio(currentStudioId);
-                if (!fallbackStudio) { alert('Estudio no encontrado'); return; }
+                if (!fallbackStudio) { showNotification('Estudio no encontrado', 'warning'); return; }
                 editingContactStudioId = currentStudioId;
                 if (modal) modal.dataset.studioId = currentStudioId;
             }
@@ -12279,7 +12279,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             console.log('[saveContactEdit] studioIdToUpdate:', studioIdToUpdate, '| editingContactStudioId:', editingContactStudioId, '| _modalId:', _modalId, '| currentStudioId:', currentStudioId);
 
             if (!studioIdToUpdate || studioIdToUpdate === 'undefined') {
-                alert('Error: No se pudo identificar la empresa. Cierra el panel y ábrelo de nuevo.');
+                showNotification('Error: No se pudo identificar la empresa. Cierra el panel y ábrelo de nuevo.', 'error');
                 if (saveBtn) {
                     saveBtn.disabled = false;
                     saveBtn.textContent = 'Guardar';
@@ -12321,7 +12321,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 
             } catch (error) {
                 console.error('Error guardando contacto:', error);
-                alert('Error al guardar: ' + (error.message || 'Error desconocido'));
+                showNotification('Error al guardar: ' + (error.message || 'Error desconocido'), 'error');
             } finally {
                 if (saveBtn) {
                     saveBtn.disabled = false;
