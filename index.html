@@ -16936,7 +16936,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                     }
                     
                 } catch (error) {
-                    alert('❌ Error: ' + error.message);
+                    showNotification('❌ Error: ' + error.message, 'error');
                 }
             }
         }
@@ -17015,7 +17015,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const to = data.contact?.email;
             
             if (!to) {
-                alert('Esta empresa no tiene email de contacto');
+                showNotification('Esta empresa no tiene email de contacto', 'warning');
                 return;
             }
             
@@ -17081,7 +17081,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             calendarSettings.colorCode = document.getElementById('gcal-color-code')?.checked ?? true;
             
             localStorage.setItem('ferroplast_test_calendar_settings', JSON.stringify(calendarSettings));
-            alert('✅ Configuración de Google Calendar guardada');
+            showNotification('✅ Configuración de Google Calendar guardada', 'success');
         }
 
         function openCalendarSettingsModal() {
