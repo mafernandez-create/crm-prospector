@@ -23288,7 +23288,7 @@ updateMap();
                 const visitas = Object.values(dataToSync.schedule).reduce((acc, v) => acc + v.length, 0);
                 showNotification(`✅ Sincronizado con iPhone:\n${visitas} visitas en ${dias} días`, 'success');
             } catch(e) {
-                alert('❌ Error: ' + e.message);
+                showNotification('❌ Error: ' + e.message, 'error');
             }
         }
 
@@ -25380,10 +25380,10 @@ Notas:
             // 4. Resultado final
             if (errors === 0) {
                 showNotification(`✅ ${created} eventos creados en Google Calendar`, 'success');
-                alert(`✅ Sincronización completada\n\n📅 ${created} eventos creados en Google Calendar\n\nAparecerán con recordatorio 1h y 15min antes de cada visita.`);
+                showNotification(`✅ Sincronización completada\n\n📅 ${created} eventos creados en Google Calendar\n\nAparecerán con recordatorio 1h y 15min antes de cada visita.`, 'success');
             } else {
                 showNotification(`⚠️ ${created} creados, ${errors} errores`, 'warning');
-                alert(`⚠️ Resultado parcial\n✅ Creados: ${created}\n❌ Errores: ${errors}`);
+                showNotification(`⚠️ Resultado parcial\n✅ Creados: ${created}\n❌ Errores: ${errors}`, 'warning');
             }
         }
 
