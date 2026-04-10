@@ -23136,8 +23136,9 @@ updateMap();
                 let text = '';
                 const links = [];
                 const provEntries = Object.entries(byProv);
+                const multiProv = provEntries.length > 1;
                 provEntries.forEach(([prov, provStudios], pi) => {
-                    text += prov + ': ';
+                    if (multiProv) text += prov + ': ';
                     provStudios.forEach((s, si) => {
                         const start = text.length;
                         text += s.name;
