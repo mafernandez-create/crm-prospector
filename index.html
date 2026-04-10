@@ -17136,7 +17136,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
         function connectGoogleCalendar() {
             const clientId = document.getElementById('gcal-client-id').value.trim();
             if (!clientId) {
-                alert('⚠️ Introduce el Client ID de Google');
+                showNotification('⚠️ Introduce el Client ID de Google', 'warning');
                 return;
             }
             
@@ -17182,7 +17182,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                     // Limpiar URL
                     history.replaceState(null, '', window.location.pathname);
                     
-                    alert('✅ ¡Conectado a Google Calendar!');
+                    showNotification('✅ ¡Conectado a Google Calendar!', 'success');
                     openCalendarSettingsModal();
                 }
             }
@@ -17295,7 +17295,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             
             // Fallback al sistema OAuth (no funcionará desde archivo local)
             if (!calendarSettings.accessToken || calendarSettings.tokenExpiry < Date.now()) {
-                alert('⚠️ La sincronización con Calendar requiere la conexión cloud activa.\n\nAsegúrate de que el CRM esté conectado a Google Sheets para usar esta funcionalidad.');
+                showNotification('⚠️ La sincronización con Calendar requiere la conexión cloud activa.\n\nAsegúrate de que el CRM esté conectado a Google Sheets para usar esta funcionalidad.', 'warning');
                 return;
             }
             
