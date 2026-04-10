@@ -17303,7 +17303,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const pendingActions = actions.filter(a => a.urgency === 'today' || a.urgency === 'upcoming');
             
             if (pendingActions.length === 0) {
-                alert('No hay tareas pendientes para sincronizar');
+                showNotification('No hay tareas pendientes para sincronizar', 'info');
                 return;
             }
             
@@ -17328,7 +17328,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 await new Promise(r => setTimeout(r, 200));
             }
             
-            alert(`✅ Sincronización completada\n\n📅 ${created} eventos creados\n${errors > 0 ? `❌ ${errors} errores` : ''}`);
+            showNotification(`✅ Sincronización completada\n\n📅 ${created} eventos creados\n${errors > 0 ? `❌ ${errors} errores` : ''}`, 'success');
         }
 
         // Crear eventos para un proceso B2B completo
