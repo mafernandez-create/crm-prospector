@@ -8797,14 +8797,14 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
         function downloadReport(index) {
             getStudio(currentStudioId).then(studio => {
                 if (!studio?.data?.reports?.[index]) {
-                    alert('❌ No se encontró el archivo');
+                    showNotification('❌ No se encontró el archivo', 'error');
                     return;
                 }
                 
                 const report = studio.data.reports[index];
                 
                 if (!report.fileData) {
-                    alert('❌ Este informe no tiene archivo adjunto');
+                    showNotification('❌ Este informe no tiene archivo adjunto', 'error');
                     return;
                 }
                 
@@ -8824,7 +8824,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             try {
                 const studio = await getStudio(currentStudioId);
                 if (!studio || !studio.data?.reports) {
-                    alert('❌ Error: No se encontraron informes');
+                    showNotification('❌ Error: No se encontraron informes', 'error');
                     return;
                 }
                 
