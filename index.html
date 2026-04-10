@@ -14626,7 +14626,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             closeModal('modal-import-excel');
             await loadStudios();
             
-            alert('✅ Importación completada!\n\n📊 ' + imported + ' estudios importados' + (errors > 0 ? '\n❌ ' + errors + ' errores' : ''));
+            showNotification('✅ Importación completada!\n\n📊 ' + imported + ' estudios importados' + (errors > 0 ? '\n❌ ' + errors + ' errores' : ''), 'success');
         }
 
         // ============================================
@@ -14640,9 +14640,9 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
         }
         
         function makePhoneCall(phone) {
-            if (!phone) { 
-                alert('No hay número de teléfono disponible'); 
-                return; 
+            if (!phone) {
+                showNotification('No hay número de teléfono disponible', 'warning');
+                return;
             }
             // Limpiar el número de teléfono (quitar espacios, paréntesis, etc.)
             const cleanPhone = phone.replace(/[\s\(\)\-\.]/g, '');
@@ -14717,10 +14717,10 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
         async function generateReport(studioId) {
             const studio = await getStudio(studioId || currentStudioId);
             if (!studio) {
-                alert('Estudio no encontrado');
+                showNotification('Estudio no encontrado', 'warning');
                 return;
             }
-            
+
             const activities = await getActivities(studioId || currentStudioId);
             const data = studio.data || {};
             
