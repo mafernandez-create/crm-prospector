@@ -7289,12 +7289,12 @@
             const activities = await getActivities(id);
             
             if (!studio) {
-                alert('Estudio no encontrado');
+                showNotification('Estudio no encontrado', 'warning');
                 return;
             }
-            
+
             const data = studio.data || {};
-            
+
             // Generar HTML para el logo o avatar
             const detailLogoName = studio.shortName || studio.name;
             const logoHtml = studio.logo
@@ -7954,7 +7954,7 @@
                 closeModal('modal-progress');
                 
                 if (foundStudiosInProvince.length === 0) {
-                    alert(`No se encontraron nuevos ${tipoPlural} en ${province}.\n\nTodos las empresas encontrados ya están en tu base de datos o no se pudieron identificar nombres válidos.`);
+                    showNotification(`No se encontraron nuevos ${tipoPlural} en ${province}.\n\nTodos las empresas encontrados ya están en tu base de datos o no se pudieron identificar nombres válidos.`, 'info');
                     return;
                 }
                 
@@ -7964,10 +7964,10 @@
             } catch (error) {
                 console.error('Error en búsqueda por provincia:', error);
                 closeModal('modal-progress');
-                alert('Error durante la búsqueda: ' + error.message);
+                showNotification('Error durante la búsqueda: ' + error.message, 'error');
             }
         }
-        
+
         function showFoundStudiosModal(province, studioType) {
             const tipoTexto = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).label.toLowerCase();
 
