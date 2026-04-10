@@ -17377,10 +17377,10 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 
                 if (result.success) {
                     showNotification('✅ Evento añadido al calendario', 'success');
-                    alert(`✅ Evento añadido a Google Calendar\n\n📅 ${step.name}\n🏢 ${studio.name}`);
+                    showNotification(`✅ Evento añadido a Google Calendar\n\n📅 ${step.name}\n🏢 ${studio.name}`, 'success');
                 } else {
                     showNotification('❌ Error al crear evento', 'error');
-                    alert('❌ Error al crear el evento:\n' + (result.error || 'Error desconocido'));
+                    showNotification('❌ Error al crear el evento:\n' + (result.error || 'Error desconocido'), 'error');
                 }
                 return;
             }
@@ -17389,7 +17389,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             loadCalendarSettings();
             
             if (!calendarSettings.accessToken || calendarSettings.tokenExpiry < Date.now()) {
-                alert('⚠️ La integración de Calendar requiere sincronización cloud activa.\n\nAsegúrate de que el CRM esté conectado a Google Sheets.');
+                showNotification('⚠️ La integración de Calendar requiere sincronización cloud activa.\n\nAsegúrate de que el CRM esté conectado a Google Sheets.', 'warning');
                 return;
             }
             
