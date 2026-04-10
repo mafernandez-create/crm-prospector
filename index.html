@@ -12457,10 +12457,10 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 await showStudioDetail(currentStudioId);
             } catch (error) {
                 console.error('Error eliminando actividad:', error);
-                alert('Error al eliminar: ' + (error.message || 'Error desconocido'));
+                showNotification('Error al eliminar: ' + (error.message || 'Error desconocido'), 'error');
             }
         }
-        
+
         // Función para actualizar una actividad
         async function updateActivity(activityId, updates) {
             console.log('📝 Actualizando actividad:', activityId, updates);
@@ -12651,7 +12651,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
         // ============================================
         async function reanalyzeStudio(id) {
             if (!useCloudStorage && !useFirebase) {
-                alert('⚠️ Se necesita conexión cloud para re-analizar.\n\nVerifica tu conexión a Google Sheets.');
+                showNotification('⚠️ Se necesita conexión cloud para re-analizar.\n\nVerifica tu conexión a Google Sheets.', 'warning');
                 return;
             }
             const studio = await getStudio(id);
