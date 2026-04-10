@@ -10885,7 +10885,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
         async function importSelectedStudios() {
             const checkboxes = document.querySelectorAll('.bulk-checkbox:checked');
             if (checkboxes.length === 0) {
-                alert('Selecciona al menos una empresa para importar');
+                showNotification('Selecciona al menos una empresa para importar', 'warning');
                 return;
             }
             
@@ -10941,9 +10941,9 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
             
             // Mostrar resumen
             if (errors > 0) {
-                alert(`Importación completada:\n\n✅ ${imported} estudios importados correctamente\n❌ ${errors} errores\n\nRevisa la lista de empresas para ver los resultados.`);
+                showNotification(`Importación completada:\n\n✅ ${imported} estudios importados correctamente\n❌ ${errors} errores\n\nRevisa la lista de empresas para ver los resultados.`, 'warning');
             } else {
-                alert(`✅ ${imported} estudio${imported !== 1 ? 's' : ''} importado${imported !== 1 ? 's' : ''} correctamente`);
+                showNotification(`✅ ${imported} estudio${imported !== 1 ? 's' : ''} importado${imported !== 1 ? 's' : ''} correctamente`, 'success');
             }
             
             // Recargar lista de empresas
