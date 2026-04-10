@@ -8540,10 +8540,10 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             try {
                 const studio = await getStudio(currentStudioId);
                 if (!studio || !studio.data?.team || !studio.data.team[index]) {
-                    alert('❌ Error: No se encontró la persona');
+                    showNotification('❌ Error: No se encontró la persona', 'error');
                     return;
                 }
-                
+
                 const member = studio.data.team[index];
                 
                 // Rellenar el formulario con los datos actuales
@@ -8559,7 +8559,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 
             } catch (error) {
                 console.error('Error abriendo modal de edición:', error);
-                alert('❌ Error al cargar los datos: ' + error.message);
+                showNotification('❌ Error al cargar los datos: ' + error.message, 'error');
             }
         }
         
@@ -8573,7 +8573,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             }
             
             if (editingTeamMemberIndex === null) {
-                alert('❌ Error: No se identificó la persona a editar');
+                showNotification('❌ Error: No se identificó la persona a editar', 'error');
                 return;
             }
             
