@@ -17403,9 +17403,9 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const result = await createCalendarEvent(studio, step, plannedDate);
             
             if (result) {
-                alert(`✅ Evento añadido a Google Calendar\n\n📅 ${step.name}\n📍 ${studio.name}`);
+                showNotification(`✅ Evento añadido a Google Calendar\n\n📅 ${step.name}\n📍 ${studio.name}`, 'success');
             } else {
-                alert('❌ Error al crear el evento. Revisa la conexión.');
+                showNotification('❌ Error al crear el evento. Revisa la conexión.', 'error');
             }
         }
 
