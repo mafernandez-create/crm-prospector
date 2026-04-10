@@ -4544,7 +4544,7 @@
             const pendingActions = actions.filter(a => !a.completed);
             
             if (pendingActions.length === 0) {
-                alert('✅ No hay tareas pendientes para sincronizar.');
+                showNotification('✅ No hay tareas pendientes para sincronizar.', 'info');
                 return;
             }
             
@@ -4580,10 +4580,10 @@
                 
                 if (result.error) {
                     showNotification('❌ Error: ' + result.error, 'error');
-                    alert('❌ Error en la sincronización:\n' + result.error);
+                    showNotification('❌ Error en la sincronización:\n' + result.error, 'error');
                 } else {
                     showNotification(`✅ ${result.created} eventos creados`, 'success');
-                    alert(`📅 Sincronización completada\n\n✅ Eventos creados: ${result.created}\n⏭️ Omitidos: ${result.skipped}\n\nLos eventos aparecerán en tu Google Calendar con recordatorios configurados.`);
+                    showNotification(`📅 Sincronización completada\n\n✅ Eventos creados: ${result.created}\n⏭️ Omitidos: ${result.skipped}\n\nLos eventos aparecerán en tu Google Calendar con recordatorios configurados.`, 'success');
                 }
             } catch (error) {
                 console.error('Error en sincronización:', error);
