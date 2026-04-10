@@ -8852,7 +8852,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 
             } catch (error) {
                 console.error('Error eliminando informe:', error);
-                alert('❌ Error al eliminar: ' + error.message);
+                showNotification('❌ Error al eliminar: ' + error.message, 'error');
             }
         }
 
