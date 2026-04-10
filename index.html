@@ -20290,6 +20290,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
         let planificadorData = JSON.parse(localStorage.getItem('crm_test_planificador') || '{"schedule":{}}');
         
         function savePlanificadorData() {
+            planificadorData.lastModified = Date.now();
             localStorage.setItem('crm_test_planificador', JSON.stringify(planificadorData));
             if (useFirebase && firestoreDB) {
                 firestoreDB.collection('_meta').doc('planificador').set(planificadorData)
