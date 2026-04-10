@@ -14446,7 +14446,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 
             } catch (error) {
                 console.error('Error procesando Excel:', error);
-                alert('Error al leer el archivo: ' + error.message);
+                showNotification('Error al leer el archivo: ' + error.message, 'error');
             }
         }
         
@@ -14556,7 +14556,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             var toImport = excelImportData.studios.filter(function(s) { return s.selected; });
 
             if (toImport.length === 0) {
-                alert('No hay empresas seleccionadas para importar');
+                showNotification('No hay empresas seleccionadas para importar', 'warning');
                 return;
             }
 
