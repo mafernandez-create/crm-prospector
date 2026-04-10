@@ -20307,11 +20307,14 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 if (doc.exists) {
                     const remote = doc.data();
                     const remoteDays = (remote && remote.schedule) ? Object.keys(remote.schedule).length : 0;
-                    // Usar el que tenga más días planificados; en empate, preferir Firebase
-                    if (localDays > remoteDays) {
+                    // Usar el que tenga más días; en empate usar lastModified (local gana si es más reciente o igual)
+                    const localTs = (local && local.lastModified) ? local.lastModified : 0;
+                    const remoteTs = (remote && remote.lastModified) ? remote.lastModified : 0;
+                    const localWins = localDays > remoteDays || (localDays === remoteDays && localTs >= remoteTs);
+                    if (localWins && localDays > 0) {
                         planificadorData = local;
                         await firestoreDB.collection('_meta').doc('planificador').set(planificadorData);
-                        console.log('✅ Planificador local → Firebase (' + localDays + ' días, remoto tenía ' + remoteDays + ')');
+                        console.log('✅ Planificador local → Firebase (' + localDays + ' días, ts=' + localTs + ')');
                     } else if (remote && remote.schedule) {
                         planificadorData = remote;
                         localStorage.setItem('crm_test_planificador', JSON.stringify(planificadorData));
