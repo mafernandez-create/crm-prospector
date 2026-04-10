@@ -8963,7 +8963,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             try {
                 const studio = await getStudio(currentStudioId);
                 if (!studio?.data?.reports?.[index]) {
-                    alert('❌ No se encontró el informe');
+                    showNotification('❌ No se encontró el informe', 'error');
                     return;
                 }
 
@@ -8989,7 +8989,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 showNotification('✅ Informe actualizado correctamente', 'success');
             } catch(e) {
                 console.error('Error editando informe:', e);
-                alert('❌ Error al guardar: ' + e.message);
+                showNotification('❌ Error al guardar: ' + e.message, 'error');
             }
         }
 
@@ -10528,10 +10528,10 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
             } catch (error) {
                 console.error('Error en búsqueda masiva:', error);
                 closeModal('modal-bulk-progress');
-                alert('Error durante la búsqueda: ' + error.message);
+                showNotification('Error durante la búsqueda: ' + error.message, 'error');
             }
         }
-        
+
         async function processSearchResults(results, foundStudios, province, source, baseRelevance) {
             for (const result of results) {
                 // Extraer nombre dla empresa del título
