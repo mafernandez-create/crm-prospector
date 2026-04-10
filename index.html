@@ -23278,7 +23278,7 @@ updateMap();
                 // Diagnóstico: buscar en todas las claves de localStorage
                 const allKeys = Object.keys(localStorage);
                 const planKeys = allKeys.filter(k => k.includes('plan') || k.includes('schedule') || k.includes('visit'));
-                alert('⚠️ No hay visitas planificadas que sincronizar\n\nClaves en localStorage: ' + allKeys.join(', ') + '\n\nplanificadorData días: ' + Object.keys(planificadorData?.schedule || {}).length);
+                showNotification('⚠️ No hay visitas planificadas que sincronizar\n\nClaves en localStorage: ' + allKeys.join(', ') + '\n\nplanificadorData días: ' + Object.keys(planificadorData?.schedule || {}).length, 'warning');
                 return;
             }
             try {
@@ -23286,7 +23286,7 @@ updateMap();
                 planificadorData = dataToSync;
                 const dias = Object.keys(dataToSync.schedule).length;
                 const visitas = Object.values(dataToSync.schedule).reduce((acc, v) => acc + v.length, 0);
-                alert(`✅ Sincronizado con iPhone:\n${visitas} visitas en ${dias} días`);
+                showNotification(`✅ Sincronizado con iPhone:\n${visitas} visitas en ${dias} días`, 'success');
             } catch(e) {
                 alert('❌ Error: ' + e.message);
             }
