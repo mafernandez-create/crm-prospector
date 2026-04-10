@@ -5731,10 +5731,10 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 
-                alert(`✅ Datos exportados correctamente!\n\n📊 ${studios.length} estudios\n📝 ${activities.length} actividades`);
+                showNotification(`✅ Datos exportados correctamente!\n\n📊 ${studios.length} estudios\n📝 ${activities.length} actividades`, 'success');
             } catch (e) {
                 console.error('Error exportando:', e);
-                alert('❌ Error al exportar datos');
+                showNotification('❌ Error al exportar datos', 'error');
             }
         }
 
@@ -5764,7 +5764,7 @@
                         try {
                             const result = await callAPI('importAll', { data: { studios: data.studios, activities: data.activities || [] } });
                             if (result.success) {
-                                alert(`✅ Datos importados a Google Sheets!\n\n📊 ${result.imported.studios} estudios\n📝 ${result.imported.activities} actividades`);
+                                showNotification(`✅ Datos importados a Google Sheets!\n\n📊 ${result.imported.studios} estudios\n📝 ${result.imported.activities} actividades`, 'success');
                                 await syncFromCloud();
                                 location.reload();
                                 return;
