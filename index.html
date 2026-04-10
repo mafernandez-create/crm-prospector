@@ -23098,13 +23098,17 @@ updateMap();
                 return;
             }
 
-            // 2. Mapa de URLs por estudio (id → url)
+            // 2. Mapa de URLs y provincias por estudio (id → url / province)
             const allStudios = await getAllStudios();
             const studioUrlMap = {};
+            const studioProvMap = {};
             allStudios.forEach(s => {
                 const web = s.data?.contact?.web || '';
                 if (web && s.id != null) {
                     studioUrlMap[String(s.id)] = web.startsWith('http') ? web : 'https://' + web;
+                }
+                if (s.id != null) {
+                    studioProvMap[String(s.id)] = s.province || s.data?.province || '';
                 }
             });
 
