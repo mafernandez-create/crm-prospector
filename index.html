@@ -16674,7 +16674,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             gmailSettings.signature = document.getElementById('email-signature').value;
             
             localStorage.setItem('ferroplast_test_gmail_settings', JSON.stringify(gmailSettings));
-            alert('✅ Configuración de Gmail guardada');
+            showNotification('✅ Configuración de Gmail guardada', 'success');
             closeModal('modal-gmail-settings');
         }
 
@@ -16712,10 +16712,10 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
         function connectGmail() {
             const clientId = document.getElementById('gmail-client-id').value.trim();
             if (!clientId) {
-                alert('Introduce el Client ID de Google');
+                showNotification('Introduce el Client ID de Google', 'warning');
                 return;
             }
-            
+
             // Guardar el client ID
             gmailSettings.clientId = clientId;
             localStorage.setItem('ferroplast_test_gmail_settings', JSON.stringify(gmailSettings));
@@ -16753,7 +16753,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                         calendarSettings.tokenExpiry = Date.now() + (expiresIn * 1000);
                         localStorage.setItem('ferroplast_test_calendar_settings', JSON.stringify(calendarSettings));
                         window.history.replaceState({}, document.title, window.location.pathname);
-                        alert('✅ Conectado a Google Calendar correctamente');
+                        showNotification('✅ Conectado a Google Calendar correctamente', 'success');
                         setTimeout(() => openCalendarSettingsModal(), 500);
                     } else if (state === 'sheets_auth') {
                         // Google Sheets OAuth
