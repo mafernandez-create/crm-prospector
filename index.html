@@ -23081,7 +23081,8 @@ updateMap();
                 loadCalendarSettings();
                 const clientId = calendarSettings.clientId;
                 if (!clientId) {
-                    showNotification('⚠️ Primero configura el Client ID de Google en Ajustes → Google Calendar.', 'warning');
+                    openCalendarSettingsModal();
+                    showNotification('⚠️ Introduce el Client ID de Google y pulsa Guardar, luego vuelve a intentarlo.', 'warning');
                     return;
                 }
                 const redirectUri = window.location.href.split('?')[0].split('#')[0];
