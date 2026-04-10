@@ -8489,17 +8489,17 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 
             } catch (error) {
                 console.error('Error añadiendo persona:', error);
-                alert('❌ Error al guardar: ' + error.message);
+                showNotification('❌ Error al guardar: ' + error.message, 'error');
             }
         }
-        
+
         async function deleteTeamMember(index) {
             if (!confirm('¿Eliminar esta persona del equipo?')) return;
             
             try {
                 const studio = await getStudio(currentStudioId);
                 if (!studio || !studio.data?.team) {
-                    alert('❌ Error: No se encontró el equipo');
+                    showNotification('❌ Error: No se encontró el equipo', 'error');
                     return;
                 }
                 
@@ -8527,10 +8527,10 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 
             } catch (error) {
                 console.error('Error eliminando persona:', error);
-                alert('❌ Error al eliminar: ' + error.message);
+                showNotification('❌ Error al eliminar: ' + error.message, 'error');
             }
         }
-        
+
         // Variable para almacenar el índice del miembro que se está editando
         let editingTeamMemberIndex = null;
         
