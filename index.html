@@ -19535,9 +19535,9 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                     showNotification('🔄 Creando eventos en Calendar...', 'info');
                     const result = await createB2BCalendarEventsViaAPIWithTimeline(studioId, studio.name, b2bTimeline);
                     if (result.success) {
-                        alert(`✅ Eventos creados en Google Calendar\n\n📅 ${result.created} eventos programados para "${studio.name}"\n\nLos eventos aparecerán en tu calendario con recordatorios.`);
+                        showNotification(`✅ Eventos creados en Google Calendar\n\n📅 ${result.created} eventos programados para "${studio.name}"\n\nLos eventos aparecerán en tu calendario con recordatorios.`, 'success');
                     } else if (result.error) {
-                        alert('❌ Error al crear eventos:\n' + result.error);
+                        showNotification('❌ Error al crear eventos:\n' + result.error, 'error');
                     }
                 }
             }
