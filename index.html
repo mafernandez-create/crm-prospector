@@ -14317,13 +14317,13 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 XLSX.utils.book_append_sheet(wb, ws, 'Reporte');
                 XLSX.writeFile(wb, 'reporte-actividades-' + lastReportData.startDate + '-a-' + lastReportData.endDate + '.xlsx');
             } catch (e) {
-                alert('Error al exportar: ' + e.message);
+                showNotification('Error al exportar: ' + e.message, 'error');
             }
         }
         
         function printActivityReport() {
             if (!lastReportData || lastReportData.studios.length === 0) {
-                alert('No hay datos para imprimir');
+                showNotification('No hay datos para imprimir', 'warning');
                 return;
             }
             
@@ -14384,7 +14384,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 const rows = XLSX.utils.sheet_to_json(sheet);
                 
                 if (rows.length === 0) {
-                    alert('El archivo está vacío o no tiene el formato esperado');
+                    showNotification('El archivo está vacío o no tiene el formato esperado', 'warning');
                     return;
                 }
                 
