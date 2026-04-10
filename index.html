@@ -4588,7 +4588,7 @@
             } catch (error) {
                 console.error('Error en sincronización:', error);
                 showNotification('❌ Error en sincronización', 'error');
-                alert('❌ Error conectando con Google Apps Script.\n\nVerifica que:\n1. Tu Apps Script esté actualizado\n2. Tengas permisos de Calendar habilitados');
+                showNotification('❌ Error conectando con Google Apps Script.\n\nVerifica que:\n1. Tu Apps Script esté actualizado\n2. Tengas permisos de Calendar habilitados', 'error');
             }
         }
 
@@ -4901,7 +4901,7 @@
             } catch (e) {
                 console.warn('Error guardando en localStorage:', e);
                 if (e.name === 'QuotaExceededError') {
-                    alert('⚠️ Almacenamiento lleno. Considera exportar tus datos.');
+                    showNotification('⚠️ Almacenamiento lleno. Considera exportar tus datos.', 'warning');
                 }
             }
         }
