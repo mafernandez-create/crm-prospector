@@ -23133,7 +23133,7 @@ updateMap();
                 if (!studios.length) return;
                 const byProv = {};
                 studios.forEach(s => {
-                    const prov = s.province || 'Sin provincia';
+                    const prov = s.province || studioProvMap[String(s.id ?? '')] || 'Sin provincia';
                     if (!byProv[prov]) byProv[prov] = [];
                     byProv[prov].push({ name: s.name || '', url: studioUrlMap[String(s.id ?? '')] || '' });
                 });
