@@ -8406,7 +8406,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 
             } catch (error) {
                 console.error('Error guardando estudio:', error);
-                alert('❌ Error al guardar: ' + error.message);
+                showNotification('❌ Error al guardar: ' + error.message, 'error');
             }
         }
 
@@ -8457,10 +8457,10 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 // Obtener la empresa actual
                 const studio = await getStudio(currentStudioId);
                 if (!studio) {
-                    alert('❌ No se encontró la empresa');
+                    showNotification('❌ No se encontró la empresa', 'error');
                     return;
                 }
-                
+
                 // Añadir la persona al equipo
                 if (!studio.data) studio.data = {};
                 if (!studio.data.team) studio.data.team = [];
@@ -8485,7 +8485,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 const teamTab = document.querySelector('[onclick*="switchDetailTab"][onclick*=\"team\"]');
                 if (teamTab) switchDetailTab(teamTab, 'team');
                 
-                alert('✅ Persona añadida al equipo');
+                showNotification('✅ Persona añadida al equipo', 'success');
                 
             } catch (error) {
                 console.error('Error añadiendo persona:', error);
