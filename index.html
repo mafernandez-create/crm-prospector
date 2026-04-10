@@ -15366,7 +15366,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                         console.log(`✅ Estudio "${studio.name}" cargado desde enlace directo`);
                     } else {
                         console.warn(`⚠️ Estudio con ID ${studioId} no encontrado`);
-                        alert(`No se encontró la empresa con ID ${studioId}.\n\nEs posible que la empresa haya sido eliminado o que los datos no estén sincronizados.`);
+                        showNotification(`No se encontró la empresa con ID ${studioId}.\n\nEs posible que la empresa haya sido eliminado o que los datos no estén sincronizados.`, 'warning');
                     }
                 }
             } catch (error) {
@@ -16598,7 +16598,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
 
         function saveApiKey() {
             // API key ya está en el servidor, no se necesita guardar localmente
-            alert('ℹ️ La API key de IA ahora está configurada de forma segura en el servidor.\nNo necesitas introducirla aquí.');
+            showNotification('ℹ️ La API key de IA ahora está configurada de forma segura en el servidor.\nNo necesitas introducirla aquí.', 'info');
         }
 
         function updateApiStatus() {
