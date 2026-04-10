@@ -12655,7 +12655,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 return;
             }
             const studio = await getStudio(id);
-            if (!studio) { alert('Estudio no encontrado'); return; }
+            if (!studio) { showNotification('Estudio no encontrado', 'warning'); return; }
 
             const name = studio.name;
             const province = studio.province;
@@ -13450,9 +13450,9 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 await loadStudios();
                 
                 if (duplicatesRemoved > 0) {
-                    alert(`✅ Se eliminaron ${duplicatesRemoved} actividades duplicadas.`);
+                    showNotification(`✅ Se eliminaron ${duplicatesRemoved} actividades duplicadas.`, 'success');
                 } else {
-                    alert('✅ No se encontraron actividades duplicadas.');
+                    showNotification('✅ No se encontraron actividades duplicadas.', 'info');
                 }
                 
             } catch (error) {
