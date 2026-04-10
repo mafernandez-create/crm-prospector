@@ -11172,7 +11172,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
             
             // Verificar conexión cloud (necesaria para el proxy IA)
             if (!useCloudStorage && !useFirebase) {
-                alert('⚠️ Se necesita conexión cloud para generar análisis.\n\nVerifica tu conexión a Google Sheets.');
+                showNotification('⚠️ Se necesita conexión cloud para generar análisis.\n\nVerifica tu conexión a Google Sheets.', 'warning');
                 return;
             }
             
@@ -11182,7 +11182,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
             
             if (!nameInput || !provinceInput) {
                 console.error('No se encontraron los campos del formulario');
-                alert('Error: No se encontraron los campos del formulario');
+                showNotification('Error: No se encontraron los campos del formulario', 'error');
                 return;
             }
             
@@ -12177,7 +12177,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 
             } catch (error) {
                 console.error('❌ Error guardando actividad:', error);
-                alert('Error al guardar la actividad: ' + (error.message || 'Error desconocido'));
+                showNotification('Error al guardar la actividad: ' + (error.message || 'Error desconocido'), 'error');
             } finally {
                 // Re-habilitar botón
                 if (saveBtn) {
