@@ -23398,12 +23398,25 @@ updateMap();
         // WORD (.DOCX) — GENERADOR DE INFORMES GPF
         // ============================================
 
-        async function buildDocxGPF(data, studio, priorityHex) {
+        async function buildDocxGPF(data, studio, priorityHex, style) {
             const {
                 Document, Paragraph, TextRun, Table, TableRow, TableCell,
                 WidthType, BorderStyle, ShadingType, AlignmentType,
                 Header, Footer, PageNumber
             } = window.docx;
+
+            // Paletas de estilo visual
+            const STYLES = {
+              CORPORATIVO:    { primary: '1F4E79', secondary: '2E75B6', light: 'D9E2F3', headerText: 'FFFFFF' },
+              SOSTENIBILIDAD: { primary: '2E7D32', secondary: '43A047', light: 'E8F5E9', headerText: 'FFFFFF' },
+              PATRIMONIO:     { primary: '8B4513', secondary: 'B8860B', light: 'FFF3E0', headerText: 'FFFFFF' },
+              VANGUARDIA:     { primary: '1C1C1C', secondary: '4682B4', light: 'F5F5F5', headerText: 'FFFFFF' },
+            };
+            const styleKey = (data.estilo_visual || style || 'CORPORATIVO').toUpperCase();
+            const pal = STYLES[styleKey] || STYLES.CORPORATIVO;
+            const AZUL       = pal.primary;
+            const AZUL_SEC   = pal.secondary;
+            const AZUL_CLARO = pal.light;
 
             // ── PALETA CORPORATIVA GPF ──────────────────────────────────────────
             const C = {
