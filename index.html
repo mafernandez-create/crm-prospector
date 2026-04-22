@@ -23960,48 +23960,73 @@ updateMap();
                     ].join('\n');
                 }).join('\n');
 
-                const prompt = `Eres el asistente comercial de Manuel Fernández, Promotor y Prescriptor de Grupo Plásticos Ferro (Ferroplast/Tuyper) en Andalucía y Murcia.
-Genera un informe de resumen ejecutivo del período de visitas del ${startD.toLocaleDateString('es-ES')} al ${endD.toLocaleDateString('es-ES')}.
+                const N = entries.length;
+                const formatoDoc = N <= 4 ? 'Ficha resumen (1-2 páginas)' : N <= 10 ? 'Compacto reducido (2-3 páginas)' : N <= 20 ? 'Compacto estándar (3-4 páginas)' : N <= 30 ? 'Extendido (4-6 páginas)' : 'Consolidado (6+ páginas)';
 
-VISITAS REALIZADAS (${entries.length} estudios):
+                const altos = entries.filter(e => ['ALTO','MUY ALTO'].includes((e.reportInRange?.reportJson?.nivel_interes||'').toUpperCase())).length;
+                const medios = entries.filter(e => ['MEDIO','MEDIO-ALTO'].includes((e.reportInRange?.reportJson?.nivel_interes||'').toUpperCase())).length;
+                const bajos = entries.filter(e => ['BAJO','NEGATIVO'].includes((e.reportInRange?.reportJson?.nivel_interes||'').toUpperCase())).length;
+                const municipios = [...new Set(entries.map(e => e.studio.city || e.studio.province).filter(Boolean))];
+                const allOps = entries.flatMap(e => e.reportInRange?.reportJson?.oportunidades || []);
+                const allComps = entries.flatMap(e => {
+                  const c = e.reportInRange?.reportJson?.competidores || '';
+                  return typeof c === 'string' ? c.split(/[,;/]/).map(x=>x.trim()).filter(Boolean) : c;
+                });
+                const compCounts = {};
+                allComps.forEach(c => { const k = c.toUpperCase(); compCounts[k] = (compCounts[k]||0)+1; });
+                const compRanking = Object.entries(compCounts).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k,v])=>`${k}(${v})`).join(', ');
+
+                const prompt = `Eres el asistente comercial de Manuel Fernández (GPF/Ferroplast/Tuyper). Genera un resumen ejecutivo del período ${startD.toLocaleDateString('es-ES')} al ${endD.toLocaleDateString('es-ES')}.
+
+PARÁMETROS DEL PERÍODO:
+- N = ${N} informes | Formato: ${formatoDoc}
+- Resultados: Alto/Muy Alto=${altos}, Medio/Medio-Alto=${medios}, Bajo/Negativo=${bajos}
+- Municipios cubiertos (${municipios.length}): ${municipios.join(', ')}
+- Competidores mencionados: ${compRanking || 'N/D'}
+- Total oportunidades detectadas: ${allOps.length}
+
+VISITAS (datos estructurados):
 ${studiosContext}
 
-Redacta el informe en Markdown con estas secciones:
-# Resumen Ejecutivo — ${startD.toLocaleDateString('es-ES')} al ${endD.toLocaleDateString('es-ES')}
+INSTRUCCIONES DE GENERACIÓN:
+1. Responde SOLO con un JSON válido con esta estructura exacta:
+{
+  "kpis": [
+    {"valor": "${N}", "etiqueta": "Visitas totales"},
+    {"valor": "${altos} de ${N}", "etiqueta": "Resultado Alto"},
+    {"valor": "${medios+bajos}", "etiqueta": "Medio/Bajo"},
+    {"valor": "CALCULAR", "etiqueta": "Tipología principal"},
+    {"valor": "${allOps.filter(o=>o).length}", "etiqueta": "Oportunidades"},
+    {"valor": "${municipios.length}", "etiqueta": "Municipios"}
+  ],
+  "tabla_sinaptica": [
+    {"num": 1, "fecha": "DD/MM", "empresa": "...", "tipo": "CR/Ing/Expl/Admin", "lugar": "...", "productos": "...", "competencia": "...", "resultado": "Alto|Medio|Bajo"}
+  ],
+  "productos_penetracion": [{"producto": "...", "menciones": 0, "pct": "0%"}],
+  "competidores_ranking": [{"marca": "...", "menciones": 0, "clientes": "..."}],
+  "oportunidades_prioritarias": [{"prioridad": "ALTA|MEDIA", "cliente": "...", "proyecto": "...", "horizonte": "..."}],
+  "plan_accion": ["1. [DESTINATARIO] Acción concreta — plazo"],
+  "nota_estrategica": "2-4 frases con patrones detectados y claves de conversión."
+}
 
-## 1. Resumen del Período
-Visitas realizadas, distribución, provincias.
-
-## 2. Panorama por Empresa
-Puntos clave de cada visita.
-
-## 3. Productos Destacados
-Qué productos generaron más interés y por qué.
-
-## 4. Niveles de Interés
-Distribución Alta/Media/Baja, empresas destacadas.
-
-## 5. Diferencias entre Clientes
-Comparativa de perfiles, necesidades, actitudes.
-
-## 6. Acciones y Compromisos Pendientes
-Lista consolidada de todos los compromisos adquiridos.
-
-## 7. Próximos Pasos
-Prioridades de seguimiento recomendadas.
-
-Sé conciso, directo, sin relleno. Usa bullet points.`;
+2. Para tabla_sinaptica: incluye TODAS las ${N} visitas.
+3. Para productos_penetracion: calcula % sobre N=${N}. ${N < 5 ? 'Con N<5, solo listar sin ranking.' : ''}
+4. Para competidores_ranking: ${N < 5 ? 'Con N<5, solo listar sin ranking.' : 'Ordenar por nº menciones descendente.'}
+5. Oportunidades: solo ALTAS y MEDIAS. Ordenar ALTAS primero.
+6. Plan acción: ${Math.min(15, Math.max(5, N))} acciones numeradas con destinatario concreto.
+7. Nota estratégica: menciona patrones detectados y claves de conversión identificadas.
+8. NUNCA inventes datos. Si no hay información, usa "—".`;
 
                 const response = await callClaudeAPI([{ role:'user', content: prompt }], 6000);
-                const markdown = response?.content?.[0]?.text || '';
-                if (!markdown) throw new Error('La IA no devolvió contenido');
-
-                statusEl.textContent = '📄 Generando archivo Word...';
-                const doc = _buildWeeklySummaryDocx(markdown, startStr, endStr, entries.length);
+                const resumenJson = JSON.parse(response?.content?.[0]?.text || '{}');
+                if (!resumenJson.kpis) throw new Error('La IA no devolvió el formato JSON esperado');
+                statusEl.textContent = '📄 Generando archivo Word apaisado...';
+                const isoWeek = (() => { const d = new Date(startStr); const day = d.getDay()||7; d.setDate(d.getDate()+4-day); const y = d.getFullYear(); const w1 = new Date(y,0,4); return Math.ceil(((d-w1)/86400000+w1.getDay()||7)/7); })();
+                const fileName = `Resumen_Semana_${isoWeek}_${new Date(startStr).getFullYear()}_GPF_Compacto.docx`;
+                const doc = _buildWeeklySummaryDocx(resumenJson, startStr, endStr, N);
                 const blob = await window.docx.Packer.toBlob(doc);
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                const fileName = `resumen-visitas_${startStr}_${endStr}.docx`;
                 a.href = url; a.download = fileName;
                 document.body.appendChild(a); a.click(); document.body.removeChild(a);
                 setTimeout(() => URL.revokeObjectURL(url), 2000);
