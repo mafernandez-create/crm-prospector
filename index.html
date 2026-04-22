@@ -24039,72 +24039,232 @@ INSTRUCCIONES DE GENERACIÓN:
             }
         }
 
-        function _buildWeeklySummaryDocx(markdown, startStr, endStr, totalStudios) {
-            const { Document, Paragraph, TextRun, WidthType, BorderStyle, ShadingType,
-                    AlignmentType, TabStopType, Header, Footer, PageNumber } = window.docx;
+        function _buildWeeklySummaryDocx(data, startStr, endStr, N) {
+            const { Document, Paragraph, TextRun, Table, TableRow, TableCell,
+                    WidthType, BorderStyle, ShadingType, AlignmentType,
+                    PageOrientation, Header, Footer, PageNumber } = window.docx;
 
-            const NAVY='1F3864', BLUE='2E5DA6', GREY='555555', WHITE='FFFFFF', BODY='1A1A1A';
-            const startDisp = new Date(startStr).toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'});
-            const endDisp   = new Date(endStr).toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'});
+            // Paleta
+            const AZUL='1F4E79', AZUL_CLARO='D9E2F3', GRIS='F2F2F2';
+            const VERDE='548235', VERDE_S='E2EFDA', NARANJA='C65911', NARANJA_S='FCE4D6', ROJO='C00000', ROJO_S='F8CBAD';
+            const W = 15200; // ancho útil DXA
+
+            const border = { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' };
+            const bAll = { top: border, bottom: border, left: border, right: border };
+            const noBorder = { top:{style:BorderStyle.NONE}, bottom:{style:BorderStyle.NONE}, left:{style:BorderStyle.NONE}, right:{style:BorderStyle.NONE} };
+            const cm = (top,bot,l,r) => ({ top, bottom, left: l, right: r });
+
+            const resultColor = (r) => {
+                const v = (r||'').toUpperCase();
+                if (['ALTO','MUY ALTO'].includes(v)) return { fill: VERDE_S, txt: VERDE };
+                if (['BAJO','NEGATIVO'].includes(v)) return { fill: ROJO_S, txt: ROJO };
+                return { fill: NARANJA_S, txt: NARANJA };
+            };
+            const prioColor = (p) => {
+                if ((p||'').toUpperCase() === 'ALTA') return { fill: VERDE_S, txt: VERDE };
+                return { fill: NARANJA_S, txt: NARANJA };
+            };
+
+            const hdrCell = (text, w, colSpan) => new TableCell({
+                width: { size: w, type: WidthType.DXA },
+                columnSpan: colSpan,
+                shading: { fill: AZUL, type: ShadingType.CLEAR },
+                margins: cm(80,80,120,120),
+                borders: bAll,
+                children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [
+                    new TextRun({ text, bold: true, color: 'FFFFFF', size: 18, font: 'Arial' })
+                ]})]
+            });
+
+            const cell = (text, w, opts={}) => new TableCell({
+                width: { size: w, type: WidthType.DXA },
+                shading: opts.fill ? { fill: opts.fill, type: ShadingType.CLEAR } : undefined,
+                margins: cm(80,80,120,120),
+                borders: bAll,
+                children: [new Paragraph({ alignment: opts.center ? AlignmentType.CENTER : AlignmentType.LEFT, children: [
+                    new TextRun({ text: String(text||'—'), bold: !!opts.bold, color: opts.color || '000000', size: 18, font: 'Arial' })
+                ]})]
+            });
+
+            const heading = (text) => new Paragraph({
+                border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: AZUL, space: 4 } },
+                spacing: { before: 240, after: 120 },
+                children: [new TextRun({ text, bold: true, size: 24, color: AZUL, font: 'Arial' })]
+            });
 
             const children = [];
-            for (const line of markdown.split('\n')) {
-                const t = line.trim();
-                if (t.startsWith('# ')) {
-                    children.push(new Paragraph({ spacing:{before:360,after:120},
-                        shading:{fill:NAVY,type:ShadingType.CLEAR}, indent:{left:160,right:160},
-                        children:[new TextRun({text:t.slice(2),font:'Calibri',size:28,bold:true,color:WHITE})] }));
-                } else if (t.startsWith('## ')) {
-                    children.push(new Paragraph({ spacing:{before:280,after:100},
-                        shading:{fill:BLUE,type:ShadingType.CLEAR}, indent:{left:160,right:160},
-                        children:[new TextRun({text:t.slice(3),font:'Calibri',size:24,bold:true,color:WHITE})] }));
-                } else if (t.startsWith('### ')) {
-                    children.push(new Paragraph({ spacing:{before:200,after:80},
-                        children:[new TextRun({text:t.slice(4),font:'Calibri',size:22,bold:true,color:BLUE})] }));
-                } else if (/^[-*] /.test(t)) {
-                    const txt = t.slice(2).replace(/\*\*(.+?)\*\*/g,'$1');
-                    children.push(new Paragraph({ spacing:{after:80}, indent:{left:500,hanging:260},
-                        children:[
-                            new TextRun({text:'• ',font:'Calibri',size:20,color:BLUE,bold:true}),
-                            new TextRun({text:txt,font:'Calibri',size:20,color:BODY})
-                        ] }));
-                } else if (t === '') {
-                    children.push(new Paragraph({spacing:{after:80},children:[new TextRun('')]}));
-                } else {
-                    const txt = t.replace(/\*\*(.+?)\*\*/g,'$1');
-                    children.push(new Paragraph({spacing:{after:120},
-                        children:[new TextRun({text:txt,font:'Calibri',size:21,color:BODY})]}));
+
+            // ── TÍTULO ────────────────────────────────────────────────
+            const startD = new Date(startStr), endD = new Date(endStr);
+            children.push(new Paragraph({ spacing: { after: 60 }, children: [
+                new TextRun({ text: `Resumen de Visitas Comerciales — ${startD.toLocaleDateString('es-ES')} al ${endD.toLocaleDateString('es-ES')}`, bold: true, size: 28, color: AZUL, font: 'Arial' })
+            ]}));
+            children.push(new Paragraph({ spacing: { after: 200 }, children: [
+                new TextRun({ text: `GPF · Manuel Fernández · ${N} visitas realizadas`, size: 18, color: '7F7F7F', font: 'Arial' })
+            ]}));
+
+            // ── KPIs ──────────────────────────────────────────────────
+            const kpis = (data.kpis || []).slice(0, 6);
+            while (kpis.length < 6) kpis.push({ valor: '—', etiqueta: '' });
+            const kpiW = Math.floor(W / 6);
+            children.push(heading(`1. Indicadores Clave del Período`));
+            children.push(new Table({
+                width: { size: W, type: WidthType.DXA },
+                columnWidths: Array(6).fill(kpiW),
+                rows: [new TableRow({ children: kpis.map(k => new TableCell({
+                    width: { size: kpiW, type: WidthType.DXA },
+                    shading: { fill: AZUL_CLARO, type: ShadingType.CLEAR },
+                    margins: cm(120,120,120,120),
+                    borders: bAll,
+                    children: [
+                        new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: String(k.valor||'—'), bold: true, size: 32, color: AZUL, font: 'Arial' })] }),
+                        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 40 }, children: [new TextRun({ text: k.etiqueta||'', size: 16, color: '595959', font: 'Arial' })] })
+                    ]
+                }))})]
+            }));
+
+            // ── TABLA SINÓPTICA ──────────────────────────────────────
+            const rows = data.tabla_sinaptica || [];
+            if (rows.length > 0) {
+                children.push(new Paragraph({ spacing: { before: 200 } }));
+                children.push(heading(`2. Tabla Sinóptica de Visitas`));
+                const cols = [400, 700, 2400, 700, 1500, 2200, 1800, 1500];
+                const scale = W / cols.reduce((a,b)=>a+b,0);
+                const cw = cols.map(c => Math.round(c * scale));
+                cw[cw.length-1] = W - cw.slice(0,-1).reduce((a,b)=>a+b,0);
+
+                children.push(new Table({
+                    width: { size: W, type: WidthType.DXA },
+                    columnWidths: cw,
+                    rows: [
+                        new TableRow({ tableHeader: true, children: [
+                            hdrCell('#', cw[0]), hdrCell('Fecha', cw[1]), hdrCell('Empresa', cw[2]),
+                            hdrCell('Tipo', cw[3]), hdrCell('Lugar', cw[4]), hdrCell('Productos', cw[5]),
+                            hdrCell('Competencia', cw[6]), hdrCell('Resultado', cw[7])
+                        ]}),
+                        ...rows.map((r, i) => {
+                            const rc = resultColor(r.resultado);
+                            const bg = i % 2 === 0 ? 'FFFFFF' : GRIS;
+                            return new TableRow({ children: [
+                                cell(String(i+1), cw[0], { fill: bg, center: true }),
+                                cell(r.fecha||'—', cw[1], { fill: bg, center: true }),
+                                cell(r.empresa||'—', cw[2], { fill: bg }),
+                                cell(r.tipo||'—', cw[3], { fill: bg, center: true }),
+                                cell(r.lugar||'—', cw[4], { fill: bg }),
+                                cell(r.productos||'—', cw[5], { fill: bg }),
+                                cell(r.competencia||'—', cw[6], { fill: bg }),
+                                cell(r.resultado||'—', cw[7], { fill: rc.fill, center: true, color: rc.txt, bold: true })
+                            ]});
+                        })
+                    ]
+                }));
+            }
+
+            // ── OPORTUNIDADES ────────────────────────────────────────
+            const opps = (data.oportunidades_prioritarias || []).filter(o => o.prioridad);
+            if (opps.length > 0) {
+                children.push(new Paragraph({ spacing: { before: 200 } }));
+                children.push(heading(`3. Oportunidades Prioritarias`));
+                const cw2 = [Math.round(W*0.08), Math.round(W*0.22), Math.round(W*0.35), Math.round(W*0.2)];
+                cw2[3] = W - cw2.slice(0,3).reduce((a,b)=>a+b,0);
+                children.push(new Table({
+                    width: { size: W, type: WidthType.DXA },
+                    columnWidths: cw2,
+                    rows: [
+                        new TableRow({ tableHeader: true, children: [hdrCell('Prioridad',cw2[0]), hdrCell('Cliente',cw2[1]), hdrCell('Proyecto',cw2[2]), hdrCell('Horizonte',cw2[3])] }),
+                        ...opps.map((o,i) => {
+                            const pc = prioColor(o.prioridad);
+                            const bg = i%2===0?'FFFFFF':GRIS;
+                            return new TableRow({ children: [
+                                cell(o.prioridad||'—', cw2[0], { fill: pc.fill, color: pc.txt, bold: true, center: true }),
+                                cell(o.cliente||'—', cw2[1], { fill: bg }),
+                                cell(o.proyecto||'—', cw2[2], { fill: bg }),
+                                cell(o.horizonte||'—', cw2[3], { fill: bg })
+                            ]});
+                        })
+                    ]
+                }));
+            }
+
+            // ── PRODUCTOS + COMPETENCIA (si N≥5) ────────────────────
+            if (N >= 5) {
+                const prods = data.productos_penetracion || [];
+                const comps = data.competidores_ranking || [];
+                if (prods.length > 0 || comps.length > 0) {
+                    children.push(new Paragraph({ spacing: { before: 200 } }));
+                    children.push(heading(`4. Productos y Competencia`));
+                    const halfW = Math.floor(W / 2) - 100;
+                    children.push(new Table({
+                        width: { size: W, type: WidthType.DXA },
+                        columnWidths: [halfW, W - halfW],
+                        rows: [
+                            new TableRow({ children: [
+                                hdrCell('Productos GPF presentados', halfW),
+                                hdrCell('Competidores mencionados', W - halfW)
+                            ]}),
+                            new TableRow({ children: [
+                                new TableCell({ width:{size:halfW,type:WidthType.DXA}, borders:bAll, margins:cm(80,80,120,120), shading:{fill:'FFFFFF',type:ShadingType.CLEAR},
+                                    children: prods.length > 0 ? prods.map(p => new Paragraph({ children: [
+                                        new TextRun({ text: `${p.producto||''}: `, bold:true, size:18, font:'Arial', color:AZUL }),
+                                        new TextRun({ text: `${p.menciones||0} visitas (${p.pct||'0%'})`, size:18, font:'Arial' })
+                                    ]})) : [new Paragraph({ children: [new TextRun({ text: '—', size:18, font:'Arial' })] })]
+                                }),
+                                new TableCell({ width:{size:W-halfW,type:WidthType.DXA}, borders:bAll, margins:cm(80,80,120,120), shading:{fill:'FFFFFF',type:ShadingType.CLEAR},
+                                    children: comps.length > 0 ? comps.map(c => new Paragraph({ children: [
+                                        new TextRun({ text: `${c.marca||''}: `, bold:true, size:18, font:'Arial', color:ROJO }),
+                                        new TextRun({ text: `${c.menciones||0} menciones · ${c.clientes||''}`, size:18, font:'Arial' })
+                                    ]})) : [new Paragraph({ children: [new TextRun({ text: '—', size:18, font:'Arial' })] })]
+                                })
+                            ]})
+                        ]
+                    }));
                 }
             }
 
-            const header = new Header({ children:[new Paragraph({
-                border:{bottom:{style:BorderStyle.SINGLE,size:6,color:BLUE}},
-                tabStops:[{type:TabStopType.RIGHT,position:9026}],
-                children:[
-                    new TextRun({text:'Grupo Plásticos Ferro — Resumen de Visitas',size:18,font:'Calibri',color:BLUE,italics:true}),
-                    new TextRun({text:'\t',size:18}),
-                    new TextRun({text:`${startDisp} – ${endDisp}`,size:18,font:'Calibri',color:GREY})
-                ]
-            })] });
+            // ── PLAN DE ACCIÓN ───────────────────────────────────────
+            const plan = data.plan_accion || [];
+            if (plan.length > 0) {
+                children.push(new Paragraph({ spacing: { before: 200 } }));
+                children.push(heading(`5. Plan de Acción`));
+                plan.forEach(line => children.push(new Paragraph({
+                    spacing: { after: 60 },
+                    children: [new TextRun({ text: String(line||''), size: 18, font: 'Arial' })]
+                })));
+            }
 
-            const footer = new Footer({ children:[new Paragraph({
-                border:{top:{style:BorderStyle.SINGLE,size:6,color:BLUE}},
-                tabStops:[{type:TabStopType.RIGHT,position:9026}],
-                children:[
-                    new TextRun({text:'Manuel Fernández — Promotor y Prescriptor GPF',size:18,font:'Calibri',color:GREY,italics:true}),
-                    new TextRun({text:'\t',size:18}),
-                    new TextRun({text:'Pág. ',size:18,font:'Calibri',color:GREY}),
-                    new TextRun({children:[PageNumber.CURRENT],size:18,font:'Calibri',color:GREY}),
-                    new TextRun({text:' / ',size:18,font:'Calibri',color:GREY}),
-                    new TextRun({children:[PageNumber.TOTAL_PAGES],size:18,font:'Calibri',color:GREY})
-                ]
-            })] });
+            // ── NOTA ESTRATÉGICA ─────────────────────────────────────
+            if (data.nota_estrategica) {
+                children.push(new Paragraph({ spacing: { before: 200 } }));
+                children.push(heading(`6. Nota Estratégica`));
+                children.push(new Paragraph({
+                    shading: { fill: AZUL_CLARO, type: ShadingType.CLEAR },
+                    border: { left: { style: BorderStyle.SINGLE, size: 12, color: AZUL, space: 8 } },
+                    spacing: { before: 80, after: 80 },
+                    indent: { left: 200 },
+                    children: [new TextRun({ text: data.nota_estrategica, size: 18, font: 'Arial', italics: true })]
+                }));
+            }
 
+            // ── DOCUMENTO ────────────────────────────────────────────
             return new Document({
-                sections:[{
-                    properties:{page:{size:{width:11906,height:16838},margin:{top:1134,right:1134,bottom:1134,left:1134}}},
-                    headers:{default:header},
-                    footers:{default:footer},
+                styles: { default: { document: { run: { font: 'Arial', size: 18 } } } },
+                sections: [{
+                    properties: {
+                        page: {
+                            size: { width: 11906, height: 16838, orientation: PageOrientation.LANDSCAPE },
+                            margin: { top: 720, right: 720, bottom: 900, left: 720 }
+                        }
+                    },
+                    footers: { default: new Footer({ children: [new Paragraph({
+                        alignment: AlignmentType.CENTER,
+                        children: [
+                            new TextRun({ text: `GPF · Manuel Fernández · ${startD.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})} al ${endD.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})} · `, size: 16, color: '7F7F7F', font: 'Arial' }),
+                            new TextRun({ children: [PageNumber.CURRENT], size: 16, color: '7F7F7F', font: 'Arial' }),
+                            new TextRun({ text: ' / ', size: 16, color: '7F7F7F', font: 'Arial' }),
+                            new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 16, color: '7F7F7F', font: 'Arial' })
+                        ]
+                    })]}) }
+                    ,
                     children
                 }]
             });
