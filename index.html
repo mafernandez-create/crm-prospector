@@ -22024,7 +22024,25 @@ updateMap();
             if (!planificadorData || !planificadorData.schedule) {
                 planificadorData = JSON.parse(localStorage.getItem('crm_test_planificador') || '{"schedule":{}}');
             }
-            
+
+            // BUG-05 fix: limpiar fechas pasadas (> 7 días) de la vista en memoria
+            // No guarda en Firebase — sólo filtra la visualización al abrir
+            (() => {
+                const hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+                const limite = new Date(hoy);
+                limite.setDate(limite.getDate() - 7);
+                const limiteStr = limite.toISOString().slice(0, 10);
+                let limpias = 0;
+                Object.keys(planificadorData.schedule || {}).forEach(fecha => {
+                    if (fecha < limiteStr) {
+                        delete planificadorData.schedule[fecha];
+                        limpias++;
+                    }
+                });
+                if (limpias > 0) console.log(`[Planificador] ${limpias} fecha(s) pasada(s) eliminadas de la vista`);
+            })();
+
             const modal = document.createElement('div');
             modal.id = 'planificador-modal';
             modal.innerHTML = `
