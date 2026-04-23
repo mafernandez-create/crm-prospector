@@ -5292,6 +5292,10 @@
                     if (_normStr(city).length > 5 && nameLow.includes(_normStr(city))) return city;
                 }
             }
+            // Fallback: si el nombre de la provincia aparece literalmente en el nombre del estudio,
+            // y la provincia no está en _MUNICIPIOS_ES (ej: Madrid, Barcelona), devolver la provincia
+            const normProv = _normStr(province);
+            if (normProv.length > 4 && nameLow.includes(normProv)) return province;
             return null;
         }
 
