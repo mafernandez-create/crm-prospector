@@ -23203,9 +23203,9 @@ updateMap();
                 let text = '';
                 const links = [];
                 const provEntries = Object.entries(byProv);
-                const multiProv = provEntries.length > 1;
                 provEntries.forEach(([prov, provStudios], pi) => {
-                    if (multiProv) text += prov + ': ';
+                    // Siempre añadir prefijo de provincia (BUG-06 fix)
+                    text += prov + ': ';
                     provStudios.forEach((s, si) => {
                         const start = text.length;
                         text += s.name;
@@ -23214,19 +23214,7 @@ updateMap();
                     });
                     if (pi < provEntries.length - 1) text += ' | ';
                 });
-                // Añadir reservas entre paréntesis
-                const reservas = (schedule[dateStr] || []).filter(s => s.reserva);
-                if (reservas.length) {
-                    text += ' (';
-                    reservas.forEach((s, si) => {
-                        const start = text.length;
-                        text += s.name || '';
-                        const url = studioUrlMap[String(s.id ?? '')] || '';
-                        if (url) links.push([start, text.length, url]);
-                        if (si < reservas.length - 1) text += ', ';
-                    });
-                    text += ')';
-                }
+                // Las reservas se excluyen del texto (BUG-06 fix)
                 const cellRef = getCellRef(dateStr);
                 if (cellRef) visitasDia.push({ cellRef, text, links });
             });
