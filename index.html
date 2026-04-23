@@ -23422,237 +23422,167 @@ updateMap();
                 Header, Footer, PageNumber
             } = window.docx;
 
-            // ── NUEVO FORMATO: AZUL/ARIAL, SIN PORTADA, FOOTER SOLO Nº PÁGINA ──
+            // ── FORMATO AZUL/ARIAL — SIN PORTADA — FOOTER SOLO Nº PÁGINA ────────
+            const AZUL1 = '1F4E79';
+            const AZUL2 = '2E75B6';
+            const AZUL3 = 'D6E4F0';
+            const GRIS1 = 'F2F2F2';
 
-            // Paletas de estilo visual
-            const STYLES = {
-              CORPORATIVO:    { primary: '1F4E79', secondary: '2E75B6', light: 'D9E2F3', headerText: 'FFFFFF' },
-              SOSTENIBILIDAD: { primary: '2E7D32', secondary: '43A047', light: 'E8F5E9', headerText: 'FFFFFF' },
-              PATRIMONIO:     { primary: '8B4513', secondary: 'B8860B', light: 'FFF3E0', headerText: 'FFFFFF' },
-              VANGUARDIA:     { primary: '1C1C1C', secondary: '4682B4', light: 'F5F5F5', headerText: 'FFFFFF' },
-            };
-            const styleKey = (data.estilo_visual || style || 'CORPORATIVO').toUpperCase();
-            const pal = STYLES[styleKey] || STYLES.CORPORATIVO;
-            const AZUL       = pal.primary;
-            const AZUL_SEC   = pal.secondary;
-            const AZUL_CLARO = pal.light;
-
-            // ── PALETA CORPORATIVA GPF ──────────────────────────────────────────
-            const C = {
-                GRANATE:    '922B21',
-                ROJO:       'C0392B',
-                ROSA_CLARO: 'FADBD8',
-                GRIS_BORDE: 'CCCCCC',
-                GRIS_TEXTO: '666666',
-                GRIS_CLARO: '999999',
-                BLANCO:     'FFFFFF',
-                VERDE:      '228B22',
-                ROJO_NEG:   'DC143C',
-            };
-
-            const bd   = { style: BorderStyle.SINGLE, size: 1, color: C.GRIS_BORDE };
+            const bd   = { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' };
             const bAll = { top: bd, bottom: bd, left: bd, right: bd };
-
-            // Color del resultado global según nivel de interés
-            function getResultColor(nivel) {
-                const u = (nivel||'').toUpperCase();
-                if (u.includes('MUY ALTO') || u.includes('ALTO') || u.includes('POSITIVO')) return C.VERDE;
-                if (u.includes('BAJO') || u.includes('NEGATIVO')) return C.ROJO_NEG;
-                return C.GRANATE;
-            }
+            const nbrd = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
+            const noBorders = { top: nbrd, bottom: nbrd, left: nbrd, right: nbrd };
 
             // ── HELPERS ─────────────────────────────────────────────────────────
-            const lCell = (t, w=3000) => new TableCell({
-                width: { size: w, type: WidthType.DXA }, borders: bAll,
-                shading: { fill: C.ROSA_CLARO, type: ShadingType.CLEAR },
-                margins: { top: 80, bottom: 80, left: 120, right: 120 },
-                children: [new Paragraph({ children: [new TextRun({ text: String(t||''), bold: true, font: 'Calibri', size: 22 })] })]
-            });
-            const vCell = (t, w=6638) => new TableCell({
-                width: { size: w, type: WidthType.DXA }, borders: bAll,
-                margins: { top: 80, bottom: 80, left: 120, right: 120 },
-                children: [new Paragraph({ children: [new TextRun({ text: String(t||'—'), font: 'Calibri', size: 22 })] })]
-            });
-            const vCellResult = (t, w=6638) => new TableCell({
-                width: { size: w, type: WidthType.DXA }, borders: bAll,
-                margins: { top: 80, bottom: 80, left: 120, right: 120 },
-                children: [new Paragraph({ children: [new TextRun({ text: String(t||'—'), font: 'Calibri', size: 30, bold: true, color: getResultColor(t) })] })]
-            });
-            const hCellAct = (t, w) => new TableCell({
-                width: { size: w, type: WidthType.DXA }, borders: bAll,
-                shading: { fill: C.GRANATE, type: ShadingType.CLEAR },
-                margins: { top: 80, bottom: 80, left: 120, right: 120 },
-                children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: String(t||''), bold: true, color: C.BLANCO, font: 'Calibri', size: 22 })] })]
-            });
-            const vCellAct = (t, w) => new TableCell({
-                width: { size: w, type: WidthType.DXA }, borders: bAll,
-                margins: { top: 80, bottom: 80, left: 120, right: 120 },
-                children: [new Paragraph({ children: [new TextRun({ text: String(t||'—'), font: 'Calibri', size: 22 })] })]
+            const secHdr = t => new Table({
+                width: { size: 9026, type: WidthType.DXA }, columnWidths: [9026],
+                rows: [new TableRow({ children: [new TableCell({
+                    width: { size: 9026, type: WidthType.DXA },
+                    shading: { fill: AZUL2, type: ShadingType.CLEAR },
+                    margins: { top: 80, bottom: 80, left: 160, right: 160 },
+                    borders: noBorders,
+                    children: [new Paragraph({ children: [new TextRun({ text: String(t||''), bold: true, color: 'FFFFFF', size: 22, font: 'Arial' })] })]
+                })]})],
             });
 
-            const infoRow  = (l, v)    => new TableRow({ children: [lCell(l, 3000), vCell(v, 6638)] });
-            const evalRow  = (l, v)    => new TableRow({ children: [lCell(l, 3000), vCell(v, 6638)] });
-            const resultRow = (l, v)   => new TableRow({ children: [lCell(l, 3000), vCellResult(v, 6638)] });
+            const filaInfo = (label, valor) => new TableRow({ children: [
+                new TableCell({
+                    width: { size: 2800, type: WidthType.DXA }, borders: bAll,
+                    shading: { fill: GRIS1, type: ShadingType.CLEAR },
+                    margins: { top: 60, bottom: 60, left: 120, right: 120 },
+                    children: [new Paragraph({ children: [new TextRun({ text: String(label||''), bold: true, size: 18, font: 'Arial', color: AZUL1 })] })]
+                }),
+                new TableCell({
+                    width: { size: 6226, type: WidthType.DXA }, borders: bAll,
+                    margins: { top: 60, bottom: 60, left: 120, right: 120 },
+                    children: [new Paragraph({ children: [new TextRun({ text: String(valor||'—'), size: 18, font: 'Arial' })] })]
+                })
+            ]});
 
-            // Celda etiqueta con color dinámico según resultado (para tabla info general)
-            const lCellC = (t, w=3000, fill='922B21') => new TableCell({
-                width: { size: w, type: WidthType.DXA }, borders: bAll,
-                shading: { fill, type: ShadingType.CLEAR },
-                margins: { top: 80, bottom: 80, left: 120, right: 120 },
-                children: [new Paragraph({ children: [new TextRun({ text: String(t||''), bold: true, font: 'Calibri', size: 22, color: C.BLANCO })] })]
+            const pv    = () => new Paragraph({ children: [new TextRun({ text: '', size: 20, font: 'Arial' })] });
+            const pTxt  = (t, opts={}) => new Paragraph({ spacing: { before: 60, after: 80 }, children: [new TextRun({ text: String(t||''), size: opts.size||20, font: 'Arial', color: opts.color||'000000', italic: !!opts.italic, bold: !!opts.bold })] });
+            const bullet = t => pTxt('— ' + String(t||''), { italic: true });
+            const caja  = (t, color) => new Table({
+                width: { size: 9026, type: WidthType.DXA }, columnWidths: [9026],
+                rows: [new TableRow({ children: [new TableCell({
+                    width: { size: 9026, type: WidthType.DXA },
+                    margins: { top: 100, bottom: 100, left: 180, right: 180 },
+                    borders: { top: nbrd, bottom: nbrd, right: nbrd, left: { style: BorderStyle.THICK, size: 12, color: String(color||AZUL2) } },
+                    shading: { fill: GRIS1, type: ShadingType.CLEAR },
+                    children: [new Paragraph({ children: [new TextRun({ text: String(t||''), size: 19, font: 'Arial', italic: true })] })]
+                })]})],
             });
-            const infoRowC = (l, v, fill) => new TableRow({ children: [lCellC(l, 3000, fill), vCell(v, 6638)] });
-
-            // Heading 1: 32pt docx = size:64 (granate)
-            const h1 = t => new Paragraph({ spacing: { before: 300, after: 200 }, children: [new TextRun({ text: String(t||''), font: 'Calibri', size: 64, bold: true, color: C.GRANATE })] });
-            // Heading 2: 26pt docx = size:52 (rojo)
-            const h2 = t => new Paragraph({ spacing: { before: 240, after: 160 }, children: [new TextRun({ text: String(t||''), font: 'Calibri', size: 52, bold: true, color: C.ROJO })] });
-            // Cuerpo normal
-            const bodyP = t => new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: String(t||''), font: 'Calibri', size: 22 })] });
-            // Bullet con símbolo
-            const bullet = t => new Paragraph({ spacing: { after: 100 }, children: [new TextRun({ text: '• ' + String(t||''), font: 'Calibri', size: 22 })] });
             const arr = v => Array.isArray(v) && v.length > 0 ? v : null;
 
             // ── DATOS ───────────────────────────────────────────────────────────
-            const fechaDisp   = data.fecha || new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            const empresaNom  = data.empresa || studio?.name || '';
-            const localidad   = data.localidad || studio?.city || studio?.data?.contact?.city || studio?.province || '';
-            const stCont      = studio?.data?.contact || {};
-            const asist = arr(data.asistentes_empresa)
+            const empresa   = data.empresa  || studio?.name     || '';
+            const localidad = data.localidad|| studio?.city     || studio?.data?.contact?.city || studio?.province || '';
+            const fecha     = data.fecha    || new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const nivel     = data.nivel_interes || 'Medio';
+            const stCont    = studio?.data?.contact || {};
+            const asist     = arr(data.asistentes_empresa)
                 ? data.asistentes_empresa.map(a => typeof a === 'string' ? a : `${a.nombre||''}${a.cargo ? ' ('+a.cargo+')' : ''}`).join(', ')
                 : (data.asistentes_empresa_texto || '—');
-            const comercialGPF = (data.comercial && data.comercial !== 'Prescripción')
-                ? `Manuel Fernández (Prescriptor) + ${data.comercial} (Comercial de zona)`
-                : 'Manuel Fernández — Promotor y Prescriptor';
-            const nivel = data.nivel_interes || 'Medio';
+            const visitadaPor = (data.comercial && data.comercial !== 'Prescripción')
+                ? data.comercial
+                : 'Iniciada por prescripción';
+            const productos = arr(data.productos_presentados) ? data.productos_presentados
+                : (data.productos_presentados ? [data.productos_presentados] : ['Ferroplast / Tuyper']);
+            const acciones  = arr(data.acciones_internas)
+                ? data.acciones_internas.map(a => typeof a === 'string' ? a : (a.accion || String(a)))
+                : (data.plan_seguimiento ? [data.plan_seguimiento] : []);
 
-            // ── HEADER Y FOOTER ─────────────────────────────────────────────────
+            // ── HEADER / FOOTER ──────────────────────────────────────────────────
             const docHeader = new Header({ children: [new Paragraph({
-                alignment: AlignmentType.RIGHT,
-                border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: C.GRIS_BORDE } },
-                spacing: { after: 120 },
-                children: [new TextRun({ text: 'GPF / Ferroplast | Informe de Visita Comercial', font: 'Calibri', size: 18, color: C.GRIS_TEXTO })]
-            })] });
-            const docFooter = new Footer({ children: [new Paragraph({
-                alignment: AlignmentType.CENTER,
-                border: { top: { style: BorderStyle.SINGLE, size: 6, color: C.GRIS_BORDE } },
-                spacing: { before: 120 },
+                border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: AZUL3, space: 1 } },
+                spacing: { after: 80 },
                 children: [
-                    new TextRun({ text: 'Página ', font: 'Calibri', size: 18, color: C.GRIS_TEXTO }),
-                    new TextRun({ children: [PageNumber.CURRENT], font: 'Calibri', size: 18, color: C.GRIS_TEXTO }),
+                    new TextRun({ text: 'Ferroplast & Tuyper · Informe de Visita', size: 18, font: 'Arial', color: AZUL1 }),
+                    new TextRun({ text: `      ${empresa} — ${fecha}`, size: 18, font: 'Arial', color: '666666' })
                 ]
             })] });
+            const docFooter = new Footer({ children: [new Paragraph({
+                border: { top: { style: BorderStyle.SINGLE, size: 6, color: AZUL3, space: 1 } },
+                alignment: AlignmentType.CENTER,
+                children: [new TextRun({ children: [PageNumber.CURRENT], size: 18, font: 'Arial', color: '999999' })]
+            })] });
 
-            // ── TABLA INFORMACIÓN GENERAL ────────────────────────────────────────
-            const resultColorHex = getResultColor(nivel);
-            const origenVisita   = data.origen || (data.prescripcion_origen ? 'Prescripción' : (data.tipo_visita || '—'));
-            const comercialZona  = (data.comercial && data.comercial !== 'Prescripción') ? data.comercial : '—';
-            const infoTable = new Table({ width: { size: 9638, type: WidthType.DXA }, columnWidths: [3000, 6638], rows: [
-                infoRowC('Fecha de visita',    fechaDisp,                                                                            resultColorHex),
-                infoRowC('Empresa visitada',   empresaNom,                                                                           resultColorHex),
-                infoRowC('Origen de la visita', origenVisita,                                                                        resultColorHex),
-                infoRowC('Tipo de visita',     data.prescripcion_origen ? 'Visita de prescripción' : (data.tipo_visita || 'Visita comercial'), resultColorHex),
-                infoRowC('Lugar de visita',    localidad,                                                                            resultColorHex),
-                infoRowC('Contacto(s)',        asist,                                                                                resultColorHex),
-                infoRowC('Sede / Dirección',   data.direccion || stCont.address || '—',                                             resultColorHex),
-                infoRowC('Web',                stCont.web  || studio?.web  || '—',                                                  resultColorHex),
-                infoRowC('Email',              stCont.email || studio?.email || '—',                                                 resultColorHex),
-                infoRowC('Teléfono',           stCont.phone || studio?.phone || '—',                                                 resultColorHex),
-                infoRowC('Prescriptor GPF',    'Manuel Fernández — Promotor y Prescriptor',                                         resultColorHex),
-                infoRowC('Comercial de zona',  comercialZona,                                                                        resultColorHex),
-            ] });
-
-            // ── TABLA EVALUACIÓN (Sección 7 — solo una vez) ──────────────────────
-            const evalTable = new Table({ width: { size: 9638, type: WidthType.DXA }, columnWidths: [3000, 6638], rows: [
-                evalRow('Interés del cliente',     nivel),
-                evalRow('Potencial estimado',      data.justificacion_interes || '—'),
-                evalRow('Obstáculos identificados', data.obstaculos || '—'),
-                evalRow('Competidores mencionados', data.competidores || '—'),
-                resultRow('Resultado global',      nivel),
-            ] });
-
-            // ── TABLA PLAN DE ACCIÓN (Sección 8 — 3 columnas) ───────────────────
-            const accionesData = arr(data.acciones_internas)
-                ? data.acciones_internas.map((acc, i) => ({
-                    fecha:       typeof acc === 'object' && acc.fecha ? acc.fecha : (i === 0 ? 'Próximo contacto' : '—'),
-                    accion:      typeof acc === 'string' ? acc : (acc.accion || String(acc)),
-                    responsable: typeof acc === 'object' && acc.responsable ? acc.responsable : 'Manuel Fernández'
-                  }))
-                : [{ fecha: 'Próximo contacto', accion: data.plan_seguimiento || '—', responsable: 'Manuel Fernández' }];
-
-            const actionTable = new Table({ width: { size: 9636, type: WidthType.DXA }, columnWidths: [2000, 4799, 2837], rows: [
-                new TableRow({ children: [hCellAct('FECHA', 2000), hCellAct('ACCIÓN', 4799), hCellAct('RESPONSABLE', 2837)] }),
-                ...accionesData.map(a => new TableRow({ children: [vCellAct(a.fecha, 2000), vCellAct(a.accion, 4799), vCellAct(a.responsable, 2837)] }))
-            ] });
-
-            // ── DOCUMENTO ───────────────────────────────────────────────────────
+            // ── DOCUMENTO (sin portada) ──────────────────────────────────────────
             const children = [
-                // CABECERA
-                new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 480, after: 240 },
-                    children: [new TextRun({ text: 'INFORME DE VISITA COMERCIAL', font: 'Calibri', size: 72, bold: true, color: C.GRANATE })] }),
-                new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 0, after: 480 },
-                    children: [new TextRun({ text: empresaNom, font: 'Calibri', size: 56, bold: true, color: C.ROJO })] }),
+                // TÍTULO
+                new Paragraph({ spacing: { before: 200, after: 120 }, children: [
+                    new TextRun({ text: 'INFORME DE VISITA', bold: true, color: AZUL1, size: 48, font: 'Arial' })
+                ]}),
+                new Paragraph({ spacing: { before: 0, after: 60 }, children: [
+                    new TextRun({ text: empresa, color: AZUL2, size: 32, font: 'Arial' })
+                ]}),
+                new Paragraph({ spacing: { before: 0, after: 240 }, children: [
+                    new TextRun({ text: `${fecha}  ·  ${localidad}`, size: 20, font: 'Arial', color: '666666' })
+                ]}),
 
-                // TABLA INFO GENERAL
-                infoTable,
-                new Paragraph({ spacing: { after: 240 }, children: [new TextRun('')] }),
+                // 1. DATOS GENERALES
+                secHdr('1. DATOS GENERALES'), pv(),
+                new Table({ width: { size: 9026, type: WidthType.DXA }, columnWidths: [2800, 6226], rows: [
+                    filaInfo('Empresa',            empresa),
+                    filaInfo('Fecha de visita',    fecha),
+                    filaInfo('Localidad',          localidad),
+                    filaInfo('Dirección',          data.direccion || stCont.address || '—'),
+                    filaInfo('Contacto(s)',         asist),
+                    filaInfo('Prescriptor GPF',    'Manuel Fernández'),
+                    filaInfo('Visita iniciada por', visitadaPor),
+                ]}),
+                pv(), pv(),
 
-                // SECCIÓN 1 — Perfil de la empresa
-                h1('1. Perfil de la Empresa'),
-                bodyP(data.percepcion || `${empresaNom} es una empresa ubicada en ${localidad}.`),
-                ...(data.proyectos_activos ? [h2('Proyectos activos:'), bodyP(data.proyectos_activos)] : []),
-                ...(data.requerimientos_tecnicos ? [h2('Requerimientos técnicos:'), bodyP(data.requerimientos_tecnicos)] : []),
+                // 2. PERFIL DE LA EMPRESA
+                secHdr('2. PERFIL DE LA EMPRESA'), pv(),
+                pTxt(data.percepcion || `${empresa} — ${localidad}.`),
+                ...(data.proyectos_activos ? [pv(), pTxt('Proyectos activos:', { bold: true, color: AZUL1 }), pTxt(data.proyectos_activos)] : []),
+                ...(data.requerimientos_tecnicos && data.requerimientos_tecnicos !== '—'
+                    ? [pv(), pTxt('Requerimientos técnicos:', { bold: true, color: AZUL1 }), pTxt(data.requerimientos_tecnicos)] : []),
+                pv(), pv(),
 
-                // SECCIÓN 2 — Objetivos
-                h1('2. Objetivos de la Visita'),
-                ...(data.objetivo ? [h2('Objetivo principal:'), bodyP(data.objetivo)] : [bodyP('Visita de prescripción para presentar los sistemas Ferroplast Mute y Ecosan.')]),
+                // 3. DESARROLLO DE LA VISITA
+                secHdr('3. DESARROLLO DE LA VISITA'), pv(),
+                ...(asist && asist !== '—' ? [pTxt('Contacto principal: ' + asist, { italic: true }), pv()] : []),
+                pTxt('Productos presentados:', { bold: true, color: AZUL1 }),
+                ...productos.map(bullet),
+                ...(data.argumentos ? [pv(), pTxt(data.argumentos)] : []),
+                ...(data.declaraciones ? [pv(), caja(data.declaraciones, AZUL2)] : []),
+                ...(arr(data.compromisos_gpf) ? [pv(), pTxt('Compromisos GPF:', { bold: true, color: AZUL1 }), ...data.compromisos_gpf.map(bullet)] : []),
+                pv(), pv(),
 
-                // SECCIÓN 3 — Desarrollo
-                h1('3. Desarrollo de la Visita'),
-                ...(asist && asist !== '—' ? [h2('3.1 Contacto principal:'), bodyP(asist)] : []),
-                h2('3.3 Productos presentados:'),
-                ...(arr(data.productos_presentados)
-                    ? data.productos_presentados.map(bullet)
-                    : [bodyP(data.productos_presentados || 'Ferroplast Mute + Ecosan')]),
-                ...(data.muestra_fisica && data.muestra_fisica !== 'No' ? [bullet(`Muestra física: ${data.muestra_fisica}`)] : []),
-                ...(data.argumentos ? [h2('3.4 Argumentos y observaciones:'), bodyP(data.argumentos)] : []),
-                ...(data.declaraciones ? [bodyP(data.declaraciones)] : []),
-                ...(data.competidores ? [h2('3.5 Competencia referenciada:'), bodyP(data.competidores)] : []),
+                // 4. EVALUACIÓN
+                secHdr('4. EVALUACIÓN'), pv(),
+                new Table({ width: { size: 9026, type: WidthType.DXA }, columnWidths: [2800, 6226], rows: [
+                    filaInfo('Nivel de interés',   nivel),
+                    filaInfo('Potencial estimado', data.justificacion_interes || '—'),
+                    filaInfo('Obstáculos',         data.obstaculos || '—'),
+                    filaInfo('Competidores',       data.competidores || '—'),
+                ]}),
+                pv(), pv(),
 
-                // SECCIÓN 4 — Oportunidades
-                h1('4. Oportunidades Detectadas'),
-                ...(arr(data.oportunidades)
-                    ? data.oportunidades.map(o => bullet(typeof o === 'string' ? o : (o.descripcion || o.oportunidad || JSON.stringify(o))))
-                    : [bodyP('Sin oportunidades específicas identificadas.')]),
+                // 5. OPORTUNIDADES
+                secHdr('5. OPORTUNIDADES'), pv(),
+                pTxt(typeof data.oportunidades === 'string' ? data.oportunidades : '—'),
+                ...(arr(data.productos_demandados) ? [pv(), pTxt('Productos de interés:', { bold: true, color: AZUL1 }), ...data.productos_demandados.map(bullet)] : []),
+                pv(), pv(),
 
-                // SECCIÓN 5 — Compromisos
-                h1('5. Compromisos Adquiridos'),
-                h2('5.1 Por parte de GPF:'),
-                ...(arr(data.compromisos_gpf) ? data.compromisos_gpf.map(bullet) : [bodyP('Sin compromisos formales.')]),
-                h2('5.2 Por parte del cliente:'),
-                ...(arr(data.compromisos_empresa) ? data.compromisos_empresa.map(bullet) : [bodyP('Sin compromisos formales.')]),
+                // 6. PRÓXIMOS PASOS
+                secHdr('6. PRÓXIMOS PASOS'), pv(),
+                ...(acciones.length > 0 ? acciones.map((a, i) => pTxt(`${i+1}. ${a}`)) : [pTxt(data.plan_seguimiento || '—')]),
+                pv(), pv(),
 
-                // SECCIÓN 6 — Temas pendientes
-                h1('6. Temas Pendientes'),
-                ...(arr(data.temas_pendientes) ? data.temas_pendientes.map(bullet) : [bodyP('Se abordaron todos los temas previstos.')]),
-
-                // SECCIÓN 7 — Evaluación (ÚNICA, sin duplicados)
-                h1('7. Evaluación de la Visita'),
-                evalTable,
-                new Paragraph({ spacing: { after: 160 }, children: [new TextRun('')] }),
-                bodyP(data.declaraciones || data.percepcion || '—'),
-
-                // SECCIÓN 8 — Plan de acción
-                h1('8. Plan de Acción y Seguimiento'),
-                actionTable,
-                new Paragraph({ spacing: { before: 240, after: 100 }, children: [new TextRun('')] }),
-                new Paragraph({ spacing: { before: 160, after: 100 }, children: [new TextRun({ text: 'NOTA ESTRATÉGICA:', font: 'Calibri', size: 22, bold: true, color: C.GRANATE })] }),
-                bodyP(data.plan_seguimiento || '—'),
+                // 7. NOTA ESTRATÉGICA (si existe)
+                ...(data.nota_estrategica ? [
+                    secHdr('7. NOTA ESTRATÉGICA'), pv(),
+                    caja(data.nota_estrategica, 'E67E22'),
+                    pv(),
+                ] : []),
             ];
 
             return new Document({
                 sections: [{
-                    properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
+                    properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 } } },
                     headers: { default: docHeader },
                     footers: { default: docFooter },
                     children
