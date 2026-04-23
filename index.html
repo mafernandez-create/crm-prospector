@@ -7219,12 +7219,18 @@
             const typeOrder = Object.fromEntries(Object.keys(TIPOS_ESTUDIO).map((k, i) => [k, i + 1]));
             
             return [...studios].sort((a, b) => {
+                // Null guard: registros sin nombre siempre al final, independientemente de la dirección
+                if (column === 'name') {
+                    if (!a.name && !b.name) return 0;
+                    if (!a.name) return 1;
+                    if (!b.name) return -1;
+                }
                 let valA, valB;
-                
+
                 switch (column) {
                     case 'name':
-                        valA = (a.name || '').toLowerCase();
-                        valB = (b.name || '').toLowerCase();
+                        valA = a.name.toLowerCase();
+                        valB = b.name.toLowerCase();
                         break;
                     case 'type':
                         valA = typeOrder[a.type || 'arquitectura'] || 1;
