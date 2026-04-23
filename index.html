@@ -25985,6 +25985,235 @@ Notas:
         function printPlan() {
             window.print();
         }
+
+        // ═══════════════════════════════════════════════════════════════
+        // GENERAR DOSSIER DE VISITAS  — Fichas pre-visita completas
+        // Formato CORPORATIVO GPF: portada + tabla resumen + 1 ficha/página
+        // ═══════════════════════════════════════════════════════════════
+        async function generarDossierVisitas() {
+            if (!planificadorData.schedule || Object.keys(planificadorData.schedule).length === 0) {
+                showNotification('No hay visitas planificadas', 'warning'); return;
+            }
+            if (typeof window.docx === 'undefined') {
+                showNotification('❌ Librería Word no cargada. Recarga la página.', 'error'); return;
+            }
+
+            showNotification('⏳ Generando dossier de visitas...', 'info');
+
+            const {
+                Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+                AlignmentType, BorderStyle, WidthType, ShadingType, VerticalAlign,
+                Header, Footer, PageNumber
+            } = window.docx;
+
+            const AZUL1='1F4E79', AZUL2='2E75B6', AZUL3='D6E4F0';
+            const GRIS1='F2F2F2', GRIS2='D9D9D9', NEGRO='000000', BLANCO='FFFFFF';
+            const thin = { style: BorderStyle.SINGLE, size: 1, color: GRIS2 };
+            const thinB = { top: thin, bottom: thin, left: thin, right: thin };
+
+            // Recopilar visitas del planificador (sin reservas), ordenadas por fecha
+            const sortedDates = Object.keys(planificadorData.schedule).sort();
+            const visitasPlan = [];
+            for (const fecha of sortedDates) {
+                for (const v of (planificadorData.schedule[fecha] || []).filter(s => !s.reserva)) {
+                    visitasPlan.push({ fecha, ...v });
+                }
+            }
+            if (visitasPlan.length === 0) {
+                showNotification('No hay visitas (sin reservas) en el planificador', 'warning'); return;
+            }
+
+            // Cargar datos de Firestore para cada estudio
+            const studioMap = {};
+            try {
+                const uniqueIds = [...new Set(visitasPlan.map(v => String(v.id)))];
+                await Promise.all(uniqueIds.map(async id => {
+                    const snap = await firestoreDB.collection('studios').doc(id).get();
+                    studioMap[id] = snap.exists ? snap.data() : null;
+                }));
+            } catch (e) {
+                showNotification('❌ Error Firestore: ' + e.message, 'error'); return;
+            }
+
+            // ── Helpers ──────────────────────────────────────────────────
+            const formatFechaEs = fechaStr => {
+                const d = new Date(fechaStr + 'T12:00:00');
+                const D = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+                const M = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+                return D[d.getDay()] + ' ' + d.getDate() + ' de ' + M[d.getMonth()];
+            };
+            const t = (text, o={}) => new TextRun({ text: String(text||''), font:'Arial', ...o });
+            const secHdr = label => new Paragraph({
+                children: [t(label.toUpperCase(), { bold:true, color:BLANCO, size:18 })],
+                shading: { fill:AZUL2, type:ShadingType.CLEAR },
+                spacing: { before:120, after:60 }, indent: { left:120, right:120 }
+            });
+            const lv = (label, val) => new Paragraph({
+                children: [t(label+'  ', {bold:true,color:AZUL1,size:20}), t(val||'—',{color:NEGRO,size:20})],
+                spacing:{after:40}, indent:{left:200}
+            });
+            const scoreBar = s => new Paragraph({
+                children: [
+                    t('Puntuación  ',{bold:true,color:AZUL1,size:20}),
+                    t('■'.repeat(s||0),{color:AZUL2,size:20}),
+                    t('□'.repeat(10-(s||0)),{color:GRIS2,size:20}),
+                    t('  '+(s||0)+'/10',{bold:true,color:AZUL1,size:20})
+                ],
+                spacing:{after:40}, indent:{left:200}
+            });
+
+            // ── Ficha individual ──────────────────────────────────────────
+            function makeFicha(visita, num, sd) {
+                const ch = [];
+                const d  = sd || {};
+                const ct = d.data?.contact || {};
+                const tm = d.data?.team || [];
+                const pr = (d.data?.projects||[]).slice(0,3);
+                const cm = d.data?.comms || {};
+                const pitch = cm.callPitch || cm.openingLine || 'Presentación general Ferroplast Mute: sistema de evacuación insonorizado <21 dB, triple certificación AENOR, catálogo BIM.';
+                const prio = d.priority || '—';
+                const pCol = prio==='Alta'?'C00000': prio==='Media'?'ED7D31':'70AD47';
+                const hora = visita.data?.hora || '—';
+                const fechaStr = formatFechaEs(visita.fecha);
+                const nombre = d.name || visita.name || '(sin nombre)';
+
+                // Cabecera azul oscuro — pageBreakBefore en TODAS para que cada ficha ocupe su propia página
+                ch.push(new Paragraph({
+                    pageBreakBefore: true,
+                    children: [t('VISITA '+num+'  ·  '+fechaStr+'  '+hora, {bold:true,color:BLANCO,size:20})],
+                    shading:{fill:AZUL1,type:ShadingType.CLEAR},
+                    spacing:{before:0,after:0}, indent:{left:120,right:120}
+                }));
+                ch.push(new Paragraph({ children:[t(nombre,{bold:true,color:AZUL1,size:28})], spacing:{before:120,after:40} }));
+                ch.push(new Paragraph({
+                    children:[t(d.type||'—',{italics:true,color:AZUL2,size:22}), t('   |   '+(d.city||'—')+', '+(d.province||'—'),{color:'595959',size:22})],
+                    spacing:{after:80}
+                }));
+                ch.push(scoreBar(d.score));
+                ch.push(new Paragraph({
+                    children:[t('Prioridad  ',{bold:true,color:AZUL1,size:20}), t(' '+prio+' ',{bold:true,color:BLANCO,size:18,shading:{fill:pCol,type:ShadingType.CLEAR}})],
+                    spacing:{after:80}, indent:{left:200}
+                }));
+
+                // Nota personalizada del planificador (si existe)
+                if (visita.data?.notas) {
+                    ch.push(new Paragraph({
+                        children:[t('📌 '+visita.data.notas,{italics:true,color:'4A4A4A',size:18})],
+                        spacing:{after:80}, indent:{left:200},
+                        border:{left:{style:BorderStyle.SINGLE,size:4,color:'ED7D31'}}
+                    }));
+                }
+
+                // Contacto
+                ch.push(secHdr('Contacto'));
+                ch.push(lv('📍 Dirección', ct.address));
+                ch.push(lv('📞 Teléfono',  ct.phone));
+                ch.push(lv('✉ Email',      ct.email));
+                ch.push(lv('🌐 Web',       ct.web));
+
+                // Equipo
+                if (tm.length > 0) {
+                    ch.push(secHdr('Equipo / Interlocutores'));
+                    for (const p of tm) {
+                        ch.push(new Paragraph({ children:[t('▸ ',{color:AZUL2,bold:true,size:20}),t(p.name||'',{bold:true,color:NEGRO,size:20}),t(p.isDecisionMaker?' ★ Decisor':'',{bold:true,color:'C00000',size:18})], spacing:{after:20},indent:{left:400} }));
+                        if (p.role)    ch.push(new Paragraph({ children:[t(p.role,{italics:true,color:'595959',size:18})],  spacing:{after:20},indent:{left:560} }));
+                        if (p.insight) ch.push(new Paragraph({ children:[t(p.insight,{color:'404040',size:18})],             spacing:{after:60},indent:{left:560} }));
+                    }
+                }
+
+                // Proyectos
+                if (pr.length > 0) {
+                    ch.push(secHdr('Proyectos de Referencia'));
+                    for (const p of pr) {
+                        ch.push(new Paragraph({ children:[t('▸ ',{color:AZUL2,bold:true,size:20}),t(p.name||'',{bold:true,color:NEGRO,size:20}),t(p.type?'  ['+p.type+']':'',{italics:true,color:'595959',size:18})], spacing:{after:20},indent:{left:400} }));
+                        const rel = p.relevance||p.relevancia||'';
+                        if (rel) ch.push(new Paragraph({ children:[t(rel,{color:'404040',size:18})], spacing:{after:60},indent:{left:560} }));
+                    }
+                }
+
+                // Pitch
+                ch.push(secHdr('Pitch / Argumento de Apertura'));
+                ch.push(new Paragraph({
+                    children:[t(pitch,{italics:true,color:'1A1A1A',size:20})],
+                    spacing:{after:80}, indent:{left:200,right:200},
+                    border:{left:{style:BorderStyle.SINGLE,size:6,color:AZUL2}}
+                }));
+
+                // Notas post-visita
+                ch.push(secHdr('Notas Post-visita'));
+                for (let i=0;i<5;i++) ch.push(new Paragraph({ children:[t('_______________________________________________',{color:GRIS2,size:20})], spacing:{after:80},indent:{left:200} }));
+
+                // Línea separadora al pie
+                ch.push(new Paragraph({ border:{bottom:{style:BorderStyle.SINGLE,size:3,color:AZUL3}}, spacing:{before:120,after:0}, children:[] }));
+                return ch;
+            }
+
+            // ── Construir documento ──────────────────────────────────────
+            const docCh = [];
+
+            // Portada
+            const allProv   = [...new Set(visitasPlan.map(v=>studioMap[String(v.id)]?.province).filter(Boolean))];
+            const region    = allProv.length ? allProv.join(' / ') : 'Visitas Comerciales';
+            const f1 = formatFechaEs(sortedDates[0]);
+            const f2 = sortedDates.length>1 && sortedDates[sortedDates.length-1]!==sortedDates[0] ? ' — '+formatFechaEs(sortedDates[sortedDates.length-1]) : '';
+            docCh.push(new Paragraph({ children:[t('DOSSIER DE VISITAS',{bold:true,color:BLANCO,size:52})], alignment:AlignmentType.CENTER, shading:{fill:AZUL1,type:ShadingType.CLEAR}, spacing:{before:2880,after:0} }));
+            docCh.push(new Paragraph({ children:[t(region+'  ·  '+f1+f2,{color:BLANCO,size:28})],           alignment:AlignmentType.CENTER, shading:{fill:AZUL1,type:ShadingType.CLEAR}, spacing:{before:120,after:0} }));
+            docCh.push(new Paragraph({ children:[t('Manuel Fernández  ·  Prescriptor GPF  ·  Ferroplast & Tuyper',{color:AZUL3,size:22})], alignment:AlignmentType.CENTER, shading:{fill:AZUL1,type:ShadingType.CLEAR}, spacing:{before:80,after:2880} }));
+
+            // Tabla resumen (nueva página)
+            docCh.push(new Paragraph({ pageBreakBefore:true, children:[t('RESUMEN DE VISITAS',{bold:true,color:AZUL1,size:32})], spacing:{before:0,after:240} }));
+            const hRow = new TableRow({ tableHeader:true, children:
+                [['DÍA',1800],['HORA',900],['ESTUDIO',3960],['CIUDAD',1500],['PRIORIDAD',1200]].map(([txt2,w])=>
+                    new TableCell({ width:{size:w,type:WidthType.DXA}, shading:{fill:AZUL1,type:ShadingType.CLEAR}, borders:thinB, margins:{top:80,bottom:80,left:120,right:120}, verticalAlign:VerticalAlign.CENTER,
+                        children:[new Paragraph({alignment:AlignmentType.CENTER,children:[t(txt2,{bold:true,color:BLANCO,size:18})]})] })
+                )
+            });
+            const dRows = visitasPlan.map((v,i)=>{
+                const bg=i%2===0?BLANCO:GRIS1;
+                const sd=studioMap[String(v.id)]||{};
+                const p=sd.priority||'—'; const pC=p==='Alta'?'C00000':p==='Media'?'ED7D31':'70AD47';
+                return new TableRow({ children:
+                    [{tx:formatFechaEs(v.fecha),w:1800,c:NEGRO},{tx:v.data?.hora||'—',w:900,c:NEGRO,al:AlignmentType.CENTER},{tx:sd.name||v.name||'—',w:3960,c:NEGRO},{tx:sd.city||'—',w:1500,c:NEGRO},{tx:p,w:1200,c:pC,bold:true,al:AlignmentType.CENTER}]
+                    .map(({tx,w,c,bold,al})=> new TableCell({ width:{size:w,type:WidthType.DXA}, shading:{fill:bg,type:ShadingType.CLEAR}, borders:thinB, margins:{top:60,bottom:60,left:120,right:120}, verticalAlign:VerticalAlign.CENTER,
+                        children:[new Paragraph({alignment:al||AlignmentType.LEFT,children:[t(tx,{size:18,color:c,bold:!!bold})]})] }))
+                });
+            });
+            docCh.push(new Table({ width:{size:9360,type:WidthType.DXA}, columnWidths:[1800,900,3960,1500,1200], rows:[hRow,...dRows] }));
+
+            // Fichas individuales
+            visitasPlan.forEach((v,i) => docCh.push(...makeFicha(v, i+1, studioMap[String(v.id)])));
+
+            // Build & download
+            try {
+                const doc = new Document({
+                    styles:{ default:{ document:{ run:{ font:'Arial', size:20, color:NEGRO } } } },
+                    sections:[{
+                        properties:{ page:{ size:{width:12240,height:15840}, margin:{top:1080,right:1080,bottom:1080,left:1080} } },
+                        headers:{ default: new Header({ children:[new Paragraph({
+                            children:[t('Ferroplast & Tuyper  ·  Dossier de Visitas',{color:AZUL2,size:16}), t('\t',{}), t('Manuel Fernández — Prescriptor GPF',{color:'595959',size:16})],
+                            tabStops:[{type:'right',position:9360}],
+                            border:{ bottom:{style:BorderStyle.SINGLE,size:3,color:AZUL3} }
+                        })] }) },
+                        footers:{ default: new Footer({ children:[new Paragraph({
+                            alignment:AlignmentType.CENTER,
+                            children:[t('Pág. ',{color:'595959',size:16}), new TextRun({children:[PageNumber.CURRENT],font:'Arial',size:16,color:'595959'}), t('  ·  Confidencial — Uso interno GPF',{color:'595959',size:16})],
+                            border:{ top:{style:BorderStyle.SINGLE,size:3,color:AZUL3} }
+                        })] }) },
+                        children: docCh
+                    }]
+                });
+                const blob = await Packer.toBlob(doc);
+                const url  = URL.createObjectURL(blob);
+                const a    = document.createElement('a');
+                const reg  = region.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9]/g,'_').replace(/_+/g,'_');
+                a.download = 'Dossier_Visitas_'+reg+'_'+sortedDates[0]+'.docx';
+                a.href = url; a.click(); URL.revokeObjectURL(url);
+                showNotification('✅ Dossier generado: '+a.download, 'success');
+            } catch(e) {
+                showNotification('❌ Error generando dossier: '+e.message, 'error');
+                console.error('generarDossierVisitas:', e);
+            }
+        }
         
         function exportPlanJSON() {
             const exportData = {
