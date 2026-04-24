@@ -23486,6 +23486,8 @@ updateMap();
             const visitadaPor = (data.comercial && data.comercial !== 'Prescripción')
                 ? data.comercial
                 : 'Iniciada por prescripción';
+            const telefono  = data.telefono || studio?.phone || stCont.phone || '—';
+            const emailCont = data.email    || studio?.email || stCont.email || '—';
             const productos = arr(data.productos_presentados) ? data.productos_presentados
                 : (data.productos_presentados ? [data.productos_presentados] : ['Ferroplast / Tuyper']);
             const acciones  = arr(data.acciones_internas)
