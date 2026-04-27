@@ -203,6 +203,15 @@ function detectIntent(txt) {
   // provincia
   for (const p of PROVINCIAS) { if (t.includes(p.toLowerCase())) { intent.provincia = p; break; } }
 
+  // ciudad — buscar "en [Ciudad]" o "de [Ciudad]" con mayúscula inicial
+  const cityM = txt.match(/\ben\s+([A-ZÁÉÍÓÚÜÑ][a-záéíóúüñA-ZÁÉÍÓÚÜÑ]+(?:\s+(?:de|del|la|las|los|el|San|Santa|Los|Las)\s+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)*)/);
+  if (cityM) {
+    const candidate = cityM[1].trim();
+    if (!PROVINCIAS.some(p => p.toLowerCase() === candidate.toLowerCase())) {
+      intent.ciudad = candidate;
+    }
+  }
+
   // tipo
   for (const tp of TIPOS) { if (t.includes(tp)) { intent.tipo = tp.replace('ingeniería','ingenieria'); break; } }
 
