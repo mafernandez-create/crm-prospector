@@ -6,158 +6,124 @@
   <title>GPF Assistant</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --blue:   #1F4E79;
-      --blue2:  #2E75B6;
-      --light:  #EEF4FB;
-      --bg:     #F5F7FA;
-      --white:  #FFFFFF;
-      --gray:   #6B7280;
-      --border: #E2E8F0;
-      --tool:   #FFF8E1;
-      --tool-b: #F59E0B;
-      --err:    #FEE2E2;
-      --err-b:  #EF4444;
-      --radius: 18px;
-      --header: 56px;
-      --input:  72px;
+      --blue:  #1F4E79; --blue2: #2E75B6; --light: #EEF4FB;
+      --bg:    #F5F7FA; --white: #FFFFFF; --border: #E2E8F0;
+      --tool:  #FFF8E1; --radius: 18px;
+      --header: 56px;  --input: 68px;
     }
+    html, body { height: 100%; overflow: hidden; background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 
-    html, body { height: 100%; overflow: hidden; background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-
-    /* ── HEADER ── */
     header {
       position: fixed; top: 0; left: 0; right: 0; height: var(--header);
       background: var(--blue); color: #fff;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 16px; z-index: 100;
-      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+      padding: 0 16px; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.2);
     }
-    header .title { font-size: 16px; font-weight: 600; letter-spacing: .3px; }
-    header .subtitle { font-size: 11px; opacity: .7; margin-top: 1px; }
-    .status-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: #94a3b8; transition: background .3s;
-    }
-    .status-dot.ok  { background: #4ADE80; }
-    .status-dot.err { background: #F87171; }
+    .title    { font-size: 16px; font-weight: 600; }
+    .subtitle { font-size: 11px; opacity: .7; margin-top: 1px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #94a3b8; transition: background .4s; }
+    .dot.ok  { background: #4ADE80; }
+    .dot.err { background: #F87171; }
 
-    /* ── MESSAGES ── */
     #messages {
       position: fixed; top: var(--header); bottom: var(--input);
-      left: 0; right: 0; overflow-y: auto;
-      padding: 16px 12px; scroll-behavior: smooth;
+      left: 0; right: 0; overflow-y: auto; padding: 14px 12px;
+      scroll-behavior: smooth;
     }
-
-    .msg { display: flex; margin-bottom: 10px; animation: fadeIn .2s ease; }
-    .msg.user  { justify-content: flex-end; }
+    .msg { display: flex; margin-bottom: 10px; animation: fi .2s ease; }
+    .msg.user      { justify-content: flex-end; }
     .msg.assistant { justify-content: flex-start; }
-    .msg.tool  { justify-content: flex-start; }
-
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+    .msg.tool      { justify-content: flex-start; }
+    @keyframes fi { from { opacity:0; transform:translateY(4px); } to { opacity:1; } }
 
     .bubble {
-      max-width: 82%; padding: 10px 14px; border-radius: var(--radius);
+      max-width: 84%; padding: 10px 14px; border-radius: var(--radius);
       font-size: 14px; line-height: 1.55; word-wrap: break-word;
     }
-    .msg.user  .bubble { background: var(--blue2); color: #fff; border-bottom-right-radius: 5px; }
-    .msg.assistant .bubble { background: var(--white); color: #1a1a2e; border-bottom-left-radius: 5px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
-    .msg.tool  .bubble { background: var(--tool); color: #92400e; font-size: 12.5px; border: 1px solid #fde68a; border-bottom-left-radius: 5px; padding: 6px 12px; }
-    .msg.error .bubble { background: var(--err); color: #991b1b; border: 1px solid #fca5a5; }
+    .msg.user      .bubble { background: var(--blue2); color:#fff; border-bottom-right-radius:5px; }
+    .msg.assistant .bubble { background: var(--white); color:#1a1a2e; border-bottom-left-radius:5px; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+    .msg.tool      .bubble { background: var(--tool); color:#92400e; font-size:12.5px; border:1px solid #fde68a; border-bottom-left-radius:5px; padding:6px 12px; }
 
-    /* markdown dentro de burbuja */
-    .bubble p   { margin-bottom: 6px; }
+    .bubble p           { margin-bottom: 6px; }
     .bubble p:last-child { margin-bottom: 0; }
-    .bubble strong { font-weight: 600; }
-    .bubble em { font-style: italic; }
-    .bubble ul, .bubble ol { padding-left: 18px; margin: 4px 0; }
-    .bubble li  { margin-bottom: 2px; }
-    .bubble h3  { font-size: 14px; font-weight: 700; margin: 6px 0 3px; color: var(--blue); }
-    .bubble h4  { font-size: 13px; font-weight: 600; margin: 5px 0 2px; }
-    .bubble code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: 12px; font-family: monospace; }
-    .bubble hr  { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
-    .bubble table { border-collapse: collapse; font-size: 12px; margin: 6px 0; width: 100%; }
-    .bubble th, .bubble td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; }
-    .bubble th  { background: var(--light); font-weight: 600; }
+    .bubble strong      { font-weight: 600; }
+    .bubble h3          { font-size:14px; font-weight:700; margin:6px 0 3px; color:var(--blue); }
+    .bubble h4          { font-size:13px; font-weight:600; margin:5px 0 2px; }
+    .bubble ul          { padding-left:18px; margin:4px 0; }
+    .bubble li          { margin-bottom:2px; }
+    .bubble code        { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12px; font-family:monospace; }
+    .bubble hr          { border:none; border-top:1px solid var(--border); margin:8px 0; }
+    .bubble table       { border-collapse:collapse; font-size:12px; margin:6px 0; width:100%; }
+    .bubble th,.bubble td { border:1px solid var(--border); padding:4px 8px; text-align:left; }
+    .bubble th          { background:var(--light); font-weight:600; }
 
-    /* typing indicator */
-    .typing .bubble { display: flex; gap: 5px; align-items: center; padding: 12px 16px; }
-    .dot { width: 7px; height: 7px; background: #94a3b8; border-radius: 50%; animation: bounce 1.2s infinite; }
-    .dot:nth-child(2) { animation-delay: .2s; }
-    .dot:nth-child(3) { animation-delay: .4s; }
-    @keyframes bounce { 0%,80%,100% { transform: scale(1); } 40% { transform: scale(1.4); } }
+    /* acción inline para confirmaciones */
+    .action-bar { display:flex; gap:8px; margin-top:10px; }
+    .btn-confirm { background:#1F4E79; color:#fff; border:none; border-radius:12px; padding:7px 16px; font-size:13px; cursor:pointer; }
+    .btn-cancel  { background:#f1f5f9; color:#374151; border:none; border-radius:12px; padding:7px 16px; font-size:13px; cursor:pointer; }
 
-    /* ── INPUT BAR ── */
+    .typing .bubble { display:flex; gap:5px; align-items:center; padding:12px 16px; }
+    .dot-anim { width:7px; height:7px; background:#94a3b8; border-radius:50%; animation:b 1.2s infinite; }
+    .dot-anim:nth-child(2) { animation-delay:.2s; }
+    .dot-anim:nth-child(3) { animation-delay:.4s; }
+    @keyframes b { 0%,80%,100%{transform:scale(1)} 40%{transform:scale(1.4)} }
+
+    #quickBar {
+      position: fixed; bottom: var(--input); left:0; right:0;
+      background: var(--white); border-top:1px solid var(--border);
+      overflow-x:auto; display:none; padding:6px 10px;
+    }
+    #quickBar.on { display:block; }
+    #quickRow { display:flex; gap:6px; }
+    .qa { white-space:nowrap; font-size:12px; padding:5px 12px;
+      background:var(--light); color:var(--blue); border:1px solid #bfdbfe;
+      border-radius:20px; cursor:pointer; }
+    .qa:hover { background:#dbeafe; }
+
     #input-bar {
-      position: fixed; bottom: 0; left: 0; right: 0; height: var(--input);
-      background: var(--white); border-top: 1px solid var(--border);
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 12px;
+      position:fixed; bottom:0; left:0; right:0; height:var(--input);
+      background:var(--white); border-top:1px solid var(--border);
+      display:flex; align-items:center; gap:8px; padding:10px 12px;
       padding-bottom: max(10px, env(safe-area-inset-bottom));
     }
     #userInput {
-      flex: 1; border: 1.5px solid var(--border); border-radius: 24px;
-      padding: 10px 16px; font-size: 15px; outline: none; resize: none;
-      max-height: 120px; overflow-y: auto; line-height: 1.4;
-      background: var(--bg); color: #1a1a2e;
-      transition: border-color .2s;
+      flex:1; border:1.5px solid var(--border); border-radius:24px;
+      padding:10px 16px; font-size:15px; outline:none; resize:none;
+      max-height:110px; overflow-y:auto; line-height:1.4;
+      background:var(--bg); color:#1a1a2e; transition:border-color .2s;
     }
-    #userInput:focus { border-color: var(--blue2); }
-    #userInput::placeholder { color: #9CA3AF; }
+    #userInput:focus { border-color:var(--blue2); }
+    #userInput::placeholder { color:#9CA3AF; }
     #sendBtn {
-      width: 44px; height: 44px; border-radius: 50%; border: none;
-      background: var(--blue); color: #fff; font-size: 20px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; transition: background .2s, transform .1s;
+      width:44px; height:44px; border-radius:50%; border:none;
+      background:var(--blue); color:#fff; font-size:20px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      flex-shrink:0; transition:background .2s, transform .1s;
     }
-    #sendBtn:hover  { background: var(--blue2); }
-    #sendBtn:active { transform: scale(.92); }
-    #sendBtn:disabled { background: #94a3b8; cursor: not-allowed; }
-
-    /* quick-actions */
-    #quickActions {
-      display: flex; gap: 6px; overflow-x: auto; padding: 8px 12px 0;
-      scrollbar-width: none;
-    }
-    #quickActions::-webkit-scrollbar { display: none; }
-    .qa-btn {
-      white-space: nowrap; font-size: 12px; padding: 5px 12px;
-      background: var(--light); color: var(--blue); border: 1px solid #bfdbfe;
-      border-radius: 20px; cursor: pointer; flex-shrink: 0;
-      transition: background .15s;
-    }
-    .qa-btn:hover { background: #dbeafe; }
-
-    #quickBar {
-      position: fixed; bottom: var(--input); left: 0; right: 0;
-      background: var(--white); border-top: 1px solid var(--border);
-      overflow-x: auto; display: none;
-    }
-    #quickBar.visible { display: block; }
+    #sendBtn:hover   { background:var(--blue2); }
+    #sendBtn:active  { transform:scale(.92); }
+    #sendBtn:disabled { background:#94a3b8; cursor:not-allowed; }
   </style>
 </head>
 <body>
 
 <header>
-  <div>
-    <div class="title">🏗️ GPF Assistant</div>
-    <div class="subtitle" id="statusText">Conectando…</div>
-  </div>
-  <div class="status-dot" id="statusDot"></div>
+  <div><div class="title">🏗️ GPF Assistant</div><div class="subtitle" id="stTxt">Conectando…</div></div>
+  <div class="dot" id="stDot"></div>
 </header>
 
 <div id="messages"></div>
 
 <div id="quickBar">
-  <div id="quickActions">
-    <button class="qa-btn" onclick="ask('¿Qué visitas tengo hoy?')">📅 Hoy</button>
-    <button class="qa-btn" onclick="ask('Muéstrame los estudios de Cádiz sin visita reciente')">📍 Cádiz pendientes</button>
-    <button class="qa-btn" onclick="ask('¿Cuántas visitas hice esta semana?')">📊 Stats semana</button>
-    <button class="qa-btn" onclick="ask('Estudios de arquitectura en Jerez de la Frontera')">🏛️ Arq. Jerez</button>
-    <button class="qa-btn" onclick="ask('¿Cuáles son mis próximas visitas planificadas?')">🗓️ Planificador</button>
-    <button class="qa-btn" onclick="ask('Busca ingenierías en Sevilla con score alto que no haya visitado en 30 días')">⚙️ Pendientes Sevilla</button>
-    <button class="qa-btn" onclick="ask('Dame el pitch de llamada para el studio que me acabas de mostrar')">📞 Pitch llamada</button>
+  <div id="quickRow">
+    <button class="qa" onclick="ask('¿Qué visitas tengo hoy?')">📅 Hoy</button>
+    <button class="qa" onclick="ask('Estudios de Cádiz sin visita en 30 días')">📍 Cádiz pendientes</button>
+    <button class="qa" onclick="ask('¿Cuántas visitas llevo esta semana?')">📊 Stats semana</button>
+    <button class="qa" onclick="ask('Arquitectura en Jerez de la Frontera')">🏛️ Jerez</button>
+    <button class="qa" onclick="ask('Muéstrame el planificador de esta semana')">🗓️ Planificador</button>
+    <button class="qa" onclick="ask('Ingenierías en Sevilla con score alto')">⚙️ Ing. Sevilla</button>
   </div>
 </div>
 
@@ -166,697 +132,460 @@
   <button id="sendBtn" onclick="sendMessage()">↑</button>
 </div>
 
-<!-- Firebase compat -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-
 <script>
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════════
 // CONFIG
-// ═══════════════════════════════════════════════
-const API_URL = 'https://script.google.com/macros/s/AKfycbzh2oFEM2QcL0OFef1dqz36b0C1f8qTMlvGdhoWATMwF5r2umlZpYdrq-7w86i6GF8/exec';
+// ══════════════════════════════════════════
+const GAS = 'https://script.google.com/macros/s/AKfycbzh2oFEM2QcL0OFef1dqz36b0C1f8qTMlvGdhoWATMwF5r2umlZpYdrq-7w86i6GF8/exec';
+const FB  = { apiKey:"AIzaSyCVxMjrIfB4MrYiUzvKzt8fJeKKNne-Cm0", authDomain:"ferroplast-crm.firebaseapp.com", projectId:"ferroplast-crm", storageBucket:"ferroplast-crm.firebasestorage.app", messagingSenderId:"90876822103", appId:"1:90876822103:web:eb7acb645d7205bd0f1912" };
 
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyCVxMjrIfB4MrYiUzvKzt8fJeKKNne-Cm0",
-  authDomain: "ferroplast-crm.firebaseapp.com",
-  projectId: "ferroplast-crm",
-  storageBucket: "ferroplast-crm.firebasestorage.app",
-  messagingSenderId: "90876822103",
-  appId: "1:90876822103:web:eb7acb645d7205bd0f1912"
-};
-
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════════
 // STATE
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════════
 let db = null;
-let messages = []; // historial de conversación
-let isThinking = false;
-let studioCache = null; // cache de studios para la sesión
+let studioCache = null;
+let history = [];   // historial de conversación (sin datos crudos de CRM)
+let busy = false;
+let pendingAction = null; // acción pendiente de confirmación
 
-// ═══════════════════════════════════════════════
-// INIT FIREBASE
-// ═══════════════════════════════════════════════
-async function initFirebase() {
+// ══════════════════════════════════════════
+// FIREBASE
+// ══════════════════════════════════════════
+async function initFB() {
   try {
-    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    if (!firebase.apps.length) firebase.initializeApp(FB);
     db = firebase.firestore();
     await db.collection('_meta').doc('ping').set({ ts: Date.now() });
-    setStatus('ok', 'CRM conectado');
-    document.getElementById('quickBar').classList.add('visible');
+    setStatus('ok', 'CRM conectado ✓');
+    document.getElementById('quickBar').classList.add('on');
     return true;
   } catch(e) {
-    setStatus('err', 'Sin conexión');
-    addMessage('assistant', '⚠️ No se pudo conectar con Firebase. Comprueba tu conexión a internet.');
+    setStatus('err', 'Sin conexión Firebase');
     return false;
   }
 }
 
-function setStatus(type, text) {
-  const dot  = document.getElementById('statusDot');
-  const span = document.getElementById('statusText');
-  dot.className = 'status-dot ' + (type || '');
-  span.textContent = text;
-}
-
-// ═══════════════════════════════════════════════
-// TOOL DEFINITIONS (para Claude)
-// ═══════════════════════════════════════════════
-const TOOLS = [
-  {
-    name: "buscar_studios",
-    description: "Busca estudios/empresas en el CRM. Puedes filtrar por provincia, ciudad, tipo, nombre o combinarlos. Devuelve lista con datos clave.",
-    input_schema: {
-      type: "object",
-      properties: {
-        provincia:       { type: "string", description: "Provincia exacta: Cádiz, Málaga, Granada, Sevilla, Huelva, Córdoba, Jaén, Almería, Toledo, Cáceres, Badajoz, Ciudad Real, Albacete, Cuenca, Alicante, Murcia, Las Palmas, Santa Cruz de Tenerife…" },
-        ciudad:          { type: "string", description: "Ciudad o parte del nombre de ciudad" },
-        tipo:            { type: "string", description: "arquitectura | ingenieria | constructora | promotora | aapp | aguas | regantes | almacen | otros" },
-        nombre:          { type: "string", description: "Texto a buscar en el nombre del estudio" },
-        sin_visita_dias: { type: "number", description: "Filtrar estudios sin visita en los últimos N días" },
-        score_min:       { type: "number", description: "Score mínimo (1-10)" },
-        limit:           { type: "number", description: "Máximo de resultados a devolver (default 12)" }
-      }
-    }
-  },
-  {
-    name: "obtener_studio",
-    description: "Obtiene todos los datos de un estudio por su ID numérico, incluyendo actividades, informes y datos de contacto.",
-    input_schema: {
-      type: "object",
-      properties: {
-        studio_id: { type: "number", description: "ID numérico del estudio (ej: 277)" }
-      },
-      required: ["studio_id"]
-    }
-  },
-  {
-    name: "agregar_actividad",
-    description: "Registra una nueva actividad (visita, llamada, email, whatsapp) en un estudio del CRM.",
-    input_schema: {
-      type: "object",
-      properties: {
-        studio_id: { type: "number",  description: "ID numérico del estudio" },
-        tipo:      { type: "string",  description: "visita | llamada | email | whatsapp" },
-        notas:     { type: "string",  description: "Notas de la actividad" },
-        resultado: { type: "string",  description: "positivo | negativo | pendiente | sin-respuesta" },
-        fecha:     { type: "string",  description: "Fecha ISO YYYY-MM-DD (default: hoy)" }
-      },
-      required: ["studio_id", "tipo", "notas"]
-    }
-  },
-  {
-    name: "ver_planificador",
-    description: "Consulta el planificador de visitas del CRM con las visitas programadas por fecha.",
-    input_schema: {
-      type: "object",
-      properties: {
-        fecha_inicio: { type: "string", description: "Fecha inicio YYYY-MM-DD (default: hoy)" },
-        fecha_fin:    { type: "string", description: "Fecha fin YYYY-MM-DD (default: 7 días desde inicio)" }
-      }
-    }
-  },
-  {
-    name: "estadisticas",
-    description: "Calcula estadísticas del CRM: visitas realizadas, llamadas, estudios contactados, etc.",
-    input_schema: {
-      type: "object",
-      properties: {
-        periodo: { type: "string", description: "hoy | esta_semana | semana_pasada | este_mes | ultimos_30_dias | ultimos_7_dias" }
-      },
-      required: ["periodo"]
-    }
-  },
-  {
-    name: "gestionar_planificador",
-    description: "Añade, elimina o consulta estudios en el planificador de visitas por fecha. Úsalo cuando el usuario quiera programar una visita, añadir un estudio a la agenda o ver qué tiene planificado.",
-    input_schema: {
-      type: "object",
-      properties: {
-        accion:    { type: "string", description: "añadir | eliminar | ver" },
-        fecha:     { type: "string", description: "Fecha YYYY-MM-DD para añadir/eliminar/ver" },
-        studio_id: { type: "number", description: "ID del estudio (requerido para añadir/eliminar)" },
-        reserva:   { type: "boolean", description: "true = visita de reserva (si falla la principal). Default: false" },
-        priority:  { type: "string",  description: "principal | secundario. Default: principal" }
-      },
-      required: ["accion"]
-    }
-  }
-];
-
-// ═══════════════════════════════════════════════
-// TOOL EXECUTION
-// ═══════════════════════════════════════════════
-async function executeTool(name, input) {
-  console.log('🔧 Tool:', name, input);
-  try {
-    switch(name) {
-      case 'buscar_studios':  return await toolBuscarStudios(input);
-      case 'obtener_studio':  return await toolObtenerStudio(input);
-      case 'agregar_actividad': return await toolAgregarActividad(input);
-      case 'ver_planificador':  return await toolVerPlanificador(input);
-      case 'estadisticas':         return await toolEstadisticas(input);
-      case 'gestionar_planificador': return await toolGestionarPlanificador(input);
-      default: return { error: 'Herramienta desconocida: ' + name };
-    }
-  } catch(e) {
-    return { error: e.message };
-  }
-}
-
-async function loadStudios() {
+async function getStudios() {
   if (studioCache) return studioCache;
   const snap = await db.collection('studios').get();
   studioCache = snap.docs.map(d => {
     const data = d.data();
-    if (data.id === undefined) data.id = parseInt(d.id) || d.id;
+    if (data.id == null) data.id = parseInt(d.id) || d.id;
     data._docId = d.id;
     return data;
   });
   return studioCache;
 }
 
-async function toolBuscarStudios(input) {
-  const { provincia, ciudad, tipo, nombre, sin_visita_dias, score_min, limit = 12 } = input;
-  let studios = await loadStudios();
+// ══════════════════════════════════════════
+// INTENT DETECTION — extrae parámetros del mensaje
+// ══════════════════════════════════════════
+const PROVINCIAS = ['Cádiz','Málaga','Granada','Sevilla','Huelva','Córdoba','Jaén','Almería','Toledo','Cáceres','Badajoz','Ciudad Real','Albacete','Cuenca','Alicante','Murcia','Las Palmas','Santa Cruz de Tenerife'];
+const TIPOS      = ['arquitectura','ingenieria','ingeniería','constructora','promotora','aapp','aguas','regantes'];
+const DIAS_SEM   = { lunes:1, martes:2, miércoles:3, miercoles:3, jueves:4, viernes:5, sábado:6, sabado:6, domingo:0 };
 
-  if (provincia) {
-    const p = provincia.toLowerCase();
-    studios = studios.filter(s => (s.province || '').toLowerCase().includes(p));
-  }
-  if (ciudad) {
-    const c = ciudad.toLowerCase();
-    studios = studios.filter(s =>
-      (s.city || '').toLowerCase().includes(c) ||
-      (s.data?.contact?.city || '').toLowerCase().includes(c)
-    );
-  }
-  if (tipo) {
-    const t = tipo.toLowerCase();
-    studios = studios.filter(s => (s.type || '').toLowerCase().includes(t));
-  }
-  if (nombre) {
-    const n = nombre.toLowerCase();
-    studios = studios.filter(s => (s.name || '').toLowerCase().includes(n));
-  }
-  if (score_min) {
-    studios = studios.filter(s => (s.score || s.data?.score || 0) >= score_min);
-  }
-  if (sin_visita_dias) {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - sin_visita_dias);
-    studios = studios.filter(s => {
-      const acts = s.activities || [];
-      const visitas = acts.filter(a => a.type === 'visita');
-      if (!visitas.length) return true;
-      const ultima = new Date(visitas[visitas.length - 1].date);
-      return ultima < cutoff;
-    });
-  }
+function detectIntent(txt) {
+  const t = txt.toLowerCase();
+  const intent = { actions: [], provincia: null, ciudad: null, tipo: null, nombre: null, studioId: null, fecha: null, dias: null };
 
-  // Ordenar: primero los de mayor score
-  studios.sort((a, b) => {
-    const sa = a.score || a.data?.score || 0;
-    const sb = b.score || b.data?.score || 0;
-    return sb - sa;
-  });
+  // acciones
+  if (/busca|muestra|dame|lista|encuentra|hay|tienes/.test(t))   intent.actions.push('search');
+  if (/ficha|detalle|información|datos|info\b/.test(t))          intent.actions.push('detail');
+  if (/planificador|agenda|visitas planificadas|programad/.test(t)) intent.actions.push('planificador');
+  if (/añade|agrega|pon|programa|incluye/.test(t) && /agenda|planificador|dia|fecha/.test(t)) intent.actions.push('add_plan');
+  if (/elimina|quita|borra/.test(t) && /agenda|planificador/.test(t)) intent.actions.push('del_plan');
+  if (/registra|anota|guarda|he visitado|he llamado|llamé|visité/.test(t)) intent.actions.push('add_act');
+  if (/estadística|cuántas|cuantas|resumen|semana|hoy/.test(t))  intent.actions.push('stats');
+  if (!intent.actions.length) intent.actions.push('search');
 
-  const resultado = studios.slice(0, limit).map(s => ({
-    id:         s.id,
-    nombre:     s.name,
-    ciudad:     s.city || s.data?.contact?.city || '',
-    provincia:  s.province || '',
-    tipo:       s.type,
-    score:      s.score || s.data?.score || '',
-    telefono:   s.phone || s.data?.contact?.phone || '',
-    email:      s.email || s.data?.contact?.email || '',
-    web:        s.web   || s.data?.contact?.web   || '',
-    actividades: (s.activities || []).length,
-    ultima_visita: (() => {
-      const v = (s.activities || []).filter(a => a.type === 'visita');
-      return v.length ? v[v.length - 1].date : null;
-    })()
-  }));
+  // provincia
+  for (const p of PROVINCIAS) { if (t.includes(p.toLowerCase())) { intent.provincia = p; break; } }
 
-  return { total_encontrados: studios.length, mostrando: resultado.length, studios: resultado };
-}
+  // tipo
+  for (const tp of TIPOS) { if (t.includes(tp)) { intent.tipo = tp.replace('ingeniería','ingenieria'); break; } }
 
-async function toolObtenerStudio(input) {
-  const studios = await loadStudios();
-  const s = studios.find(x => x.id == input.studio_id);
-  if (!s) return { error: `Studio con ID ${input.studio_id} no encontrado` };
+  // studio ID directo (ej: "estudio 277", "studio 28")
+  const idM = t.match(/estudio\s+(\d+)|studio\s+(\d+)|id\s+(\d+)/);
+  if (idM) intent.studioId = parseInt(idM[1] || idM[2] || idM[3]);
 
-  return {
-    id:           s.id,
-    nombre:       s.name,
-    ciudad:       s.city || s.data?.contact?.city || '',
-    provincia:    s.province || '',
-    tipo:         s.type,
-    score:        s.score || s.data?.score,
-    contacto: {
-      telefono:   s.phone || s.data?.contact?.phone || '',
-      email:      s.email || s.data?.contact?.email || '',
-      web:        s.web   || s.data?.contact?.web   || '',
-      direccion:  s.address || s.data?.contact?.address || ''
-    },
-    proyectos:    (s.data?.projects || []).slice(0, 5),
-    actividades:  (s.activities || []).slice(-10),
-    num_informes: (s.data?.reports || []).length,
-    pitch_email:  s.data?.comms?.emailBody   || '',
-    pitch_llamada: s.data?.comms?.callPitch  || '',
-    next_action:  s.data?.nextAction         || ''
-  };
-}
+  // días sin visita
+  const diasM = t.match(/(\d+)\s*d[ií]as/);
+  if (diasM) intent.dias = parseInt(diasM[1]);
 
-async function toolAgregarActividad(input) {
-  const { studio_id, tipo, notas, resultado = 'pendiente', fecha } = input;
-  const studios = await loadStudios();
-  const studio  = studios.find(x => x.id == studio_id);
-  if (!studio) return { error: `Studio ${studio_id} no encontrado` };
-
-  const hoy    = fecha || new Date().toISOString().split('T')[0];
-  const newAct = {
-    id:        Date.now(),
-    type:      tipo,
-    date:      hoy,
-    notes:     notas,
-    result:    resultado,
-    createdAt: new Date().toISOString()
-  };
-
-  // Actualizar en Firestore
-  const docId = studio._docId;
-  const acts  = [...(studio.activities || []), newAct];
-  await db.collection('studios').doc(docId).update({ activities: acts });
-
-  // Actualizar cache local
-  studio.activities = acts;
-
-  return {
-    ok: true,
-    mensaje: `Actividad "${tipo}" añadida al estudio "${studio.name}" (${hoy})`,
-    actividad: newAct
-  };
-}
-
-async function toolVerPlanificador(input) {
-  const hoy     = new Date().toISOString().split('T')[0];
-  const inicio  = input.fecha_inicio || hoy;
-  const fin_dt  = new Date(inicio);
-  fin_dt.setDate(fin_dt.getDate() + 7);
-  const fin     = input.fecha_fin || fin_dt.toISOString().split('T')[0];
-
-  const snap = await db.collection('_meta').doc('planificador').get();
-  if (!snap.exists) return { error: 'Planificador no encontrado en Firestore' };
-
-  const data     = snap.data();
-  const schedule = data.schedule || {};
-  const resultado = {};
-
-  Object.keys(schedule).forEach(fecha => {
-    if (fecha >= inicio && fecha <= fin) {
-      resultado[fecha] = schedule[fecha];
-    }
-  });
-
-  return {
-    periodo: `${inicio} → ${fin}`,
-    dias_con_visitas: Object.keys(resultado).length,
-    schedule: resultado
-  };
-}
-
-async function toolEstadisticas(input) {
-  const { periodo } = input;
+  // fecha
   const hoy = new Date();
-  let inicio;
-
-  switch(periodo) {
-    case 'hoy':           inicio = new Date(hoy); break;
-    case 'esta_semana':
-    case 'ultimos_7_dias': inicio = new Date(hoy); inicio.setDate(inicio.getDate() - 7); break;
-    case 'semana_pasada':  inicio = new Date(hoy); inicio.setDate(inicio.getDate() - 14);
-                           hoy.setDate(hoy.getDate() - 7); break;
-    case 'este_mes':       inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1); break;
-    case 'ultimos_30_dias': inicio = new Date(hoy); inicio.setDate(inicio.getDate() - 30); break;
-    default:               inicio = new Date(hoy); inicio.setDate(inicio.getDate() - 7);
+  if (/\bhoy\b/.test(t))   intent.fecha = hoy.toISOString().split('T')[0];
+  if (/\bmañana\b/.test(t)) { const d = new Date(hoy); d.setDate(d.getDate()+1); intent.fecha = d.toISOString().split('T')[0]; }
+  for (const [dia, num] of Object.entries(DIAS_SEM)) {
+    if (t.includes(dia)) {
+      const d = new Date(hoy);
+      const diff = (num - d.getDay() + 7) % 7 || 7;
+      d.setDate(d.getDate() + diff);
+      intent.fecha = d.toISOString().split('T')[0];
+      break;
+    }
+  }
+  // fecha DD/MM o DD-MM
+  const fechaM = t.match(/(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{4}))?/);
+  if (fechaM) {
+    const y = fechaM[3] || hoy.getFullYear();
+    intent.fecha = `${y}-${fechaM[2].padStart(2,'0')}-${fechaM[1].padStart(2,'0')}`;
   }
 
-  const inicioStr = inicio.toISOString().split('T')[0];
-  const finStr    = hoy.toISOString().split('T')[0];
-
-  const studios = await loadStudios();
-  let visitas = 0, llamadas = 0, emails = 0, whatsapps = 0;
-  const estudiosContactados = new Set();
-
-  studios.forEach(s => {
-    (s.activities || []).forEach(a => {
-      if (a.date >= inicioStr && a.date <= finStr) {
-        if (a.type === 'visita')    { visitas++;    estudiosContactados.add(s.id); }
-        if (a.type === 'llamada')   { llamadas++;   estudiosContactados.add(s.id); }
-        if (a.type === 'email')     { emails++;     estudiosContactados.add(s.id); }
-        if (a.type === 'whatsapp')  { whatsapps++;  estudiosContactados.add(s.id); }
-      }
-    });
-  });
-
-  return {
-    periodo: `${inicioStr} → ${finStr}`,
-    visitas, llamadas, emails, whatsapps,
-    total_actividades: visitas + llamadas + emails + whatsapps,
-    estudios_contactados: estudiosContactados.size
-  };
+  return intent;
 }
 
-async function toolGestionarPlanificador(input) {
-  const { accion, fecha, studio_id, reserva = false, priority = 'principal' } = input;
+// ══════════════════════════════════════════
+// FIREBASE QUERIES
+// ══════════════════════════════════════════
+async function fetchCRMData(intent, rawText) {
+  const result = {};
+
+  // ── planificador ──
+  if (intent.actions.includes('planificador') || intent.actions.includes('add_plan') || intent.actions.includes('del_plan')) {
+    const snap = await db.collection('_meta').doc('planificador').get();
+    if (snap.exists) {
+      const sched = snap.data().schedule || {};
+      const hoy   = new Date().toISOString().split('T')[0];
+      const fin   = new Date(); fin.setDate(fin.getDate()+8);
+      const finStr = fin.toISOString().split('T')[0];
+      const proximos = {};
+      Object.keys(sched).sort().forEach(d => { if (d >= hoy && d <= finStr) proximos[d] = sched[d]; });
+      result.planificador = proximos;
+    }
+  }
+
+  // ── stats ──
+  if (intent.actions.includes('stats')) {
+    const estudios = await getStudios();
+    const hoy    = new Date().toISOString().split('T')[0];
+    const lunesD = new Date(); lunesD.setDate(lunesD.getDate() - lunesD.getDay() + (lunesD.getDay()===0?-6:1));
+    const lunes  = lunesD.toISOString().split('T')[0];
+    let v=0, ll=0, em=0, wa=0; const ids = new Set();
+    estudios.forEach(s => {
+      (s.activities||[]).forEach(a => {
+        if (a.date >= lunes && a.date <= hoy) {
+          if (a.type==='visita')  { v++;  ids.add(s.id); }
+          if (a.type==='llamada') { ll++; ids.add(s.id); }
+          if (a.type==='email')   { em++; ids.add(s.id); }
+          if (a.type==='whatsapp'){ wa++; ids.add(s.id); }
+        }
+      });
+    });
+    result.stats = { semana: `${lunes} → ${hoy}`, visitas:v, llamadas:ll, emails:em, whatsapps:wa, estudios_contactados: ids.size };
+  }
+
+  // ── detalle de un studio ──
+  if (intent.studioId && intent.actions.includes('detail')) {
+    const estudios = await getStudios();
+    const s = estudios.find(x => x.id == intent.studioId);
+    if (s) result.studio = formatStudio(s, true);
+  }
+
+  // ── búsqueda ──
+  if (intent.actions.includes('search') || intent.actions.includes('add_plan') || intent.actions.includes('add_act')) {
+    const estudios = await getStudios();
+    let filtrados = estudios;
+
+    if (intent.studioId) {
+      filtrados = filtrados.filter(s => s.id == intent.studioId);
+    } else {
+      if (intent.provincia) filtrados = filtrados.filter(s => (s.province||'').toLowerCase().includes(intent.provincia.toLowerCase()));
+      if (intent.tipo)      filtrados = filtrados.filter(s => (s.type||'').toLowerCase().includes(intent.tipo));
+      if (intent.ciudad)    filtrados = filtrados.filter(s => (s.city||s.data?.contact?.city||'').toLowerCase().includes(intent.ciudad.toLowerCase()));
+      // buscar nombre libre en el texto (palabras >4 letras que no sean stopwords)
+      if (!intent.provincia && !intent.tipo && !intent.studioId) {
+        const stops = new Set(['busca','muestra','dame','lista','todos','todas','los','las','que','con','sin','para','una','estudio','estudios','empresa','empresas','arquitectura','ingeniería','ingenieria','cádiz','cadiz','málaga','malaga','granada','sevilla','en','de','del','la','el','un']);
+        const palabras = rawText.toLowerCase().split(/\s+/).filter(w => w.length > 3 && !stops.has(w));
+        if (palabras.length) {
+          filtrados = filtrados.filter(s => {
+            const hay = (s.name+' '+(s.city||'')).toLowerCase();
+            return palabras.some(p => hay.includes(p));
+          });
+        }
+      }
+    }
+
+    if (intent.dias) {
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - intent.dias);
+      const cutoffStr = cutoff.toISOString().split('T')[0];
+      filtrados = filtrados.filter(s => {
+        const vs = (s.activities||[]).filter(a => a.type==='visita');
+        return !vs.length || vs[vs.length-1].date < cutoffStr;
+      });
+    }
+
+    filtrados.sort((a,b) => (b.score||b.data?.score||0)-(a.score||a.data?.score||0));
+    const full = intent.studioId && filtrados.length === 1;
+    result.studios = filtrados.slice(0, full ? 1 : 10).map(s => formatStudio(s, full));
+    result.total = filtrados.length;
+  }
+
+  return result;
+}
+
+function formatStudio(s, full = false) {
+  const base = {
+    id:        s.id,
+    nombre:    s.name,
+    ciudad:    s.city || s.data?.contact?.city || '',
+    provincia: s.province || '',
+    tipo:      s.type,
+    score:     s.score || s.data?.score || '',
+    telefono:  s.phone || s.data?.contact?.phone || '',
+    email:     s.email || s.data?.contact?.email || '',
+    web:       s.web   || s.data?.contact?.web   || '',
+    actividades: (s.activities||[]).length,
+    ultima_visita: (() => { const v=(s.activities||[]).filter(a=>a.type==='visita'); return v.length?v[v.length-1].date:null; })()
+  };
+  if (full) {
+    base.direccion  = s.address || s.data?.contact?.address || '';
+    base.proyectos  = (s.data?.projects||[]).slice(0,4);
+    base.pitch_llamada = s.data?.comms?.callPitch || '';
+    base.pitch_email   = s.data?.comms?.emailBody  || '';
+    base.next_action   = s.data?.nextAction || '';
+    base.ultimas_actividades = (s.activities||[]).slice(-5);
+  }
+  return base;
+}
+
+// ══════════════════════════════════════════
+// WRITE OPERATIONS
+// ══════════════════════════════════════════
+async function addActivity(studioId, tipo, notas, resultado, fecha) {
+  const estudios = await getStudios();
+  const s = estudios.find(x => x.id == studioId);
+  if (!s) return { ok:false, msg:`Studio ${studioId} no encontrado` };
+  const act = { id: Date.now(), type: tipo, date: fecha||new Date().toISOString().split('T')[0], notes: notas, result: resultado||'pendiente', createdAt: new Date().toISOString() };
+  const newActs = [...(s.activities||[]), act];
+  await db.collection('studios').doc(s._docId).update({ activities: newActs });
+  s.activities = newActs;
+  return { ok:true, msg:`Actividad "${tipo}" registrada en "${s.name}"`, actividad: act };
+}
+
+async function addToPlan(studioId, fecha, reserva=false, priority='principal') {
+  const estudios = await getStudios();
+  const s = estudios.find(x => x.id == studioId);
+  if (!s) return { ok:false, msg:`Studio ${studioId} no encontrado` };
+
   const ref  = db.collection('_meta').doc('planificador');
   const snap = await ref.get();
-  if (!snap.exists) return { error: 'Planificador no encontrado' };
+  const sched = snap.data()?.schedule || {};
+  const dia   = [...(sched[fecha]||[])];
 
-  const data     = snap.data();
-  const schedule = data.schedule || {};
+  if (dia.some(x => x.id == studioId)) return { ok:false, msg:`"${s.name}" ya está en el planificador el ${fecha}` };
 
-  // ── VER ──
-  if (accion === 'ver') {
-    const hoy    = new Date().toISOString().split('T')[0];
-    const inicio = fecha || hoy;
-    const fin_dt = new Date(inicio); fin_dt.setDate(fin_dt.getDate() + 7);
-    const fin    = fin_dt.toISOString().split('T')[0];
-    const result = {};
-    Object.keys(schedule).sort().forEach(d => {
-      if (d >= inicio && d <= fin) result[d] = schedule[d];
-    });
-    return { periodo: `${inicio} → ${fin}`, schedule: result };
-  }
-
-  if (!fecha)     return { error: 'Se requiere fecha para esta acción' };
-  if (!studio_id) return { error: 'Se requiere studio_id para esta acción' };
-
-  const studios = await loadStudios();
-  const studio  = studios.find(x => x.id == studio_id);
-  if (!studio) return { error: `Studio ${studio_id} no encontrado` };
-
-  const entrada = {
-    id:       studio.id,
-    name:     studio.name,
-    city:     studio.city || studio.data?.contact?.city || '',
-    reserva,
-    priority
-  };
-
-  const diaActual = [...(schedule[fecha] || [])];
-
-  // ── AÑADIR ──
-  if (accion === 'añadir') {
-    const yaExiste = diaActual.some(x => x.id == studio_id);
-    if (yaExiste) return { ok: false, mensaje: `"${studio.name}" ya está en el planificador el ${fecha}` };
-
-    diaActual.push(entrada);
-    const newSchedule = { ...schedule, [fecha]: diaActual };
-    await ref.update({ schedule: newSchedule, lastModified: new Date().toISOString() });
-    return {
-      ok: true,
-      mensaje: `✅ "${studio.name}" añadido al planificador el ${fecha}${reserva ? ' (reserva)' : ''}`,
-      dia_completo: diaActual
-    };
-  }
-
-  // ── ELIMINAR ──
-  if (accion === 'eliminar') {
-    const nuevoDia = diaActual.filter(x => x.id != studio_id);
-    if (nuevoDia.length === diaActual.length)
-      return { ok: false, mensaje: `"${studio.name}" no estaba en el planificador el ${fecha}` };
-
-    const newSchedule = { ...schedule, [fecha]: nuevoDia };
-    if (nuevoDia.length === 0) delete newSchedule[fecha];
-    await ref.update({ schedule: newSchedule, lastModified: new Date().toISOString() });
-    return {
-      ok: true,
-      mensaje: `🗑️ "${studio.name}" eliminado del planificador el ${fecha}`,
-      dia_completo: nuevoDia
-    };
-  }
-
-  return { error: 'Acción no reconocida. Usa: añadir | eliminar | ver' };
+  dia.push({ id:s.id, name:s.name, city:s.city||s.data?.contact?.city||'', reserva, priority });
+  await ref.update({ schedule: { ...sched, [fecha]: dia }, lastModified: new Date().toISOString() });
+  return { ok:true, msg:`✅ "${s.name}" añadido al planificador el ${fecha}` };
 }
 
-// ═══════════════════════════════════════════════
-// CLAUDE API + TOOL LOOP
-// ═══════════════════════════════════════════════
-function getToday() {
-  return new Date().toLocaleDateString('es-ES', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-  });
+async function delFromPlan(studioId, fecha) {
+  const estudios = await getStudios();
+  const s = estudios.find(x => x.id == studioId);
+  if (!s) return { ok:false, msg:`Studio ${studioId} no encontrado` };
+
+  const ref   = db.collection('_meta').doc('planificador');
+  const snap  = await ref.get();
+  const sched = snap.data()?.schedule || {};
+  const nuevo = (sched[fecha]||[]).filter(x => x.id != studioId);
+  const newSched = { ...sched, [fecha]: nuevo };
+  if (!nuevo.length) delete newSched[fecha];
+  await ref.update({ schedule: newSched, lastModified: new Date().toISOString() });
+  return { ok:true, msg:`🗑️ "${s.name}" eliminado del planificador el ${fecha}` };
 }
 
-const SYSTEM = `Eres el asistente de CRM de Manuel Fernández, prescriptor de Ferroplast y Tuyper (Grupo GPF).
-Zona de trabajo: Andalucía, Cáceres, Toledo, Cuenca, Albacete, Badajoz, Ciudad Real, Alicante, Canarias.
-Hoy es ${getToday()}.
+// ══════════════════════════════════════════
+// CLAUDE (sin tools — datos inyectados en el contexto)
+// ══════════════════════════════════════════
+function today() {
+  return new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
 
-Productos principales:
-- FERROPLAST MUTE: evacuación insonorizada PVC, <21 dB, triple cert. AENOR. Target: arquitectura e ingeniería.
-- ECOSAN / BIOPIPE PVC-O: saneamiento y tuberías agua. Target: ingenierías, empresas de aguas, regantes.
-- TUYPER PE/PVC: redes de distribución y riego.
+const SYS = `Eres el asistente de CRM de Manuel Fernández, prescriptor de Ferroplast/Tuyper (Grupo GPF).
+Hoy es ${today()}. Zona: Andalucía, Cáceres, Toledo, Cuenca, Albacete, Badajoz, Ciudad Real, Alicante, Canarias.
+Productos: MUTE (evacuación insonorizada, arquitectura/ingeniería), ECOSAN/BIOPIPE (saneamiento, aguas/regantes), TUYPER PE/PVC (distribución/riego).
 
-CRM estructura:
-- Colección Firestore: 'studios'. Cada doc tiene: id (número), name, city, province, type, score (1-10), activities[], data.contact{phone,email,web,address}, data.projects[], data.comms{callPitch,emailBody}, data.reports[].
-- Tipos: arquitectura | ingenieria | constructora | promotora | aapp | aguas | regantes | almacen | otros.
-
-Capacidades disponibles:
-1. Buscar estudios por provincia, ciudad, tipo, nombre, score o días sin visita.
-2. Ver ficha completa de un estudio (contacto, proyectos, pitch de llamada/email, actividades).
-3. Registrar actividades: visitas realizadas, llamadas, emails, whatsapps.
-4. Gestionar el planificador: añadir estudios a una fecha, eliminarlos, ver la agenda.
-5. Ver estadísticas de actividad comercial.
-
-Reglas:
-- Responde en español, sé conciso y práctico.
-- Cuando vayas a añadir algo al planificador o registrar una actividad, confirma brevemente los datos antes de ejecutar si hay ambigüedad.
-- Si el usuario dice "añádelo a la agenda del jueves" o similar, usa gestionar_planificador con acción añadir.
-- Para buscar estudios sin filtro geográfico claro, pregunta la provincia si son demasiados resultados.`;
+Recibirás los datos del CRM directamente en el mensaje del usuario bajo la etiqueta [DATOS_CRM].
+Usa SOLO esos datos para responder — no inventes información.
+Sé conciso, directo y práctico. Responde en español.
+Si hay que registrar algo (visita, actividad, añadir al planificador), responde con un bloque JSON al final:
+<ACTION>{"op":"add_act","studio_id":N,"tipo":"visita","notas":"...","resultado":"positivo","fecha":"YYYY-MM-DD"}</ACTION>
+<ACTION>{"op":"add_plan","studio_id":N,"fecha":"YYYY-MM-DD","reserva":false}</ACTION>
+<ACTION>{"op":"del_plan","studio_id":N,"fecha":"YYYY-MM-DD"}</ACTION>
+Solo incluye el bloque ACTION si el usuario pide EXPLÍCITAMENTE registrar o guardar algo.`;
 
 async function callClaude(msgs) {
-  const payload = {
-    model:      'claude-sonnet-4-20250514',
-    max_tokens: 2048,
-    system:     SYSTEM,
-    tools:      TOOLS,
-    messages:   msgs
-  };
-
-  const resp = await fetch(API_URL + '?action=claudeProxy', {
-    method:  'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body:    JSON.stringify(payload)
+  const r = await fetch(GAS + '?action=claudeProxy', {
+    method:'POST', headers:{'Content-Type':'text/plain'},
+    body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1500, system:SYS, messages:msgs })
   });
-
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  const data = await resp.json();
-  if (data.error) throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error));
-  return data;
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const d = await r.json();
+  if (d.error) throw new Error(typeof d.error==='string'?d.error:JSON.stringify(d.error));
+  return d.content?.find(b=>b.type==='text')?.text || '';
 }
 
+// ══════════════════════════════════════════
+// AGENT LOOP
+// ══════════════════════════════════════════
 async function runAgent(userText) {
-  messages.push({ role: 'user', content: userText });
+  // 1. Detectar intención y cargar datos de Firebase
+  const intent = detectIntent(userText);
+  addTool('🔍 Consultando el CRM…');
 
-  let iteration = 0;
-  const maxIter = 6;
+  let crmData = {};
+  try { crmData = await fetchCRMData(intent, userText); }
+  catch(e) { addTool('⚠️ Error Firebase: ' + e.message); }
 
-  while (iteration < maxIter) {
-    iteration++;
-    const response = await callClaude(messages);
+  removeTool();
 
-    // Añadir respuesta del asistente al historial
-    messages.push({ role: 'assistant', content: response.content });
+  // 2. Construir mensaje con datos inyectados
+  const dataBlock = Object.keys(crmData).length
+    ? `\n\n[DATOS_CRM]\n${JSON.stringify(crmData, null, 1)}`
+    : '';
+  const userMsg = userText + dataBlock;
 
-    if (response.stop_reason === 'end_turn') {
-      // Respuesta final de texto
-      const textBlock = response.content.find(b => b.type === 'text');
-      return textBlock ? textBlock.text : '(sin respuesta)';
-    }
+  // 3. Historial: guardar texto original (sin datos crudos)
+  const msgs = [...history, { role:'user', content: userMsg }];
 
-    if (response.stop_reason === 'tool_use') {
-      const toolBlocks = response.content.filter(b => b.type === 'tool_use');
-      const toolResults = [];
+  // 4. Llamar a Claude
+  const reply = await callClaude(msgs);
 
-      for (const tb of toolBlocks) {
-        addToolMessage(`🔍 ${toolLabel(tb.name)}…`);
-        const result = await executeTool(tb.name, tb.input);
-        toolResults.push({
-          type:        'tool_result',
-          tool_use_id: tb.id,
-          content:     JSON.stringify(result)
-        });
-      }
+  // 5. Actualizar historial con texto limpio
+  history.push({ role:'user',      content: userText });
+  history.push({ role:'assistant', content: reply });
+  if (history.length > 20) history = history.slice(-20);
 
-      messages.push({ role: 'user', content: toolResults });
-      continue;
-    }
-
-    // stop_reason inesperado
-    break;
+  // 6. Detectar ACTION en la respuesta
+  const actionMatch = reply.match(/<ACTION>([\s\S]*?)<\/ACTION>/);
+  if (actionMatch) {
+    try {
+      const action = JSON.parse(actionMatch[1].trim());
+      const cleanReply = reply.replace(/<ACTION>[\s\S]*?<\/ACTION>/, '').trim();
+      return { text: cleanReply, action };
+    } catch(e) {}
   }
 
-  return '⚠️ Límite de iteraciones alcanzado.';
+  return { text: reply, action: null };
 }
 
-function toolLabel(name) {
-  const labels = {
-    buscar_studios:    'Buscando en el CRM',
-    obtener_studio:    'Cargando estudio',
-    agregar_actividad: 'Guardando actividad',
-    ver_planificador:  'Consultando planificador',
-    estadisticas:      'Calculando estadísticas'
-  };
-  return labels[name] || name;
-}
-
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════════
 // UI
-// ═══════════════════════════════════════════════
-const messagesEl = document.getElementById('messages');
+// ══════════════════════════════════════════
+const msgsEl = document.getElementById('messages');
 
-function addMessage(role, text) {
-  const div = document.createElement('div');
-  div.className = 'msg ' + role;
-  const bubble = document.createElement('div');
-  bubble.className = 'bubble';
-  if (role === 'assistant') {
-    bubble.innerHTML = markdownToHtml(text);
-  } else {
-    bubble.textContent = text;
-  }
-  div.appendChild(bubble);
-  messagesEl.appendChild(div);
+function addMsg(role, html, raw) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + role;
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  if (role === 'assistant') b.innerHTML = md(raw || html);
+  else b.textContent = raw || html;
+  d.appendChild(b);
+  msgsEl.appendChild(d);
   scrollDown();
-  return div;
+  return b;
 }
 
-function addToolMessage(text) {
-  const div = document.createElement('div');
-  div.className = 'msg tool';
-  const bubble = document.createElement('div');
-  bubble.className = 'bubble';
-  bubble.textContent = text;
-  div.appendChild(bubble);
-  messagesEl.appendChild(div);
-  scrollDown();
+let toolEl = null;
+function addTool(txt) {
+  const d = document.createElement('div'); d.className = 'msg tool'; d.id='toolmsg';
+  const b = document.createElement('div'); b.className = 'bubble'; b.textContent = txt;
+  d.appendChild(b); msgsEl.appendChild(d); scrollDown();
 }
+function removeTool() { document.getElementById('toolmsg')?.remove(); }
 
 function addTyping() {
-  const div = document.createElement('div');
-  div.className = 'msg assistant typing';
-  div.id = 'typing';
-  div.innerHTML = '<div class="bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
-  messagesEl.appendChild(div);
-  scrollDown();
+  const d = document.createElement('div'); d.className = 'msg assistant typing'; d.id='typing';
+  d.innerHTML = '<div class="bubble"><div class="dot-anim"></div><div class="dot-anim"></div><div class="dot-anim"></div></div>';
+  msgsEl.appendChild(d); scrollDown();
+}
+function removeTyping() { document.getElementById('typing')?.remove(); }
+
+function showConfirm(bubble, action) {
+  const bar = document.createElement('div'); bar.className = 'action-bar';
+  const labels = { add_act:'✅ Registrar actividad', add_plan:'📅 Añadir al planificador', del_plan:'🗑️ Eliminar del planificador' };
+  const btnOk = document.createElement('button'); btnOk.className='btn-confirm'; btnOk.textContent = labels[action.op]||'Confirmar';
+  const btnNo = document.createElement('button'); btnNo.className='btn-cancel';  btnNo.textContent = 'Cancelar';
+
+  btnOk.onclick = async () => {
+    bar.remove();
+    let res;
+    addTool('💾 Guardando…');
+    try {
+      if (action.op==='add_act')  res = await addActivity(action.studio_id, action.tipo, action.notas, action.resultado, action.fecha);
+      if (action.op==='add_plan') res = await addToPlan(action.studio_id, action.fecha, action.reserva||false);
+      if (action.op==='del_plan') res = await delFromPlan(action.studio_id, action.fecha);
+      removeTool();
+      addMsg('assistant', '', res?.msg || '✅ Hecho');
+    } catch(e) { removeTool(); addMsg('assistant','','❌ Error: '+e.message); }
+  };
+  btnNo.onclick = () => { bar.remove(); addMsg('assistant','','De acuerdo, no se ha guardado nada.'); };
+  bar.appendChild(btnOk); bar.appendChild(btnNo);
+  bubble.appendChild(bar);
 }
 
-function removeTyping() {
-  const t = document.getElementById('typing');
-  if (t) t.remove();
+function scrollDown() { setTimeout(() => msgsEl.scrollTop = msgsEl.scrollHeight, 50); }
+
+function setStatus(type, text) {
+  document.getElementById('stDot').className = 'dot ' + type;
+  document.getElementById('stTxt').textContent = text;
 }
 
-function scrollDown() {
-  setTimeout(() => messagesEl.scrollTop = messagesEl.scrollHeight, 50);
-}
-
-// Mini markdown → HTML
-function markdownToHtml(text) {
-  return text
+// Markdown mínimo
+function md(t) {
+  if (!t) return '';
+  return t
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/^### (.+)$/gm,      '<h3>$1</h3>')
-    .replace(/^#### (.+)$/gm,     '<h4>$1</h4>')
-    .replace(/\*\*(.+?)\*\*/g,    '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g,        '<em>$1</em>')
-    .replace(/`(.+?)`/g,          '<code>$1</code>')
-    .replace(/^---$/gm,           '<hr>')
-    .replace(/^\| (.+) \|$/gm, (m) => {
-      const cells = m.split('|').filter(c => c.trim());
-      return '<tr>' + cells.map(c => `<td>${c.trim()}</td>`).join('') + '</tr>';
-    })
-    .replace(/(<tr>.*<\/tr>)/gs, s => `<table>${s}</table>`)
-    .replace(/^- (.+)$/gm,        '<li>$1</li>')
-    .replace(/(<li>.*<\/li>)/gs,  s => `<ul>${s}</ul>`)
-    .replace(/^(\d+)\. (.+)$/gm,  '<li>$2</li>')
-    .replace(/\n{2,}/g, '</p><p>')
-    .replace(/^(.)/gm, (m, c) => {
-      if (['<',''].includes(c)) return m;
-      return m;
-    })
-    .split('\n').map(line => {
-      if (/^<(h[34]|ul|ol|li|hr|table|tr)/.test(line)) return line;
-      return line;
-    }).join('\n')
-    .replace(/([^>])\n([^<])/g, '$1<br>$2');
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^#### (.+)$/gm,'<h4>$1</h4>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code>$1</code>').replace(/^---$/gm,'<hr>')
+    .replace(/^- (.+)$/gm,'<li>$1</li>').replace(/(<li>.*<\/li>\n?)+/gs,s=>`<ul>${s}</ul>`)
+    .replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br>')
+    .replace(/^([^<])/, '<p>$1').replace(/([^>])$/, '$1</p>');
 }
 
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════════
 // SEND
-// ═══════════════════════════════════════════════
-const input   = document.getElementById('userInput');
-const sendBtn = document.getElementById('sendBtn');
+// ══════════════════════════════════════════
+const inp = document.getElementById('userInput');
+const btn = document.getElementById('sendBtn');
 
 async function sendMessage() {
-  const text = input.value.trim();
-  if (!text || isThinking) return;
-
-  input.value = '';
-  input.style.height = 'auto';
-  addMessage('user', text);
-  await think(text);
+  const txt = inp.value.trim();
+  if (!txt || busy) return;
+  inp.value = ''; inp.style.height = 'auto';
+  addMsg('user','',txt);
+  await think(txt);
 }
 
-async function ask(text) {
-  if (isThinking) return;
-  addMessage('user', text);
-  await think(text);
-}
+async function ask(txt) { if (busy) return; addMsg('user','',txt); await think(txt); }
 
-async function think(text) {
-  isThinking = true;
-  sendBtn.disabled = true;
-  addTyping();
-
+async function think(txt) {
+  busy = true; btn.disabled = true; addTyping();
   try {
-    const reply = await runAgent(text);
+    const { text, action } = await runAgent(txt);
     removeTyping();
-    addMessage('assistant', reply);
+    const bubble = addMsg('assistant','',text);
+    if (action) showConfirm(bubble, action);
   } catch(e) {
     removeTyping();
-    console.error(e);
-    const div = addMessage('assistant', '❌ Error: ' + e.message);
-    div.classList.add('error');
-  } finally {
-    isThinking = false;
-    sendBtn.disabled = false;
-    input.focus();
-  }
+    addMsg('assistant','','❌ Error: ' + e.message);
+  } finally { busy=false; btn.disabled=false; inp.focus(); }
 }
 
-// Auto-resize textarea
-input.addEventListener('input', () => {
-  input.style.height = 'auto';
-  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
-});
+inp.addEventListener('input', () => { inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,110)+'px'; });
+inp.addEventListener('keydown', e => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} });
 
-// Enter para enviar (Shift+Enter = salto de línea)
-input.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-});
-
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════════
 // BOOT
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════════
 (async () => {
-  setStatus('', 'Conectando…');
-  const ok = await initFirebase();
-  if (ok) {
-    addMessage('assistant',
-      '¡Hola Manuel! Estoy conectado al CRM 🔥\n\n' +
-      'Puedo consultarte estudios, ver tu agenda, registrar visitas y mucho más. ¿En qué te ayudo?'
-    );
-  }
+  const ok = await initFB();
+  if (ok) addMsg('assistant','','¡Hola Manuel! Conectado al CRM 🔥\n\nPuedo buscar estudios, ver tu agenda, registrar visitas o añadir empresas al planificador. ¿Qué necesitas?');
 })();
 </script>
 </body>
