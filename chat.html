@@ -334,34 +334,43 @@ async function fetchCRMData(intent, rawText) {
     result.total = filtrados.length;
   }
 
-  // ── búsqueda externa (Páginas Amarillas) ──
+  // ── búsqueda externa ──
   if (intent.actions.includes('search_new')) {
     const location = intent.ciudad || intent.provincia;
     const tipo     = intent.tipo || 'ingenieria';
     if (!location) {
       result.error_busqueda = 'No se detectó ciudad o provincia en la consulta.';
     } else {
+      // Intentar Páginas Amarillas; si falla/bloquea → Claude usa conocimiento propio
+      let paOk = false;
       try {
         const paResults  = await searchPaginasAmarillas(tipo, location);
         const crmStudios = await getStudios();
-
-        // filtrar por ciudad si se especificó (PA devuelve resultados de toda la provincia a veces)
         const paFiltrados = intent.ciudad
           ? paResults.filter(r => r.ciudad.toLowerCase().includes(intent.ciudad.toLowerCase()) || intent.ciudad.toLowerCase().includes(r.ciudad.toLowerCase()))
           : paResults;
+        if (paFiltrados.length > 0) {
+          const nuevos  = paFiltrados.filter(r => !isAlreadyInCRM(r.nombre, crmStudios));
+          const yaEnCRM = paFiltrados.filter(r =>  isAlreadyInCRM(r.nombre, crmStudios));
+          result.busqueda_externa = {
+            fuente: `Páginas Amarillas — ${tipo} en ${location}`,
+            total_encontrados: paFiltrados.length,
+            nuevos_no_en_crm: nuevos.length,
+            ya_en_crm: yaEnCRM.length,
+            nuevos
+          };
+          paOk = true;
+        }
+      } catch(e) { /* PA no disponible */ }
 
-        const nuevos = paFiltrados.filter(r => !isAlreadyInCRM(r.nombre, crmStudios));
-        const yaEnCRM = paFiltrados.filter(r =>  isAlreadyInCRM(r.nombre, crmStudios));
-
+      if (!paOk) {
+        // Páginas Amarillas bloqueada — pedimos a Claude que use su conocimiento
         result.busqueda_externa = {
-          fuente: `Páginas Amarillas — ${tipo} en ${location}`,
-          total_encontrados: paFiltrados.length,
-          nuevos_no_en_crm:  nuevos.length,
-          ya_en_crm:         yaEnCRM.length,
-          nuevos
+          fuente: 'conocimiento_claude',
+          tipo,
+          location,
+          instruccion: `Páginas Amarillas no está disponible. Usa tu conocimiento de entrenamiento para listar ${tipo}s reales en ${location} que podrían ser clientes de Ferroplast/GPF (tuberías HDPE, saneamiento, obras). Incluye nombre, breve descripción y si es posible teléfono/web. Máximo 8 empresas. Añade siempre: "⚠️ Datos de entrenamiento — verificar vigencia."`
         };
-      } catch(e) {
-        result.error_busqueda = 'Error al consultar Páginas Amarillas: ' + e.message;
       }
     }
   }
@@ -539,7 +548,9 @@ Productos: MUTE (evacuación insonorizada, arquitectura/ingeniería), ECOSAN/BIO
 Recibirás los datos del CRM directamente en el mensaje del usuario bajo la etiqueta [DATOS_CRM].
 Usa SOLO esos datos para responder — no inventes información.
 Sé conciso, directo y práctico. Responde en español.
-Cuando recibas datos de "busqueda_externa", presenta los nuevos como lista con nombre, teléfono y dirección. Indica cuántos ya estaban en el CRM y cuántos son nuevos.
+Cuando recibas datos de "busqueda_externa":
+- Si fuente es "Páginas Amarillas": presenta los nuevos como lista con nombre, teléfono y dirección. Indica cuántos ya estaban en el CRM y cuántos son nuevos.
+- Si fuente es "conocimiento_claude": sigue la instrucción del campo "instruccion" exactamente. Usa tu conocimiento real de empresas en esa zona.
 Si hay que registrar algo (visita, actividad, añadir al planificador), responde con un bloque JSON al final:
 <ACTION>{"op":"add_act","studio_id":N,"tipo":"visita","notas":"...","resultado":"positivo","fecha":"YYYY-MM-DD"}</ACTION>
 <ACTION>{"op":"add_plan","studio_id":N,"fecha":"YYYY-MM-DD","reserva":false}</ACTION>
