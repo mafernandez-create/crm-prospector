@@ -124,6 +124,7 @@
     <button class="qa" onclick="ask('Arquitectura en Jerez de la Frontera')">🏛️ Jerez</button>
     <button class="qa" onclick="ask('Muéstrame el planificador de esta semana')">🗓️ Planificador</button>
     <button class="qa" onclick="ask('Ingenierías en Sevilla con score alto')">⚙️ Ing. Sevilla</button>
+    <button class="qa" onclick="ask('Arquitecturas en Jerez de la Frontera que no estén en el CRM')">🔍 Nuevas en Jerez</button>
   </div>
 </div>
 
@@ -198,6 +199,7 @@ function detectIntent(txt) {
   if (/elimina|quita|borra/.test(t) && /agenda|planificador/.test(t)) intent.actions.push('del_plan');
   if (/registra|anota|guarda|he visitado|he llamado|llamé|visité/.test(t)) intent.actions.push('add_act');
   if (/estadística|cuántas|cuantas|resumen|semana|hoy/.test(t))  intent.actions.push('stats');
+  if (/no.*crm|sin.*crm|nueva|nuevas|sin.*registr|que falt|que no ten|que no est|no est.*crm|descono/.test(t)) intent.actions.push('search_new');
   if (!intent.actions.length) intent.actions.push('search');
 
   // provincia
@@ -332,6 +334,38 @@ async function fetchCRMData(intent, rawText) {
     result.total = filtrados.length;
   }
 
+  // ── búsqueda externa (Páginas Amarillas) ──
+  if (intent.actions.includes('search_new')) {
+    const location = intent.ciudad || intent.provincia;
+    const tipo     = intent.tipo || 'ingenieria';
+    if (!location) {
+      result.error_busqueda = 'No se detectó ciudad o provincia en la consulta.';
+    } else {
+      try {
+        const paResults  = await searchPaginasAmarillas(tipo, location);
+        const crmStudios = await getStudios();
+
+        // filtrar por ciudad si se especificó (PA devuelve resultados de toda la provincia a veces)
+        const paFiltrados = intent.ciudad
+          ? paResults.filter(r => r.ciudad.toLowerCase().includes(intent.ciudad.toLowerCase()) || intent.ciudad.toLowerCase().includes(r.ciudad.toLowerCase()))
+          : paResults;
+
+        const nuevos = paFiltrados.filter(r => !isAlreadyInCRM(r.nombre, crmStudios));
+        const yaEnCRM = paFiltrados.filter(r =>  isAlreadyInCRM(r.nombre, crmStudios));
+
+        result.busqueda_externa = {
+          fuente: `Páginas Amarillas — ${tipo} en ${location}`,
+          total_encontrados: paFiltrados.length,
+          nuevos_no_en_crm:  nuevos.length,
+          ya_en_crm:         yaEnCRM.length,
+          nuevos
+        };
+      } catch(e) {
+        result.error_busqueda = 'Error al consultar Páginas Amarillas: ' + e.message;
+      }
+    }
+  }
+
   return result;
 }
 
@@ -358,6 +392,93 @@ function formatStudio(s, full = false) {
     base.ultimas_actividades = (s.activities||[]).slice(-5);
   }
   return base;
+}
+
+// ══════════════════════════════════════════
+// PÁGINAS AMARILLAS — búsqueda externa
+// ══════════════════════════════════════════
+const PA_MAP = {
+  arquitectura: 'arquitectos',
+  ingenieria:   'ingenieros',
+  ingeniería:   'ingenieros',
+  constructora: 'empresas-de-construccion',
+  promotora:    'promotoras-inmobiliarias',
+  aguas:        'abastecimiento-de-aguas',
+  regantes:     'comunidades-de-regantes',
+  otros:        'ingenieros'
+};
+
+const CORS_PROXIES = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+];
+
+function toSlug(str) {
+  return str.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'');
+}
+
+async function fetchWithProxy(url) {
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const r = await fetch(proxy(url), { headers: { Accept: 'text/html' } });
+      if (r.ok) return await r.text();
+    } catch(e) { /* siguiente proxy */ }
+  }
+  throw new Error('Todos los proxies CORS fallaron');
+}
+
+async function searchPaginasAmarillas(tipo, location, maxPages = 2) {
+  const cat = PA_MAP[tipo] || PA_MAP['ingenieria'];
+  const slug = toSlug(location);
+  const base = `https://www.paginasamarillas.es/a/${cat}/${slug}/`;
+  const results = [];
+
+  for (let page = 1; page <= maxPages; page++) {
+    const url = page === 1 ? base : `${base}${page}`;
+    let html;
+    try { html = await fetchWithProxy(url); }
+    catch(e) { if (page === 1) throw e; break; }
+
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const listings = doc.querySelectorAll('[itemtype*="LocalBusiness"]');
+    if (!listings.length) break;
+
+    listings.forEach(el => {
+      const name = el.querySelector('[itemprop="name"]')?.textContent?.trim();
+      if (!name || name.length < 3) return;
+      results.push({
+        nombre:    name,
+        telefono:  el.querySelector('[itemprop="telephone"]')?.textContent?.trim() || '',
+        direccion: el.querySelector('[itemprop="streetAddress"]')?.textContent?.trim() || '',
+        ciudad:    el.querySelector('[itemprop="addressLocality"]')?.textContent?.trim() || location
+      });
+    });
+  }
+  return results;
+}
+
+function normName(n) {
+  return n.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\b(sl|slp|slu|sa|cb|sc|sll|soc|arq|ing|arquitecto|arquitectos|ingeniero|ingenieros|estudio|studio|asociados|consultores|consultoria|grupo|servicios)\b/g,'')
+    .replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim();
+}
+
+function isAlreadyInCRM(paName, crmStudios) {
+  const norm = normName(paName);
+  return crmStudios.some(s => {
+    const crmNorm = normName(s.name || '');
+    if (!crmNorm || norm.length < 4) return false;
+    // coincidencia si comparten al menos 60% de palabras clave
+    const wordsA = norm.split(' ').filter(w => w.length > 3);
+    const wordsB = crmNorm.split(' ').filter(w => w.length > 3);
+    if (!wordsA.length) return false;
+    const matches = wordsA.filter(w => wordsB.includes(w)).length;
+    return matches / wordsA.length >= 0.6;
+  });
 }
 
 // ══════════════════════════════════════════
@@ -420,6 +541,7 @@ Productos: MUTE (evacuación insonorizada, arquitectura/ingeniería), ECOSAN/BIO
 Recibirás los datos del CRM directamente en el mensaje del usuario bajo la etiqueta [DATOS_CRM].
 Usa SOLO esos datos para responder — no inventes información.
 Sé conciso, directo y práctico. Responde en español.
+Cuando recibas datos de "busqueda_externa", presenta los nuevos como lista con nombre, teléfono y dirección. Indica cuántos ya estaban en el CRM y cuántos son nuevos.
 Si hay que registrar algo (visita, actividad, añadir al planificador), responde con un bloque JSON al final:
 <ACTION>{"op":"add_act","studio_id":N,"tipo":"visita","notas":"...","resultado":"positivo","fecha":"YYYY-MM-DD"}</ACTION>
 <ACTION>{"op":"add_plan","studio_id":N,"fecha":"YYYY-MM-DD","reserva":false}</ACTION>
