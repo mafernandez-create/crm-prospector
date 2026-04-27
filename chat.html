@@ -125,6 +125,8 @@
     <button class="qa" onclick="ask('Muéstrame el planificador de esta semana')">🗓️ Planificador</button>
     <button class="qa" onclick="ask('Ingenierías en Sevilla con score alto')">⚙️ Ing. Sevilla</button>
     <button class="qa" onclick="ask('Arquitecturas en Jerez de la Frontera que no estén en el CRM')">🔍 Nuevas en Jerez</button>
+    <button class="qa" onclick="ask('¿Qué eventos tengo hoy en el calendario?')">📅 Agenda</button>
+    <button class="qa" onclick="ask('Arquitecturas en Jerez de la Frontera, tanto las del CRM como las que no estén')">🔀 Todas en Jerez</button>
   </div>
 </div>
 
@@ -265,6 +267,38 @@ async function fetchCRMData(intent, rawText) {
       const proximos = {};
       Object.keys(sched).sort().forEach(d => { if (d >= hoy && d <= finStr) proximos[d] = sched[d]; });
       result.planificador = proximos;
+    }
+  }
+
+  // ── agenda Google Calendar ──
+  if (intent.actions.includes('agenda')) {
+    const fecha = intent.fecha || new Date().toISOString().split('T')[0];
+    const dateMin = fecha + 'T00:00:00Z';
+    const dateMax = fecha + 'T23:59:59Z';
+    try {
+      const r = await fetch(GAS + '?action=getCalendarEvents', {
+        method: 'POST', headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ dateMin, dateMax })
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const d = await r.json();
+      result.agenda = { fecha, eventos: d.success ? (d.events || []) : [] };
+      if (!d.success && d.error) result.agenda.error = d.error;
+    } catch(e) { result.agenda = { fecha, eventos: [], error: e.message }; }
+  }
+
+  // ── historial de actividades ──
+  if (intent.actions.includes('historial') && intent.studioId) {
+    const estudios = await getStudios();
+    const s = estudios.find(x => x.id == intent.studioId);
+    if (s) {
+      const acts = (s.activities || []).slice().reverse(); // más reciente primero
+      result.historial = {
+        studio_id: s.id,
+        nombre: s.name,
+        total_actividades: acts.length,
+        actividades: acts
+      };
     }
   }
 
@@ -534,6 +568,57 @@ async function delFromPlan(studioId, fecha) {
   return { ok:true, msg:`🗑️ "${s.name}" eliminado del planificador el ${fecha}` };
 }
 
+async function addStudio(nombre, ciudad, provincia, tipo, telefono, email) {
+  const estudios = await getStudios();
+  const maxId = estudios.reduce((m, s) => Math.max(m, typeof s.id === 'number' ? s.id : 0), 0);
+  const newId = maxId + 1;
+  const newStudio = {
+    id: newId,
+    name: nombre,
+    city: ciudad || '',
+    province: provincia || '',
+    type: tipo || 'arquitectura',
+    phone: telefono || '',
+    email: email || '',
+    score: 50,
+    activities: [],
+    createdAt: new Date().toISOString(),
+    data: {
+      contact: { phone: telefono||'', email: email||'', city: ciudad||'' }
+    }
+  };
+  const ref = await db.collection('studios').add(newStudio);
+  newStudio._docId = ref.id;
+  studioCache = null; // invalidar caché para forzar recarga
+  return { ok: true, msg: `✅ "${nombre}" añadido al CRM con ID ${newId}`, studio_id: newId };
+}
+
+async function addCalendarEvent(studioId, fecha, hora, titulo) {
+  const estudios = await getStudios();
+  const s = estudios.find(x => x.id == studioId);
+  if (!s) return { ok: false, msg: `Studio ${studioId} no encontrado` };
+  const h = hora || '10:00';
+  const tituloFinal = titulo || `Visita ${s.name}`;
+  const start = new Date(`${fecha}T${h}:00`);
+  const end   = new Date(start.getTime() + 60*60*1000); // 1h
+  const eventData = {
+    title: tituloFinal,
+    startTime: start.toISOString(),
+    end: end.toISOString(),
+    type: 'meeting',
+    description: `🏢 ${s.name}\n📍 ${s.city||''} (${s.province||''})\n📞 ${s.phone||s.data?.contact?.phone||'-'}\n📧 ${s.email||s.data?.contact?.email||'-'}\n\nCreado desde GPF Chat Assistant`,
+    duration: 60
+  };
+  const r = await fetch(GAS + '?action=createCalendarEvent', {
+    method: 'POST', headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ data: eventData })
+  });
+  if (!r.ok) return { ok: false, msg: 'Error HTTP ' + r.status };
+  const d = await r.json();
+  if (!d.success) return { ok: false, msg: d.error || 'Error creando evento' };
+  return { ok: true, msg: `📅 "${tituloFinal}" creado en Google Calendar — ${fecha} ${h}` };
+}
+
 // ══════════════════════════════════════════
 // CLAUDE (sin tools — datos inyectados en el contexto)
 // ══════════════════════════════════════════
@@ -548,14 +633,34 @@ Productos: MUTE (evacuación insonorizada, arquitectura/ingeniería), ECOSAN/BIO
 Recibirás los datos del CRM directamente en el mensaje del usuario bajo la etiqueta [DATOS_CRM].
 Usa SOLO esos datos para responder — no inventes información.
 Sé conciso, directo y práctico. Responde en español.
+
 Cuando recibas datos de "busqueda_externa":
 - Si fuente es "Páginas Amarillas": presenta los nuevos como lista con nombre, teléfono y dirección. Indica cuántos ya estaban en el CRM y cuántos son nuevos.
 - Si fuente es "conocimiento_claude": sigue la instrucción del campo "instruccion" exactamente. Usa tu conocimiento real de empresas en esa zona.
-Si hay que registrar algo (visita, actividad, añadir al planificador), responde con un bloque JSON al final:
+
+Cuando recibas datos combinados ("studios" + "busqueda_externa"):
+- Primero muestra los estudios ya en el CRM (con ID y datos).
+- Luego muestra los que NO están en el CRM (fuente externa), marcados con ⭐ Nuevo.
+
+Cuando recibas "agenda":
+- Presenta los eventos del calendario de forma clara: hora, título y descripción breve.
+- Si no hay eventos, dilo directamente.
+
+Cuando recibas "historial":
+- Muestra las actividades más recientes primero, con fecha, tipo e icono (📞 llamada, 🤝 visita, 📧 email, 💬 whatsapp).
+
+Cuando el usuario quiera añadir una empresa nueva al CRM, confirma los datos antes de guardar:
+- Responde con los datos recibidos y un bloque ACTION al final.
+
+Cuando el usuario quiera añadir una visita al calendario Google:
+- Confirma estudio, fecha y hora, luego usa el bloque ACTION.
+
+Solo incluye bloques ACTION si el usuario pide EXPLÍCITAMENTE registrar o guardar algo.
 <ACTION>{"op":"add_act","studio_id":N,"tipo":"visita","notas":"...","resultado":"positivo","fecha":"YYYY-MM-DD"}</ACTION>
 <ACTION>{"op":"add_plan","studio_id":N,"fecha":"YYYY-MM-DD","reserva":false}</ACTION>
 <ACTION>{"op":"del_plan","studio_id":N,"fecha":"YYYY-MM-DD"}</ACTION>
-Solo incluye el bloque ACTION si el usuario pide EXPLÍCITAMENTE registrar o guardar algo.`;
+<ACTION>{"op":"add_studio","nombre":"...","ciudad":"...","provincia":"...","tipo":"arquitectura|ingenieria|constructora|promotora|aapp|aguas|regantes","telefono":"...","email":"..."}</ACTION>
+<ACTION>{"op":"add_calendar","studio_id":N,"fecha":"YYYY-MM-DD","hora":"HH:MM","titulo":"Visita ..."}</ACTION>`;
 
 async function callClaude(msgs) {
   const r = await fetch(GAS + '?action=claudeProxy', {
@@ -576,13 +681,17 @@ async function callClaude(msgs) {
 // Sistema para que Claude interprete la intención
 const SYS_INTENT = `Hoy es {{HOY}}. Eres un analizador de intenciones para un CRM de ventas B2B (Ferroplast/GPF).
 Dado el mensaje del usuario, devuelve ÚNICAMENTE un JSON válido sin texto adicional:
-{"accion":"buscar"|"detalle"|"planificador"|"stats"|"busqueda_externa"|"chat","tipo":"arquitectura"|"ingenieria"|"constructora"|"promotora"|"aapp"|"aguas"|"regantes"|null,"ciudad":null,"provincia":null,"studio_id":null,"dias_sin_visita":null,"score_min":null,"periodo":"hoy"|"esta_semana"|"semana_pasada"|"este_mes"|"ultimos_30_dias"|null,"fecha":null,"busqueda_externa":false}
+{"accion":"buscar"|"detalle"|"historial"|"planificador"|"stats"|"busqueda_externa"|"buscar_todo"|"agenda"|"add_studio"|"chat","tipo":"arquitectura"|"ingenieria"|"constructora"|"promotora"|"aapp"|"aguas"|"regantes"|null,"ciudad":null,"provincia":null,"studio_id":null,"dias_sin_visita":null,"score_min":null,"periodo":"hoy"|"esta_semana"|"semana_pasada"|"este_mes"|"ultimos_30_dias"|null,"fecha":null,"busqueda_externa":false}
 
 Reglas:
 - "accion":"chat" solo si es saludo/agradecimiento sin datos del CRM
-- "busqueda_externa":true cuando el usuario quiere empresas que NO están en el CRM
-- "accion":"planificador" cuando pregunta por su agenda o visitas programadas
+- "accion":"busqueda_externa" cuando quiere empresas que NO están en el CRM
+- "accion":"buscar_todo" cuando quiere TANTO las del CRM COMO las nuevas/externas (ej: "todas", "las del CRM y las que no estén")
+- "accion":"planificador" cuando pregunta por su agenda o visitas programadas del planificador
 - "accion":"stats" cuando pregunta cuántas visitas/llamadas ha hecho
+- "accion":"agenda" cuando pregunta por eventos del calendario Google (ej: "¿qué tengo hoy?", "agenda del día")
+- "accion":"historial" cuando pregunta por las actividades o historial de contacto de un estudio concreto
+- "accion":"add_studio" cuando quiere añadir/dar de alta una empresa nueva en el CRM
 - ciudad y provincia en español con mayúsculas (ej: "Jerez de la Frontera", "Cádiz")
 - fecha en formato YYYY-MM-DD`;
 
@@ -610,9 +719,13 @@ function intentToLegacy(c) {
   switch(c.accion) {
     case 'buscar':           actions.push('search'); break;
     case 'detalle':          actions.push('detail', 'search'); break;
+    case 'historial':        actions.push('historial', 'search'); break;
     case 'planificador':     actions.push('planificador'); break;
     case 'stats':            actions.push('stats'); break;
     case 'busqueda_externa': actions.push('search_new'); break;
+    case 'buscar_todo':      actions.push('search', 'search_new'); break;
+    case 'agenda':           actions.push('agenda'); break;
+    case 'add_studio':       actions.push('add_studio'); break;
     default:                 actions.push('search');
   }
   if (c.busqueda_externa) { if (!actions.includes('search_new')) actions.push('search_new'); }
@@ -712,7 +825,7 @@ function removeTyping() { document.getElementById('typing')?.remove(); }
 
 function showConfirm(bubble, action) {
   const bar = document.createElement('div'); bar.className = 'action-bar';
-  const labels = { add_act:'✅ Registrar actividad', add_plan:'📅 Añadir al planificador', del_plan:'🗑️ Eliminar del planificador' };
+  const labels = { add_act:'✅ Registrar actividad', add_plan:'📅 Añadir al planificador', del_plan:'🗑️ Eliminar del planificador', add_studio:'🏢 Añadir al CRM', add_calendar:'📅 Crear en Calendar' };
   const btnOk = document.createElement('button'); btnOk.className='btn-confirm'; btnOk.textContent = labels[action.op]||'Confirmar';
   const btnNo = document.createElement('button'); btnNo.className='btn-cancel';  btnNo.textContent = 'Cancelar';
 
@@ -721,9 +834,11 @@ function showConfirm(bubble, action) {
     let res;
     addTool('💾 Guardando…');
     try {
-      if (action.op==='add_act')  res = await addActivity(action.studio_id, action.tipo, action.notas, action.resultado, action.fecha);
-      if (action.op==='add_plan') res = await addToPlan(action.studio_id, action.fecha, action.reserva||false);
-      if (action.op==='del_plan') res = await delFromPlan(action.studio_id, action.fecha);
+      if (action.op==='add_act')      res = await addActivity(action.studio_id, action.tipo, action.notas, action.resultado, action.fecha);
+      if (action.op==='add_plan')     res = await addToPlan(action.studio_id, action.fecha, action.reserva||false);
+      if (action.op==='del_plan')     res = await delFromPlan(action.studio_id, action.fecha);
+      if (action.op==='add_studio')   res = await addStudio(action.nombre, action.ciudad, action.provincia, action.tipo, action.telefono, action.email);
+      if (action.op==='add_calendar') res = await addCalendarEvent(action.studio_id, action.fecha, action.hora, action.titulo);
       removeTool();
       addMsg('assistant', '', res?.msg || '✅ Hecho');
     } catch(e) { removeTool(); addMsg('assistant','','❌ Error: '+e.message); }
