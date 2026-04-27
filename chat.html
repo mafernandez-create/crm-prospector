@@ -560,47 +560,112 @@ async function callClaude(msgs) {
 }
 
 // ══════════════════════════════════════════
-// AGENT LOOP
+// AGENT LOOP — Claude decide qué buscar
+// (mismo método que Claude Code usa en sesión)
 // ══════════════════════════════════════════
+
+// Sistema para que Claude interprete la intención
+const SYS_INTENT = `Hoy es {{HOY}}. Eres un analizador de intenciones para un CRM de ventas B2B (Ferroplast/GPF).
+Dado el mensaje del usuario, devuelve ÚNICAMENTE un JSON válido sin texto adicional:
+{"accion":"buscar"|"detalle"|"planificador"|"stats"|"busqueda_externa"|"chat","tipo":"arquitectura"|"ingenieria"|"constructora"|"promotora"|"aapp"|"aguas"|"regantes"|null,"ciudad":null,"provincia":null,"studio_id":null,"dias_sin_visita":null,"score_min":null,"periodo":"hoy"|"esta_semana"|"semana_pasada"|"este_mes"|"ultimos_30_dias"|null,"fecha":null,"busqueda_externa":false}
+
+Reglas:
+- "accion":"chat" solo si es saludo/agradecimiento sin datos del CRM
+- "busqueda_externa":true cuando el usuario quiere empresas que NO están en el CRM
+- "accion":"planificador" cuando pregunta por su agenda o visitas programadas
+- "accion":"stats" cuando pregunta cuántas visitas/llamadas ha hecho
+- ciudad y provincia en español con mayúsculas (ej: "Jerez de la Frontera", "Cádiz")
+- fecha en formato YYYY-MM-DD`;
+
+async function callClaudeIntent(userText) {
+  const hoy = new Date().toISOString().split('T')[0];
+  const r = await fetch(GAS + '?action=claudeProxy', {
+    method:'POST', headers:{'Content-Type':'text/plain'},
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 120,
+      system: SYS_INTENT.replace('{{HOY}}', hoy),
+      messages: [{ role:'user', content: userText }]
+    })
+  });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const d = await r.json();
+  const text = d.content?.find(b => b.type === 'text')?.text || '{}';
+  const match = text.match(/\{[\s\S]*\}/);
+  return match ? JSON.parse(match[0]) : null;
+}
+
+function intentToLegacy(c) {
+  if (!c) return detectIntent('buscar');
+  const actions = [];
+  switch(c.accion) {
+    case 'buscar':           actions.push('search'); break;
+    case 'detalle':          actions.push('detail', 'search'); break;
+    case 'planificador':     actions.push('planificador'); break;
+    case 'stats':            actions.push('stats'); break;
+    case 'busqueda_externa': actions.push('search_new'); break;
+    default:                 actions.push('search');
+  }
+  if (c.busqueda_externa) { if (!actions.includes('search_new')) actions.push('search_new'); }
+  return {
+    actions,
+    provincia:  c.provincia   || null,
+    ciudad:     c.ciudad      || null,
+    tipo:       (c.tipo||'').replace('ingeniería','ingenieria') || null,
+    nombre:     null,
+    studioId:   c.studio_id   || null,
+    fecha:      c.fecha       || null,
+    dias:       c.dias_sin_visita || null
+  };
+}
+
+function finishReply(reply) {
+  history.push({ role:'assistant', content: reply });
+  if (history.length > 30) history = history.slice(-30);
+  const m = reply.match(/<ACTION>([\s\S]*?)<\/ACTION>/);
+  if (m) {
+    try { return { text: reply.replace(/<ACTION>[\s\S]*?<\/ACTION>/,'').trim(), action: JSON.parse(m[1].trim()) }; }
+    catch(e) {}
+  }
+  return { text: reply, action: null };
+}
+
 async function runAgent(userText) {
-  // 1. Detectar intención y cargar datos de Firebase
-  const intent = detectIntent(userText);
-  addTool('🔍 Consultando el CRM…');
+  history.push({ role:'user', content: userText });
 
-  let crmData = {};
-  try { crmData = await fetchCRMData(intent, userText); }
-  catch(e) { addTool('⚠️ Error Firebase: ' + e.message); }
-
+  // ── Paso 1: Claude interpreta la intención ──
+  addTool('🤔 Analizando consulta…');
+  let claudeIntent = null;
+  try { claudeIntent = await callClaudeIntent(userText); }
+  catch(e) { /* fallback a regex */ }
   removeTool();
 
-  // 2. Construir mensaje con datos inyectados
-  const dataBlock = Object.keys(crmData).length
-    ? `\n\n[DATOS_CRM]\n${JSON.stringify(crmData, null, 1)}`
-    : '';
-  const userMsg = userText + dataBlock;
-
-  // 3. Historial: guardar texto original (sin datos crudos)
-  const msgs = [...history, { role:'user', content: userMsg }];
-
-  // 4. Llamar a Claude
-  const reply = await callClaude(msgs);
-
-  // 5. Actualizar historial con texto limpio
-  history.push({ role:'user',      content: userText });
-  history.push({ role:'assistant', content: reply });
-  if (history.length > 20) history = history.slice(-20);
-
-  // 6. Detectar ACTION en la respuesta
-  const actionMatch = reply.match(/<ACTION>([\s\S]*?)<\/ACTION>/);
-  if (actionMatch) {
-    try {
-      const action = JSON.parse(actionMatch[1].trim());
-      const cleanReply = reply.replace(/<ACTION>[\s\S]*?<\/ACTION>/, '').trim();
-      return { text: cleanReply, action };
-    } catch(e) {}
+  // Si es conversación pura (saludo, etc.) responder directo
+  if (claudeIntent?.accion === 'chat') {
+    addTool('💬 Respondiendo…');
+    const reply = await callClaude(history);
+    removeTool();
+    return finishReply(reply);
   }
 
-  return { text: reply, action: null };
+  // ── Paso 2: Cargar datos de Firebase según lo que Claude decidió ──
+  const intent = intentToLegacy(claudeIntent);
+  addTool('🔍 Consultando el CRM…');
+  let crmData = {};
+  try { crmData = await fetchCRMData(intent, userText); }
+  catch(e) { removeTool(); addTool('⚠️ Error Firebase: ' + e.message); }
+  removeTool();
+
+  // ── Paso 3: Claude responde con los datos reales ──
+  const dataBlock = Object.keys(crmData).length
+    ? `\n\n[DATOS_CRM]\n${JSON.stringify(crmData, null, 1)}` : '';
+  const msgs = [...history.slice(0,-1), { role:'user', content: userText + dataBlock }];
+
+  addTool('✍️ Generando respuesta…');
+  const reply = await callClaude(msgs);
+  removeTool();
+
+  return finishReply(reply);
 }
 
 // ══════════════════════════════════════════
