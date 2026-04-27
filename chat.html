@@ -672,7 +672,12 @@ Solo incluye bloques ACTION si el usuario pide EXPLÍCITAMENTE registrar o guard
 async function callClaude(msgs) {
   const r = await fetch(GAS + '?action=claudeProxy', {
     method:'POST', headers:{'Content-Type':'text/plain'},
-    body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1500, system:SYS, messages:msgs })
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1500,
+      system: [{ type:'text', text:SYS, cache_control:{ type:'ephemeral' } }],
+      messages: msgs
+    })
   });
   if (!r.ok) throw new Error('HTTP ' + r.status);
   const d = await r.json();
@@ -709,7 +714,7 @@ async function callClaudeIntent(userText) {
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 120,
-      system: SYS_INTENT.replace('{{HOY}}', hoy),
+      system: [{ type:'text', text: SYS_INTENT.replace('{{HOY}}', hoy), cache_control:{ type:'ephemeral' } }],
       messages: [{ role:'user', content: userText }]
     })
   });
