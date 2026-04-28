@@ -8381,6 +8381,13 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 showNotification('⚠️ El nombre de la empresa es obligatorio', 'warning');
                 return;
             }
+
+            const addressCheck = document.getElementById('manual-address').value.trim();
+            if (!addressCheck) {
+                showNotification('⚠️ La dirección es obligatoria para poder crear eventos en Google Calendar', 'warning');
+                document.getElementById('manual-address').focus();
+                return;
+            }
             
             // Recoger datos del formulario
             const type = document.getElementById('manual-type').value;
