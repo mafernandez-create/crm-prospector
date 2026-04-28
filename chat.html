@@ -775,7 +775,11 @@ function intentToLegacy(c) {
     case 'busqueda_externa': actions.push('search_new'); break;
     case 'buscar_todo':      actions.push('search', 'search_new'); break;
     case 'agenda':           actions.push('agenda'); break;
-    case 'add_calendar':     actions.push('search'); break;
+    case 'add_calendar':     actions.push('search');
+      // No filtrar por ciudad — el nombre del estudio no es una ciudad
+      return { actions, provincia: null, ciudad: null, tipo: null, nombre: null,
+               studioId: c.studio_id || null, fecha: c.fecha || null, dias: null };
+
     case 'add_studio':       actions.push('add_studio'); break;
     default:                 actions.push('search');
   }
