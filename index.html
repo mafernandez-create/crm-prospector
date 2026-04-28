@@ -25625,9 +25625,17 @@ Notas:
                 return;
             }
 
-            // 2. Confirmar
+            // 2. Advertir si hay estudios sin dirección
+            const sinDireccion = Object.values(visitsByDay).flat().filter(s => !s.data?.contact?.address);
+            if (sinDireccion.length > 0) {
+                const nombres = sinDireccion.map(s => s.name).join('\n• ');
+                const continuar = confirm(`⚠️ ${sinDireccion.length} estudio(s) sin dirección:\n• ${nombres}\n\nSus eventos en Calendar no tendrán ubicación exacta (solo ciudad).\n\n¿Continuar igualmente?`);
+                if (!continuar) return;
+            }
+
+            // 3. Confirmar
             const daysCount = Object.keys(visitsByDay).length;
-            if (!confirm(`📅 Crear eventos en Google Calendar\n\n📆 ${daysCount} días · 🏢 ${totalVisits} visitas\n\nCada evento incluirá:\n• Nombre y tipo de empresa\n• Dirección con enlace a Waze\n• Teléfono y email\n• Descripción dla empresa\n• Enlace al CRM\n\n¿Continuar?`)) return;
+            if (!confirm(`📅 Crear eventos en Google Calendar\n\n📆 ${daysCount} días · 🏢 ${totalVisits} visitas\n\nCada evento incluirá:\n• Nombre y tipo de empresa\n• Dirección con enlace a Waze\n• Teléfono y email\n• Descripción de la empresa\n• Enlace al CRM\n\n¿Continuar?`)) return;
 
             // 3. Crear eventos con horarios escalonados vía proxy Apps Script
             showNotification('📅 Creando eventos en Google Calendar...', 'info');
