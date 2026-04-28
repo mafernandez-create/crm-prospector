@@ -562,6 +562,7 @@ async function addToPlan(studioId, fecha, reserva=false, priority='principal', h
   let calMsg = '';
   try {
     const h = hora || '10:00';
+    const direccion = studioAddress(s);
     const start = new Date(`${fecha}T${h}:00`);
     const end   = new Date(start.getTime() + 60*60*1000);
     const eventData = {
@@ -569,7 +570,8 @@ async function addToPlan(studioId, fecha, reserva=false, priority='principal', h
       startTime: start.toISOString(),
       end: end.toISOString(),
       type: 'meeting',
-      description: `🏢 ${s.name}\n📍 ${s.city||''} (${s.province||''})\n📞 ${s.phone||s.data?.contact?.phone||'-'}\n📧 ${s.email||s.data?.contact?.email||'-'}\n\n${reserva?'⚠️ RESERVA':'✅ VISITA PRINCIPAL'}\n\nCreado desde GPF Chat Assistant`,
+      location: direccion || `${s.city||''}, ${s.province||''}`,
+      description: `🏢 ${s.name}\n📍 ${direccion || (s.city||'') + ' (' + (s.province||'') + ')'}\n📞 ${s.phone||s.data?.contact?.phone||'-'}\n📧 ${s.email||s.data?.contact?.email||'-'}\n\n${reserva?'⚠️ RESERVA':'✅ VISITA PRINCIPAL'}${!direccion?' · ⚠️ Sin dirección en CRM':''}\n\nCreado desde GPF Chat Assistant`,
       duration: 60
     };
     const r = await fetch(GAS + '?action=createCalendarEvent', {
@@ -598,7 +600,7 @@ async function delFromPlan(studioId, fecha) {
   return { ok:true, msg:`🗑️ "${s.name}" eliminado del planificador el ${fecha}` };
 }
 
-async function addStudio(nombre, ciudad, provincia, tipo, telefono, email) {
+async function addStudio(nombre, ciudad, provincia, tipo, telefono, email, direccion) {
   const estudios = await getStudios();
   const maxId = estudios.reduce((m, s) => Math.max(m, typeof s.id === 'number' ? s.id : 0), 0);
   const newId = maxId + 1;
@@ -614,13 +616,18 @@ async function addStudio(nombre, ciudad, provincia, tipo, telefono, email) {
     activities: [],
     createdAt: new Date().toISOString(),
     data: {
-      contact: { phone: telefono||'', email: email||'', city: ciudad||'' }
+      contact: { phone: telefono||'', email: email||'', city: ciudad||'', address: direccion||'' }
     }
   };
   const ref = await db.collection('studios').add(newStudio);
   newStudio._docId = ref.id;
-  studioCache = null; // invalidar caché para forzar recarga
-  return { ok: true, msg: `✅ "${nombre}" añadido al CRM con ID ${newId}`, studio_id: newId };
+  studioCache = null;
+  const sinDir = !direccion ? ' ⚠️ Sin dirección — recuerda añadirla para poder crear eventos en Calendar' : '';
+  return { ok: true, msg: `✅ "${nombre}" añadido al CRM con ID ${newId}${sinDir}`, studio_id: newId };
+}
+
+function studioAddress(s) {
+  return s.address || s.data?.contact?.address || '';
 }
 
 async function addCalendarEvent(studioId, fecha, hora, titulo) {
@@ -629,16 +636,19 @@ async function addCalendarEvent(studioId, fecha, hora, titulo) {
   if (!s) return { ok: false, msg: `Studio ${studioId} no encontrado` };
   const h = hora || '10:00';
   const tituloFinal = titulo || `Visita ${s.name}`;
+  const direccion = studioAddress(s);
   const start = new Date(`${fecha}T${h}:00`);
-  const end   = new Date(start.getTime() + 60*60*1000); // 1h
+  const end   = new Date(start.getTime() + 60*60*1000);
   const eventData = {
     title: tituloFinal,
     startTime: start.toISOString(),
     end: end.toISOString(),
     type: 'meeting',
-    description: `🏢 ${s.name}\n📍 ${s.city||''} (${s.province||''})\n📞 ${s.phone||s.data?.contact?.phone||'-'}\n📧 ${s.email||s.data?.contact?.email||'-'}\n\nCreado desde GPF Chat Assistant`,
+    location: direccion || `${s.city||''}, ${s.province||''}`,
+    description: `🏢 ${s.name}\n📍 ${direccion || (s.city||'') + ' (' + (s.province||'') + ')'}\n📞 ${s.phone||s.data?.contact?.phone||'-'}\n📧 ${s.email||s.data?.contact?.email||'-'}\n\nCreado desde GPF Chat Assistant`,
     duration: 60
   };
+  if (!direccion) eventData.description += '\n\n⚠️ Dirección no registrada en el CRM';
   const r = await fetch(GAS + '?action=createCalendarEvent', {
     method: 'POST', headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ data: eventData })
@@ -646,7 +656,8 @@ async function addCalendarEvent(studioId, fecha, hora, titulo) {
   if (!r.ok) return { ok: false, msg: 'Error HTTP ' + r.status };
   const d = await r.json();
   if (!d.success) return { ok: false, msg: d.error || 'Error creando evento' };
-  return { ok: true, msg: `📅 "${tituloFinal}" creado en Google Calendar — ${fecha} ${h}` };
+  const dirMsg = direccion ? ` · 📍 ${direccion}` : ' · ⚠️ Sin dirección en CRM';
+  return { ok: true, msg: `📅 "${tituloFinal}" creado en Google Calendar — ${fecha} ${h}${dirMsg}` };
 }
 
 // ══════════════════════════════════════════
@@ -679,17 +690,19 @@ Cuando recibas "agenda":
 Cuando recibas "historial":
 - Muestra las actividades más recientes primero, con fecha, tipo e icono (📞 llamada, 🤝 visita, 📧 email, 💬 whatsapp).
 
-Cuando el usuario quiera añadir una empresa nueva al CRM, confirma los datos antes de guardar:
-- Responde con los datos recibidos y un bloque ACTION al final.
+Cuando el usuario quiera añadir una empresa nueva al CRM:
+- OBLIGATORIO pedir dirección completa (calle, número, CP, ciudad) si no la ha proporcionado. Sin dirección no se puede crear el evento en Calendar.
+- Solo genera el ACTION cuando tengas nombre, ciudad, provincia, tipo Y dirección.
 
-Cuando el usuario quiera añadir una visita al calendario Google:
-- Confirma estudio, fecha y hora, luego usa el bloque ACTION.
+Cuando el usuario quiera añadir una visita al planificador o al calendario:
+- Comprueba si el estudio tiene dirección en los datos del CRM. Si el campo "direccion" está vacío o no aparece, pregunta la dirección antes de generar el ACTION.
+- Si tiene dirección, confirma estudio, fecha, hora y dirección, luego genera el ACTION.
 
 Solo incluye bloques ACTION si el usuario pide EXPLÍCITAMENTE registrar o guardar algo.
 <ACTION>{"op":"add_act","studio_id":N,"tipo":"visita","notas":"...","resultado":"positivo","fecha":"YYYY-MM-DD"}</ACTION>
 <ACTION>{"op":"add_plan","studio_id":N,"fecha":"YYYY-MM-DD","hora":"HH:MM","reserva":false}</ACTION>
 <ACTION>{"op":"del_plan","studio_id":N,"fecha":"YYYY-MM-DD"}</ACTION>
-<ACTION>{"op":"add_studio","nombre":"...","ciudad":"...","provincia":"...","tipo":"arquitectura|ingenieria|constructora|promotora|aapp|aguas|regantes","telefono":"...","email":"..."}</ACTION>
+<ACTION>{"op":"add_studio","nombre":"...","ciudad":"...","provincia":"...","tipo":"arquitectura|ingenieria|constructora|promotora|aapp|aguas|regantes","telefono":"...","email":"...","direccion":"Calle ..., N.º, CP Ciudad"}</ACTION>
 <ACTION>{"op":"add_calendar","studio_id":N,"fecha":"YYYY-MM-DD","hora":"HH:MM","titulo":"Visita ..."}</ACTION>`;
 
 async function callClaude(msgs) {
@@ -876,7 +889,7 @@ function showConfirm(bubble, actions) {
     if (action.op==='add_act')      return addActivity(action.studio_id, action.tipo, action.notas, action.resultado, action.fecha);
     if (action.op==='add_plan')     return addToPlan(action.studio_id, action.fecha, action.reserva||false, 'principal', action.hora||null);
     if (action.op==='del_plan')     return delFromPlan(action.studio_id, action.fecha);
-    if (action.op==='add_studio')   return addStudio(action.nombre, action.ciudad, action.provincia, action.tipo, action.telefono, action.email);
+    if (action.op==='add_studio')   return addStudio(action.nombre, action.ciudad, action.provincia, action.tipo, action.telefono, action.email, action.direccion);
     if (action.op==='add_calendar') return addCalendarEvent(action.studio_id, action.fecha, action.hora, action.titulo);
   }
 
