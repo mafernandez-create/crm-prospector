@@ -543,7 +543,7 @@ async function addActivity(studioId, tipo, notas, resultado, fecha) {
   return { ok:true, msg:`Actividad "${tipo}" registrada en "${s.name}"`, actividad: act };
 }
 
-async function addToPlan(studioId, fecha, reserva=false, priority='principal') {
+async function addToPlan(studioId, fecha, reserva=false, priority='principal', hora=null) {
   const estudios = await getStudios();
   const s = estudios.find(x => x.id == studioId);
   if (!s) return { ok:false, msg:`Studio ${studioId} no encontrado` };
@@ -557,7 +557,30 @@ async function addToPlan(studioId, fecha, reserva=false, priority='principal') {
 
   dia.push({ id:s.id, name:s.name, city:s.city||s.data?.contact?.city||'', reserva, priority });
   await ref.update({ schedule: { ...sched, [fecha]: dia }, lastModified: new Date().toISOString() });
-  return { ok:true, msg:`✅ "${s.name}" añadido al planificador el ${fecha}` };
+
+  // Sincronizar con Google Calendar
+  let calMsg = '';
+  try {
+    const h = hora || '10:00';
+    const start = new Date(`${fecha}T${h}:00`);
+    const end   = new Date(start.getTime() + 60*60*1000);
+    const eventData = {
+      title: `[CRM] Visita ${s.name}`,
+      startTime: start.toISOString(),
+      end: end.toISOString(),
+      type: 'meeting',
+      description: `🏢 ${s.name}\n📍 ${s.city||''} (${s.province||''})\n📞 ${s.phone||s.data?.contact?.phone||'-'}\n📧 ${s.email||s.data?.contact?.email||'-'}\n\n${reserva?'⚠️ RESERVA':'✅ VISITA PRINCIPAL'}\n\nCreado desde GPF Chat Assistant`,
+      duration: 60
+    };
+    const r = await fetch(GAS + '?action=createCalendarEvent', {
+      method:'POST', headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({ data: eventData })
+    });
+    const d = await r.json();
+    calMsg = d.success ? ` · 📅 Evento creado en Calendar (${h})` : ' · ⚠️ No se pudo sincronizar con Calendar';
+  } catch(e) { calMsg = ' · ⚠️ Error Calendar: ' + e.message; }
+
+  return { ok:true, msg:`✅ "${s.name}" añadido al planificador el ${fecha}${calMsg}` };
 }
 
 async function delFromPlan(studioId, fecha) {
@@ -664,7 +687,7 @@ Cuando el usuario quiera añadir una visita al calendario Google:
 
 Solo incluye bloques ACTION si el usuario pide EXPLÍCITAMENTE registrar o guardar algo.
 <ACTION>{"op":"add_act","studio_id":N,"tipo":"visita","notas":"...","resultado":"positivo","fecha":"YYYY-MM-DD"}</ACTION>
-<ACTION>{"op":"add_plan","studio_id":N,"fecha":"YYYY-MM-DD","reserva":false}</ACTION>
+<ACTION>{"op":"add_plan","studio_id":N,"fecha":"YYYY-MM-DD","hora":"HH:MM","reserva":false}</ACTION>
 <ACTION>{"op":"del_plan","studio_id":N,"fecha":"YYYY-MM-DD"}</ACTION>
 <ACTION>{"op":"add_studio","nombre":"...","ciudad":"...","provincia":"...","tipo":"arquitectura|ingenieria|constructora|promotora|aapp|aguas|regantes","telefono":"...","email":"..."}</ACTION>
 <ACTION>{"op":"add_calendar","studio_id":N,"fecha":"YYYY-MM-DD","hora":"HH:MM","titulo":"Visita ..."}</ACTION>`;
@@ -847,7 +870,7 @@ function showConfirm(bubble, action) {
     addTool('💾 Guardando…');
     try {
       if (action.op==='add_act')      res = await addActivity(action.studio_id, action.tipo, action.notas, action.resultado, action.fecha);
-      if (action.op==='add_plan')     res = await addToPlan(action.studio_id, action.fecha, action.reserva||false);
+      if (action.op==='add_plan')     res = await addToPlan(action.studio_id, action.fecha, action.reserva||false, 'principal', action.hora||null);
       if (action.op==='del_plan')     res = await delFromPlan(action.studio_id, action.fecha);
       if (action.op==='add_studio')   res = await addStudio(action.nombre, action.ciudad, action.provincia, action.tipo, action.telefono, action.email);
       if (action.op==='add_calendar') res = await addCalendarEvent(action.studio_id, action.fecha, action.hora, action.titulo);
