@@ -779,12 +779,16 @@ function intentToLegacy(c) {
 function finishReply(reply) {
   history.push({ role:'assistant', content: reply });
   if (history.length > 30) history = history.slice(-30);
-  const m = reply.match(/<ACTION>([\s\S]*?)<\/ACTION>/);
-  if (m) {
-    try { return { text: reply.replace(/<ACTION>[\s\S]*?<\/ACTION>/,'').trim(), action: JSON.parse(m[1].trim()) }; }
-    catch(e) {}
+  // Eliminar TODOS los bloques ACTION del texto mostrado
+  const text = reply.replace(/<ACTION>[\s\S]*?<\/ACTION>/g, '').replace(/\n{3,}/g,'\n\n').trim();
+  // Recoger TODAS las acciones válidas
+  const actions = [];
+  const re = /<ACTION>([\s\S]*?)<\/ACTION>/g;
+  let m;
+  while ((m = re.exec(reply)) !== null) {
+    try { actions.push(JSON.parse(m[1].trim())); } catch(e) {}
   }
-  return { text: reply, action: null };
+  return { text, actions };
 }
 
 async function runAgent(userText) {
@@ -858,24 +862,35 @@ function addTyping() {
 }
 function removeTyping() { document.getElementById('typing')?.remove(); }
 
-function showConfirm(bubble, action) {
+function showConfirm(bubble, actions) {
+  if (!actions || !actions.length) return;
   const bar = document.createElement('div'); bar.className = 'action-bar';
   const labels = { add_act:'✅ Registrar actividad', add_plan:'📅 Añadir al planificador', del_plan:'🗑️ Eliminar del planificador', add_studio:'🏢 Añadir al CRM', add_calendar:'📅 Crear en Calendar' };
-  const btnOk = document.createElement('button'); btnOk.className='btn-confirm'; btnOk.textContent = labels[action.op]||'Confirmar';
+
+  // Etiqueta del botón: usar la primera acción reconocida, o "Confirmar"
+  const mainLabel = actions.map(a => labels[a.op]).filter(Boolean).join(' + ') || 'Confirmar';
+  const btnOk = document.createElement('button'); btnOk.className='btn-confirm'; btnOk.textContent = mainLabel;
   const btnNo = document.createElement('button'); btnNo.className='btn-cancel';  btnNo.textContent = 'Cancelar';
+
+  async function execAction(action) {
+    if (action.op==='add_act')      return addActivity(action.studio_id, action.tipo, action.notas, action.resultado, action.fecha);
+    if (action.op==='add_plan')     return addToPlan(action.studio_id, action.fecha, action.reserva||false, 'principal', action.hora||null);
+    if (action.op==='del_plan')     return delFromPlan(action.studio_id, action.fecha);
+    if (action.op==='add_studio')   return addStudio(action.nombre, action.ciudad, action.provincia, action.tipo, action.telefono, action.email);
+    if (action.op==='add_calendar') return addCalendarEvent(action.studio_id, action.fecha, action.hora, action.titulo);
+  }
 
   btnOk.onclick = async () => {
     bar.remove();
-    let res;
     addTool('💾 Guardando…');
+    const msgs = [];
     try {
-      if (action.op==='add_act')      res = await addActivity(action.studio_id, action.tipo, action.notas, action.resultado, action.fecha);
-      if (action.op==='add_plan')     res = await addToPlan(action.studio_id, action.fecha, action.reserva||false, 'principal', action.hora||null);
-      if (action.op==='del_plan')     res = await delFromPlan(action.studio_id, action.fecha);
-      if (action.op==='add_studio')   res = await addStudio(action.nombre, action.ciudad, action.provincia, action.tipo, action.telefono, action.email);
-      if (action.op==='add_calendar') res = await addCalendarEvent(action.studio_id, action.fecha, action.hora, action.titulo);
+      for (const action of actions) {
+        const res = await execAction(action);
+        if (res?.msg) msgs.push(res.msg);
+      }
       removeTool();
-      addMsg('assistant', '', res?.msg || '✅ Hecho');
+      addMsg('assistant', '', msgs.join('\n') || '✅ Hecho');
     } catch(e) { removeTool(); addMsg('assistant','','❌ Error: '+e.message); }
   };
   btnNo.onclick = () => { bar.remove(); addMsg('assistant','','De acuerdo, no se ha guardado nada.'); };
@@ -922,10 +937,10 @@ async function ask(txt) { if (busy) return; addMsg('user','',txt); await think(t
 async function think(txt) {
   busy = true; btn.disabled = true; addTyping();
   try {
-    const { text, action } = await runAgent(txt);
+    const { text, actions } = await runAgent(txt);
     removeTyping();
     const bubble = addMsg('assistant','',text);
-    if (action) showConfirm(bubble, action);
+    if (actions && actions.length) showConfirm(bubble, actions);
   } catch(e) {
     removeTyping();
     addMsg('assistant','','❌ Error: ' + e.message);
