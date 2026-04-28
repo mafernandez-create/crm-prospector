@@ -347,13 +347,14 @@ async function fetchCRMData(intent, rawText) {
       if (intent.provincia) filtrados = filtrados.filter(s => (s.province||'').toLowerCase().includes(intent.provincia.toLowerCase()));
       if (intent.tipo)      filtrados = filtrados.filter(s => (s.type||'').toLowerCase().includes(intent.tipo));
       if (intent.ciudad)    filtrados = filtrados.filter(s => (s.city||s.data?.contact?.city||'').toLowerCase().includes(intent.ciudad.toLowerCase()));
-      // buscar nombre libre en el texto (palabras >4 letras que no sean stopwords)
+      // buscar nombre libre en el texto (palabras >3 letras que no sean stopwords)
       if (!intent.provincia && !intent.tipo && !intent.studioId) {
-        const stops = new Set(['busca','muestra','dame','lista','todos','todas','los','las','que','con','sin','para','una','estudio','estudios','empresa','empresas','arquitectura','ingeniería','ingenieria','cádiz','cadiz','málaga','malaga','granada','sevilla','en','de','del','la','el','un']);
-        const palabras = rawText.toLowerCase().split(/\s+/).filter(w => w.length > 3 && !stops.has(w));
+        const norm = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+        const stops = new Set(['busca','muestra','dame','lista','todos','todas','los','las','que','con','sin','para','una','estudio','estudios','empresa','empresas','arquitectura','ingenieria','cadiz','malaga','granada','sevilla','jerez','añade','agrega','pon','programa','calendario','agenda','hoy','manana','proxima','visita','visitas','en','de','del','la','el','un','al','las']);
+        const palabras = norm(rawText).split(/\s+/).filter(w => w.length > 3 && !stops.has(w));
         if (palabras.length) {
           filtrados = filtrados.filter(s => {
-            const hay = (s.name+' '+(s.city||'')).toLowerCase();
+            const hay = norm(s.name+' '+(s.city||''));
             return palabras.some(p => hay.includes(p));
           });
         }
