@@ -729,7 +729,7 @@ async function callClaude(msgs) {
 // Sistema para que Claude interprete la intención
 const SYS_INTENT = `Hoy es {{HOY}}. Eres un analizador de intenciones para un CRM de ventas B2B (Ferroplast/GPF).
 Dado el mensaje del usuario, devuelve ÚNICAMENTE un JSON válido sin texto adicional:
-{"accion":"buscar"|"detalle"|"historial"|"planificador"|"stats"|"busqueda_externa"|"buscar_todo"|"agenda"|"add_studio"|"chat","tipo":"arquitectura"|"ingenieria"|"constructora"|"promotora"|"aapp"|"aguas"|"regantes"|null,"ciudad":null,"provincia":null,"studio_id":null,"dias_sin_visita":null,"score_min":null,"periodo":"hoy"|"esta_semana"|"semana_pasada"|"este_mes"|"ultimos_30_dias"|null,"fecha":null,"busqueda_externa":false}
+{"accion":"buscar"|"detalle"|"historial"|"planificador"|"stats"|"busqueda_externa"|"buscar_todo"|"agenda"|"add_studio"|"add_calendar"|"chat","tipo":"arquitectura"|"ingenieria"|"constructora"|"promotora"|"aapp"|"aguas"|"regantes"|null,"ciudad":null,"provincia":null,"studio_id":null,"dias_sin_visita":null,"score_min":null,"periodo":"hoy"|"esta_semana"|"semana_pasada"|"este_mes"|"ultimos_30_dias"|null,"fecha":null,"busqueda_externa":false}
 
 Reglas:
 - "accion":"chat" solo si es saludo/agradecimiento sin datos del CRM
@@ -740,6 +740,7 @@ Reglas:
 - "accion":"agenda" cuando pregunta por eventos del calendario Google (ej: "¿qué tengo hoy?", "agenda del día")
 - "accion":"historial" cuando pregunta por las actividades o historial de contacto de un estudio concreto
 - "accion":"add_studio" cuando quiere añadir/dar de alta una empresa nueva en el CRM
+- "accion":"add_calendar" cuando quiere crear un evento en Google Calendar para visitar un estudio
 - ciudad y provincia en español con mayúsculas (ej: "Jerez de la Frontera", "Cádiz")
 - fecha en formato YYYY-MM-DD`;
 
@@ -773,6 +774,7 @@ function intentToLegacy(c) {
     case 'busqueda_externa': actions.push('search_new'); break;
     case 'buscar_todo':      actions.push('search', 'search_new'); break;
     case 'agenda':           actions.push('agenda'); break;
+    case 'add_calendar':     actions.push('search'); break;
     case 'add_studio':       actions.push('add_studio'); break;
     default:                 actions.push('search');
   }
