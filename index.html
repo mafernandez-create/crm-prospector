@@ -22936,7 +22936,17 @@ updateMap();
                 const count = countPrincipales;
 
                 // Calcular festivos para las provincias del día
-                const provinciasDia = [...new Set(dayStudios.filter(s => !s.reserva).map(s => s.province).filter(Boolean))];
+                // Enriquecer con datos completos del estudio (compatibilidad chat↔CRM)
+                const allStudiosForPlan = window.plannerStudiosData || [];
+                const dayStudiosEnriched = dayStudios.map(s => {
+                    const full = allStudiosForPlan.find(x => x.id == s.id);
+                    return {
+                        ...s,
+                        _city:     s.city || s.data?.contact?.city || full?.data?.contact?.city || full?.city || '',
+                        _province: s.province || full?.province || ''
+                    };
+                });
+                const provinciasDia = [...new Set(dayStudiosEnriched.filter(s => !s.reserva).map(s => s._province).filter(Boolean))];
                 const holidays = holidaysByYear[day.getFullYear()] || [];
                 const festivosDia = getHolidaysForDay(dateStr, provinciasDia, holidays);
                 const hasFestivo = !isWeekend && festivosDia.length > 0;
