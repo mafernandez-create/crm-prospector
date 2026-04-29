@@ -22997,14 +22997,14 @@ updateMap();
                         <div class="calendar-day-body" id="day-${dateStr}">
                             ${isWeekend ? '<div style="text-align:center;color:#94a3b8;font-size:0.75rem;padding:20px;">Fin de semana</div>' :
                               (function() {
-                                const principales = dayStudios.filter(s => !s.reserva);
-                                const reservas = dayStudios.filter(s => s.reserva);
+                                const principales = dayStudiosEnriched.filter(s => !s.reserva);
+                                const reservas = dayStudiosEnriched.filter(s => s.reserva);
                                 let html = festivoHtml;
                                 html += principales.map((s, idx) => `
                                     <div class="calendar-visit">
                                         <button class="calendar-visit-remove" onclick="removeFromDay('${dateStr}', ${s.id})">✕</button>
                                         <div class="calendar-visit-name">${idx + 1}. ${s.name}</div>
-                                        <div class="calendar-visit-meta">📍 ${s.data?.contact?.city || ''}</div>
+                                        <div class="calendar-visit-meta">📍 ${s._city}${s._province ? ' · ' + s._province : ''}</div>
                                     </div>
                                 `).join('');
                                 if (reservas.length > 0) {
@@ -23013,7 +23013,7 @@ updateMap();
                                         <div class="calendar-visit reserva">
                                             <button class="calendar-visit-remove" onclick="removeFromDay('${dateStr}', ${s.id})">✕</button>
                                             <div class="calendar-visit-name">🔄 ${s.name}</div>
-                                            <div class="calendar-visit-meta">📍 ${s.data?.contact?.city || ''}</div>
+                                            <div class="calendar-visit-meta">📍 ${s._city}${s._province ? ' · ' + s._province : ''}</div>
                                         </div>
                                     `).join('');
                                 }
