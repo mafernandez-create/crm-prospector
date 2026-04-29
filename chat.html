@@ -376,42 +376,44 @@ async function fetchCRMData(intent, rawText) {
     result.total = filtrados.length;
   }
 
-  // ── búsqueda externa ──
+  // ── búsqueda externa multi-fuente ──
   if (intent.actions.includes('search_new')) {
     const location = intent.ciudad || intent.provincia;
     const tipo     = intent.tipo || 'ingenieria';
     if (!location) {
-      result.error_busqueda = 'No se detectó ciudad o provincia en la consulta.';
+      result.error_busqueda = 'No se detectó ciudad o provincia en la consulta. Especifica una ciudad o provincia.';
     } else {
-      // Intentar Páginas Amarillas; si falla/bloquea → Claude usa conocimiento propio
-      let paOk = false;
+      const crmStudios = await getStudios();
+      let allFound = [];
       try {
-        const paResults  = await searchPaginasAmarillas(tipo, location);
-        const crmStudios = await getStudios();
-        const paFiltrados = intent.ciudad
-          ? paResults.filter(r => r.ciudad.toLowerCase().includes(intent.ciudad.toLowerCase()) || intent.ciudad.toLowerCase().includes(r.ciudad.toLowerCase()))
-          : paResults;
-        if (paFiltrados.length > 0) {
-          const nuevos  = paFiltrados.filter(r => !isAlreadyInCRM(r.nombre, crmStudios));
-          const yaEnCRM = paFiltrados.filter(r =>  isAlreadyInCRM(r.nombre, crmStudios));
-          result.busqueda_externa = {
-            fuente: `Páginas Amarillas — ${tipo} en ${location}`,
-            total_encontrados: paFiltrados.length,
-            nuevos_no_en_crm: nuevos.length,
-            ya_en_crm: yaEnCRM.length,
-            nuevos
-          };
-          paOk = true;
-        }
-      } catch(e) { /* PA no disponible */ }
+        allFound = await searchStudiosExternalChat(location, tipo);
+      } catch(e) { console.warn('searchStudiosExternalChat error:', e.message); }
 
-      if (!paOk) {
-        // Páginas Amarillas bloqueada — pedimos a Claude que use su conocimiento
+      if (allFound.length > 0) {
+        const nuevos  = allFound.filter(r => !isAlreadyInCRM(r.name, crmStudios));
+        const yaEnCRM = allFound.filter(r =>  isAlreadyInCRM(r.name, crmStudios));
+        result.busqueda_externa = {
+          fuente: `Multi-fuente (DuckDuckGo, LinkedIn, Páginas Amarillas, portales) — ${tipo} en ${location}`,
+          total_encontrados: allFound.length,
+          nuevos_no_en_crm: nuevos.length,
+          ya_en_crm: yaEnCRM.length,
+          // Enviar los top-20 nuevos con sus datos
+          nuevos: nuevos.slice(0, 20).map(r => ({
+            nombre:    r.name,
+            snippet:   r.snippet || '',
+            url:       r.url || '',
+            fuentes:   r.sources.join(', '),
+            telefono:  r.telefono || '',
+            direccion: r.direccion || '',
+            ciudad:    r.ciudad || location
+          }))
+        };
+      } else {
+        // Fallback: Claude usa conocimiento propio si ninguna fuente devolvió resultados
         result.busqueda_externa = {
           fuente: 'conocimiento_claude',
-          tipo,
-          location,
-          instruccion: `Páginas Amarillas no está disponible. Usa tu conocimiento de entrenamiento para listar ${tipo}s reales en ${location} que podrían ser clientes de Ferroplast/GPF (tuberías HDPE, saneamiento, obras). Incluye nombre, breve descripción y si es posible teléfono/web. Máximo 8 empresas. Añade siempre: "⚠️ Datos de entrenamiento — verificar vigencia."`
+          tipo, location,
+          instruccion: `Las búsquedas web no devolvieron resultados. Usa tu conocimiento de entrenamiento para listar ${tipo}s reales en ${location} que podrían ser clientes de Ferroplast/GPF (tuberías HDPE, saneamiento, obras). Incluye nombre, breve descripción. Máximo 8 empresas. Siempre añade: "⚠️ Datos de entrenamiento — verificar vigencia."`
         };
       }
     }
@@ -516,18 +518,149 @@ function normName(n) {
     .replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim();
 }
 
-function isAlreadyInCRM(paName, crmStudios) {
-  const norm = normName(paName);
+function isAlreadyInCRM(extName, crmStudios) {
+  const norm = normName(extName);
+  if (norm.length < 4) return false;
   return crmStudios.some(s => {
     const crmNorm = normName(s.name || '');
-    if (!crmNorm || norm.length < 4) return false;
-    // coincidencia si comparten al menos 60% de palabras clave
+    if (!crmNorm) return false;
     const wordsA = norm.split(' ').filter(w => w.length > 3);
     const wordsB = crmNorm.split(' ').filter(w => w.length > 3);
-    if (!wordsA.length) return false;
-    const matches = wordsA.filter(w => wordsB.includes(w)).length;
-    return matches / wordsA.length >= 0.6;
+    if (!wordsA.length || !wordsB.length) return false;
+    const matchesAinB = wordsA.filter(w => wordsB.includes(w)).length;
+    const matchesBinA = wordsB.filter(w => wordsA.includes(w)).length;
+    // Bidireccional: 60% de palabras en cualquier dirección
+    return matchesAinB / wordsA.length >= 0.6 || matchesBinA / wordsB.length >= 0.6;
   });
+}
+
+// ══════════════════════════════════════════
+// BÚSQUEDA EXTERNA MULTI-FUENTE (igual que CRM)
+// ══════════════════════════════════════════
+
+function normalizeStudioKey(name) {
+  return name.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\b(sl|slp|slu|sa|cb|sc|sll|soc|arq|ing|arquitecto|arquitectos|ingeniero|ingenieros|estudio|studio|asociados|consultores|consultoria|grupo|servicios)\b/g,'')
+    .replace(/[^a-z0-9]/g,'').substring(0,25);
+}
+
+function extractStudioName(title, snippet) {
+  if (!title) return null;
+  let name = title
+    .replace(/\|\s*LinkedIn$/i,'').replace(/\|\s*Instagram$/i,'').replace(/\|\s*Facebook$/i,'')
+    .replace(/\s*-\s*Páginas Amarillas$/i,'').replace(/\s*\|\s*ArchDaily.*$/i,'')
+    .replace(/\s*-\s*Google Maps$/i,'').replace(/\s*::.*/,'').replace(/\(@[^)]+\)/g,'').trim();
+  if (name.length > 3 && name.length < 80 && !/resultado|buscar|search|error/i.test(name))
+    return name.split(/\s*[-|]\s*/)[0].trim();
+  return null;
+}
+
+async function searchWeb(query) {
+  try {
+    const html = await fetchWithProxy('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(query));
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const links    = doc.querySelectorAll('.result__a');
+    const snippets = doc.querySelectorAll('.result__snippet');
+    const results  = [];
+    for (let i = 0; i < Math.min(links.length, 12); i++) {
+      results.push({
+        title:   links[i]?.textContent?.trim() || '',
+        snippet: snippets[i]?.textContent?.trim() || '',
+        url:     links[i]?.href || ''
+      });
+    }
+    return results;
+  } catch(e) { return []; }
+}
+
+async function searchStudiosExternalChat(location, tipo) {
+  const foundStudios = new Map();
+  const cfgMap = {
+    'arquitectura': { label:'arquitectura', terms:['estudio arquitectura','arquitectos'] },
+    'ingenieria':   { label:'ingeniería',   terms:['ingeniería civil','ingenieros consultora'] },
+    'constructora': { label:'construcción', terms:['constructora obras','empresa construcción'] },
+    'promotora':    { label:'promotora inmobiliaria', terms:['promotora inmobiliaria','promoción viviendas'] },
+    'regantes':     { label:'comunidades de regantes', terms:['comunidad de regantes','zona regable modernización'] },
+    'aguas':        { label:'gestión de aguas', terms:['empresa aguas','abastecimiento agua'] },
+    'aapp':         { label:'administración pública', terms:['ayuntamiento obras públicas','diputación infraestructuras'] },
+    'otros':        { label:'empresas',     terms:['empresa consultoría','estudio técnico'] }
+  };
+  const cfg = cfgMap[tipo] || cfgMap['otros'];
+
+  const addResults = (results, source, relevance) => {
+    for (const r of results) {
+      const name = extractStudioName(r.title, r.snippet);
+      if (!name || name.length < 3) continue;
+      const key = normalizeStudioKey(name);
+      if (foundStudios.has(key)) {
+        const ex = foundStudios.get(key);
+        ex.relevance = Math.min(100, ex.relevance + 5);
+        if (!ex.sources.includes(source)) ex.sources.push(source);
+        if (r.url && !(ex.urls||[]).includes(r.url)) (ex.urls = ex.urls||[]).push(r.url);
+      } else {
+        foundStudios.set(key, { name, snippet:r.snippet||'', url:r.url||'', urls:r.url?[r.url]:[], relevance, sources:[source] });
+      }
+    }
+  };
+
+  // 1. Búsqueda general
+  updateTool(`🌐 Buscando ${cfg.label} en ${location}…`);
+  const gen1 = await searchWeb(`${cfg.terms[0]} ${location} España`);
+  addResults(gen1, 'Búsqueda web', 70);
+
+  // 2. Segunda búsqueda con variante de término
+  const gen2 = await searchWeb(`${cfg.terms[1] || cfg.terms[0]} ${location}`);
+  addResults(gen2, 'Búsqueda web', 65);
+
+  // 3. LinkedIn
+  updateTool('💼 Buscando en LinkedIn…');
+  const li = await searchWeb(`site:linkedin.com/company ${cfg.label} ${location}`);
+  addResults(li, 'LinkedIn', 80);
+
+  // 4. Páginas Amarillas via DuckDuckGo (siempre funciona aunque PA directa esté bloqueada)
+  updateTool('📒 Buscando en Páginas Amarillas…');
+  const paDdg = await searchWeb(`site:paginasamarillas.es ${cfg.label} ${location}`);
+  addResults(paDdg, 'Páginas Amarillas', 75);
+
+  // 5. PA directa (puede fallar por Incapsula, es OK)
+  try {
+    const paDirect = await searchPaginasAmarillas(tipo, location, 2);
+    for (const p of paDirect) {
+      if (!p.nombre || p.nombre.length < 3) continue;
+      const key = normalizeStudioKey(p.nombre);
+      if (foundStudios.has(key)) {
+        const ex = foundStudios.get(key);
+        if (!ex.sources.includes('PA directo')) ex.sources.push('PA directo');
+        if (p.telefono && !ex.telefono) ex.telefono = p.telefono;
+        if (p.direccion && !ex.direccion) ex.direccion = p.direccion;
+        if (p.ciudad && !ex.ciudad) ex.ciudad = p.ciudad;
+        ex.relevance = Math.min(100, ex.relevance + 10);
+      } else {
+        foundStudios.set(key, { name:p.nombre, snippet:[p.ciudad,p.direccion].filter(Boolean).join(' — '),
+          url:'', urls:[], relevance:80, sources:['PA directo'],
+          telefono:p.telefono||'', direccion:p.direccion||'', ciudad:p.ciudad||'' });
+      }
+    }
+  } catch(e) { /* PA bloqueada por Incapsula — DuckDuckGo PA ya cubierto */ }
+
+  // 6. Portal especializado por tipo
+  updateTool('🏗️ Buscando en portales especializados…');
+  const portalQ = tipo === 'arquitectura'
+    ? `site:archdaily.com OR site:plataformaarquitectura.cl arquitectos ${location}`
+    : tipo === 'regantes' ? `comunidad regantes ${location} modernización riego SEIASA`
+    : tipo === 'aguas'   ? `empresa aguas ${location} abastecimiento potable servicio municipal`
+    : tipo === 'ingenieria' ? `ingeniería civil ${location} consultora proyectos infraestructura`
+    : `${cfg.label} ${location} listado directorio empresas`;
+  const portal = await searchWeb(portalQ);
+  addResults(portal, 'Portal especializado', 85);
+
+  // 7. Noticias / proyectos recientes
+  updateTool('📰 Buscando proyectos recientes…');
+  const news = await searchWeb(`estudio ${cfg.label} ${location} proyecto 2024 2025`);
+  addResults(news, 'Noticias', 65);
+
+  return Array.from(foundStudios.values()).sort((a, b) => b.relevance - a.relevance);
 }
 
 // ══════════════════════════════════════════
@@ -677,8 +810,10 @@ REGLA ABSOLUTA: Usa SOLO los datos de [DATOS_CRM] para responder. NUNCA inventes
 Sé conciso, directo y práctico. Responde en español.
 
 Cuando recibas datos de "busqueda_externa":
-- Si fuente es "Páginas Amarillas": presenta los nuevos como lista con nombre, teléfono y dirección. Indica cuántos ya estaban en el CRM y cuántos son nuevos.
+- Si fuente es "Multi-fuente ...": lista los nuevos numerados (1, 2, 3…). Para cada uno: nombre en negrita, fuentes donde apareció (entre paréntesis), ciudad, y si tiene teléfono o dirección. Resumen al inicio: "X encontradas, Y ya en CRM, Z nuevas."
 - Si fuente es "conocimiento_claude": sigue la instrucción del campo "instruccion" exactamente. Usa tu conocimiento real de empresas en esa zona.
+- Al final SIEMPRE pregunta: "¿Quieres añadir alguna al CRM? Dime los números y las añado."
+- Cuando el usuario confirme cuáles añadir, incluye un bloque ACTION por cada una con los datos disponibles.
 
 Cuando recibas datos combinados ("studios" + "busqueda_externa"):
 - Primero muestra los estudios ya en el CRM (con ID y datos).
@@ -831,7 +966,8 @@ async function runAgent(userText) {
 
   // ── Paso 2: Cargar datos de Firebase según lo que Claude decidió ──
   const intent = intentToLegacy(claudeIntent);
-  addTool('🔍 Consultando el CRM…');
+  const isExternalSearch = intent.actions.includes('search_new');
+  addTool(isExternalSearch ? '🌐 Iniciando búsqueda externa…' : '🔍 Consultando el CRM…');
   let crmData = {};
   try { crmData = await fetchCRMData(intent, userText); }
   catch(e) { removeTool(); addTool('⚠️ Error Firebase: ' + e.message); }
@@ -874,6 +1010,7 @@ function addTool(txt) {
   d.appendChild(b); msgsEl.appendChild(d); scrollDown();
 }
 function removeTool() { document.getElementById('toolmsg')?.remove(); }
+function updateTool(txt) { const el = document.getElementById('toolmsg'); if (el) el.querySelector('.bubble').textContent = txt; }
 
 function addTyping() {
   const d = document.createElement('div'); d.className = 'msg assistant typing'; d.id='typing';
