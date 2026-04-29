@@ -23109,12 +23109,15 @@ updateMap();
                 planificadorData.schedule[day] = planificadorData.schedule[day].filter(s => s.id !== studioId);
             });
             
-            // Añadir al día
+            // Añadir al día — formato compatible con chat.html y Firebase
             planificadorData.schedule[dateStr].push({
-                id: studio.id,
-                name: studio.name,
-                data: studio.data,
-                province: studio.province
+                id:       studio.id,
+                name:     studio.name,
+                city:     studio.data?.contact?.city || studio.city || '',
+                province: studio.province || '',
+                reserva:  false,
+                priority: 'principal',
+                data:     studio.data   // campo completo para compatibilidad con renderizado local
             });
             
             savePlanificadorData();
