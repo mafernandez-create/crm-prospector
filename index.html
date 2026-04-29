@@ -20368,29 +20368,42 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             try {
                 const doc = await firestoreDB.collection('_meta').doc('planificador').get();
                 const local = JSON.parse(localStorage.getItem('crm_test_planificador') || 'null');
-                const localDays = (local && local.schedule) ? Object.keys(local.schedule).length : 0;
 
                 if (doc.exists) {
                     const remote = doc.data();
-                    const remoteDays = (remote && remote.schedule) ? Object.keys(remote.schedule).length : 0;
-                    // Usar el que tenga más días; en empate usar lastModified (local gana si es más reciente o igual)
-                    const localTs = (local && local.lastModified) ? local.lastModified : 0;
-                    const remoteTs = (remote && remote.lastModified) ? remote.lastModified : 0;
-                    const localWins = localDays > remoteDays || (localDays === remoteDays && localTs >= remoteTs);
-                    if (localWins && localDays > 0) {
-                        planificadorData = local;
-                        await firestoreDB.collection('_meta').doc('planificador').set(planificadorData);
-                        console.log('✅ Planificador local → Firebase (' + localDays + ' días, ts=' + localTs + ')');
-                    } else if (remote && remote.schedule) {
+
+                    // Normalizar timestamps a milisegundos (index.html guarda Date.now(), chat.html guarda ISO string)
+                    const toMs = t => !t ? 0 : (typeof t === 'number' ? t : new Date(t).getTime());
+                    const localTs  = toMs(local?.lastModified);
+                    const remoteTs = toMs(remote?.lastModified);
+
+                    // Comparar solo días FUTUROS (hoy o posterior)
+                    // Los días pasados en localStorage no deben "ganar" ante datos actuales de Firebase
+                    const hoy = new Date().toISOString().split('T')[0];
+                    const localFuture  = Object.keys(local?.schedule  || {}).filter(d => d >= hoy).length;
+                    const remoteFuture = Object.keys(remote?.schedule || {}).filter(d => d >= hoy).length;
+
+                    // Firebase gana si: tiene más días futuros, O mismos días futuros pero es más reciente
+                    const remoteWins = remoteFuture > localFuture ||
+                                       (remoteFuture >= localFuture && remoteTs >= localTs);
+
+                    if (remoteWins && remote.schedule) {
                         planificadorData = remote;
                         localStorage.setItem('crm_test_planificador', JSON.stringify(planificadorData));
-                        console.log('✅ Planificador cargado de Firebase (' + remoteDays + ' días)');
+                        console.log(`✅ Planificador desde Firebase (${remoteFuture} días futuros, ts=${new Date(remoteTs).toISOString()})`);
+                    } else if (local?.schedule) {
+                        planificadorData = local;
+                        // Solo subir a Firebase si local es genuinamente más reciente
+                        if (localTs > remoteTs) {
+                            await firestoreDB.collection('_meta').doc('planificador').set(planificadorData);
+                            console.log(`✅ Planificador local → Firebase (${localFuture} días futuros, ts=${new Date(localTs).toISOString()})`);
+                        }
                     }
-                } else if (localDays > 0) {
-                    // Firebase vacío: migrar datos locales
+                } else if (local?.schedule && Object.keys(local.schedule).filter(d => d >= new Date().toISOString().split('T')[0]).length > 0) {
+                    // Firebase vacío y hay datos locales futuros: migrar
                     planificadorData = local;
                     await firestoreDB.collection('_meta').doc('planificador').set(planificadorData);
-                    console.log('✅ Planificador migrado a Firebase (' + localDays + ' días)');
+                    console.log('✅ Planificador local migrado a Firebase');
                 }
             } catch(e) {
                 console.warn('No se pudo cargar planificador de Firebase:', e);
