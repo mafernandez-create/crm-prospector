@@ -1,0 +1,84 @@
+name: Claude Code — GPF CRM
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened, assigned]
+  pull_request_review:
+    types: [submitted]
+  # Revisión automática en cada push manual (excluye commits de auto-push.sh)
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'chat.html'
+
+jobs:
+  # ── Responde a @claude en issues y PRs ──────────────────────────────────────
+  claude-mention:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: |
+            --model claude-sonnet-4-20250514
+            --system-prompt "Eres el asistente de desarrollo del CRM de Ferroplast/GPF (Grupo GPF). El proyecto es un CRM comercial en HTML/JS puro con Firebase Firestore, Google Apps Script como proxy para Claude API y Google Calendar. Archivos principales: index.html (CRM completo ~27k líneas) y chat.html (asistente IA móvil). Cuando revises código, céntrate en: bugs en el flujo de planificador, lógica de filtros de estudios por zona/provincia, integración Firebase, llamadas GAS, y consistencia entre chat.html e index.html. Responde siempre en español."
+
+  # ── Revisión automática en push manual (no auto-push.sh) ────────────────────
+  claude-review:
+    if: |
+      github.event_name == 'push' &&
+      !startsWith(github.event.head_commit.message, 'Auto-guardado')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Obtener diff del commit
+        id: diff
+        run: |
+          git diff HEAD~1 HEAD -- index.html chat.html > /tmp/cambios.diff
+          echo "lines=$(wc -l < /tmp/cambios.diff)" >> $GITHUB_OUTPUT
+
+      - name: Revisar cambios con Claude
+        if: steps.diff.outputs.lines > '5'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Revisa los siguientes cambios del CRM GPF (commit: ${{ github.event.head_commit.message }}).
+            Identifica: bugs potenciales, inconsistencias entre chat.html e index.html,
+            problemas con Firebase/planificador, y mejoras relevantes.
+            Responde en español con una lista concisa. Si no hay problemas, dilo brevemente.
+
+            Cambios:
+            $(cat /tmp/cambios.diff | head -300)
+          claude_args: |
+            --model claude-haiku-4-20250514
+            --max-turns 3
