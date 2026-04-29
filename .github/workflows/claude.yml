@@ -63,21 +63,38 @@ jobs:
         id: diff
         run: |
           git diff HEAD~1 HEAD -- index.html chat.html > /tmp/cambios.diff
-          echo "lines=$(wc -l < /tmp/cambios.diff)" >> $GITHUB_OUTPUT
+          LINES=$(wc -l < /tmp/cambios.diff)
+          echo "lines=$LINES" >> $GITHUB_OUTPUT
 
-      - name: Revisar cambios con Claude
+      - name: Revisar cambios con Claude (API directa)
         if: steps.diff.outputs.lines > '5'
-        uses: anthropics/claude-code-action@v1
-        with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          prompt: |
-            Revisa los siguientes cambios del CRM GPF (commit: ${{ github.event.head_commit.message }}).
-            Identifica: bugs potenciales, inconsistencias entre chat.html e index.html,
-            problemas con Firebase/planificador, y mejoras relevantes.
-            Responde en español con una lista concisa. Si no hay problemas, dilo brevemente.
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          REPO: ${{ github.repository }}
+        run: |
+          DIFF=$(head -300 /tmp/cambios.diff | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))")
+          PROMPT="Revisa estos cambios del CRM GPF (commit: $COMMIT_MSG). Identifica: bugs potenciales, inconsistencias entre chat.html e index.html, problemas con Firebase/planificador, y mejoras relevantes. Responde en español con lista concisa. Si no hay problemas, dilo brevemente.\n\nCambios:\n$DIFF"
 
-            Cambios:
-            $(cat /tmp/cambios.diff | head -300)
-          claude_args: |
-            --model claude-haiku-4-20250514
-            --max-turns 3
+          RESPONSE=$(curl -s https://api.anthropic.com/v1/messages \
+            -H "x-api-key: $ANTHROPIC_API_KEY" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "content-type: application/json" \
+            -d "{
+              \"model\": \"claude-haiku-4-20250514\",
+              \"max_tokens\": 1024,
+              \"messages\": [{\"role\": \"user\", \"content\": $PROMPT}]
+            }")
+
+          REVIEW=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['content'][0]['text'])" 2>/dev/null || echo "Error al obtener respuesta de Claude.")
+
+          gh issue create \
+            --repo "$REPO" \
+            --title "🔍 Revisión automática: $COMMIT_MSG" \
+            --body "$(printf '## Revisión de Claude — push automático\n\n**Commit:** %s\n\n%s' "$COMMIT_MSG" "$REVIEW")" \
+            --label "claude-review" 2>/dev/null || \
+          gh issue create \
+            --repo "$REPO" \
+            --title "🔍 Revisión automática: $COMMIT_MSG" \
+            --body "$(printf '## Revisión de Claude — push automático\n\n**Commit:** %s\n\n%s' "$COMMIT_MSG" "$REVIEW")"
