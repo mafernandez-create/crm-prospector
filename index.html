@@ -22746,43 +22746,55 @@ updateMap();
         
         function buscarEstudioDirecto() {
             const searchTerm = (document.getElementById('plan-busqueda-directa')?.value || '').toLowerCase().trim();
-            
+
             if (searchTerm.length < 2) {
                 showNotification('Escribe al menos 2 caracteres', 'warning');
                 return;
             }
-            
+
             const studiosData = window.plannerStudiosData || [];
-            
-            // Buscar en TODOS las empresas sin filtros
-            let filtered = studiosData.filter(s => {
+
+            // Respetar provincias seleccionadas si hay alguna marcada
+            const provinciasActivas = Array.from(document.querySelectorAll('#plan-provincias input:checked')).map(cb => cb.value);
+            const tiposActivos = Array.from(document.querySelectorAll('#plan-tipos input:checked')).map(cb => cb.value);
+
+            let pool = studiosData;
+            if (provinciasActivas.length > 0) {
+                pool = pool.filter(s => provinciasActivas.includes(s.province));
+            }
+            if (tiposActivos.length > 0) {
+                pool = pool.filter(s => tiposActivos.includes(s.type));
+            }
+
+            let filtered = pool.filter(s => {
                 const name = (s.name || '').toLowerCase();
                 const shortName = (s.shortName || '').toLowerCase();
-                const city = (s.data?.contact?.city || '').toLowerCase();
+                const city = (s.data?.contact?.city || s.city || '').toLowerCase();
                 const address = (s.data?.contact?.address || '').toLowerCase();
                 const province = (s.province || '').toLowerCase();
-                
-                return name.includes(searchTerm) || 
-                       shortName.includes(searchTerm) || 
-                       city.includes(searchTerm) || 
+
+                return name.includes(searchTerm) ||
+                       shortName.includes(searchTerm) ||
+                       city.includes(searchTerm) ||
                        address.includes(searchTerm) ||
                        province.includes(searchTerm);
             });
-            
+
             // Ordenar por CP
             filtered.sort((a, b) => {
                 const cpA = extractPostalCode(a.data?.contact?.address);
                 const cpB = extractPostalCode(b.data?.contact?.address);
                 return cpA.localeCompare(cpB);
             });
-            
+
             window.filteredStudios = filtered;
             renderStudiosDragList(filtered);
-            
+
+            const zonaMsg = provinciasActivas.length > 0 ? ` en ${provinciasActivas.join(', ')}` : ' (todas las zonas)';
             if (filtered.length === 0) {
-                showNotification(`No se encontraron estudios con "${searchTerm}"`, 'info');
+                showNotification(`No se encontraron estudios con "${searchTerm}"${zonaMsg}`, 'info');
             } else {
-                showNotification(`Encontrados ${filtered.length} estudios`, 'success');
+                showNotification(`${filtered.length} estudios encontrados${zonaMsg}`, 'success');
             }
         }
         
