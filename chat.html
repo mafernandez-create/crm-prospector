@@ -156,6 +156,8 @@ const FB  = { apiKey:"AIzaSyCVxMjrIfB4MrYiUzvKzt8fJeKKNne-Cm0", authDomain:"ferr
 // ══════════════════════════════════════════
 let db = null;
 let studioCache = null;
+let studioCacheAt = 0;
+const STUDIO_CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 let history = [];   // historial de conversación (sin datos crudos de CRM)
 let busy = false;
 let pendingAction = null; // acción pendiente de confirmación
@@ -177,8 +179,9 @@ async function initFB() {
   }
 }
 
-async function getStudios() {
-  if (studioCache) return studioCache;
+async function getStudios(force = false) {
+  const now = Date.now();
+  if (!force && studioCache && (now - studioCacheAt) < STUDIO_CACHE_TTL) return studioCache;
   const snap = await db.collection('studios').get();
   studioCache = snap.docs.map(d => {
     const data = d.data();
@@ -186,8 +189,10 @@ async function getStudios() {
     data._docId = d.id;
     return data;
   });
+  studioCacheAt = now;
   return studioCache;
 }
+function invalidateStudioCache() { studioCache = null; studioCacheAt = 0; }
 
 // ══════════════════════════════════════════
 // INTENT DETECTION — extrae parámetros del mensaje
@@ -290,16 +295,19 @@ async function fetchCRMData(intent, rawText) {
       for (const [fecha, entries] of Object.entries(proximos)) {
         enriched[fecha] = entries.map(e => {
           const s = todosEstudios.find(x => x.id == e.id);
+          if (!s) console.warn(`[planificador] studio id=${e.id} ("${e.name}") no encontrado en Firestore`);
           return {
-            id:       e.id,
-            nombre:   e.name,
-            ciudad:   e.city || s?.city || s?.data?.contact?.city || '',
-            reserva:  e.reserva || false,
-            priority: e.priority || 'principal',
-            tipo:     s?.type || '',
-            telefono: s?.phone || s?.data?.contact?.phone || '',
-            email:    s?.email || s?.data?.contact?.email || '',
-            direccion: s?.address || s?.data?.contact?.address || ''
+            id:        e.id,
+            nombre:    e.name || s?.name || `Estudio ${e.id}`,
+            ciudad:    e.city || s?.city || s?.data?.contact?.city || '',
+            provincia: e.province || s?.province || '',
+            reserva:   e.reserva || false,
+            priority:  e.priority || 'principal',
+            tipo:      s?.type || '',
+            telefono:  s?.phone || s?.data?.contact?.phone || '',
+            email:     s?.email || s?.data?.contact?.email || '',
+            direccion: s?.address || s?.data?.contact?.address || '',
+            _sinDatos: !s  // flag si el estudio no está en Firestore
           };
         });
       }
@@ -716,7 +724,8 @@ async function addActivity(studioId, tipo, notas, resultado, fecha) {
   const act = { id: Date.now(), type: tipo, date: fecha||new Date().toISOString().split('T')[0], notes: notas, result: resultado||'pendiente', createdAt: new Date().toISOString() };
   const newActs = [...(s.activities||[]), act];
   await db.collection('studios').doc(s._docId).update({ activities: newActs });
-  s.activities = newActs;
+  s.activities = newActs; // actualizar objeto en caché para coherencia inmediata
+  studioCacheAt = Date.now(); // resetear TTL — los datos del caché siguen siendo válidos
   return { ok:true, msg:`Actividad "${tipo}" registrada en "${s.name}"`, actividad: act };
 }
 
@@ -798,7 +807,7 @@ async function addStudio(nombre, ciudad, provincia, tipo, telefono, email, direc
   };
   const ref = await db.collection('studios').add(newStudio);
   newStudio._docId = ref.id;
-  studioCache = null;
+  invalidateStudioCache();
   const sinDir = !direccion ? ' ⚠️ Sin dirección — recuerda añadirla para poder crear eventos en Calendar' : '';
   return { ok: true, msg: `✅ "${nombre}" añadido al CRM con ID ${newId}${sinDir}`, studio_id: newId };
 }
