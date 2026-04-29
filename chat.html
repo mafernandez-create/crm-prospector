@@ -200,15 +200,25 @@ function detectIntent(txt) {
   const t = txt.toLowerCase();
   const intent = { actions: [], provincia: null, ciudad: null, tipo: null, nombre: null, studioId: null, fecha: null, dias: null };
 
-  // acciones
-  if (/busca|muestra|dame|lista|encuentra|hay|tienes/.test(t))   intent.actions.push('search');
-  if (/ficha|detalle|información|datos|info\b/.test(t))          intent.actions.push('detail');
-  if (/planificador|agenda|visitas planificadas|programad/.test(t)) intent.actions.push('planificador');
-  if (/añade|agrega|pon|programa|incluye/.test(t) && /agenda|planificador|dia|fecha/.test(t)) intent.actions.push('add_plan');
-  if (/elimina|quita|borra/.test(t) && /agenda|planificador/.test(t)) intent.actions.push('del_plan');
+  // acciones — orden de prioridad: las más específicas primero
   if (/registra|anota|guarda|he visitado|he llamado|llamé|visité/.test(t)) intent.actions.push('add_act');
-  if (/estadística|cuántas|cuantas|resumen|semana|hoy/.test(t))  intent.actions.push('stats');
   if (/no.*crm|sin.*crm|nueva|nuevas|sin.*registr|que falt|que no ten|que no est|no est.*crm|descono/.test(t)) intent.actions.push('search_new');
+  if (/estadística|cuántas|cuantas|resumen semana/.test(t))  intent.actions.push('stats');
+  if (/ficha|detalle|información|datos|info\b/.test(t))      intent.actions.push('detail');
+
+  // planificador: si se detecta, NO añadir search (son cosas distintas)
+  const esPlanif  = /planificador|visitas planificadas|programad/.test(t);
+  const esAddPlan = /añade|agrega|pon|incluye/.test(t) && /planificador|agenda|calendario|fecha/.test(t);
+  const esDelPlan = /elimina|quita|borra/.test(t) && /planificador|agenda/.test(t);
+  if (esDelPlan)        intent.actions.push('del_plan', 'planificador');
+  else if (esAddPlan)   intent.actions.push('add_plan', 'planificador', 'search');
+  else if (esPlanif)    intent.actions.push('planificador');
+
+  // search solo si no hay ninguna acción específica de planificador
+  if (!intent.actions.some(a => ['planificador','add_plan','del_plan'].includes(a))) {
+    if (/busca|muestra|dame|lista|encuentra|hay|tienes/.test(t)) intent.actions.push('search');
+  }
+
   if (!intent.actions.length) intent.actions.push('search');
 
   // provincia
@@ -273,7 +283,27 @@ async function fetchCRMData(intent, rawText) {
       const finStr = fin.toISOString().split('T')[0];
       const proximos = {};
       Object.keys(sched).sort().forEach(d => { if (d >= hoy && d <= finStr) proximos[d] = sched[d]; });
-      result.planificador = proximos;
+
+      // Enriquecer entradas con datos reales del estudio (teléfono, email, dirección, tipo)
+      const todosEstudios = await getStudios();
+      const enriched = {};
+      for (const [fecha, entries] of Object.entries(proximos)) {
+        enriched[fecha] = entries.map(e => {
+          const s = todosEstudios.find(x => x.id == e.id);
+          return {
+            id:       e.id,
+            nombre:   e.name,
+            ciudad:   e.city || s?.city || s?.data?.contact?.city || '',
+            reserva:  e.reserva || false,
+            priority: e.priority || 'principal',
+            tipo:     s?.type || '',
+            telefono: s?.phone || s?.data?.contact?.phone || '',
+            email:    s?.email || s?.data?.contact?.email || '',
+            direccion: s?.address || s?.data?.contact?.address || ''
+          };
+        });
+      }
+      result.planificador = enriched;
     }
   }
 
@@ -337,7 +367,7 @@ async function fetchCRMData(intent, rawText) {
   }
 
   // ── búsqueda ──
-  if (intent.actions.includes('search') || intent.actions.includes('add_plan') || intent.actions.includes('add_act')) {
+  if (intent.actions.includes('search') || intent.actions.includes('add_act')) {
     const estudios = await getStudios();
     let filtrados = estudios;
 
@@ -347,10 +377,20 @@ async function fetchCRMData(intent, rawText) {
       if (intent.provincia) filtrados = filtrados.filter(s => (s.province||'').toLowerCase().includes(intent.provincia.toLowerCase()));
       if (intent.tipo)      filtrados = filtrados.filter(s => (s.type||'').toLowerCase().includes(intent.tipo));
       if (intent.ciudad)    filtrados = filtrados.filter(s => (s.city||s.data?.contact?.city||'').toLowerCase().includes(intent.ciudad.toLowerCase()));
-      // buscar nombre libre en el texto (palabras >3 letras que no sean stopwords)
-      if (!intent.provincia && !intent.tipo && !intent.studioId) {
+      // Búsqueda por nombre libre: solo si no hay ningún filtro explícito (incluyendo ciudad)
+      if (!intent.provincia && !intent.tipo && !intent.studioId && !intent.ciudad) {
         const norm = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-        const stops = new Set(['busca','muestra','dame','lista','todos','todas','los','las','que','con','sin','para','una','estudio','estudios','empresa','empresas','arquitectura','ingenieria','cadiz','malaga','granada','sevilla','jerez','añade','agrega','pon','programa','calendario','agenda','hoy','manana','proxima','visita','visitas','en','de','del','la','el','un','al','las']);
+        const stops = new Set([
+          'busca','muestra','dame','lista','todos','todas','hay','tienes','tiene',
+          'que','con','sin','para','una','estudio','estudios','empresa','empresas',
+          'arquitectura','ingenieria','ingeniería','constructora','promotora','aguas','regantes',
+          'cadiz','malaga','granada','sevilla','jerez','huelva','cordoba','jaen','almeria',
+          'toledo','caceres','badajoz','ciudad','albacete','cuenca','alicante','murcia',
+          'añade','agrega','pon','programa','incluye','calendario','agenda',
+          'hoy','manana','mañana','proxima','visita','visitas','planificador',
+          'semana','fecha','cuando','donde','cuales','cuántos','cuantos',
+          'en','de','del','la','el','un','al','las','los','por','sus','este','esta'
+        ]);
         const palabras = norm(rawText).split(/\s+/).filter(w => w.length > 3 && !stops.has(w));
         if (palabras.length) {
           filtrados = filtrados.filter(s => {
@@ -358,6 +398,9 @@ async function fetchCRMData(intent, rawText) {
             return palabras.some(p => hay.includes(p));
           });
         }
+        // Si después del filtro de texto no queda nada, no devolver nada
+        // (mejor respuesta vacía que 10 estudios irrelevantes)
+        if (!palabras.length) filtrados = [];
       }
     }
 
@@ -865,20 +908,23 @@ async function callClaude(msgs) {
 // Sistema para que Claude interprete la intención
 const SYS_INTENT = `Hoy es {{HOY}}. Eres un analizador de intenciones para un CRM de ventas B2B (Ferroplast/GPF).
 Dado el mensaje del usuario, devuelve ÚNICAMENTE un JSON válido sin texto adicional:
-{"accion":"buscar"|"detalle"|"historial"|"planificador"|"stats"|"busqueda_externa"|"buscar_todo"|"agenda"|"add_studio"|"add_calendar"|"chat","tipo":"arquitectura"|"ingenieria"|"constructora"|"promotora"|"aapp"|"aguas"|"regantes"|null,"ciudad":null,"provincia":null,"studio_id":null,"dias_sin_visita":null,"score_min":null,"periodo":"hoy"|"esta_semana"|"semana_pasada"|"este_mes"|"ultimos_30_dias"|null,"fecha":null,"busqueda_externa":false}
+{"accion":"buscar"|"detalle"|"historial"|"planificador"|"add_plan"|"del_plan"|"stats"|"busqueda_externa"|"buscar_todo"|"agenda"|"add_studio"|"add_calendar"|"chat","tipo":"arquitectura"|"ingenieria"|"constructora"|"promotora"|"aapp"|"aguas"|"regantes"|null,"ciudad":null,"provincia":null,"studio_id":null,"dias_sin_visita":null,"score_min":null,"periodo":"hoy"|"esta_semana"|"semana_pasada"|"este_mes"|"ultimos_30_dias"|null,"fecha":null,"busqueda_externa":false}
 
 Reglas:
 - "accion":"chat" solo si es saludo/agradecimiento sin datos del CRM
+- "accion":"planificador" cuando SOLO quiere VER las visitas programadas (sin añadir ni eliminar)
+- "accion":"add_plan" cuando quiere AÑADIR un estudio al planificador/calendario (ej: "añade X para el martes")
+- "accion":"del_plan" cuando quiere ELIMINAR/QUITAR un estudio del planificador
 - "accion":"busqueda_externa" cuando quiere empresas que NO están en el CRM
-- "accion":"buscar_todo" cuando quiere TANTO las del CRM COMO las nuevas/externas (ej: "todas", "las del CRM y las que no estén")
-- "accion":"planificador" cuando pregunta por su agenda o visitas programadas del planificador
+- "accion":"buscar_todo" cuando quiere TANTO las del CRM COMO las nuevas/externas
 - "accion":"stats" cuando pregunta cuántas visitas/llamadas ha hecho
 - "accion":"agenda" cuando pregunta por eventos del calendario Google (ej: "¿qué tengo hoy?", "agenda del día")
 - "accion":"historial" cuando pregunta por las actividades o historial de contacto de un estudio concreto
 - "accion":"add_studio" cuando quiere añadir/dar de alta una empresa nueva en el CRM
 - "accion":"add_calendar" cuando quiere crear un evento en Google Calendar para visitar un estudio
 - ciudad y provincia en español con mayúsculas (ej: "Jerez de la Frontera", "Cádiz")
-- fecha en formato YYYY-MM-DD`;
+- fecha en formato YYYY-MM-DD
+- studio_id: número entero si el usuario menciona un estudio concreto por nombre o ID`;
 
 async function callClaudeIntent(userText) {
   const hoy = new Date().toISOString().split('T')[0];
@@ -901,20 +947,26 @@ async function callClaudeIntent(userText) {
 function intentToLegacy(c) {
   if (!c) return detectIntent('buscar');
   const actions = [];
+  // Para add_calendar y add_plan/del_plan: no filtrar por ciudad ni tipo
+  // (el nombre del estudio no es ciudad ni tipo)
+  const noFiltros = { provincia: null, ciudad: null, tipo: null, nombre: null,
+                      studioId: c.studio_id || null, fecha: c.fecha || null, dias: null };
+
   switch(c.accion) {
     case 'buscar':           actions.push('search'); break;
     case 'detalle':          actions.push('detail', 'search'); break;
     case 'historial':        actions.push('historial', 'search'); break;
-    case 'planificador':     actions.push('planificador'); break;
+    case 'planificador':     actions.push('planificador'); break;    // SOLO lectura del plan
+    case 'add_plan':         actions.push('search', 'planificador'); // buscar estudio + leer plan
+      return { actions, ...noFiltros };
+    case 'del_plan':         actions.push('search', 'planificador'); // buscar estudio + leer plan
+      return { actions, ...noFiltros };
     case 'stats':            actions.push('stats'); break;
     case 'busqueda_externa': actions.push('search_new'); break;
     case 'buscar_todo':      actions.push('search', 'search_new'); break;
     case 'agenda':           actions.push('agenda'); break;
     case 'add_calendar':     actions.push('search');
-      // No filtrar por ciudad — el nombre del estudio no es una ciudad
-      return { actions, provincia: null, ciudad: null, tipo: null, nombre: null,
-               studioId: c.studio_id || null, fecha: c.fecha || null, dias: null };
-
+      return { actions, ...noFiltros };
     case 'add_studio':       actions.push('add_studio'); break;
     default:                 actions.push('search');
   }
