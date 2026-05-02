@@ -383,6 +383,8 @@
         .timeline-dot.email { background: var(--warning); }
         .timeline-dot.meeting { background: var(--danger); }
         .timeline-dot.status { background: var(--primary); }
+        .timeline-dot.ponencia { background: #f59e0b; }
+        .timeline-dot.soporte_tecnico { background: #8b5cf6; }
         .timeline-date { font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; }
         .timeline-content { background: var(--surface); padding: 12px; border-radius: 8px; }
         .timeline-type { font-size: 0.7rem; text-transform: uppercase; color: var(--accent); font-weight: 600; }
@@ -2742,6 +2744,76 @@
                     </div>
                 </div>
 
+                <!-- Panel KPIs Oficiales 2026 -->
+                <div class="card" id="kpi-objetivos-2026" style="margin-bottom:20px;">
+                    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+                        <h3 class="card-title">🎯 Objetivos 2026 — Bloque individual (85&nbsp;%)</h3>
+                        <span style="font-size:0.75rem;color:var(--muted);">Año en curso</span>
+                    </div>
+                    <div class="card-body">
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;">
+                            <!-- KPI: Visitas totales -->
+                            <div>
+                                <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                                    <span style="font-size:0.85rem;font-weight:600;">📅 Visitas presenciales</span>
+                                    <span style="font-size:0.85rem;color:var(--muted);"><span id="kpi-visitas-count">0</span>&nbsp;/&nbsp;140</span>
+                                </div>
+                                <div style="background:var(--border);border-radius:4px;height:8px;overflow:hidden;">
+                                    <div id="kpi-visitas-bar" style="background:var(--accent);border-radius:4px;height:8px;width:0%;transition:width 0.6s ease;"></div>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;margin-top:4px;">
+                                    <span style="font-size:0.72rem;color:var(--muted);">Peso&nbsp;10&nbsp;%</span>
+                                    <span id="kpi-visitas-pct" style="font-size:0.72rem;color:var(--muted);">0&nbsp;%</span>
+                                </div>
+                            </div>
+                            <!-- KPI: Visitas MUTE -->
+                            <div>
+                                <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                                    <span style="font-size:0.85rem;font-weight:600;">🔇 Visitas MUTE</span>
+                                    <span style="font-size:0.85rem;color:var(--muted);"><span id="kpi-mute-count">0</span>&nbsp;/&nbsp;30</span>
+                                </div>
+                                <div style="background:var(--border);border-radius:4px;height:8px;overflow:hidden;">
+                                    <div id="kpi-mute-bar" style="background:#8b5cf6;border-radius:4px;height:8px;width:0%;transition:width 0.6s ease;"></div>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;margin-top:4px;">
+                                    <span style="font-size:0.72rem;color:var(--muted);">Peso&nbsp;10&nbsp;%&nbsp;·&nbsp;incluidas en las 140</span>
+                                    <span id="kpi-mute-pct" style="font-size:0.72rem;color:var(--muted);">0&nbsp;%</span>
+                                </div>
+                            </div>
+                            <!-- KPI: Ponencias -->
+                            <div>
+                                <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                                    <span style="font-size:0.85rem;font-weight:600;">🎤 Ponencias colegios</span>
+                                    <span style="font-size:0.85rem;color:var(--muted);"><span id="kpi-ponencias-count">0</span>&nbsp;/&nbsp;2</span>
+                                </div>
+                                <div style="background:var(--border);border-radius:4px;height:8px;overflow:hidden;">
+                                    <div id="kpi-ponencias-bar" style="background:#f59e0b;border-radius:4px;height:8px;width:0%;transition:width 0.6s ease;"></div>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;margin-top:4px;">
+                                    <span style="font-size:0.72rem;color:var(--muted);">Peso&nbsp;5&nbsp;%</span>
+                                    <span id="kpi-ponencias-pct" style="font-size:0.72rem;color:var(--muted);">0&nbsp;%</span>
+                                </div>
+                            </div>
+                            <!-- KPI: Catálogo MUTE -->
+                            <div style="display:flex;flex-direction:column;justify-content:center;gap:6px;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <span style="font-size:0.85rem;font-weight:600;">📚 Catálogo MUTE</span>
+                                    <button id="kpi-catalogo-toggle" onclick="toggleCatalogoMUTE()" style="font-size:0.75rem;padding:3px 12px;border-radius:12px;border:1px solid;cursor:pointer;transition:all 0.2s;">Pendiente</button>
+                                </div>
+                                <div style="font-size:0.72rem;color:var(--muted);">Peso&nbsp;30&nbsp;%&nbsp;·&nbsp;entregable principal 2026</div>
+                            </div>
+                            <!-- KPI: Soporte técnico -->
+                            <div style="display:flex;flex-direction:column;justify-content:center;gap:6px;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <span style="font-size:0.85rem;font-weight:600;">🔧 Soporte técnico</span>
+                                    <span style="font-size:0.85rem;color:var(--muted);"><span id="kpi-soporte-count">0</span>&nbsp;registros</span>
+                                </div>
+                                <div style="font-size:0.72rem;color:var(--muted);">Peso&nbsp;30&nbsp;%&nbsp;·&nbsp;continuo 2026</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="inactivity-alerts"></div>
 <!-- Dashboard Charts Row -->
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;" id="dashboard-charts-row">
@@ -3265,6 +3337,8 @@
                         <option value="email">✉️ Email</option>
                         <option value="meeting">📅 Visita / Reunión</option>
                         <option value="comercial">🤝 Llamada con comercial</option>
+                        <option value="ponencia">🎤 Ponencia</option>
+                        <option value="soporte_tecnico">🔧 Soporte técnico</option>
                     </select>
                 </div>
                 <div class="form-group" id="productos-section" style="display:none;">
@@ -3454,6 +3528,8 @@
                         <option value="call">📞 Llamada</option>
                         <option value="email">✉️ Email</option>
                         <option value="meeting">📅 Reunión</option>
+                        <option value="ponencia">🎤 Ponencia</option>
+                        <option value="soporte_tecnico">🔧 Soporte técnico</option>
                     </select>
                 </div>
                 <div class="form-group" id="edit-productos-section" style="display:none;">
@@ -6911,6 +6987,34 @@
             document.getElementById('stat-reunion').textContent = studios.filter(s => s.status === 'reunion').length;
             document.getElementById('stat-nuevos').textContent = studios.filter(s => s.status === 'nuevo').length;
             document.getElementById('stat-alta').textContent = studios.filter(s => s.priority === 'Alta').length;
+
+            // KPIs Oficiales 2026
+            const anio2026 = new Date().getFullYear(); // usa el año actual para que funcione en 2027+
+            const actsAnio = activities.filter(a => new Date(a.createdAt).getFullYear() === anio2026);
+            const visitasYTD = actsAnio.filter(a => a.type === 'meeting').length;
+            const muteYTD = actsAnio.filter(a => a.type === 'meeting' && a.productos?.some(p => /mute/i.test(p))).length;
+            const ponenciasYTD = actsAnio.filter(a => a.type === 'ponencia').length;
+            const soporteYTD = actsAnio.filter(a => a.type === 'soporte_tecnico').length;
+
+            const setKpi = (countId, barId, pctId, val, meta) => {
+                const pct = Math.min(Math.round(val / meta * 100), 100);
+                const el = document.getElementById(countId);
+                const bar = document.getElementById(barId);
+                const pctEl = document.getElementById(pctId);
+                if (el) el.textContent = val;
+                if (bar) bar.style.width = pct + '%';
+                if (pctEl) pctEl.textContent = pct + ' %';
+                if (bar) bar.style.background = pct >= 100 ? 'var(--success)' : pct >= 50 ? 'var(--accent)' : 'var(--warning)';
+            };
+            setKpi('kpi-visitas-count', 'kpi-visitas-bar', 'kpi-visitas-pct', visitasYTD, 140);
+            setKpi('kpi-mute-count', 'kpi-mute-bar', 'kpi-mute-pct', muteYTD, 30);
+            setKpi('kpi-ponencias-count', 'kpi-ponencias-bar', 'kpi-ponencias-pct', ponenciasYTD, 2);
+            const soporteEl = document.getElementById('kpi-soporte-count');
+            if (soporteEl) soporteEl.textContent = soporteYTD;
+
+            // Catálogo MUTE — estado en localStorage
+            const catalogoEntregado = localStorage.getItem('crm_catalogo_mute_entregado') === 'true';
+            updateCatalogoToggle(catalogoEntregado);
             
             // Sidebar stats
             document.getElementById('footer-total').textContent = studios.length;
@@ -6974,6 +7078,28 @@
             // Render dashboard charts
             renderDashboardCharts();
             checkInactivityAlerts();
+        }
+
+        function toggleCatalogoMUTE() {
+            const current = localStorage.getItem('crm_catalogo_mute_entregado') === 'true';
+            localStorage.setItem('crm_catalogo_mute_entregado', !current);
+            updateCatalogoToggle(!current);
+        }
+
+        function updateCatalogoToggle(entregado) {
+            const btn = document.getElementById('kpi-catalogo-toggle');
+            if (!btn) return;
+            if (entregado) {
+                btn.textContent = 'Entregado ✅';
+                btn.style.background = 'var(--success-light, #d1fae5)';
+                btn.style.color = 'var(--success, #10b981)';
+                btn.style.borderColor = 'var(--success, #10b981)';
+            } else {
+                btn.textContent = 'Pendiente';
+                btn.style.background = 'var(--danger-light, #fee2e2)';
+                btn.style.color = 'var(--danger, #ef4444)';
+                btn.style.borderColor = 'var(--border, #374151)';
+            }
         }
 
         // ============================================
@@ -12282,7 +12408,8 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const productos = document.getElementById('productos-section');
             const meetingOrigin = document.getElementById('meeting-origin-section');
             const comercialCall = document.getElementById('comercial-call-section');
-            if (productos) productos.style.display = type === 'meeting' ? 'block' : 'none';
+            // ponencia también muestra productos (para registrar qué producto se presentó)
+            if (productos) productos.style.display = (type === 'meeting' || type === 'ponencia') ? 'block' : 'none';
             if (meetingOrigin) meetingOrigin.style.display = type === 'meeting' ? 'block' : 'none';
             if (comercialCall) comercialCall.style.display = type === 'comercial' ? 'block' : 'none';
         }
@@ -13741,7 +13868,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const productos = document.getElementById('productos-section');
             const meetingOrigin = document.getElementById('meeting-origin-section');
             const comercialCall = document.getElementById('comercial-call-section');
-            if (productos) productos.style.display = type === 'meeting' ? 'block' : 'none';
+            if (productos) productos.style.display = (type === 'meeting' || type === 'ponencia') ? 'block' : 'none';
             if (meetingOrigin) meetingOrigin.style.display = type === 'meeting' ? 'block' : 'none';
             if (comercialCall) comercialCall.style.display = type === 'comercial' ? 'block' : 'none';
         }
@@ -14287,8 +14414,8 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 
                 const formatDateShort = (d) => new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
                 const formatDT = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) + ' ' + new Date(d).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '-';
-                const getIcon = (t) => ({ call: '📞', email: '✉️', meeting: '📅', note: '📝' }[t] || '📝');
-                const getTypeLabel = (t) => ({ call: 'Llamada', email: 'Email', meeting: 'Reunión', note: 'Nota' }[t] || 'Nota');
+                const getIcon = (t) => ({ call: '📞', email: '✉️', meeting: '📅', note: '📝', ponencia: '🎤', soporte_tecnico: '🔧' }[t] || '📝');
+                const getTypeLabel = (t) => ({ call: 'Llamada', email: 'Email', meeting: 'Reunión', note: 'Nota', ponencia: 'Ponencia', soporte_tecnico: 'Soporte técnico' }[t] || 'Nota');
                 const escHtml = (t) => { if (!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; };
                 
                 let html = '<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(100px, 1fr));gap:12px;margin-bottom:20px;">' +
@@ -14809,7 +14936,9 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 'call': '📞 Llamada',
                 'email': '✉️ Email',
                 'meeting': '📅 Reunión',
-                'status': '🔄 Cambio de estado'
+                'status': '🔄 Cambio de estado',
+                'ponencia': '🎤 Ponencia',
+                'soporte_tecnico': '🔧 Soporte técnico'
             };
             
             // Helper functions for report
