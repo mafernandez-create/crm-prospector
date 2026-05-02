@@ -2894,6 +2894,20 @@
                         </select>
                     </div>
                     <div class="filter-group">
+                        <span class="filter-label">Fase v5:</span>
+                        <select class="filter-select" id="filter-fase" onchange="applyFilters()">
+                            <option value="">Todas</option>
+                            <option value="1">1 · Identificación</option>
+                            <option value="2">2 · Cualificación</option>
+                            <option value="3">3 · Mapeo</option>
+                            <option value="4">4 · Primer contacto</option>
+                            <option value="5">5 · Visita técnica</option>
+                            <option value="6">6 · Documentación</option>
+                            <option value="7">7 · Especificación</option>
+                            <option value="8">8 · Seguimiento obra</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
                         <span class="filter-label">Prioridad:</span>
                         <select class="filter-select" id="filter-priority" onchange="applyFilters()">
                             <option value="">Todas</option>
@@ -3658,6 +3672,56 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('modal-change-type')">Cancelar</button>
                 <button class="btn btn-primary" onclick="saveTypeChange()">💾 Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Proceso Prescripción (Plan v5) -->
+    <div class="modal-overlay" id="modal-prescripcion">
+        <div class="modal" style="max-width:520px;">
+            <div class="modal-header">
+                <h3 class="modal-title">📐 Proceso prescripción</h3>
+                <button class="modal-close" onclick="closeModal('modal-prescripcion')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Fase del proceso (Plan v5)</label>
+                    <select class="form-select" id="prescripcion-fase">
+                        <option value="">— Sin asignar —</option>
+                        <option value="1">1 · Identificación</option>
+                        <option value="2">2 · Cualificación</option>
+                        <option value="3">3 · Mapeo prescriptor</option>
+                        <option value="4">4 · Primer contacto</option>
+                        <option value="5">5 · Visita técnica</option>
+                        <option value="6">6 · Documentación</option>
+                        <option value="7">7 · Especificación</option>
+                        <option value="8">8 · Seguimiento de obra</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Normas exigidas en pliego</label>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;" id="prescripcion-normas-checks">
+                        ${['ETNT003','ETNT015','AENOR','UNE EN ISO 1452','ISO 16422 / UNE EN 17176','UNE EN 1329','UNE EN 1453','ACS'].map(n =>
+                            `<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;">
+                                <input type="checkbox" class="norma-check" value="${n}"> ${n}
+                            </label>`
+                        ).join('')}
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Programa de financiación</label>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;" id="prescripcion-programa-checks">
+                        ${['PARRA','FEADER','NextGenerationEU','PERTE','Junta de Andalucía','Otro'].map(p =>
+                            `<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;">
+                                <input type="checkbox" class="programa-check" value="${p}"> ${p}
+                            </label>`
+                        ).join('')}
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-prescripcion')">Cancelar</button>
+                <button class="btn btn-primary" onclick="savePrescripcionData()">💾 Guardar</button>
             </div>
         </div>
     </div>
@@ -7080,6 +7144,18 @@
             checkInactivityAlerts();
         }
 
+        function switchFunnelTab(tab) {
+            const esFase = tab === 'fase';
+            const pFase = document.getElementById('funnel-panel-fase');
+            const pStatus = document.getElementById('funnel-panel-status');
+            const tFase = document.getElementById('funnel-tab-fase');
+            const tStatus = document.getElementById('funnel-tab-status');
+            if (pFase) pFase.style.display = esFase ? 'block' : 'none';
+            if (pStatus) pStatus.style.display = esFase ? 'none' : 'block';
+            if (tFase) { tFase.style.background = esFase ? 'var(--accent)' : 'var(--card)'; tFase.style.color = esFase ? 'white' : 'var(--muted)'; }
+            if (tStatus) { tStatus.style.background = esFase ? 'var(--card)' : 'var(--accent)'; tStatus.style.color = esFase ? 'var(--muted)' : 'white'; }
+        }
+
         function toggleCatalogoMUTE() {
             const current = localStorage.getItem('crm_catalogo_mute_entregado') === 'true';
             localStorage.setItem('crm_catalogo_mute_entregado', !current);
@@ -7217,6 +7293,7 @@
         function applyFilters() {
             const typeFilter           = document.getElementById('filter-type').value;
             const statusFilter         = document.getElementById('filter-status').value;
+            const faseFilter           = document.getElementById('filter-fase')?.value || '';
             const priorityFilter       = document.getElementById('filter-priority').value;
             const provinceFilter       = document.getElementById('filter-province').value;
             const cityFilter           = document.getElementById('filter-city').value;
@@ -7240,6 +7317,7 @@
             let filtered = allStudios.filter(studio => {
                 if (typeFilter && (studio.type || 'arquitectura') !== typeFilter) return false;
                 if (statusFilter && studio.status !== statusFilter) return false;
+                if (faseFilter && String(studio.fase || '') !== faseFilter) return false;
                 if (priorityFilter && studio.priority !== priorityFilter) return false;
                 if (provinceFilter) {
                     const studioProvince = studio.province || studio.data?.contact?.province || '';
@@ -7568,6 +7646,29 @@
                                             ${p.relevance ? `<div style="font-size:0.8rem;color:var(--success);margin-top:4px;">🎯 ${p.relevance}</div>` : ''}
                                         </div>
                                     `).join('') || '<p style="color:var(--muted);">Sin proyectos registrados</p>'}
+                                </div>
+                            </div>
+                            <!-- Tarjeta Proceso Prescripción (Plan v5) -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">📐 Proceso prescripción</h3>
+                                    <button class="btn btn-sm btn-secondary" onclick="openEditPrescripcionModal('${id}')">✏️ Editar</button>
+                                </div>
+                                <div class="card-body">
+                                    <div class="info-grid">
+                                        <div class="info-item">
+                                            <div class="info-label">Fase del proceso</div>
+                                            <div class="info-value">${studio.fase ? getFaseLabel(studio.fase) : '<span style="color:var(--muted);">Sin asignar</span>'}</div>
+                                        </div>
+                                        <div class="info-item">
+                                            <div class="info-label">Normas exigidas</div>
+                                            <div class="info-value">${(studio.normasExigidas || []).length ? (studio.normasExigidas || []).map(n => `<span class="status status-contactado" style="margin-right:4px;font-size:0.75rem;">${escapeHtml(n)}</span>`).join('') : '<span style="color:var(--muted);">Sin especificar</span>'}</div>
+                                        </div>
+                                        <div class="info-item">
+                                            <div class="info-label">Programa de financiación</div>
+                                            <div class="info-value">${(studio.programaFinanciacion || []).length ? (studio.programaFinanciacion || []).map(p => `<span class="status status-reunion" style="margin-right:4px;font-size:0.75rem;">${escapeHtml(p)}</span>`).join('') : '<span style="color:var(--muted);">Sin especificar</span>'}</div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -12793,6 +12894,51 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
         }
 
         // ============================================
+        // PROCESO PRESCRIPCIÓN (Plan v5)
+        // ============================================
+        const FASE_LABELS = {
+            '1': '1 · Identificación',
+            '2': '2 · Cualificación',
+            '3': '3 · Mapeo prescriptor',
+            '4': '4 · Primer contacto',
+            '5': '5 · Visita técnica',
+            '6': '6 · Documentación',
+            '7': '7 · Especificación',
+            '8': '8 · Seguimiento de obra'
+        };
+        function getFaseLabel(fase) {
+            return FASE_LABELS[String(fase)] || `Fase ${fase}`;
+        }
+
+        async function openEditPrescripcionModal(studioId) {
+            const studio = await getStudio(studioId || currentStudioId);
+            if (!studio) return;
+            document.getElementById('prescripcion-fase').value = studio.fase || '';
+            document.querySelectorAll('.norma-check').forEach(cb => {
+                cb.checked = (studio.normasExigidas || []).includes(cb.value);
+            });
+            document.querySelectorAll('.programa-check').forEach(cb => {
+                cb.checked = (studio.programaFinanciacion || []).includes(cb.value);
+            });
+            openModal('modal-prescripcion');
+        }
+
+        async function savePrescripcionData() {
+            const fase = document.getElementById('prescripcion-fase').value;
+            const normas = Array.from(document.querySelectorAll('.norma-check:checked')).map(cb => cb.value);
+            const programas = Array.from(document.querySelectorAll('.programa-check:checked')).map(cb => cb.value);
+            const updates = {
+                fase: fase || null,
+                normasExigidas: normas,
+                programaFinanciacion: programas
+            };
+            await updateStudio(currentStudioId, updates);
+            closeModal('modal-prescripcion');
+            showStudioDetail(currentStudioId);
+            showNotification('✅ Datos de prescripción guardados', 'success');
+        }
+
+        // ============================================
         // CHANGE TYPE
         // ============================================
         async function openChangeTypeModal() {
@@ -14090,28 +14236,49 @@ ${comercialCalls.length > 0 ? `
             const studios = await getAllStudios();
             const activities = await getAllActivities();
 
-            // FUNNEL
+            // FUNNEL — muestra fases Plan v5 (si hay datos) y status en pestañas
             const funnelEl = document.getElementById('dashboard-funnel');
             if (funnelEl) {
-                const statusOrder = ['nuevo','contactado','reunion','negociacion','traspasado','prescripcion','venta','ganado','perdido','standby'];
-                const statusLabels = { nuevo:'Nuevo', contactado:'Contactado', standby:'En Standby', reunion:'Reunión', negociacion:'En Negociación', traspasado:'Traspasado a comercial', prescripcion:'Prescripción confirmada', venta:'Venta cerrada', ganado:'Ganado', perdido:'Perdido' };
-                const statusColors = { nuevo:'#3b82f6', contactado:'#f59e0b', reunion:'#8b5cf6', negociacion:'#ec4899', traspasado:'#7c3aed', prescripcion:'#10b981', venta:'#059669', ganado:'#16a34a', perdido:'#ef4444', standby:'#9ca3af' };
-                const counts = {};
-                studios.forEach(s => { const st = s.status||'nuevo'; counts[st] = (counts[st]||0)+1; });
-                const maxCount = Math.max(...Object.values(counts), 1);
+                // Conteo por fase (Plan v5)
+                const faseOrder = ['1','2','3','4','5','6','7','8'];
+                const faseLabels = { '1':'Identificación','2':'Cualificación','3':'Mapeo prescriptor','4':'Primer contacto','5':'Visita técnica','6':'Documentación','7':'Especificación','8':'Seguimiento obra' };
+                const faseColors = { '1':'#3b82f6','2':'#60a5fa','3':'#a78bfa','4':'#f59e0b','5':'#8b5cf6','6':'#ec4899','7':'#10b981','8':'#059669' };
+                const faseCounts = {};
+                studios.forEach(s => { if (s.fase) { const f = String(s.fase); faseCounts[f] = (faseCounts[f]||0)+1; } });
+                const totalConFase = Object.values(faseCounts).reduce((a,b)=>a+b,0);
 
-                funnelEl.innerHTML = statusOrder.filter(s => counts[s]).map(s => {
-                    const pct = Math.max(6, Math.round((counts[s]/maxCount)*100));
-                    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-                        <div style="width:110px;font-size:0.78rem;color:#374151;flex-shrink:0;">${statusLabels[s]||s}</div>
-                        <div style="flex:1;background:#f3f4f6;border-radius:4px;height:20px;overflow:hidden;">
-                            <div style="width:${pct}%;height:100%;background:${statusColors[s]||'#3b82f6'};border-radius:4px;display:flex;align-items:center;padding-left:6px;">
-                                <span style="color:white;font-size:0.72rem;font-weight:700;">${counts[s]}</span>
+                // Conteo por status (clásico)
+                const statusOrder = ['nuevo','contactado','reunion','negociacion','traspasado','prescripcion','venta','ganado','perdido','standby'];
+                const statusLabels = { nuevo:'Nuevo', contactado:'Contactado', standby:'En Standby', reunion:'Reunión', negociacion:'Negociación', traspasado:'Traspasado', prescripcion:'Prescripción', venta:'Venta cerrada', ganado:'Ganado', perdido:'Perdido' };
+                const statusColors = { nuevo:'#3b82f6', contactado:'#f59e0b', reunion:'#8b5cf6', negociacion:'#ec4899', traspasado:'#7c3aed', prescripcion:'#10b981', venta:'#059669', ganado:'#16a34a', perdido:'#ef4444', standby:'#9ca3af' };
+                const statusCounts = {};
+                studios.forEach(s => { const st = s.status||'nuevo'; statusCounts[st] = (statusCounts[st]||0)+1; });
+
+                const renderBars = (order, labels, colors, counts) => {
+                    const maxC = Math.max(...Object.values(counts), 1);
+                    return order.filter(k => counts[k]).map(k => {
+                        const pct = Math.max(6, Math.round((counts[k]/maxC)*100));
+                        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                            <div style="width:120px;font-size:0.75rem;color:var(--text);flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${labels[k]||k}">${labels[k]||k}</div>
+                            <div style="flex:1;background:var(--border);border-radius:4px;height:18px;overflow:hidden;">
+                                <div style="width:${pct}%;height:100%;background:${colors[k]||'#3b82f6'};border-radius:4px;display:flex;align-items:center;padding-left:6px;">
+                                    <span style="color:white;font-size:0.7rem;font-weight:700;">${counts[k]}</span>
+                                </div>
                             </div>
-                        </div>
-                        <div style="width:28px;text-align:right;font-weight:700;font-size:0.85rem;">${counts[s]}</div>
-                    </div>`;
-                }).join('');
+                            <div style="width:24px;text-align:right;font-weight:700;font-size:0.82rem;">${counts[k]}</div>
+                        </div>`;
+                    }).join('');
+                };
+
+                const tabStyle = (active) => `padding:4px 10px;font-size:0.75rem;border-radius:6px;cursor:pointer;border:1px solid var(--border);background:${active?'var(--accent)':'var(--card)'};color:${active?'white':'var(--muted)'};`;
+                funnelEl.innerHTML = `
+                    <div style="display:flex;gap:6px;margin-bottom:12px;">
+                        <button id="funnel-tab-fase" style="${tabStyle(totalConFase>0)}" onclick="switchFunnelTab('fase')">Por fase Plan v5 ${totalConFase>0?`(${totalConFase})`:'—'}</button>
+                        <button id="funnel-tab-status" style="${tabStyle(totalConFase===0)}" onclick="switchFunnelTab('status')">Por estado CRM</button>
+                    </div>
+                    <div id="funnel-panel-fase" style="display:${totalConFase>0?'block':'none'};">${renderBars(faseOrder,faseLabels,faseColors,faseCounts)}</div>
+                    <div id="funnel-panel-status" style="display:${totalConFase===0?'block':'none'};">${renderBars(statusOrder,statusLabels,statusColors,statusCounts)}</div>
+                `;
             }
 
             // WEEKLY ACTIVITY CHART (last 4 weeks, grouped by week)
