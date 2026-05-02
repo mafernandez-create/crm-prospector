@@ -3463,6 +3463,65 @@
                         <option value="otro">Otro</option>
                     </select>
                 </div>
+                <!-- Campos extra solo para Visita / Reunión — M8, M9, M10, M11, M12 -->
+                <div id="meeting-extra-section" style="display:none;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Contacto (quién atendió)</label>
+                            <select class="form-select" id="meeting-contacto" onchange="onContactoChange()">
+                                <option value="">— Seleccionar —</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Cargo</label>
+                            <input type="text" class="form-input" id="meeting-cargo" placeholder="Auto desde equipo...">
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Fase del proceso en esta visita</label>
+                            <select class="form-select" id="meeting-fase">
+                                <option value="">— Sin asignar —</option>
+                                <option value="1">1 · Identificación</option>
+                                <option value="2">2 · Cualificación</option>
+                                <option value="3">3 · Mapeo prescriptor</option>
+                                <option value="4">4 · Primer contacto</option>
+                                <option value="5">5 · Visita técnica</option>
+                                <option value="6">6 · Documentación</option>
+                                <option value="7">7 · Especificación</option>
+                                <option value="8">8 · Seguimiento de obra</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Resultado de la visita</label>
+                            <select class="form-select" id="meeting-resultado">
+                                <option value="">— Sin categorizar —</option>
+                                <option value="sin_compromiso">Sin compromiso por ahora</option>
+                                <option value="con_interes">Con interés — seguir</option>
+                                <option value="solicita_docs">Solicita documentación</option>
+                                <option value="especifica">Especifica en pliego / BOM</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Próxima acción</label>
+                            <select class="form-select" id="meeting-proxima-accion">
+                                <option value="">— Sin definir —</option>
+                                <option value="llamada">📞 Llamada de seguimiento</option>
+                                <option value="email">✉️ Enviar email</option>
+                                <option value="visita">📅 Concertar nueva visita</option>
+                                <option value="docs">📄 Enviar documentación técnica</option>
+                                <option value="ponencia">🎤 Organizar ponencia</option>
+                                <option value="soporte">🔧 Soporte técnico pendiente</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Detalle próxima acción</label>
+                            <input type="text" class="form-input" id="meeting-proxima-detalle" placeholder="Ej: Enviar ficha ETNT003...">
+                        </div>
+                    </div>
+                </div>
                 <div class="form-group">
                     <label class="form-label">Descripción</label>
                     <textarea class="form-textarea" id="activity-text" placeholder="Describe la actividad..."></textarea>
@@ -3717,6 +3776,11 @@
                             </label>`
                         ).join('')}
                     </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Evidencia documental (enlace a pliego o BOM)</label>
+                    <input type="url" class="form-input" id="prescripcion-evidencia" placeholder="https://... o referencia al expediente">
+                    <div style="font-size:0.75rem;color:var(--muted);margin-top:4px;">URL del pliego, Perfil del Contratante, o referencia al BOM donde aparece la especificación</div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -7667,6 +7731,10 @@
                                         <div class="info-item">
                                             <div class="info-label">Programa de financiación</div>
                                             <div class="info-value">${(studio.programaFinanciacion || []).length ? (studio.programaFinanciacion || []).map(p => `<span class="status status-reunion" style="margin-right:4px;font-size:0.75rem;">${escapeHtml(p)}</span>`).join('') : '<span style="color:var(--muted);">Sin especificar</span>'}</div>
+                                        </div>
+                                        <div class="info-item">
+                                            <div class="info-label">Evidencia documental</div>
+                                            <div class="info-value">${studio.evidenciaDocumental ? `<a href="${studio.evidenciaDocumental}" target="_blank" rel="noopener" style="color:var(--accent);word-break:break-all;">🔗 ${escapeHtml(studio.evidenciaDocumental)}</a>` : '<span style="color:var(--muted);">Sin enlace</span>'}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -12390,13 +12458,40 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             document.getElementById('activity-type').value = 'note';
             document.getElementById('activity-text').value = '';
             document.getElementById('activity-followup').value = '';
-            
+
             // Limpiar y ocultar sección de productos
             document.querySelectorAll('.producto-check').forEach(cb => cb.checked = false);
             const productosSection = document.getElementById('productos-section');
             if (productosSection) productosSection.style.display = 'none';
-            
+
+            // Limpiar campos de visita (Sprint 3)
+            const sel = document.getElementById('meeting-contacto');
+            if (sel) { sel.innerHTML = '<option value="">— Seleccionar —</option>'; }
+            ['meeting-cargo','meeting-proxima-detalle'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            ['meeting-fase','meeting-resultado','meeting-proxima-accion'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            const meetingExtra = document.getElementById('meeting-extra-section');
+            if (meetingExtra) meetingExtra.style.display = 'none';
+
             openModal('modal-activity');
+        }
+
+        async function loadTeamIntoContactSelect() {
+            const sel = document.getElementById('meeting-contacto');
+            if (!sel || !currentStudioId) return;
+            if (sel.dataset.loadedFor === String(currentStudioId)) return; // ya cargado
+            const studio = await getStudio(currentStudioId);
+            const team = studio?.data?.team || [];
+            sel.innerHTML = '<option value="">— Seleccionar —</option>' +
+                team.map((m, i) => `<option value="${i}" data-cargo="${(m.role||'').replace(/"/g,'')}">${(m.name||'Persona '+i)}${m.isDecisionMaker?' ⭐':''}</option>`).join('');
+            sel.dataset.loadedFor = String(currentStudioId);
+        }
+
+        function onContactoChange() {
+            const sel = document.getElementById('meeting-contacto');
+            const cargoEl = document.getElementById('meeting-cargo');
+            if (!sel || !cargoEl) return;
+            const opt = sel.options[sel.selectedIndex];
+            cargoEl.value = opt ? (opt.dataset.cargo || '') : '';
         }
 
         async function saveActivity() {
@@ -12410,11 +12505,26 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             let productos = [];
             let visitaOrigen = null, visitaConjunta = false;
             let comercialCallData = null;
+            // Campos extra de visita (Sprint 3 — M8/M9/M10/M11/M12)
+            let visitaContacto = null, visitaCargo = null, visitaFase = null, visitaResultado = null, visitaProximaAccion = null;
             if (type === 'meeting') {
                 const checkboxes = document.querySelectorAll('.producto-check:checked');
                 productos = Array.from(checkboxes).map(cb => cb.value);
                 visitaOrigen = document.querySelector('input[name="visit-origin"]:checked')?.value || 'prescriptor';
                 visitaConjunta = document.getElementById('visit-conjunta')?.checked || false;
+                // Campos Sprint 3
+                const selContacto = document.getElementById('meeting-contacto');
+                if (selContacto?.value !== '') {
+                    visitaContacto = selContacto.options[selContacto.selectedIndex]?.text?.replace(' ⭐','') || null;
+                }
+                visitaCargo = document.getElementById('meeting-cargo')?.value.trim() || null;
+                visitaFase = document.getElementById('meeting-fase')?.value || null;
+                visitaResultado = document.getElementById('meeting-resultado')?.value || null;
+                const proximaAccion = document.getElementById('meeting-proxima-accion')?.value || '';
+                const proximaDetalle = document.getElementById('meeting-proxima-detalle')?.value.trim() || '';
+                if (proximaAccion) {
+                    visitaProximaAccion = proximaAccion + (proximaDetalle ? ': ' + proximaDetalle : '');
+                }
             }
             if (type === 'comercial') {
                 comercialCallData = {
@@ -12449,7 +12559,13 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     productos: productos,
                     visitaOrigen: visitaOrigen,
                     visitaConjunta: visitaConjunta,
-                    comercialCall: comercialCallData
+                    comercialCall: comercialCallData,
+                    // Campos Sprint 3 (Plan v5 sección 9)
+                    visitaContacto: visitaContacto,
+                    visitaCargo: visitaCargo,
+                    visitaFase: visitaFase,
+                    visitaResultado: visitaResultado,
+                    visitaProximaAccion: visitaProximaAccion
                 };
                 
                 console.log('📝 Datos de actividad:', activityData);
@@ -12491,6 +12607,23 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             if (activity.type === 'meeting' && activity.visitaConjunta) {
                 badges += `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:600;background:#d1fae5;color:#065f46;margin-right:4px;">👥 Visita conjunta</span>`;
             }
+            // Badges Sprint 3 — contacto, fase, resultado, próxima acción
+            if (activity.type === 'meeting' && activity.visitaContacto) {
+                const cargo = activity.visitaCargo ? ` · ${activity.visitaCargo}` : '';
+                badges += `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;background:#f0fdf4;color:#166534;margin-right:4px;">👤 ${escapeHtml(activity.visitaContacto)}${escapeHtml(cargo)}</span>`;
+            }
+            if (activity.type === 'meeting' && activity.visitaFase) {
+                badges += `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;background:#eff6ff;color:#1e40af;margin-right:4px;">📐 Fase ${activity.visitaFase}</span>`;
+            }
+            if (activity.type === 'meeting' && activity.visitaResultado) {
+                const rLabels = { sin_compromiso:'Sin compromiso', con_interes:'Con interés', solicita_docs:'Solicita docs', especifica:'Especifica ✅' };
+                const rColors = { sin_compromiso:'#fef9c3,#854d0e', con_interes:'#dbeafe,#1e40af', solicita_docs:'#fef3c7,#92400e', especifica:'#d1fae5,#065f46' };
+                const [rbg, rco] = (rColors[activity.visitaResultado] || '#f3f4f6,#374151').split(',');
+                badges += `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;background:${rbg};color:${rco};margin-right:4px;">🎯 ${rLabels[activity.visitaResultado]||activity.visitaResultado}</span>`;
+            }
+            if (activity.type === 'meeting' && activity.visitaProximaAccion) {
+                badges += `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;background:#f3f4f6;color:#374151;margin-right:4px;">⏭️ ${escapeHtml(activity.visitaProximaAccion)}</span>`;
+            }
             if (activity.type === 'comercial' && activity.comercialCall) {
                 const c = activity.comercialCall;
                 const dir = c.direccion === 'yo-llame' ? '📲 Yo llamé' : '📥 Llamó el comercial';
@@ -12509,12 +12642,15 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const productos = document.getElementById('productos-section');
             const meetingOrigin = document.getElementById('meeting-origin-section');
             const comercialCall = document.getElementById('comercial-call-section');
+            const meetingExtra = document.getElementById('meeting-extra-section');
             // ponencia también muestra productos (para registrar qué producto se presentó)
             if (productos) productos.style.display = (type === 'meeting' || type === 'ponencia') ? 'block' : 'none';
             if (meetingOrigin) meetingOrigin.style.display = type === 'meeting' ? 'block' : 'none';
             if (comercialCall) comercialCall.style.display = type === 'comercial' ? 'block' : 'none';
+            if (meetingExtra) meetingExtra.style.display = type === 'meeting' ? 'block' : 'none';
+            if (type === 'meeting') loadTeamIntoContactSelect();
         }
-        
+
         function toggleEditProductosSection() {
             const type = document.getElementById('edit-activity-type').value;
             const section = document.getElementById('edit-productos-section');
@@ -12920,6 +13056,8 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             document.querySelectorAll('.programa-check').forEach(cb => {
                 cb.checked = (studio.programaFinanciacion || []).includes(cb.value);
             });
+            const evEl = document.getElementById('prescripcion-evidencia');
+            if (evEl) evEl.value = studio.evidenciaDocumental || '';
             openModal('modal-prescripcion');
         }
 
@@ -12927,10 +13065,12 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const fase = document.getElementById('prescripcion-fase').value;
             const normas = Array.from(document.querySelectorAll('.norma-check:checked')).map(cb => cb.value);
             const programas = Array.from(document.querySelectorAll('.programa-check:checked')).map(cb => cb.value);
+            const evidencia = document.getElementById('prescripcion-evidencia')?.value.trim() || null;
             const updates = {
                 fase: fase || null,
                 normasExigidas: normas,
-                programaFinanciacion: programas
+                programaFinanciacion: programas,
+                evidenciaDocumental: evidencia
             };
             await updateStudio(currentStudioId, updates);
             closeModal('modal-prescripcion');
@@ -14014,9 +14154,12 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const productos = document.getElementById('productos-section');
             const meetingOrigin = document.getElementById('meeting-origin-section');
             const comercialCall = document.getElementById('comercial-call-section');
+            const meetingExtra = document.getElementById('meeting-extra-section');
             if (productos) productos.style.display = (type === 'meeting' || type === 'ponencia') ? 'block' : 'none';
             if (meetingOrigin) meetingOrigin.style.display = type === 'meeting' ? 'block' : 'none';
             if (comercialCall) comercialCall.style.display = type === 'comercial' ? 'block' : 'none';
+            if (meetingExtra) meetingExtra.style.display = type === 'meeting' ? 'block' : 'none';
+            if (type === 'meeting') loadTeamIntoContactSelect();
         }
 
         function getActivityOriginBadge(activity) {
