@@ -3013,6 +3013,21 @@
                             <option value="AENOR">AENOR</option>
                         </select>
                     </div>
+                    <div class="filter-group">
+                        <span class="filter-label">Origen:</span>
+                        <select class="filter-select" id="filter-origen" onchange="applyFilters()">
+                            <option value="">Todos</option>
+                            <option value="visita_fria">Visita en frío</option>
+                            <option value="referido">Referido</option>
+                            <option value="feria">Feria / Evento</option>
+                            <option value="linkedin">LinkedIn</option>
+                            <option value="web_construdata">Construdata</option>
+                            <option value="colega_gpf">Colega GPF</option>
+                            <option value="obra_cercana">Obra cercana</option>
+                            <option value="licitacion">Licitación</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="card">
@@ -7850,6 +7865,7 @@
             const hasReportFilter      = document.getElementById('filter-has-report')?.value || '';
             const programaFilter       = document.getElementById('filter-programa')?.value || '';
             const normaFilter          = document.getElementById('filter-norma')?.value || '';
+            const origenFilter         = document.getElementById('filter-origen')?.value || '';
             const searchTerm           = normalizeText(document.getElementById('global-search').value);
 
             const now = new Date();
