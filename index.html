@@ -3867,6 +3867,31 @@
         </div>
     </div>
 
+    <!-- Modal M7: Confirmación avance de fase (Sprint 9) -->
+    <div class="modal-overlay" id="modal-fase-confirmacion">
+        <div class="modal" style="max-width:480px;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#1e40af,#2563eb);border-radius:12px 12px 0 0;">
+                <h3 class="modal-title" id="fase-conf-titulo" style="color:white;">Avanzar de fase</h3>
+                <button class="modal-close" onclick="closeModal('modal-fase-confirmacion')" style="color:white;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 16px;margin-bottom:16px;">
+                    <div style="font-size:0.78rem;color:#64748b;margin-bottom:4px;">Avanzando desde <span id="fase-conf-from" style="font-weight:600;color:#1e40af;"></span></div>
+                    <div id="fase-conf-pregunta" style="font-weight:600;color:#1e3a8a;font-size:0.93rem;line-height:1.4;"></div>
+                </div>
+                <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px;font-weight:600;">Criterios de la nueva fase:</p>
+                <ul id="fase-conf-criterios" style="padding-left:18px;font-size:0.86rem;color:var(--text);line-height:1.5;"></ul>
+                <p style="font-size:0.78rem;color:var(--muted);margin-top:14px;border-top:1px solid var(--border);padding-top:10px;">
+                    Confirma solo si cumples los criterios anteriores. Si aún no los cumples, cancela y mantén la fase actual.
+                </p>
+            </div>
+            <div class="modal-footer" style="justify-content:flex-end;gap:8px;">
+                <button onclick="closeModal('modal-fase-confirmacion')" class="btn btn-secondary">Cancelar — mantener fase</button>
+                <button onclick="confirmarAvanceFase()" class="btn btn-primary">✅ Sí, tengo todo — Avanzar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Proyecto (M25 — Sprint 6) -->
     <div class="modal-overlay" id="modal-project-edit">
         <div class="modal" style="max-width:560px;">
