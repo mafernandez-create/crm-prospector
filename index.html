@@ -13750,6 +13750,20 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const faseEl = document.getElementById('prescripcion-fase');
             const fase = faseEl.value;
             const faseAnterior = faseEl.dataset.faseActual || '';
+
+            // M7: Si avanza de fase y hay criterios definidos, pedir confirmación
+            const avanza = fase && faseAnterior && Number(fase) > Number(faseAnterior);
+            if (avanza && FASE_CRITERIOS[fase]) {
+                showFaseConfirmModal(fase, faseAnterior, () => _doSavePrescripcion());
+                return;
+            }
+            await _doSavePrescripcion();
+        }
+
+        async function _doSavePrescripcion() {
+            const faseEl = document.getElementById('prescripcion-fase');
+            const fase = faseEl.value;
+            const faseAnterior = faseEl.dataset.faseActual || '';
             const normas = Array.from(document.querySelectorAll('.norma-check:checked')).map(cb => cb.value);
             const programas = Array.from(document.querySelectorAll('.programa-check:checked')).map(cb => cb.value);
             const evidencia = document.getElementById('prescripcion-evidencia')?.value.trim() || null;
@@ -13760,7 +13774,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 evidenciaDocumental: evidencia
             };
             await updateStudio(currentStudioId, updates);
-            // M7: log automático + timestamp si la fase cambió
+            // Log automático + timestamp si la fase cambió
             if (fase && fase !== faseAnterior) {
                 const faseAntLabel = faseAnterior ? getFaseLabel(faseAnterior) : 'sin asignar';
                 const faseNuevaLabel = getFaseLabel(fase);
