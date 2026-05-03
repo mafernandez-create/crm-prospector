@@ -7959,6 +7959,13 @@
                         valA = new Date(a.createdAt || 0).getTime();
                         valB = new Date(b.createdAt || 0).getTime();
                         break;
+                    case 'diasEnFase': {
+                        const refA = a.faseChangedAt || a.updatedAt || a.createdAt;
+                        const refB = b.faseChangedAt || b.updatedAt || b.createdAt;
+                        valA = refA ? Math.floor((Date.now() - new Date(refA).getTime()) / 86400000) : -1;
+                        valB = refB ? Math.floor((Date.now() - new Date(refB).getTime()) / 86400000) : -1;
+                        break;
+                    }
                     default:
                         valA = a[column] || '';
                         valB = b[column] || '';
