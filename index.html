@@ -3842,6 +3842,96 @@
         </div>
     </div>
 
+    <!-- Modal Proyecto (M25 — Sprint 6) -->
+    <div class="modal-overlay" id="modal-project-edit">
+        <div class="modal" style="max-width:560px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-project-title">🏗️ Proyecto</h3>
+                <button class="modal-close" onclick="closeModal('modal-project-edit')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="project-edit-index">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                    <div class="form-group" style="margin-bottom:0;grid-column:span 2;">
+                        <label class="form-label">Nombre del proyecto *</label>
+                        <input type="text" class="form-input" id="project-name" placeholder="Ej: Modernización CR Sector A">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">Tipo</label>
+                        <select class="form-select" id="project-type">
+                            <option value="">— Sin clasificar —</option>
+                            <option value="abastecimiento">Abastecimiento urbano</option>
+                            <option value="regadío">Regadío / CCRR</option>
+                            <option value="saneamiento">Saneamiento</option>
+                            <option value="obra_pública">Obra pública general</option>
+                            <option value="industrial">Industrial</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">Estado de licitación</label>
+                        <select class="form-select" id="project-estado">
+                            <option value="">— Sin estado —</option>
+                            <option value="en_preparacion">En preparación</option>
+                            <option value="convocado">Convocado</option>
+                            <option value="adjudicado">Adjudicado</option>
+                            <option value="en_ejecucion">En ejecución</option>
+                            <option value="ejecutado">Ejecutado</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">Localización</label>
+                        <input type="text" class="form-input" id="project-location" placeholder="Ej: Écija, Sevilla">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">Año</label>
+                        <input type="text" class="form-input" id="project-year" placeholder="2026">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">Programa de financiación</label>
+                        <select class="form-select" id="project-programa">
+                            <option value="">— Sin programa —</option>
+                            <option value="PARRA">PARRA</option>
+                            <option value="FEADER">FEADER</option>
+                            <option value="NextGenerationEU">NextGenerationEU</option>
+                            <option value="PERTE">PERTE</option>
+                            <option value="Junta de Andalucía">Junta de Andalucía</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">Norma exigida</label>
+                        <select class="form-select" id="project-norma">
+                            <option value="">— Sin norma —</option>
+                            <option value="ETNT003">ETNT003</option>
+                            <option value="ETNT015">ETNT015</option>
+                            <option value="AENOR">AENOR</option>
+                            <option value="UNE EN ISO 1452">UNE EN ISO 1452</option>
+                            <option value="ISO 16422">ISO 16422 / UNE EN 17176</option>
+                            <option value="ACS">ACS</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">Presupuesto estimado</label>
+                        <input type="text" class="form-input" id="project-presupuesto" placeholder="Ej: 1.200.000 €">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">URL Perfil del Contratante</label>
+                    <input type="url" class="form-input" id="project-url" placeholder="https://contrataciondelestado.es/...">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">Relevancia para GPF</label>
+                    <input type="text" class="form-input" id="project-relevance" placeholder="Ej: Especificación MUTE posible por diámetro y longitud">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-project-edit')">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveProjectData()">💾 Guardar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Tareas Pendientes al Iniciar -->
     <div class="modal-overlay" id="modal-pending-tasks">
         <div class="modal" style="max-width:700px;">
@@ -7876,15 +7966,32 @@
                                 </div>
                             </div>
                             <div class="card">
-                                <div class="card-header"><h3 class="card-title">🏗️ Proyectos</h3></div>
+                                <div class="card-header">
+                                    <h3 class="card-title">🏗️ Proyectos</h3>
+                                    <button class="btn btn-sm btn-secondary" onclick="openAddProjectModal('${id}')">+ Añadir</button>
+                                </div>
                                 <div class="card-body">
-                                    ${a(data.projects).map(p => `
-                                        <div class="info-item" style="margin-bottom:12px;">
-                                            <div class="info-value">${s(p.name)} <span class="status status-nuevo" style="font-size:0.7rem;">${s(p.type)}</span></div>
-                                            <div class="info-label">📍 ${s(p.location)} · 📅 ${s(p.year)}</div>
-                                            ${p.relevance ? `<div style="font-size:0.8rem;color:var(--success);margin-top:4px;">🎯 ${p.relevance}</div>` : ''}
-                                        </div>
-                                    `).join('') || '<p style="color:var(--muted);">Sin proyectos registrados</p>'}
+                                    ${a(data.projects).map((p, pi) => {
+                                        const estadoLabels = { en_preparacion:'En preparación', convocado:'Convocado', adjudicado:'Adjudicado', en_ejecucion:'En ejecución', ejecutado:'Ejecutado' };
+                                        const estadoBadge = p.estado ? `<span class="status status-contactado" style="font-size:0.7rem;margin-left:4px;">${estadoLabels[p.estado]||p.estado}</span>` : '';
+                                        const programaBadge = p.programa ? `<span class="status status-reunion" style="font-size:0.7rem;margin-right:4px;">${escapeHtml(p.programa)}</span>` : '';
+                                        const normaBadge = p.norma ? `<span class="status status-nuevo" style="font-size:0.7rem;margin-right:4px;">${escapeHtml(p.norma)}</span>` : '';
+                                        return `<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;">
+                                            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                                                <div style="flex:1;">
+                                                    <div class="info-value" style="font-weight:600;">${escapeHtml(s(p.name))}${estadoBadge}</div>
+                                                    <div class="info-label" style="margin-top:3px;">📍 ${escapeHtml(s(p.location,'—'))} · 📅 ${escapeHtml(s(p.year,'—'))}${p.presupuesto ? ' · 💰 '+escapeHtml(p.presupuesto) : ''}</div>
+                                                    ${(p.programa||p.norma) ? `<div style="margin-top:5px;">${programaBadge}${normaBadge}</div>` : ''}
+                                                    ${p.relevance ? `<div style="font-size:0.8rem;color:var(--success);margin-top:4px;">🎯 ${escapeHtml(p.relevance)}</div>` : ''}
+                                                    ${p.url ? `<div style="margin-top:4px;"><a href="${safeUrl(p.url)}" target="_blank" rel="noopener" style="font-size:0.78rem;color:var(--accent);">🔗 Perfil del Contratante</a></div>` : ''}
+                                                </div>
+                                                <div style="display:flex;gap:4px;margin-left:8px;">
+                                                    <button class="btn btn-sm btn-secondary" onclick="openEditProjectModal('${id}',${pi})">✏️</button>
+                                                    <button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;" onclick="deleteProject('${id}',${pi})">🗑️</button>
+                                                </div>
+                                            </div>
+                                        </div>`;
+                                    }).join('') || '<p style="color:var(--muted);">Sin proyectos registrados — <a href="#" onclick="openAddProjectModal(\'${id}\');return false;" style="color:var(--accent);">Añadir</a></p>'}
                                 </div>
                             </div>
                             <!-- Tarjeta Proceso Prescripción (Plan v5) -->
@@ -13261,6 +13368,84 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
         // ============================================
         // PROCESO PRESCRIPCIÓN (Plan v5)
         // ============================================
+
+        // ============================================
+        // PROYECTOS — M25 (Sprint 6)
+        // ============================================
+        function _fillProjectModal(p) {
+            document.getElementById('project-name').value        = p.name        || '';
+            document.getElementById('project-type').value        = p.type        || '';
+            document.getElementById('project-estado').value      = p.estado      || '';
+            document.getElementById('project-location').value    = p.location    || '';
+            document.getElementById('project-year').value        = p.year        || '';
+            document.getElementById('project-programa').value    = p.programa    || '';
+            document.getElementById('project-norma').value       = p.norma       || '';
+            document.getElementById('project-presupuesto').value = p.presupuesto || '';
+            document.getElementById('project-url').value         = p.url         || '';
+            document.getElementById('project-relevance').value   = p.relevance   || '';
+        }
+
+        function openAddProjectModal(studioId) {
+            if (studioId) currentStudioId = studioId;
+            document.getElementById('modal-project-title').textContent = '🏗️ Nuevo proyecto';
+            document.getElementById('project-edit-index').value = '';
+            _fillProjectModal({});
+            openModal('modal-project-edit');
+        }
+
+        async function openEditProjectModal(studioId, index) {
+            if (studioId) currentStudioId = studioId;
+            const studio = await getStudio(currentStudioId);
+            const projects = studio?.data?.projects || [];
+            const p = projects[index] || {};
+            document.getElementById('modal-project-title').textContent = '🏗️ Editar proyecto';
+            document.getElementById('project-edit-index').value = String(index);
+            _fillProjectModal(p);
+            openModal('modal-project-edit');
+        }
+
+        async function saveProjectData() {
+            const nameVal = document.getElementById('project-name').value.trim();
+            if (!nameVal) { showNotification('El nombre del proyecto es obligatorio', 'warning'); return; }
+            const newProject = {
+                name:        nameVal,
+                type:        document.getElementById('project-type').value || null,
+                estado:      document.getElementById('project-estado').value || null,
+                location:    document.getElementById('project-location').value.trim() || null,
+                year:        document.getElementById('project-year').value.trim() || null,
+                programa:    document.getElementById('project-programa').value || null,
+                norma:       document.getElementById('project-norma').value || null,
+                presupuesto: document.getElementById('project-presupuesto').value.trim() || null,
+                url:         document.getElementById('project-url').value.trim() || null,
+                relevance:   document.getElementById('project-relevance').value.trim() || null
+            };
+            const studio = await getStudio(currentStudioId);
+            const projects = [...(studio?.data?.projects || [])];
+            const idxRaw = document.getElementById('project-edit-index').value;
+            const idx = idxRaw !== '' ? parseInt(idxRaw) : -1;
+            if (idx >= 0 && idx < projects.length) {
+                projects[idx] = newProject;
+            } else {
+                projects.push(newProject);
+            }
+            const newData = { ...(studio?.data || {}), projects };
+            await updateStudio(currentStudioId, { data: newData });
+            closeModal('modal-project-edit');
+            showStudioDetail(currentStudioId);
+            showNotification('✅ Proyecto guardado', 'success');
+        }
+
+        async function deleteProject(studioId, index) {
+            if (!confirm('¿Eliminar este proyecto?')) return;
+            if (studioId) currentStudioId = studioId;
+            const studio = await getStudio(currentStudioId);
+            const projects = [...(studio?.data?.projects || [])];
+            projects.splice(index, 1);
+            const newData = { ...(studio?.data || {}), projects };
+            await updateStudio(currentStudioId, { data: newData });
+            showStudioDetail(currentStudioId);
+            showNotification('🗑️ Proyecto eliminado', 'success');
+        }
 
         // M7b — Alerta de estancamiento por fase
         function renderStancamientoAlert(studio) {
