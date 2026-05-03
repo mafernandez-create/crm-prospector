@@ -3812,21 +3812,25 @@
                 <div class="form-group">
                     <label class="form-label">Normas exigidas en pliego</label>
                     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;" id="prescripcion-normas-checks">
-                        ${['ETNT003','ETNT015','AENOR','UNE EN ISO 1452','ISO 16422 / UNE EN 17176','UNE EN 1329','UNE EN 1453','ACS'].map(n =>
-                            `<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;">
-                                <input type="checkbox" class="norma-check" value="${n}"> ${n}
-                            </label>`
-                        ).join('')}
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;"><input type="checkbox" class="norma-check" value="ETNT003"> ETNT003</label>
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;"><input type="checkbox" class="norma-check" value="ETNT015"> ETNT015</label>
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;"><input type="checkbox" class="norma-check" value="AENOR"> AENOR</label>
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;"><input type="checkbox" class="norma-check" value="UNE EN ISO 1452"> UNE EN ISO 1452</label>
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;"><input type="checkbox" class="norma-check" value="ISO 16422 / UNE EN 17176"> ISO 16422 / UNE EN 17176</label>
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;"><input type="checkbox" class="norma-check" value="UNE EN 1329"> UNE EN 1329</label>
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;"><input type="checkbox" class="norma-check" value="UNE EN 1453"> UNE EN 1453</label>
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;"><input type="checkbox" class="norma-check" value="ACS"> ACS</label>
                     </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Programa de financiación</label>
                     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;" id="prescripcion-programa-checks">
-                        ${['PARRA','FEADER','NextGenerationEU','PERTE','Junta de Andalucía','Otro'].map(p =>
-                            `<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;">
-                                <input type="checkbox" class="programa-check" value="${p}"> ${p}
-                            </label>`
-                        ).join('')}
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;"><input type="checkbox" class="programa-check" value="PARRA"> PARRA</label>
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;"><input type="checkbox" class="programa-check" value="FEADER"> FEADER</label>
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;"><input type="checkbox" class="programa-check" value="NextGenerationEU"> NextGenerationEU</label>
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;"><input type="checkbox" class="programa-check" value="PERTE"> PERTE</label>
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;"><input type="checkbox" class="programa-check" value="Junta de Andalucía"> Junta de Andalucía</label>
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;"><input type="checkbox" class="programa-check" value="Otro"> Otro</label>
                     </div>
                 </div>
                 <div class="form-group">
@@ -4676,6 +4680,8 @@
         let useCloudStorage = false; // Nueva variable para Google Sheets
         let localData = { studios: [], activities: [], nextStudioId: 1, nextActivityId: 1 };
         let cloudCache = { studios: [], activities: [], lastSync: null }; // Caché local para cloud
+        window.localData = localData;
+        window.cloudCache = cloudCache;
 
         // ─── FIREBASE ────────────────────────────────────────────
         const FIREBASE_CONFIG = {
@@ -4688,6 +4694,7 @@
             measurementId: "G-4DM69WSWX9"
         };
         let useFirebase = false;
+        window.useFirebase = false;
         let firestoreDB = null; // Instancia Firestore (distinto a 'db' de IndexedDB)
 
         // ============================================
@@ -5289,6 +5296,7 @@
                         nextStudioId: parsed.nextStudioId || 1,
                         nextActivityId: parsed.nextActivityId || 1
                     };
+                    window.localData = localData;
                 }
                 console.log('📦 Datos cargados desde localStorage:', localData.studios.length, 'estudios,', localData.activities.length, 'actividades');
             } catch (e) {
@@ -5322,6 +5330,7 @@
             const firebaseAvailable = await initFirebase();
             if (firebaseAvailable) {
                 useFirebase = true;
+                window.useFirebase = true;
                 await syncFromFirebase();
                 console.log('🔥 Usando Firebase Firestore (sync offline activo)');
                 showStorageIndicator('firebase');
@@ -7403,6 +7412,7 @@
             { id: 't_aqualia',    label: 'Estrategia central Aqualia Baena',       peso: '—', plazo: '2T–3T 2026',  urgencia: null,    tipo: 'toggle' },
             { id: 't_emasesa',    label: 'Apertura Sevilla / EMASESA',             peso: '—', plazo: '2T 2026',     urgencia: null,    tipo: 'toggle' },
         ];
+        window.TAREAS_S15 = TAREAS_S15;
 
         function getTareaEstado(id) {
             return localStorage.getItem('crm_tarea_' + id) || 'pendiente';
@@ -13398,6 +13408,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             'ganado':       '8'
             // 'perdido' → no se asigna fase
         };
+        window.STATUS_TO_FASE = STATUS_TO_FASE;
 
         async function migrarStatusAFase() {
             const btn = document.getElementById('btn-migrar-fase');
@@ -13552,6 +13563,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             '7': '7 · Especificación',
             '8': '8 · Seguimiento de obra'
         };
+        window.FASE_LABELS = FASE_LABELS;
         function getFaseLabel(fase) {
             return FASE_LABELS[String(fase)] || `Fase ${fase}`;
         }
