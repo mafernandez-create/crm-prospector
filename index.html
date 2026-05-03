@@ -7886,6 +7886,7 @@
                 if (faseFilter && String(studio.fase || '') !== faseFilter) return false;
                 if (programaFilter && !(studio.programaFinanciacion || []).includes(programaFilter)) return false;
                 if (normaFilter && !(studio.normasExigidas || []).includes(normaFilter)) return false;
+                if (origenFilter && (studio.origenPrescriptor || studio.data?.origenPrescriptor || '') !== origenFilter) return false;
                 if (priorityFilter && studio.priority !== priorityFilter) return false;
                 if (provinceFilter) {
                     const studioProvince = studio.province || studio.data?.contact?.province || '';
