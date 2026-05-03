@@ -2572,6 +2572,23 @@
                 </div>
             </div>
             <div class="nav-section">
+                <div class="nav-section-title">Actividad 2026</div>
+                <div class="nav-item" onclick="filtroRapidoVisitas('todas')">
+                    <span class="nav-item-icon">📅</span>
+                    <span>Visitas 2026</span>
+                    <span class="nav-item-badge" id="nav-visitas-2026" style="background:var(--accent)">—</span>
+                </div>
+                <div class="nav-item" onclick="filtroRapidoVisitas('mute')">
+                    <span class="nav-item-icon">🔧</span>
+                    <span>Visitas MUTE 2026</span>
+                    <span class="nav-item-badge" id="nav-mute-2026" style="background:var(--info)">—</span>
+                </div>
+                <div class="nav-item" onclick="generarInformePipeline()">
+                    <span class="nav-item-icon">📑</span>
+                    <span>Informe Pipeline</span>
+                </div>
+            </div>
+            <div class="nav-section">
                 <div class="nav-section-title">Añadir Empresa</div>
                 <div style="display:flex;gap:8px;padding:0 12px;margin-bottom:8px;">
                     <button onclick="openManualStudioModal()" style="flex:1;padding:10px 8px;border:none;border-radius:8px;background:var(--success);color:white;cursor:pointer;font-size:0.8rem;font-weight:600;">
@@ -3033,11 +3050,15 @@
             <!-- Detail View -->
             <div class="view" id="view-kanban">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
-                    <div style="display:flex;gap:8px;align-items:center;">
-                        <input type="text" id="kanban-search" class="form-input" placeholder="🔍 Buscar empresa..." style="width:220px;" oninput="renderKanban()">
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                        <input type="text" id="kanban-search" class="form-input" placeholder="🔍 Buscar empresa..." style="width:200px;" oninput="renderKanban()">
                         <select id="kanban-type" class="filter-select" onchange="renderKanban()">
                             <option value="">Todos los tipos</option>
                         </select>
+                        <button id="kanban-mode-toggle" onclick="kanbanMode = kanbanMode==='fase'?'status':'fase'; renderKanban();"
+                            style="padding:6px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg-secondary);font-size:0.82rem;cursor:pointer;white-space:nowrap;">
+                            🔄 Ver por Estado
+                        </button>
                     </div>
                     <span style="font-size:0.8rem;color:var(--muted);" id="kanban-count"></span>
                 </div>
@@ -4520,8 +4541,9 @@
             'aapp':           { icon: '🏛️', label: 'AAPP',                  labelLargo: 'Administración Pública' },
             'aguas':          { icon: '💧', label: 'Empresa de Aguas',      labelLargo: 'Empresa de Aguas' },
             'regantes':       { icon: '🌾', label: 'Comunidad de Regantes', labelLargo: 'Comunidad de Regantes' },
-            'almacen':        { icon: '🏭', label: 'Almacén',               labelLargo: 'Almacén / Nave Industrial' },
-            'otros':          { icon: '📋', label: 'Otros',                 labelLargo: 'Otros' }
+            'almacen':             { icon: '🏭', label: 'Almacén',               labelLargo: 'Almacén / Nave Industrial' },
+            'colegio_profesional': { icon: '🎓', label: 'Colegio Profesional',  labelLargo: 'Colegio Profesional (COA/COAAT/CICCP/COIA)' },
+            'otros':               { icon: '📋', label: 'Otros',                labelLargo: 'Otros' }
         };
 
         // ============================================
@@ -6894,8 +6916,28 @@
         }
 
         // ============================================
-        // VISTA KANBAN
+        // VISTA KANBAN — Sprint 8A (por fase Plan v5 + toggle estado)
         // ============================================
+        let kanbanMode = 'fase'; // 'fase' | 'status'
+
+        function _kanbanCard(s, borderColor) {
+            const tipo = TIPOS_ESTUDIO[s.type] || TIPOS_ESTUDIO.otros;
+            let stancAlert = '';
+            if (s.fase && s.faseChangedAt && s.fase !== '1' && s.fase !== '8') {
+                const dias = Math.floor((Date.now() - new Date(s.faseChangedAt).getTime()) / 86400000);
+                if (dias >= 60) stancAlert = `<span style="color:#dc2626;font-size:0.68rem;">🔴 ${dias}d</span>`;
+                else if (dias >= 30) stancAlert = `<span style="color:#f59e0b;font-size:0.68rem;">⚠️ ${dias}d</span>`;
+            }
+            return `<div class="kanban-card" onclick="showStudioDetail('${s.id}')" style="border-left-color:${borderColor};">
+                <div class="kanban-card-name">${escapeHtml(s.name || '')}</div>
+                <div class="kanban-card-meta" style="display:flex;justify-content:space-between;align-items:center;">
+                    <span>${escapeHtml(s.province || s.city || '')}</span>
+                    ${stancAlert}
+                </div>
+                <span class="kanban-card-type">${tipo.icon} ${tipo.label}</span>
+            </div>`;
+        }
+
         async function renderKanban() {
             const board = document.getElementById('kanban-board');
             const countEl = document.getElementById('kanban-count');
@@ -6904,19 +6946,18 @@
 
             const studios = await getAllStudios();
 
-            // Populate type filter once
+            // Populate type filter once with TIPOS_ESTUDIO labels
             const typeSelect = document.getElementById('kanban-type');
             if (typeSelect && typeSelect.options.length <= 1) {
-                const types = [...new Set(studios.map(s => s.type).filter(Boolean))].sort();
-                types.forEach(t => {
-                    const o = document.createElement('option'); o.value = t; o.textContent = t.charAt(0).toUpperCase() + t.slice(1);
+                Object.entries(TIPOS_ESTUDIO).forEach(([k, v]) => {
+                    const o = document.createElement('option');
+                    o.value = k; o.textContent = v.icon + ' ' + v.label;
                     typeSelect.appendChild(o);
                 });
             }
 
             const search = (document.getElementById('kanban-search')?.value || '').toLowerCase();
             const typeFilter = document.getElementById('kanban-type')?.value || '';
-
             const filtered = studios.filter(s => {
                 if (search && !s.name?.toLowerCase().includes(search)) return false;
                 if (typeFilter && s.type !== typeFilter) return false;
@@ -6925,38 +6966,106 @@
 
             if (countEl) countEl.textContent = `${filtered.length} empresas`;
 
-            const columns = [
-                { status: 'nuevo',       label: '🆕 Nuevo',        color: '#3b82f6', bg: '#dbeafe' },
-                { status: 'contactado',  label: '📞 Contactado',    color: '#f59e0b', bg: '#fef3c7' },
-                { status: 'standby',     label: '⏸️ Standby',      color: '#9ca3af', bg: '#f3f4f6' },
-                { status: 'reunion',     label: '📅 Reunión',       color: '#8b5cf6', bg: '#ede9fe' },
-                { status: 'negociacion', label: '💼 Negociación',   color: '#ec4899', bg: '#fce7f3' },
-                { status: 'traspasado',  label: '🤝 Traspasado',    color: '#7c3aed', bg: '#ede9fe' },
-                { status: 'prescripcion',label: '📋 Prescripción',  color: '#059669', bg: '#d1fae5' },
-                { status: 'venta',       label: '💰 Venta cerrada', color: '#16a34a', bg: '#dcfce7' },
-                { status: 'perdido',     label: '❌ Perdido',       color: '#ef4444', bg: '#fee2e2' },
-            ];
+            // Toggle label
+            const toggleBtn = document.getElementById('kanban-mode-toggle');
+            if (toggleBtn) toggleBtn.textContent = kanbanMode === 'fase' ? '🔄 Ver por Estado' : '📐 Ver por Fase';
 
-            board.innerHTML = columns.map(col => {
-                const cards = filtered.filter(s => (s.status || 'nuevo') === col.status);
-                return `<div class="kanban-col">
-                    <div class="kanban-col-header" style="background:${col.bg};color:${col.color};">
-                        <span>${col.label}</span>
-                        <span style="background:${col.color};color:white;border-radius:10px;padding:1px 7px;font-size:0.72rem;">${cards.length}</span>
-                    </div>
-                    ${cards.length === 0
-                        ? '<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:0.78rem;">—</div>'
-                        : cards.map(s => {
-                            const lastAct = s.updatedAt ? formatDate(s.updatedAt) : '';
-                            return `<div class="kanban-card" onclick="showStudioDetail('${s.id}')" style="border-left-color:${col.color};">
-                                <div class="kanban-card-name">${escapeHtml(s.name || '')}</div>
-                                <div class="kanban-card-meta">${escapeHtml(s.province || s.city || '')}${lastAct ? ' · ' + lastAct : ''}</div>
-                                ${s.type ? `<span class="kanban-card-type">${escapeHtml(s.type)}</span>` : ''}
-                            </div>`;
-                        }).join('')
-                    }
-                </div>`;
-            }).join('');
+            if (kanbanMode === 'fase') {
+                // ── Vista por Fase (Plan v5) ─────────────────
+                const faseCols = [
+                    { fase: '1', label: '1 · Identificación',    color: '#6b7280', bg: '#f3f4f6' },
+                    { fase: '2', label: '2 · Cualificación',     color: '#3b82f6', bg: '#dbeafe' },
+                    { fase: '3', label: '3 · Mapeo prescriptor', color: '#8b5cf6', bg: '#ede9fe' },
+                    { fase: '4', label: '4 · Primer contacto',   color: '#f59e0b', bg: '#fef3c7' },
+                    { fase: '5', label: '5 · Visita técnica',    color: '#0891b2', bg: '#cffafe' },
+                    { fase: '6', label: '6 · Documentación',     color: '#7c3aed', bg: '#ede9fe' },
+                    { fase: '7', label: '7 · Especificación',    color: '#059669', bg: '#d1fae5' },
+                    { fase: '8', label: '8 · Seguimiento obra',  color: '#16a34a', bg: '#dcfce7' },
+                ];
+                const sinFase = filtered.filter(s => !s.fase);
+                const colsHtml = faseCols.map(col => {
+                    const cards = filtered.filter(s => String(s.fase || '') === col.fase);
+                    return `<div class="kanban-col">
+                        <div class="kanban-col-header" style="background:${col.bg};color:${col.color};">
+                            <span>${col.label}</span>
+                            <span style="background:${col.color};color:white;border-radius:10px;padding:1px 7px;font-size:0.72rem;">${cards.length}</span>
+                        </div>
+                        ${cards.length === 0
+                            ? '<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:0.78rem;">—</div>'
+                            : cards.map(s => _kanbanCard(s, col.color)).join('')}
+                    </div>`;
+                });
+                if (sinFase.length > 0) {
+                    colsHtml.push(`<div class="kanban-col">
+                        <div class="kanban-col-header" style="background:#fee2e2;color:#9ca3af;">
+                            <span>⬜ Sin fase</span>
+                            <span style="background:#9ca3af;color:white;border-radius:10px;padding:1px 7px;font-size:0.72rem;">${sinFase.length}</span>
+                        </div>
+                        ${sinFase.map(s => _kanbanCard(s, '#9ca3af')).join('')}
+                        <button onclick="migrarStatusAFase()" style="margin:6px 4px 4px;width:calc(100% - 8px);padding:6px;border:1px dashed #9ca3af;border-radius:6px;background:none;color:var(--muted);font-size:0.75rem;cursor:pointer;">⚡ Asignar fase auto</button>
+                    </div>`);
+                }
+                board.innerHTML = colsHtml.join('');
+
+            } else {
+                // ── Vista por Estado (legacy) ────────────────
+                const statusCols = [
+                    { status: 'nuevo',        label: '🆕 Nuevo',        color: '#3b82f6', bg: '#dbeafe' },
+                    { status: 'contactado',   label: '📞 Contactado',   color: '#f59e0b', bg: '#fef3c7' },
+                    { status: 'standby',      label: '⏸️ Standby',     color: '#9ca3af', bg: '#f3f4f6' },
+                    { status: 'reunion',      label: '📅 Reunión',      color: '#8b5cf6', bg: '#ede9fe' },
+                    { status: 'negociacion',  label: '💼 Negociación',  color: '#ec4899', bg: '#fce7f3' },
+                    { status: 'traspasado',   label: '🤝 Traspasado',   color: '#7c3aed', bg: '#ede9fe' },
+                    { status: 'prescripcion', label: '📋 Prescripción', color: '#059669', bg: '#d1fae5' },
+                    { status: 'venta',        label: '💰 Venta',        color: '#16a34a', bg: '#dcfce7' },
+                    { status: 'perdido',      label: '❌ Perdido',      color: '#ef4444', bg: '#fee2e2' },
+                ];
+                board.innerHTML = statusCols.map(col => {
+                    const cards = filtered.filter(s => (s.status || 'nuevo') === col.status);
+                    return `<div class="kanban-col">
+                        <div class="kanban-col-header" style="background:${col.bg};color:${col.color};">
+                            <span>${col.label}</span>
+                            <span style="background:${col.color};color:white;border-radius:10px;padding:1px 7px;font-size:0.72rem;">${cards.length}</span>
+                        </div>
+                        ${cards.length === 0
+                            ? '<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:0.78rem;">—</div>'
+                            : cards.map(s => _kanbanCard(s, col.color)).join('')}
+                    </div>`;
+                }).join('');
+            }
+        }
+
+        // ============================================
+        // FILTROS RÁPIDOS ACTIVIDAD 2026 — M22 Sprint 8C
+        // ============================================
+        async function filtroRapidoVisitas(modo) {
+            showView('studios');
+            // Reset filtros
+            document.querySelectorAll('#view-studios .filter-select').forEach(s => s.value = '');
+            const gs = document.getElementById('global-search');
+            if (gs) gs.value = '';
+
+            const anio = new Date().getFullYear();
+            const activities = await getAllActivities();
+            let studioIds;
+            if (modo === 'mute') {
+                studioIds = new Set(activities
+                    .filter(a => a.type === 'meeting'
+                        && new Date(a.createdAt).getFullYear() === anio
+                        && a.productos?.some(p => /mute/i.test(p)))
+                    .map(a => String(a.studioId)));
+            } else {
+                studioIds = new Set(activities
+                    .filter(a => a.type === 'meeting'
+                        && new Date(a.createdAt).getFullYear() === anio)
+                    .map(a => String(a.studioId)));
+            }
+
+            const studios = await getAllStudios();
+            const filtered = studios.filter(s => studioIds.has(String(s.id)));
+            lastFilteredStudios = filtered.slice();
+            renderStudiosTable(sortStudios(filtered, currentSortColumn, currentSortDirection));
+            showNotification(`${filtered.length} empresa${filtered.length !== 1 ? 's' : ''} con visita${modo === 'mute' ? ' MUTE' : ''} en ${anio}`, 'info');
         }
 
         // ============================================
@@ -7307,6 +7416,14 @@
             setKpi('kpi-ponencias-count', 'kpi-ponencias-bar', 'kpi-ponencias-pct', ponenciasYTD, 2);
             const soporteEl = document.getElementById('kpi-soporte-count');
             if (soporteEl) soporteEl.textContent = soporteYTD;
+
+            // Badges nav "Actividad 2026" (M22)
+            const visitasStudios2026 = new Set(actsAnio.filter(a => a.type === 'meeting').map(a => String(a.studioId))).size;
+            const muteStudios2026 = new Set(actsAnio.filter(a => a.type === 'meeting' && a.productos?.some(p => /mute/i.test(p))).map(a => String(a.studioId))).size;
+            const nav2026el = document.getElementById('nav-visitas-2026');
+            const navMute2026el = document.getElementById('nav-mute-2026');
+            if (nav2026el) nav2026el.textContent = visitasStudios2026;
+            if (navMute2026el) navMute2026el.textContent = muteStudios2026;
 
             // Catálogo MUTE — estado en localStorage
             const catalogoEntregado = localStorage.getItem('crm_catalogo_mute_entregado') === 'true';
@@ -27085,6 +27202,200 @@ Notas:
         // GENERAR DOSSIER DE VISITAS  — Fichas pre-visita completas
         // Formato CORPORATIVO GPF: portada + tabla resumen + 1 ficha/página
         // ═══════════════════════════════════════════════════════════════
+        // ============================================
+        // INFORME PIPELINE — Sprint 8B
+        // ============================================
+        async function generarInformePipeline() {
+            if (typeof window.docx === 'undefined') {
+                showNotification('❌ Librería Word no cargada. Recarga la página.', 'error'); return;
+            }
+            showNotification('⏳ Generando informe pipeline...', 'info');
+
+            const {
+                Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+                AlignmentType, BorderStyle, WidthType, ShadingType, VerticalAlign,
+                HeadingLevel, PageBreak
+            } = window.docx;
+
+            const AZUL1 = '1F4E79', AZUL2 = '2E75B6', AZUL3 = 'D6E4F0';
+            const GRIS1 = 'F2F2F2', GRIS2 = 'D9D9D9', VERDE = '00703C';
+            const thin = { style: BorderStyle.SINGLE, size: 1, color: GRIS2 };
+            const thinB = { top: thin, bottom: thin, left: thin, right: thin };
+
+            // ── Datos ──────────────────────────────────────────────────────
+            const [studios, activities] = await Promise.all([getAllStudios(), getAllActivities()]);
+            const anio = new Date().getFullYear();
+            const actsAnio = activities.filter(a => new Date(a.createdAt).getFullYear() === anio);
+            const visitasYTD  = actsAnio.filter(a => a.type === 'meeting').length;
+            const muteYTD     = actsAnio.filter(a => a.type === 'meeting' && a.productos?.some(p => /mute/i.test(p))).length;
+            const ponenciasYTD = actsAnio.filter(a => a.type === 'ponencia').length;
+            const soporteYTD  = actsAnio.filter(a => a.type === 'soporte_tecnico').length;
+            const catalogoMUTE = localStorage.getItem('crm_catalogo_mute_entregado') === 'true';
+            const hoy = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
+
+            const FASES = [
+                { fase: '1', label: '1 · Identificación' },
+                { fase: '2', label: '2 · Cualificación' },
+                { fase: '3', label: '3 · Mapeo prescriptor' },
+                { fase: '4', label: '4 · Primer contacto' },
+                { fase: '5', label: '5 · Visita técnica' },
+                { fase: '6', label: '6 · Documentación' },
+                { fase: '7', label: '7 · Especificación' },
+                { fase: '8', label: '8 · Seguimiento de obra' },
+            ];
+            const sinFaseCount = studios.filter(s => !s.fase).length;
+
+            // Calcular estancados (>30 días en misma fase, fases 2-7)
+            const estancados = studios.filter(s => {
+                if (!s.fase || !s.faseChangedAt || s.fase === '1' || s.fase === '8') return false;
+                return Math.floor((Date.now() - new Date(s.faseChangedAt).getTime()) / 86400000) >= 30;
+            });
+
+            // Top estudios con proyectos activos (fase 5-7 + prioridad Alta)
+            const topEstudios = studios
+                .filter(s => ['5','6','7'].includes(String(s.fase)) || s.priority === 'Alta')
+                .sort((a, b) => {
+                    const pesos = { '7': 4, '6': 3, '5': 2, '4': 1 };
+                    return (pesos[b.fase] || 0) - (pesos[a.fase] || 0);
+                })
+                .slice(0, 12);
+
+            // Tareas vencidas (de TAREAS_S15)
+            const tareasVencidas = (window.TAREAS_S15 || []).filter(t => t.urgencia === 'vencida');
+
+            // ── Helpers constructores de párrafos ──────────────────────────
+            const h1 = (text) => new Paragraph({
+                children: [new TextRun({ text, bold: true, size: 32, color: AZUL1, font: 'Arial' })],
+                spacing: { before: 280, after: 160 },
+                border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: AZUL1 } }
+            });
+            const h2 = (text) => new Paragraph({
+                children: [new TextRun({ text, bold: true, size: 24, color: AZUL2, font: 'Arial' })],
+                spacing: { before: 200, after: 120 }
+            });
+            const body = (text, opts = {}) => new Paragraph({
+                children: [new TextRun({ text, size: 20, font: 'Arial', ...opts })],
+                spacing: { after: 80 }
+            });
+            const kpiRow = (label, val, meta, pct, color) => new TableRow({
+                children: [
+                    new TableCell({ borders: thinB, width: { size: 5200, type: WidthType.DXA }, margins: { top:80, bottom:80, left:120, right:120 }, children: [new Paragraph({ children: [new TextRun({ text: label, size: 20, font: 'Arial' })] })] }),
+                    new TableCell({ borders: thinB, width: { size: 1600, type: WidthType.DXA }, margins: { top:80, bottom:80, left:120, right:120 }, shading: { fill: GRIS1, type: ShadingType.CLEAR }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `${val} / ${meta}`, bold: true, size: 22, font: 'Arial', color })] })] }),
+                    new TableCell({ borders: thinB, width: { size: 1600, type: WidthType.DXA }, margins: { top:80, bottom:80, left:120, right:120 }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `${pct}%`, size: 20, font: 'Arial', color })] })] }),
+                    new TableCell({ borders: thinB, width: { size: 1360, type: WidthType.DXA }, margins: { top:80, bottom:80, left:120, right:120 }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: pct >= 100 ? '✅' : pct >= 50 ? '🟡' : '🔴', size: 20, font: 'Arial' })] })] }),
+                ]
+            });
+
+            const headerRow = (labels, widths) => new TableRow({
+                tableHeader: true,
+                children: labels.map((l, i) => new TableCell({
+                    borders: thinB,
+                    width: { size: widths[i], type: WidthType.DXA },
+                    shading: { fill: AZUL1, type: ShadingType.CLEAR },
+                    margins: { top: 80, bottom: 80, left: 120, right: 120 },
+                    children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: l, bold: true, color: 'FFFFFF', size: 18, font: 'Arial' })] })]
+                }))
+            });
+
+            // ── Tabla KPIs oficiales ────────────────────────────────────────
+            const kpiHeaderRow = headerRow(['Objetivo oficial 2026', 'Avance / Meta', '% completado', 'Estado'], [5200, 1600, 1600, 1360]);
+            const kpiRows = [
+                kpiRow('Visitas presenciales (10%)',        visitasYTD,   140, Math.min(Math.round(visitasYTD/140*100),100),  visitasYTD>=140?VERDE:visitasYTD>=70?'F59E0B':'DC2626'),
+                kpiRow('Visitas con MUTE (10%)',            muteYTD,      30,  Math.min(Math.round(muteYTD/30*100),100),      muteYTD>=30?VERDE:muteYTD>=15?'F59E0B':'DC2626'),
+                kpiRow('Ponencias colegios (5%)',           ponenciasYTD, 2,   Math.min(Math.round(ponenciasYTD/2*100),100),  ponenciasYTD>=2?VERDE:ponenciasYTD>=1?'F59E0B':'DC2626'),
+                kpiRow('Soporte técnico registrado',        soporteYTD,   '—', '—', AZUL2),
+                new TableRow({ children: [
+                    new TableCell({ borders: thinB, width: { size: 5200, type: WidthType.DXA }, margins: { top:80, bottom:80, left:120, right:120 }, children: [new Paragraph({ children: [new TextRun({ text: 'Catálogo técnico MUTE entregado (30%)', size: 20, font: 'Arial' })] })] }),
+                    new TableCell({ borders: thinB, columnSpan: 2, width: { size: 3200, type: WidthType.DXA }, margins: { top:80, bottom:80, left:120, right:120 }, shading: { fill: catalogoMUTE ? 'D1FAE5' : 'FEE2E2', type: ShadingType.CLEAR }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: catalogoMUTE ? 'ENTREGADO ✅' : 'PENDIENTE ⬜', bold: true, size: 20, font: 'Arial', color: catalogoMUTE ? VERDE : 'DC2626' })] })] }),
+                    new TableCell({ borders: thinB, width: { size: 1360, type: WidthType.DXA }, margins: { top:80, bottom:80, left:120, right:120 }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: catalogoMUTE ? '✅' : '🔴', size: 20, font: 'Arial' })] })] }),
+                ]}),
+            ];
+
+            // ── Tabla embudo por fase ───────────────────────────────────────
+            const faseHeaderRow = headerRow(['Fase', 'Empresas', '% del total', 'Estancadas >30d'], [3600, 1400, 1800, 2960]);
+            const faseRows = FASES.map(f => {
+                const count = studios.filter(s => String(s.fase||'') === f.fase).length;
+                const pct = studios.length > 0 ? Math.round(count/studios.length*100) : 0;
+                const estanc = estancados.filter(s => String(s.fase||'') === f.fase).length;
+                const bgFase = parseInt(f.fase) >= 6 ? 'D1FAE5' : parseInt(f.fase) >= 4 ? 'FEF3C7' : GRIS1;
+                return new TableRow({ children: [
+                    new TableCell({ borders: thinB, width: { size: 3600, type: WidthType.DXA }, margins: { top:80, bottom:80, left:120, right:120 }, shading: { fill: bgFase, type: ShadingType.CLEAR }, children: [new Paragraph({ children: [new TextRun({ text: f.label, size: 19, font: 'Arial' })] })] }),
+                    new TableCell({ borders: thinB, width: { size: 1400, type: WidthType.DXA }, margins: { top:80, bottom:80, left:120, right:120 }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: String(count), bold: true, size: 20, font: 'Arial' })] })] }),
+                    new TableCell({ borders: thinB, width: { size: 1800, type: WidthType.DXA }, margins: { top:80, bottom:80, left:120, right:120 }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `${pct}%`, size: 19, font: 'Arial' })] })] }),
+                    new TableCell({ borders: thinB, width: { size: 2960, type: WidthType.DXA }, margins: { top:80, bottom:80, left:120, right:120 }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: estanc > 0 ? `⚠️ ${estanc}` : '—', size: 19, font: 'Arial', color: estanc > 0 ? 'DC2626' : '6B7280' })] })] }),
+                ]});
+            });
+            // Fila "Sin fase"
+            if (sinFaseCount > 0) {
+                faseRows.push(new TableRow({ children: [
+                    new TableCell({ borders: thinB, width: { size: 3600, type: WidthType.DXA }, margins: { top:80, bottom:80, left:120, right:120 }, shading: { fill: 'FEE2E2', type: ShadingType.CLEAR }, children: [new Paragraph({ children: [new TextRun({ text: '⬜ Sin fase asignada', size: 19, font: 'Arial', color: '9CA3AF' })] })] }),
+                    new TableCell({ borders: thinB, width: { size: 1400, type: WidthType.DXA }, margins: { top:80, bottom:80, left:120, right:120 }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: String(sinFaseCount), size: 20, font: 'Arial', color: '9CA3AF' })] })] }),
+                    new TableCell({ borders: thinB, width: { size: 1800, type: WidthType.DXA }, margins: { top:80, bottom:80, left:120, right:120 }, children: [new Paragraph({ children: [new TextRun({ text: '—', size: 19, font: 'Arial', color: '9CA3AF' })] })] }),
+                    new TableCell({ borders: thinB, width: { size: 2960, type: WidthType.DXA }, margins: { top:80, bottom:80, left:120, right:120 }, children: [new Paragraph({ children: [new TextRun({ text: '—', size: 19, font: 'Arial', color: '9CA3AF' })] })] }),
+                ]}));
+            }
+
+            // ── Tabla top estudios prioritarios ────────────────────────────
+            const topHeaderRow = headerRow(['Empresa', 'Fase', 'Provincia', 'Proyectos'], [4000, 1200, 1800, 2760]);
+            const topRows = topEstudios.map(s => {
+                const faseLabel = FASE_LABELS[String(s.fase)] || (s.fase ? `Fase ${s.fase}` : 'Sin fase');
+                const proyectos = (s.data?.projects || []).length;
+                return new TableRow({ children: [
+                    new TableCell({ borders: thinB, width: { size: 4000, type: WidthType.DXA }, margins: { top:80, bottom:80, left:120, right:120 }, children: [new Paragraph({ children: [new TextRun({ text: s.name || '—', size: 18, font: 'Arial', bold: s.priority === 'Alta' })] })] }),
+                    new TableCell({ borders: thinB, width: { size: 1200, type: WidthType.DXA }, margins: { top:80, bottom:80, left:120, right:120 }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: String(s.fase || '—'), size: 18, font: 'Arial' })] })] }),
+                    new TableCell({ borders: thinB, width: { size: 1800, type: WidthType.DXA }, margins: { top:80, bottom:80, left:120, right:120 }, children: [new Paragraph({ children: [new TextRun({ text: s.province || s.city || '—', size: 18, font: 'Arial' })] })] }),
+                    new TableCell({ borders: thinB, width: { size: 2760, type: WidthType.DXA }, margins: { top:80, bottom:80, left:120, right:120 }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: proyectos > 0 ? `${proyectos} proyecto${proyectos>1?'s':''}` : '—', size: 18, font: 'Arial' })] })] }),
+                ]});
+            });
+
+            // ── Construir documento ─────────────────────────────────────────
+            const children = [
+                // Portada
+                new Paragraph({ children: [new TextRun({ text: 'INFORME PIPELINE GPF', bold: true, size: 48, color: AZUL1, font: 'Arial' })], alignment: AlignmentType.CENTER, spacing: { before: 400, after: 200 } }),
+                new Paragraph({ children: [new TextRun({ text: `Plan de Prescripción 2026 · Generado ${hoy}`, size: 22, color: AZUL2, font: 'Arial' })], alignment: AlignmentType.CENTER, spacing: { after: 600 } }),
+                new Paragraph({ children: [new TextRun({ text: `Total empresas: ${studios.length}  ·  Estancadas: ${estancados.length}  ·  Sin fase: ${sinFaseCount}`, size: 20, font: 'Arial', color: '6B7280' })], alignment: AlignmentType.CENTER, spacing: { after: 600 } }),
+
+                // KPIs
+                h1('1. KPIs Oficiales 2026'),
+                new Table({ width: { size: 9760, type: WidthType.DXA }, columnWidths: [5200, 1600, 1600, 1360], rows: [kpiHeaderRow, ...kpiRows] }),
+
+                // Embudo
+                new Paragraph({ children: [new PageBreak()] }),
+                h1('2. Embudo por Fase — Plan v5'),
+                body(`Total empresas con fase asignada: ${studios.filter(s => s.fase).length} de ${studios.length}`),
+                new Table({ width: { size: 9760, type: WidthType.DXA }, columnWidths: [3600, 1400, 1800, 2960], rows: [faseHeaderRow, ...faseRows] }),
+
+                // Top estudios
+                new Paragraph({ children: [new PageBreak()] }),
+                h1('3. Estudios Prioritarios (Fase 5–7 + Alta Prioridad)'),
+                body(`${topEstudios.length} empresas en seguimiento activo`),
+                new Table({ width: { size: 9760, type: WidthType.DXA }, columnWidths: [4000, 1200, 1800, 2760], rows: [topHeaderRow, ...topRows] }),
+
+                // Tareas vencidas
+                h2('4. Tareas Vencidas (Sección 15 Plan v5)'),
+                ...(tareasVencidas.length === 0
+                    ? [body('✅ No hay tareas vencidas.')]
+                    : tareasVencidas.map(t => body(`🔴 ${t.label} — ${t.plazo}`))),
+            ];
+
+            const doc = new Document({
+                sections: [{ properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: 1200, right: 1200, bottom: 1200, left: 1200 } } }, children }]
+            });
+
+            try {
+                const buffer = await Packer.toBuffer(doc);
+                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `Pipeline_GPF_${new Date().toISOString().slice(0,10)}.docx`;
+                a.click();
+                showNotification('✅ Informe pipeline descargado', 'success');
+            } catch (e) {
+                showNotification('❌ Error generando informe: ' + e.message, 'error');
+                console.error(e);
+            }
+        }
+
         async function generarDossierVisitas() {
             if (!planificadorData.schedule || Object.keys(planificadorData.schedule).length === 0) {
                 showNotification('No hay visitas planificadas', 'warning'); return;
