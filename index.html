@@ -3564,6 +3564,15 @@
                             <input type="text" class="form-input" id="meeting-proxima-detalle" placeholder="Ej: Enviar ficha ETNT003...">
                         </div>
                     </div>
+                    <!-- M14: Geolocalización -->
+                    <div class="form-group" style="margin-bottom:4px;">
+                        <label class="form-label">Geolocalización</label>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="captureGeoLocation()" id="btn-geo-capture">📍 Capturar ubicación</button>
+                            <span id="meeting-geo-display" style="font-size:0.8rem;color:var(--muted);">Sin capturar</span>
+                        </div>
+                        <input type="hidden" id="meeting-geo-data">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Descripción</label>
@@ -7879,6 +7888,7 @@
                                 </div>
                             </div>
                             <!-- Tarjeta Proceso Prescripción (Plan v5) -->
+                            ${renderStancamientoAlert(studio)}
                             <div class="card">
                                 <div class="card-header">
                                     <h3 class="card-title">📐 Proceso prescripción</h3>
@@ -12620,6 +12630,40 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
         // ============================================
         // ACTIVITIES
         // ============================================
+
+        // M14 — Captura de geolocalización en visita
+        function captureGeoLocation() {
+            const btn = document.getElementById('btn-geo-capture');
+            const display = document.getElementById('meeting-geo-display');
+            const geoInput = document.getElementById('meeting-geo-data');
+            if (!navigator.geolocation) {
+                if (display) { display.textContent = 'GPS no disponible en este dispositivo'; display.style.color = 'var(--danger)'; }
+                return;
+            }
+            if (btn) { btn.disabled = true; btn.textContent = '⏳ Obteniendo...'; }
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude.toFixed(5);
+                    const lon = pos.coords.longitude.toFixed(5);
+                    const acc = Math.round(pos.coords.accuracy);
+                    const ts = new Date().toISOString();
+                    const geoObj = { lat: parseFloat(lat), lon: parseFloat(lon), accuracy: acc, ts };
+                    if (geoInput) geoInput.value = JSON.stringify(geoObj);
+                    if (display) {
+                        display.innerHTML = `<a href="https://maps.google.com/?q=${lat},${lon}" target="_blank" rel="noopener" style="color:var(--accent);">📍 ${lat}, ${lon}</a> <span style="color:var(--muted);">(±${acc}m)</span>`;
+                        display.style.color = '';
+                    }
+                    if (btn) { btn.disabled = false; btn.textContent = '🔄 Actualizar'; }
+                },
+                (err) => {
+                    const msgs = { 1: 'Permiso denegado', 2: 'Posición no disponible', 3: 'Tiempo de espera agotado' };
+                    if (display) { display.textContent = msgs[err.code] || 'Error de GPS'; display.style.color = 'var(--danger)'; }
+                    if (btn) { btn.disabled = false; btn.textContent = '📍 Reintentar'; }
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+            );
+        }
+
         function openActivityModal() {
             document.getElementById('activity-type').value = 'note';
             document.getElementById('activity-text').value = '';
@@ -12637,6 +12681,11 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             ['meeting-fase','meeting-resultado','meeting-proxima-accion'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
             const meetingExtra = document.getElementById('meeting-extra-section');
             if (meetingExtra) meetingExtra.style.display = 'none';
+            // M14: resetear geo
+            const geoData = document.getElementById('meeting-geo-data');
+            const geoDisplay = document.getElementById('meeting-geo-display');
+            if (geoData) geoData.value = '';
+            if (geoDisplay) { geoDisplay.textContent = 'Sin capturar'; geoDisplay.style.color = 'var(--muted)'; }
 
             openModal('modal-activity');
         }
@@ -12717,6 +12766,13 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     fullText += '\n\n📦 Productos presentados: ' + productos.join(', ');
                 }
                 
+                // M14: capturar geo si se capturó
+                let visitaGeo = null;
+                const geoRaw = document.getElementById('meeting-geo-data')?.value;
+                if (type === 'meeting' && geoRaw) {
+                    try { visitaGeo = JSON.parse(geoRaw); } catch(e) { visitaGeo = null; }
+                }
+
                 const activityData = {
                     studioId: currentStudioId,
                     type: type,
@@ -12731,7 +12787,9 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     visitaCargo: visitaCargo,
                     visitaFase: visitaFase,
                     visitaResultado: visitaResultado,
-                    visitaProximaAccion: visitaProximaAccion
+                    visitaProximaAccion: visitaProximaAccion,
+                    // M14: geolocalización
+                    visitaGeo: visitaGeo
                 };
                 
                 console.log('📝 Datos de actividad:', activityData);
@@ -12789,6 +12847,11 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             }
             if (activity.type === 'meeting' && activity.visitaProximaAccion) {
                 badges += `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;background:#f3f4f6;color:#374151;margin-right:4px;">⏭️ ${escapeHtml(activity.visitaProximaAccion)}</span>`;
+            }
+            // M14: badge geolocalización
+            if (activity.type === 'meeting' && activity.visitaGeo && activity.visitaGeo.lat) {
+                const { lat, lon } = activity.visitaGeo;
+                badges += `<a href="https://maps.google.com/?q=${lat},${lon}" target="_blank" rel="noopener" style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;background:#ecfdf5;color:#065f46;margin-right:4px;text-decoration:none;">🗺️ ${lat.toFixed(4)}, ${lon.toFixed(4)}</a>`;
             }
             if (activity.type === 'comercial' && activity.comercialCall) {
                 const c = activity.comercialCall;
@@ -13198,6 +13261,29 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
         // ============================================
         // PROCESO PRESCRIPCIÓN (Plan v5)
         // ============================================
+
+        // M7b — Alerta de estancamiento por fase
+        function renderStancamientoAlert(studio) {
+            const fase = String(studio.fase || '');
+            if (!fase || fase === '' || fase === '1' || fase === '8') return ''; // no aplica en fase 1 ni 8
+            const fasesActivas = ['2','3','4','5','6','7'];
+            if (!fasesActivas.includes(fase)) return '';
+            const ref = studio.faseChangedAt || studio.createdAt;
+            if (!ref) return '';
+            const diasEnFase = Math.floor((Date.now() - new Date(ref).getTime()) / 86400000);
+            if (diasEnFase < 30) return '';
+            const color = diasEnFase >= 60 ? '#dc2626' : '#d97706';
+            const bg = diasEnFase >= 60 ? '#fef2f2' : '#fffbeb';
+            const icon = diasEnFase >= 60 ? '🔴' : '⚠️';
+            return `<div style="background:${bg};border:1px solid ${color};border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+                <span style="font-size:1.2rem;">${icon}</span>
+                <div>
+                    <strong style="color:${color};">Estancamiento en ${getFaseLabel(fase)}</strong>
+                    <div style="font-size:0.82rem;color:${color};margin-top:2px;">${diasEnFase} días sin cambio de fase — revisa si hay bloqueo o es momento de avanzar</div>
+                </div>
+            </div>`;
+        }
+
         const FASE_LABELS = {
             '1': '1 · Identificación',
             '2': '2 · Cualificación',
@@ -13216,6 +13302,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const studio = await getStudio(studioId || currentStudioId);
             if (!studio) return;
             document.getElementById('prescripcion-fase').value = studio.fase || '';
+            document.getElementById('prescripcion-fase').dataset.faseActual = studio.fase || '';
             document.querySelectorAll('.norma-check').forEach(cb => {
                 cb.checked = (studio.normasExigidas || []).includes(cb.value);
             });
@@ -13228,7 +13315,9 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
         }
 
         async function savePrescripcionData() {
-            const fase = document.getElementById('prescripcion-fase').value;
+            const faseEl = document.getElementById('prescripcion-fase');
+            const fase = faseEl.value;
+            const faseAnterior = faseEl.dataset.faseActual || '';
             const normas = Array.from(document.querySelectorAll('.norma-check:checked')).map(cb => cb.value);
             const programas = Array.from(document.querySelectorAll('.programa-check:checked')).map(cb => cb.value);
             const evidencia = document.getElementById('prescripcion-evidencia')?.value.trim() || null;
@@ -13239,6 +13328,17 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 evidenciaDocumental: evidencia
             };
             await updateStudio(currentStudioId, updates);
+            // M7: log automático + timestamp si la fase cambió
+            if (fase && fase !== faseAnterior) {
+                const faseAntLabel = faseAnterior ? getFaseLabel(faseAnterior) : 'sin asignar';
+                const faseNuevaLabel = getFaseLabel(fase);
+                await addActivity({
+                    studioId: currentStudioId,
+                    type: 'status',
+                    text: `📐 Fase actualizada: ${faseAntLabel} → ${faseNuevaLabel}`
+                });
+                await updateStudio(currentStudioId, { faseChangedAt: new Date().toISOString() });
+            }
             closeModal('modal-prescripcion');
             showStudioDetail(currentStudioId);
             showNotification('✅ Datos de prescripción guardados', 'success');
