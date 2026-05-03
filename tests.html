@@ -74,7 +74,7 @@
 
 <header>
   <h1>🧪 CRM GPF — Test Suite</h1>
-  <p>Cobertura automática: DOM · Funciones JS · Sprints 1–8 · Firebase · Filtros · Kanban · Pipeline</p>
+  <p>Cobertura automática: DOM · Funciones JS · Sprints 1–9 · Firebase · Filtros · Kanban · Pipeline · M7</p>
 </header>
 
 <div class="toolbar">
@@ -405,6 +405,24 @@ function defineTests() {
       }),
       ok('generarInformePipeline usa getAllStudios (definida)', () => fn('getAllStudios')),
       ok('generarInformePipeline usa getAllActivities (definida)', () => fn('getAllActivities')),
+    ]},
+
+    // ── Cat 16: Sprint 9 — M7 Confirmación cambio de fase ───────────
+    { cat: '🔐 Sprint 9 — M7 Confirmación avance de fase', tests: [
+      ok('Modal confirmación fase (#modal-fase-confirmacion)',  () => el('modal-fase-confirmacion')),
+      ok('Título del modal (#fase-conf-titulo)',                () => el('fase-conf-titulo')),
+      ok('Pregunta del modal (#fase-conf-pregunta)',            () => el('fase-conf-pregunta')),
+      ok('Lista criterios (#fase-conf-criterios)',              () => el('fase-conf-criterios')),
+      ok('Desde-fase label (#fase-conf-from)',                  () => el('fase-conf-from')),
+      ok('Botón confirmar avance (onclick=confirmarAvanceFase)',() => !!D.querySelector('[onclick*="confirmarAvanceFase"]')),
+      ok('Función showFaseConfirmModal existe',                 () => fn('showFaseConfirmModal')),
+      ok('Función confirmarAvanceFase existe',                  () => fn('confirmarAvanceFase')),
+      ok('Función _doSavePrescripcion existe',                  () => fn('_doSavePrescripcion')),
+      ok('FASE_CRITERIOS definido en window',                   () => typeof W.FASE_CRITERIOS === 'object'),
+      ok('FASE_CRITERIOS tiene 7 transiciones (2–8)',           () => Object.keys(W.FASE_CRITERIOS || {}).length === 7),
+      ok('Criterios para fase 2 presentes',                    () => Array.isArray(W.FASE_CRITERIOS?.['2']?.criterios) && W.FASE_CRITERIOS['2'].criterios.length >= 3),
+      ok('Criterios para fase 7 (Especificación) presentes',   () => W.FASE_CRITERIOS?.['7']?.pregunta?.includes('pliego')),
+      ok('Criterios para fase 8 (Seguimiento) presentes',      () => W.FASE_CRITERIOS?.['8']?.criterios?.length >= 3),
     ]},
   ];
 }
