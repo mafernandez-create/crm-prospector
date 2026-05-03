@@ -8024,6 +8024,13 @@
                     <td data-label="Prioridad"><span class="priority priority-${(studio.priority || 'media').toLowerCase().replace(/[^a-z]/g,'')}">${escapeHtml(studio.priority || 'Media')}</span></td>
                     <td data-label="Última Actividad">${formatDate(studio.updatedAt)}</td>
                     <td data-label="Creado">${formatDate(studio.createdAt)}</td>
+                    <td data-label="Días en fase" style="text-align:center;">${(() => {
+                        const faseRef = studio.faseChangedAt || studio.updatedAt || studio.createdAt;
+                        const dias = faseRef ? Math.floor((Date.now() - new Date(faseRef).getTime()) / 86400000) : null;
+                        if (dias === null) return '<span style="color:#9ca3af;font-size:0.8rem;">—</span>';
+                        const col = dias < 30 ? '#16a34a' : dias < 60 ? '#d97706' : '#dc2626';
+                        return `<span style="font-weight:700;color:${col};font-size:0.85rem;">${dias}d</span>`;
+                    })()}</td>
                     <td data-label="Tarea B2B">${renderTaskIndicator(studio)}</td>
                     <td data-label="Acciones" class="table-actions-cell">
                         <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); showStudioDetail('${studio.id}')">👁️ Ver</button>
