@@ -15301,6 +15301,113 @@ ${comercialCalls.length > 0 ? `
                         <span>🤝 Comercial: ${weeks[3].comercial}</span>
                     </div>`;
             }
+
+            // ── GAP 4: Distribuidores prescriptores ──────────────────────────
+            const distribEl = document.getElementById('kpi-distribuidores');
+            if (distribEl) {
+                const ORIGEN_LABELS = {
+                    visita_fria:'Visita en frío', referido:'Referido', feria:'Feria/Evento',
+                    linkedin:'LinkedIn', web_construdata:'Construdata', colega_gpf:'Colega GPF',
+                    obra_cercana:'Obra cercana', licitacion:'Licitación', otro:'Otro'
+                };
+                const origenCounts = {};
+                studios.forEach(s => {
+                    const o = s.origenPrescriptor || s.data?.origenPrescriptor;
+                    if (o) origenCounts[o] = (origenCounts[o] || 0) + 1;
+                });
+                const totalOrigen = Object.values(origenCounts).reduce((a,b)=>a+b, 0);
+                if (totalOrigen === 0) {
+                    distribEl.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;text-align:center;padding:20px;">Sin datos de origen todavía.<br>Añade el origen al crear empresas.</div>';
+                } else {
+                    const sorted = Object.entries(origenCounts).sort((a,b)=>b[1]-a[1]);
+                    const maxV = sorted[0][1];
+                    distribEl.innerHTML = sorted.map(([k,v]) => {
+                        const pct = Math.max(6, Math.round((v/maxV)*100));
+                        const label = ORIGEN_LABELS[k] || k;
+                        const share = Math.round((v/totalOrigen)*100);
+                        return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+                            <div style="width:100px;font-size:0.72rem;color:var(--text);flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${label}">${label}</div>
+                            <div style="flex:1;background:var(--border);border-radius:3px;height:16px;overflow:hidden;">
+                                <div style="width:${pct}%;height:100%;background:#7c3aed;border-radius:3px;display:flex;align-items:center;padding-left:5px;">
+                                    <span style="color:white;font-size:0.68rem;font-weight:700;">${v}</span>
+                                </div>
+                            </div>
+                            <div style="width:30px;text-align:right;font-size:0.72rem;color:var(--muted);">${share}%</div>
+                        </div>`;
+                    }).join('');
+                }
+            }
+
+            // ── GAP 5: Conversión fase 7→8 ───────────────────────────────────
+            const conv78El = document.getElementById('kpi-conversion-78');
+            if (conv78El) {
+                const enF7 = studios.filter(s => String(s.fase) === '7').length;
+                const enF8 = studios.filter(s => String(s.fase) === '8').length;
+                const totalF7plus = enF7 + enF8;
+                const convRate = totalF7plus > 0 ? Math.round((enF8 / totalF7plus) * 100) : null;
+                if (convRate === null) {
+                    conv78El.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;text-align:center;">Sin empresas en fases 7-8</div>';
+                } else {
+                    const col = convRate >= 50 ? '#16a34a' : convRate >= 25 ? '#d97706' : '#dc2626';
+                    const arcR = 48;
+                    const circ = 2 * Math.PI * arcR;
+                    const dash = (convRate / 100) * circ;
+                    conv78El.innerHTML = `
+                        <div style="text-align:center;">
+                            <svg width="120" height="120" viewBox="0 0 120 120" style="transform:rotate(-90deg)">
+                                <circle cx="60" cy="60" r="${arcR}" fill="none" stroke="#e5e7eb" stroke-width="10"/>
+                                <circle cx="60" cy="60" r="${arcR}" fill="none" stroke="${col}" stroke-width="10"
+                                    stroke-dasharray="${dash.toFixed(1)} ${(circ-dash).toFixed(1)}"
+                                    stroke-linecap="round"/>
+                            </svg>
+                            <div style="margin-top:-72px;padding-bottom:20px;">
+                                <div style="font-size:1.8rem;font-weight:800;color:${col};">${convRate}%</div>
+                                <div style="font-size:0.72rem;color:var(--muted);">F7→F8</div>
+                            </div>
+                            <div style="font-size:0.78rem;color:var(--muted);margin-top:8px;">
+                                En especificación: <strong>${enF7}</strong> · En obra: <strong>${enF8}</strong>
+                            </div>
+                        </div>`;
+                }
+            }
+
+            // ── GAP 6: Velocidad media por fase ──────────────────────────────
+            const velEl = document.getElementById('kpi-velocidad-fase');
+            if (velEl) {
+                const faseOrder = ['1','2','3','4','5','6','7','8'];
+                const faseLabelsShort = { '1':'Identi.','2':'Cualif.','3':'Mapeo','4':'1er ct.','5':'Visita','6':'Docum.','7':'Espec.','8':'Obra' };
+                const faseColors2 = { '1':'#3b82f6','2':'#60a5fa','3':'#a78bfa','4':'#f59e0b','5':'#8b5cf6','6':'#ec4899','7':'#10b981','8':'#059669' };
+                const diasPorFase = {};
+                const cntPorFase = {};
+                studios.forEach(s => {
+                    if (!s.fase) return;
+                    const ref = s.faseChangedAt || s.updatedAt || s.createdAt;
+                    if (!ref) return;
+                    const d = Math.floor((Date.now() - new Date(ref).getTime()) / 86400000);
+                    const f = String(s.fase);
+                    diasPorFase[f] = (diasPorFase[f] || 0) + d;
+                    cntPorFase[f] = (cntPorFase[f] || 0) + 1;
+                });
+                const hasFaseData = Object.keys(cntPorFase).length > 0;
+                if (!hasFaseData) {
+                    velEl.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;text-align:center;padding:20px;">Sin empresas con fase asignada</div>';
+                } else {
+                    const maxDias = Math.max(...faseOrder.filter(f=>cntPorFase[f]).map(f=>Math.round(diasPorFase[f]/cntPorFase[f])), 1);
+                    velEl.innerHTML = faseOrder.filter(f => cntPorFase[f]).map(f => {
+                        const media = Math.round(diasPorFase[f] / cntPorFase[f]);
+                        const pct = Math.max(5, Math.round((media / maxDias) * 100));
+                        const col = media < 30 ? '#16a34a' : media < 60 ? '#d97706' : '#dc2626';
+                        return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                            <div style="width:48px;font-size:0.7rem;color:var(--muted);flex-shrink:0;">${faseLabelsShort[f]}</div>
+                            <div style="flex:1;background:var(--border);border-radius:3px;height:14px;overflow:hidden;">
+                                <div style="width:${pct}%;height:100%;background:${faseColors2[f]||'#3b82f6'};border-radius:3px;"></div>
+                            </div>
+                            <div style="width:36px;text-align:right;font-weight:700;font-size:0.75rem;color:${col};">${media}d</div>
+                            <div style="width:20px;text-align:right;font-size:0.68rem;color:var(--muted);">(${cntPorFase[f]})</div>
+                        </div>`;
+                    }).join('');
+                }
+            }
         }
 
 
