@@ -4169,6 +4169,23 @@
                     </p>
                 </div>
 
+                <!-- Sección Plan v5 — M2 -->
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;padding:16px;border-radius:12px;margin-bottom:20px;">
+                    <h4 style="margin:0 0 8px 0;color:#1e40af;">📐 Plan v5 — Migración de datos</h4>
+                    <p style="font-size:0.82rem;color:#374151;margin:0 0 12px 0;">
+                        Asigna automáticamente la <strong>fase del proceso</strong> (1–8) a todos los estudios que no la tienen, basándose en su estado actual.
+                    </p>
+                    <div style="font-size:0.78rem;color:#6b7280;margin-bottom:12px;line-height:1.6;">
+                        Nuevo → Fase 1 · Contactado → Fase 4 · Reunión → Fase 5 · Negociación → Fase 6 · Prescripción → Fase 7 · Ganado → Fase 8
+                    </div>
+                    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                        <button class="btn btn-primary" onclick="migrarStatusAFase()" id="btn-migrar-fase" style="flex:1;min-width:160px;">
+                            🔄 Migrar status → fase
+                        </button>
+                        <span id="migrar-fase-result" style="font-size:0.82rem;color:var(--muted);"></span>
+                    </div>
+                </div>
+
                 <!-- Sección IA -->
                 <div class="form-group">
                     <label class="form-label">🤖 Análisis con IA</label>
@@ -13363,6 +13380,62 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             closeModal('modal-status');
             await loadStudios();
             showStudioDetail(currentStudioId);
+        }
+
+        // ============================================
+        // MIGRACIÓN STATUS → FASE — M2 (Sprint 7)
+        // ============================================
+        const STATUS_TO_FASE = {
+            'nuevo':        '1',
+            'prospecto':    '1',
+            'contactado':   '4',
+            'standby':      '3',
+            'reunion':      '5',
+            'negociacion':  '6',
+            'traspasado':   '6',
+            'prescripcion': '7',
+            'venta':        '8',
+            'ganado':       '8'
+            // 'perdido' → no se asigna fase
+        };
+
+        async function migrarStatusAFase() {
+            const btn = document.getElementById('btn-migrar-fase');
+            const result = document.getElementById('migrar-fase-result');
+            if (btn) { btn.disabled = true; btn.textContent = '⏳ Migrando...'; }
+            if (result) result.textContent = '';
+
+            const studios = await getAllStudios();
+            const sinFase = studios.filter(s => !s.fase && s.status && STATUS_TO_FASE[s.status]);
+            let ok = 0, err = 0;
+
+            for (const s of sinFase) {
+                try {
+                    const faseAsignada = STATUS_TO_FASE[s.status];
+                    await updateStudio(s.id, { fase: faseAsignada, faseChangedAt: new Date().toISOString() });
+                    ok++;
+                } catch(e) {
+                    console.error('Error migrando estudio', s.id, e);
+                    err++;
+                }
+            }
+
+            const skipped = studios.filter(s => s.fase).length;
+            const sinEquiv = studios.filter(s => !s.fase && (!s.status || !STATUS_TO_FASE[s.status])).length;
+
+            if (result) {
+                result.style.color = err > 0 ? 'var(--danger)' : 'var(--success)';
+                result.textContent = `✅ ${ok} asignados · ${skipped} ya tenían fase · ${sinEquiv} sin equivalencia${err > 0 ? ` · ${err} errores` : ''}`;
+            }
+            if (btn) { btn.disabled = false; btn.textContent = '🔄 Migrar status → fase'; }
+
+            if (ok > 0) {
+                showNotification(`✅ ${ok} estudios actualizados con fase Plan v5`, 'success');
+                // Recargar caché para reflejar cambios en la lista
+                if (typeof loadStudios === 'function') await loadStudios();
+            } else if (sinFase.length === 0) {
+                showNotification('Todos los estudios ya tienen fase asignada', 'info');
+            }
         }
 
         // ============================================
