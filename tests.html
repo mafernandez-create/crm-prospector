@@ -74,7 +74,7 @@
 
 <header>
   <h1>🧪 CRM GPF — Test Suite</h1>
-  <p>Cobertura automática: DOM · Funciones JS · Sprints 1–7 · Firebase · Filtros</p>
+  <p>Cobertura automática: DOM · Funciones JS · Sprints 1–8 · Firebase · Filtros · Kanban · Pipeline</p>
 </header>
 
 <div class="toolbar">
@@ -358,6 +358,53 @@ function defineTests() {
       ok('STATUS_TO_FASE sin "perdido"',            () => !W.STATUS_TO_FASE?.perdido),
       ok('STATUS_TO_FASE mapea standby a fase 3',   () => W.STATUS_TO_FASE?.standby === '3'),
       ok('STATUS_TO_FASE mapea traspasado a fase 6',() => W.STATUS_TO_FASE?.traspasado === '6'),
+    ]},
+
+    // ── Cat 13: Sprint 8C — Filtros rápidos 2026 y colegio_profesional ──
+    { cat: '📅 Sprint 8C — Filtros rápidos 2026 y tipo colegio_profesional', tests: [
+      ok('Badge "Visitas 2026" en nav (#nav-visitas-2026)',   () => el('nav-visitas-2026')),
+      ok('Badge "Visitas MUTE 2026" en nav (#nav-mute-2026)',() => el('nav-mute-2026')),
+      ok('Nav item "Informe Pipeline" presente',             () => !!D.querySelector('[onclick*="generarInformePipeline"]')),
+      ok('Nav item "Visitas 2026" con filtroRapidoVisitas',  () => !!D.querySelector('[onclick*="filtroRapidoVisitas"]')),
+      ok('Función filtroRapidoVisitas existe',               () => fn('filtroRapidoVisitas')),
+      ok('Tipo "colegio_profesional" registrado en sistema', () => W.getTypeLabel('colegio_profesional').includes('Colegio')),
+      ok('Icono colegio_profesional es 🎓',                  () => W.getTypeIcon('colegio_profesional') === '🎓'),
+      ok('getTypeLabel("colegio_profesional") no es fallback "otros"', () => !W.getTypeLabel('colegio_profesional').toLowerCase().includes('otros')),
+    ]},
+
+    // ── Cat 14: Sprint 8A — Kanban por fase Plan v5 ──────────────────
+    { cat: '📐 Sprint 8A — Kanban por fase Plan v5 (8 columnas)', tests: [
+      ok('Vista kanban presente (#view-kanban)',              () => el('view-kanban')),
+      ok('Tablero kanban (#kanban-board)',                    () => el('kanban-board')),
+      ok('Botón toggle modo (#kanban-mode-toggle)',           () => el('kanban-mode-toggle')),
+      ok('Selector tipo kanban (#kanban-type)',               () => el('kanban-type')),
+      ok('Buscador kanban (#kanban-search)',                  () => el('kanban-search')),
+      ok('Contador kanban (#kanban-count)',                   () => el('kanban-count')),
+      ok('Función renderKanban existe',                      () => fn('renderKanban')),
+      ok('Función _kanbanCard existe',                       () => fn('_kanbanCard')),
+      ok('Toggle muestra texto "Estado" o "Fase"',           () => {
+        const btn = D.getElementById('kanban-mode-toggle');
+        return btn && (btn.textContent.includes('Estado') || btn.textContent.includes('Fase'));
+      }),
+      ok('kanban-mode-toggle tiene onclick con kanbanMode',  () => {
+        const btn = D.getElementById('kanban-mode-toggle');
+        return btn && btn.getAttribute('onclick')?.includes('kanbanMode');
+      }),
+    ]},
+
+    // ── Cat 15: Sprint 8B — Informe Pipeline .docx ───────────────────
+    { cat: '📑 Sprint 8B — Informe Pipeline .docx descargable', tests: [
+      ok('Función generarInformePipeline existe',            () => fn('generarInformePipeline')),
+      ok('CDN docx.js incluido en la página',                () => !!D.querySelector('script[src*="docx"]')),
+      warn('window.docx cargado (librería CDN)',             () => typeof W.docx !== 'undefined', 'Requiere conexión a CDN jsdelivr'),
+      warn('window.docx tiene Packer',                      () => typeof W.docx?.Packer !== 'undefined', 'Requiere window.docx cargado'),
+      warn('window.docx tiene Document',                    () => typeof W.docx?.Document !== 'undefined', 'Requiere window.docx cargado'),
+      ok('Nav sección "Actividad 2026" con 3 items',        () => {
+        const items = D.querySelectorAll('[onclick*="filtroRapidoVisitas"], [onclick*="generarInformePipeline"]');
+        return items.length >= 3;
+      }),
+      ok('generarInformePipeline usa getAllStudios (definida)', () => fn('getAllStudios')),
+      ok('generarInformePipeline usa getAllActivities (definida)', () => fn('getAllActivities')),
     ]},
   ];
 }
