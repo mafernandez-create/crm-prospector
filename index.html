@@ -13685,6 +13685,51 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             return FASE_LABELS[String(fase)] || `Fase ${fase}`;
         }
 
+        // ── M7: Criterios de transición de fase (Sprint 9) ──────────────
+        const FASE_CRITERIOS = {
+            '2': { titulo: '2 · Cualificación',
+                pregunta: '¿Has confirmado que este prescriptor puede especificar nuestros productos?',
+                criterios: ['Perfil técnico verificado (arquitecto, ingeniero, técnico municipal…)', 'Segmento alineado con catálogo GPF (regantes, distribución, obra pública…)', 'Capacidad de prescripción o influencia identificada'] },
+            '3': { titulo: '3 · Mapeo prescriptor',
+                pregunta: '¿Has completado el mapa de influencia del prescriptor?',
+                criterios: ['Contacto directo o indirecto identificado', 'Proyectos activos o futuros detectados', 'Canal de acceso al prescriptor definido'] },
+            '4': { titulo: '4 · Primer contacto',
+                pregunta: '¿Tienes los datos directos y el motivo de visita preparado?',
+                criterios: ['Nombre y cargo del interlocutor clave', 'Teléfono o email directo', 'Argumento de visita preparado (producto / proyecto / normativa)'] },
+            '5': { titulo: '5 · Visita técnica',
+                pregunta: '¿Has realizado o tienes confirmada la visita técnica?',
+                criterios: ['Reunión agendada o realizada', 'Interés en productos GPF confirmado', 'Necesidad técnica o proyecto activo identificado'] },
+            '6': { titulo: '6 · Documentación',
+                pregunta: '¿Has enviado la documentación técnica solicitada?',
+                criterios: ['Ficha técnica o catálogo entregado', 'Normativa aplicable identificada (ETNT003, ETNT015, UNE…)', 'El prescriptor ha aceptado o solicitado la documentación'] },
+            '7': { titulo: '7 · Especificación',
+                pregunta: '¿El prescriptor ha confirmado que va a especificar en pliego?',
+                criterios: ['Compromiso de especificación obtenido', 'Proyecto con licitación próxima o en curso', 'Referencia GPF incluida o acordada en pliego / BOM'] },
+            '8': { titulo: '8 · Seguimiento de obra',
+                pregunta: '¿La especificación está en un pliego aprobado o la obra está en ejecución?',
+                criterios: ['Especificación aprobada en proyecto ejecutivo', 'Obra adjudicada o en fase de ejecución', 'Canal de suministro activo (distribuidor / instalador identificado)'] }
+        };
+        window.FASE_CRITERIOS = FASE_CRITERIOS;
+
+        let _pendingFaseSave = null;
+
+        function showFaseConfirmModal(faseTo, faseFrom, callback) {
+            _pendingFaseSave = callback;
+            const c = FASE_CRITERIOS[faseTo];
+            document.getElementById('fase-conf-titulo').textContent = 'Avanzar a ' + c.titulo;
+            document.getElementById('fase-conf-from').textContent = getFaseLabel(faseFrom) || 'sin asignar';
+            document.getElementById('fase-conf-pregunta').textContent = c.pregunta;
+            document.getElementById('fase-conf-criterios').innerHTML =
+                c.criterios.map(x => `<li style="margin-bottom:5px;">${x}</li>`).join('');
+            openModal('modal-fase-confirmacion');
+        }
+
+        function confirmarAvanceFase() {
+            closeModal('modal-fase-confirmacion');
+            if (_pendingFaseSave) { _pendingFaseSave(); _pendingFaseSave = null; }
+        }
+        window.confirmarAvanceFase = confirmarAvanceFase;
+
         async function openEditPrescripcionModal(studioId) {
             const studio = await getStudio(studioId || currentStudioId);
             if (!studio) return;
