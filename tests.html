@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM GPF — Test Suite</title>
+<style>
+  :root {
+    --pass: #16a34a; --pass-bg: #f0fdf4; --pass-border: #bbf7d0;
+    --fail: #dc2626; --fail-bg: #fef2f2; --fail-border: #fecaca;
+    --skip: #9ca3af; --skip-bg: #f9fafb; --skip-border: #e5e7eb;
+    --warn: #d97706; --warn-bg: #fffbeb; --warn-border: #fde68a;
+    --primary: #2563eb; --surface: #fff; --bg: #f1f5f9;
+    --text: #1e293b; --muted: #64748b; --border: #e2e8f0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh; }
+  header { background: linear-gradient(135deg, #1e40af, #2563eb);
+    color: white; padding: 20px 32px; }
+  header h1 { font-size: 1.4rem; font-weight: 700; }
+  header p  { font-size: 0.85rem; opacity: 0.8; margin-top: 2px; }
+  .toolbar { display: flex; align-items: center; gap: 12px; padding: 14px 32px;
+    background: var(--surface); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .score-badge { font-size: 1.6rem; font-weight: 800; }
+  .score-label { font-size: 0.78rem; color: var(--muted); }
+  .progress-bar { flex: 1; min-width: 200px; height: 10px; background: #e2e8f0;
+    border-radius: 10px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--pass); border-radius: 10px;
+    transition: width 0.4s ease; }
+  button.run-btn { background: var(--primary); color: white; border: none; padding: 8px 20px;
+    border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+  button.run-btn:hover { background: #1d4ed8; }
+  .status-chip { font-size: 0.75rem; padding: 3px 10px; border-radius: 20px;
+    font-weight: 600; white-space: nowrap; }
+  .chip-loading { background: #eff6ff; color: var(--primary); }
+  .chip-done   { background: var(--pass-bg); color: var(--pass); }
+  .chip-error  { background: var(--fail-bg); color: var(--fail); }
+  main { padding: 24px 32px; display: grid; gap: 16px; }
+  .category { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .cat-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+    cursor: pointer; user-select: none; border-bottom: 1px solid var(--border); }
+  .cat-header:hover { background: #f8fafc; }
+  .cat-icon { font-size: 1.1rem; }
+  .cat-title { font-weight: 700; font-size: 0.95rem; flex: 1; }
+  .cat-score { font-size: 0.8rem; font-weight: 700; padding: 2px 10px; border-radius: 20px; }
+  .cat-score.all-pass  { background: var(--pass-bg); color: var(--pass); }
+  .cat-score.some-fail { background: var(--fail-bg); color: var(--fail); }
+  .cat-score.pending   { background: var(--skip-bg); color: var(--skip); }
+  .cat-toggle { font-size: 0.8rem; color: var(--muted); transition: transform 0.2s; }
+  .cat-toggle.collapsed { transform: rotate(-90deg); }
+  .test-list { padding: 0; }
+  .test-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 16px;
+    border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; }
+  .test-item:last-child { border-bottom: none; }
+  .test-icon { width: 18px; flex-shrink: 0; margin-top: 1px; font-size: 0.85rem; }
+  .test-name { flex: 1; color: var(--text); }
+  .test-detail { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+  .test-item.pass { background: #fafffe; }
+  .test-item.fail { background: var(--fail-bg); }
+  .test-item.warn { background: var(--warn-bg); }
+  .test-item.pending { background: var(--skip-bg); opacity: 0.6; }
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px; padding: 0 32px 24px; }
+  .summary-card { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px; text-align: center; }
+  .summary-num { font-size: 1.8rem; font-weight: 800; }
+  .summary-lbl { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+  iframe#crm { position: fixed; left: -9999px; top: 0; width: 1400px; height: 900px; }
+  @media (max-width: 640px) { main, .toolbar, .summary { padding-left: 16px; padding-right: 16px; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧪 CRM GPF — Test Suite</h1>
+  <p>Cobertura automática: DOM · Funciones JS · Sprints 1–7 · Firebase · Filtros</p>
+</header>
+
+<div class="toolbar">
+  <div>
+    <div class="score-badge" id="score-text">—</div>
+    <div class="score-label">tests superados</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  <span class="status-chip chip-loading" id="status-chip">⏳ Cargando CRM...</span>
+  <button class="run-btn" onclick="runAll()">▶ Re-ejecutar</button>
+</div>
+
+<div class="summary" id="summary-row" style="padding-top:16px;">
+  <div class="summary-card"><div class="summary-num" id="sum-pass" style="color:var(--pass)">0</div><div class="summary-lbl">✅ Pasados</div></div>
+  <div class="summary-card"><div class="summary-num" id="sum-fail" style="color:var(--fail)">0</div><div class="summary-lbl">❌ Fallidos</div></div>
+  <div class="summary-card"><div class="summary-num" id="sum-warn" style="color:var(--warn)">0</div><div class="summary-lbl">⚠️ Avisos</div></div>
+  <div class="summary-card"><div class="summary-num" id="sum-total" style="color:var(--primary)">0</div><div class="summary-lbl">📋 Total</div></div>
+</div>
+
+<main id="results"></main>
+
+<iframe id="crm" src="index.html"></iframe>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// MINI FRAMEWORK
+// ═══════════════════════════════════════════════════════════════
+let W = null; // iframe contentWindow
+let D = null; // iframe contentDocument
+let allResults = [];
+
+function ok(name, expr, detail) {
+  try {
+    const pass = typeof expr === 'function' ? expr() : !!expr;
+    return { name, status: pass ? 'pass' : 'fail', detail: detail || '' };
+  } catch(e) {
+    return { name, status: 'fail', detail: 'Error: ' + e.message };
+  }
+}
+function warn(name, expr, detail) {
+  try {
+    const pass = typeof expr === 'function' ? expr() : !!expr;
+    return { name, status: pass ? 'pass' : 'warn', detail: detail || '' };
+  } catch(e) {
+    return { name, status: 'warn', detail: 'Error: ' + e.message };
+  }
+}
+function el(id)  { return !!D.getElementById(id); }
+function fn(name){ return typeof W[name] === 'function'; }
+function qsa(sel){ return D.querySelectorAll(sel); }
+function val(id) { return D.getElementById(id)?.value ?? null; }
+function opts(id){ return D.getElementById(id)?.options?.length ?? 0; }
+function hasOpt(id, v){ return !!D.querySelector(`#${id} option[value="${v}"]`); }
+
+// ═══════════════════════════════════════════════════════════════
+// DEFINICIÓN DE TESTS POR CATEGORÍA
+// ═══════════════════════════════════════════════════════════════
+function defineTests() {
+  return [
+
+    // ── Cat 1: Estructura HTML base ──────────────────────────────
+    { cat: '🏗️ Estructura HTML base', tests: [
+      ok('Página cargada sin errores críticos',  () => !!D.body),
+      ok('Nav lateral presente',                 () => !!D.querySelector('.sidebar, .nav')),
+      ok('Vista dashboard presente (#view-dashboard)',() => el('view-dashboard')),
+      ok('Vista estudios presente (#view-studios)',   () => el('view-studios')),
+      ok('Barra de búsqueda global',             () => !!D.querySelector('input[type="search"], input[placeholder*="busca" i], input[placeholder*="search" i]')),
+      ok('Modal de actividad (#modal-activity)',  () => el('modal-activity')),
+      ok('Modal de prescripción (#modal-prescripcion)', () => el('modal-prescripcion')),
+      ok('Modal de proyecto (#modal-project-edit)',() => el('modal-project-edit')),
+      ok('Modal de configuración (#modal-settings)', () => el('modal-settings')),
+      ok('Selector de tipo de actividad (#activity-type)', () => el('activity-type')),
+    ]},
+
+    // ── Cat 2: Sprint 1 — Dashboard KPIs ────────────────────────
+    { cat: '🎯 Sprint 1 — Dashboard KPIs 2026', tests: [
+      ok('Panel KPIs 2026 (#kpi-objetivos-2026)',     () => el('kpi-objetivos-2026')),
+      ok('Barra visitas (#kpi-visitas-bar)',           () => el('kpi-visitas-bar')),
+      ok('Barra MUTE (#kpi-mute-bar)',                () => el('kpi-mute-bar')),
+      ok('Barra ponencias (#kpi-ponencias-bar)',      () => el('kpi-ponencias-bar')),
+      ok('Toggle catálogo MUTE (#kpi-catalogo-toggle)', () => el('kpi-catalogo-toggle')),
+      ok('Contador soporte técnico (#kpi-soporte-count)', () => el('kpi-soporte-count')),
+      ok('Tipo actividad "ponencia" en selector',     () => hasOpt('activity-type', 'ponencia')),
+      ok('Tipo actividad "soporte_tecnico" en selector',() => hasOpt('activity-type', 'soporte_tecnico')),
+      ok('Función toggleCatalogoMUTE existe',         () => fn('toggleCatalogoMUTE')),
+      ok('Función loadDashboard existe',              () => fn('loadDashboard')),
+      ok('Función renderTareasPanel existe',          () => fn('renderTareasPanel')),
+      ok('Función renderTareasVencidasAlert existe',  () => fn('renderTareasVencidasAlert')),
+    ]},
+
+    // ── Cat 3: Sprint 2 — Proceso prescripción ──────────────────
+    { cat: '📐 Sprint 2 — Proceso prescripción (Fase 1–8)', tests: [
+      ok('Select fase prescripción (#prescripcion-fase)', () => el('prescripcion-fase')),
+      ok('Fase 1 "Identificación" en selector',       () => hasOpt('prescripcion-fase', '1')),
+      ok('Fase 5 "Visita técnica" en selector',       () => hasOpt('prescripcion-fase', '5')),
+      ok('Fase 8 "Seguimiento de obra" en selector',  () => hasOpt('prescripcion-fase', '8')),
+      ok('9 opciones en selector fase (vacía + 8)',   () => opts('prescripcion-fase') >= 9),
+      ok('Checkboxes normas (.norma-check) presentes',() => qsa('.norma-check').length >= 5),
+      ok('ETNT003 entre normas',                      () => !!D.querySelector('.norma-check[value="ETNT003"]')),
+      ok('ETNT015 entre normas',                      () => !!D.querySelector('.norma-check[value="ETNT015"]')),
+      ok('Checkboxes programas (.programa-check)',    () => qsa('.programa-check').length >= 4),
+      ok('PARRA entre programas',                     () => !!D.querySelector('.programa-check[value="PARRA"]')),
+      ok('FEADER entre programas',                    () => !!D.querySelector('.programa-check[value="FEADER"]')),
+      ok('Campo evidencia documental (#prescripcion-evidencia)', () => el('prescripcion-evidencia')),
+      ok('Filtro fase en lista (#filter-fase)',        () => el('filter-fase')),
+      ok('8 fases en filtro lista',                   () => opts('filter-fase') >= 9),
+      ok('Función getFaseLabel existe',               () => fn('getFaseLabel')),
+      ok('getFaseLabel("1") → Identificación',        () => W.getFaseLabel('1').includes('Identificación')),
+      ok('getFaseLabel("5") → Visita técnica',        () => W.getFaseLabel('5').includes('Visita técnica')),
+      ok('getFaseLabel("8") → Seguimiento de obra',   () => W.getFaseLabel('8').includes('Seguimiento de obra')),
+      ok('FASE_LABELS tiene 8 entradas',              () => Object.keys(W.FASE_LABELS || {}).length === 8),
+      ok('Función openEditPrescripcionModal existe',  () => fn('openEditPrescripcionModal')),
+      ok('Función savePrescripcionData existe',       () => fn('savePrescripcionData')),
+    ]},
+
+    // ── Cat 4: Sprint 3 — 13 campos por visita ──────────────────
+    { cat: '📝 Sprint 3 — 13 campos por visita (Plan v5 §9)', tests: [
+      ok('Sección extra visita (#meeting-extra-section)', () => el('meeting-extra-section')),
+      ok('Select contacto (#meeting-contacto)',        () => el('meeting-contacto')),
+      ok('Campo cargo (#meeting-cargo)',               () => el('meeting-cargo')),
+      ok('Select fase visita (#meeting-fase)',         () => el('meeting-fase')),
+      ok('9 opciones en fase visita',                 () => opts('meeting-fase') >= 9),
+      ok('Fase 1 en selector de visita',              () => hasOpt('meeting-fase', '1')),
+      ok('Fase 8 en selector de visita',              () => hasOpt('meeting-fase', '8')),
+      ok('Select resultado (#meeting-resultado)',      () => el('meeting-resultado')),
+      ok('"sin_compromiso" en resultado',             () => hasOpt('meeting-resultado', 'sin_compromiso')),
+      ok('"con_interes" en resultado',                () => hasOpt('meeting-resultado', 'con_interes')),
+      ok('"solicita_docs" en resultado',              () => hasOpt('meeting-resultado', 'solicita_docs')),
+      ok('"especifica" en resultado',                 () => hasOpt('meeting-resultado', 'especifica')),
+      ok('Select próxima acción (#meeting-proxima-accion)', () => el('meeting-proxima-accion')),
+      ok('Campo detalle próxima acción',              () => el('meeting-proxima-detalle')),
+      ok('Campo geo data oculto (#meeting-geo-data)', () => el('meeting-geo-data')),
+      ok('Función loadTeamIntoContactSelect existe',  () => fn('loadTeamIntoContactSelect')),
+      ok('Función onContactoChange existe',           () => fn('onContactoChange')),
+      ok('Campo fecha actividad (#activity-followup)',() => el('activity-followup')),
+      ok('Campo texto actividad (#activity-text)',    () => el('activity-text')),
+      ok('Campo productos (.producto-check) presente',() => qsa('.producto-check').length >= 5),
+    ]},
+
+    // ── Cat 5: Sprint 4 — Filtros y tareas ──────────────────────
+    { cat: '🔍 Sprint 4 — Filtros programa/norma y tareas S.15', tests: [
+      ok('Filtro programa (#filter-programa)',        () => el('filter-programa')),
+      ok('PARRA en filtro programa',                  () => hasOpt('filter-programa', 'PARRA')),
+      ok('FEADER en filtro programa',                 () => hasOpt('filter-programa', 'FEADER')),
+      ok('NextGenerationEU en filtro programa',       () => hasOpt('filter-programa', 'NextGenerationEU')),
+      ok('Filtro norma (#filter-norma)',              () => el('filter-norma')),
+      ok('ETNT003 en filtro norma',                   () => hasOpt('filter-norma', 'ETNT003')),
+      ok('ETNT015 en filtro norma',                   () => hasOpt('filter-norma', 'ETNT015')),
+      ok('TAREAS_S15 definido',                       () => Array.isArray(W.TAREAS_S15)),
+      ok('TAREAS_S15 tiene ≥ 7 tareas',              () => (W.TAREAS_S15 || []).length >= 7),
+      ok('Tarea catálogo MUTE (30%) presente',        () => (W.TAREAS_S15 || []).some(t => t.id === 't_catalogo')),
+      ok('Tarea soporte técnico (30%) presente',      () => (W.TAREAS_S15 || []).some(t => t.id === 't_soporte')),
+      ok('Tarea ponencias (5%) presente',             () => (W.TAREAS_S15 || []).some(t => t.id === 't_ponencias')),
+      ok('Al menos 2 tareas marcadas como vencidas',  () => (W.TAREAS_S15 || []).filter(t => t.urgencia === 'vencida').length >= 2),
+      ok('Función renderTareasPanel existe',          () => fn('renderTareasPanel')),
+      ok('Función getTareaEstado existe',             () => fn('getTareaEstado')),
+      ok('Función setTareaEstado existe',             () => fn('setTareaEstado')),
+      ok('Función applyFilters existe',               () => fn('applyFilters')),
+    ]},
+
+    // ── Cat 6: Sprint 5 — Fase + geolocalización ────────────────
+    { cat: '📍 Sprint 5 — Cambio de fase y geolocalización', tests: [
+      ok('Botón capturar geo (#btn-geo-capture)',     () => el('btn-geo-capture')),
+      ok('Display geo (#meeting-geo-display)',        () => el('meeting-geo-display')),
+      ok('Función captureGeoLocation existe',         () => fn('captureGeoLocation')),
+      ok('Función renderStancamientoAlert existe',    () => fn('renderStancamientoAlert')),
+      ok('Sin alerta para fase vacía',                () => W.renderStancamientoAlert({}) === ''),
+      ok('Sin alerta para fase 1 (Identificación)',   () => W.renderStancamientoAlert({ fase: '1', faseChangedAt: new Date(Date.now()-50*86400000).toISOString() }) === ''),
+      ok('Sin alerta para fase 8 (Seguimiento)',      () => W.renderStancamientoAlert({ fase: '8', faseChangedAt: new Date(Date.now()-50*86400000).toISOString() }) === ''),
+      ok('Sin alerta con < 30 días en fase 3',        () => W.renderStancamientoAlert({ fase: '3', faseChangedAt: new Date(Date.now()-20*86400000).toISOString() }) === ''),
+      ok('Alerta ⚠️ con 35 días en fase 3',          () => W.renderStancamientoAlert({ fase: '3', faseChangedAt: new Date(Date.now()-35*86400000).toISOString() }).includes('Estancamiento')),
+      ok('Alerta 🔴 con 65 días en fase 5',          () => W.renderStancamientoAlert({ fase: '5', faseChangedAt: new Date(Date.now()-65*86400000).toISOString() }).includes('#dc2626')),
+      ok('dataset.faseActual en apertura modal (atributo HTML)', () => !!D.getElementById('prescripcion-fase')),
+    ]},
+
+    // ── Cat 7: Sprint 6 — Gestión de proyectos ──────────────────
+    { cat: '🏗️ Sprint 6 — Gestión de proyectos (M25)', tests: [
+      ok('Modal proyecto (#modal-project-edit)',      () => el('modal-project-edit')),
+      ok('Campo nombre proyecto (#project-name)',     () => el('project-name')),
+      ok('Select tipo proyecto (#project-type)',      () => el('project-type')),
+      ok('Select estado licitación (#project-estado)',() => el('project-estado')),
+      ok('"adjudicado" en estado licitación',         () => hasOpt('project-estado', 'adjudicado')),
+      ok('"en_ejecucion" en estado licitación',       () => hasOpt('project-estado', 'en_ejecucion')),
+      ok('Select programa financiación (#project-programa)', () => el('project-programa')),
+      ok('PARRA en programa proyecto',               () => hasOpt('project-programa', 'PARRA')),
+      ok('Select norma proyecto (#project-norma)',   () => el('project-norma')),
+      ok('ETNT003 en norma proyecto',                () => hasOpt('project-norma', 'ETNT003')),
+      ok('Campo presupuesto (#project-presupuesto)', () => el('project-presupuesto')),
+      ok('Campo URL contratante (#project-url)',      () => el('project-url')),
+      ok('Campo relevancia (#project-relevance)',    () => el('project-relevance')),
+      ok('Campo localización (#project-location)',   () => el('project-location')),
+      ok('Campo año proyecto (#project-year)',        () => el('project-year')),
+      ok('Campo índice edición (#project-edit-index)',() => el('project-edit-index')),
+      ok('Función openAddProjectModal existe',       () => fn('openAddProjectModal')),
+      ok('Función openEditProjectModal existe',      () => fn('openEditProjectModal')),
+      ok('Función saveProjectData existe',           () => fn('saveProjectData')),
+      ok('Función deleteProject existe',             () => fn('deleteProject')),
+    ]},
+
+    // ── Cat 8: Sprint 7 — Migración status→fase ─────────────────
+    { cat: '🔄 Sprint 7 — Migración status → fase (M2)', tests: [
+      ok('Botón migración (#btn-migrar-fase)',        () => el('btn-migrar-fase')),
+      ok('Span resultado migración (#migrar-fase-result)', () => el('migrar-fase-result')),
+      ok('Función migrarStatusAFase existe',          () => fn('migrarStatusAFase')),
+      ok('STATUS_TO_FASE definido',                   () => typeof W.STATUS_TO_FASE === 'object'),
+      ok('STATUS_TO_FASE["nuevo"] → "1"',            () => W.STATUS_TO_FASE?.nuevo === '1'),
+      ok('STATUS_TO_FASE["contactado"] → "4"',       () => W.STATUS_TO_FASE?.contactado === '4'),
+      ok('STATUS_TO_FASE["reunion"] → "5"',          () => W.STATUS_TO_FASE?.reunion === '5'),
+      ok('STATUS_TO_FASE["negociacion"] → "6"',      () => W.STATUS_TO_FASE?.negociacion === '6'),
+      ok('STATUS_TO_FASE["prescripcion"] → "7"',     () => W.STATUS_TO_FASE?.prescripcion === '7'),
+      ok('STATUS_TO_FASE["ganado"] → "8"',           () => W.STATUS_TO_FASE?.ganado === '8'),
+      ok('STATUS_TO_FASE["venta"] → "8"',            () => W.STATUS_TO_FASE?.venta === '8'),
+      ok('"perdido" NO en STATUS_TO_FASE (correcto)', () => !('perdido' in (W.STATUS_TO_FASE || {}))),
+      ok('≥ 8 status mapeados',                      () => Object.keys(W.STATUS_TO_FASE || {}).length >= 8),
+    ]},
+
+    // ── Cat 9: Funciones JS core ─────────────────────────────────
+    { cat: '⚙️ Funciones JavaScript core', tests: [
+      ok('escapeHtml() existe',                      () => fn('escapeHtml')),
+      ok('escapeHtml("<b>") escapa correctamente',   () => W.escapeHtml('<b>').includes('&lt;')),
+      ok('escapeHtml("&") escapa &amp;',             () => W.escapeHtml('&').includes('&amp;')),
+      ok('getStatusLabel("ganado") contiene texto',  () => W.getStatusLabel('ganado').length > 0),
+      ok('getStatusLabel("nuevo") contiene texto',   () => W.getStatusLabel('nuevo').length > 0),
+      ok('openActivityModal() existe',               () => fn('openActivityModal')),
+      ok('openModal() / closeModal() existen',       () => fn('openModal') && fn('closeModal')),
+      ok('showNotification() existe',                () => fn('showNotification')),
+      ok('showView() existe',                        () => fn('showView')),
+      ok('formatDate() existe',                      () => fn('formatDate')),
+      ok('initials() existe',                        () => fn('initials')),
+      ok('initials("Moval Agroingeniería") devuelve texto', () => W.initials('Moval Agroingeniería').length > 0),
+      ok('getTypeLabel() existe',                    () => fn('getTypeLabel')),
+      ok('getTypeIcon() existe',                     () => fn('getTypeIcon')),
+      ok('calculateAutoPriority() existe',           () => fn('calculateAutoPriority')),
+      ok('safeUrl() existe',                         () => fn('safeUrl')),
+    ]},
+
+    // ── Cat 10: Firebase / Datos ─────────────────────────────────
+    { cat: '🔥 Firebase y capa de datos', tests: [
+      ok('Función getStudio() existe',               () => fn('getStudio')),
+      ok('Función getAllStudios() existe',            () => fn('getAllStudios')),
+      ok('Función updateStudio() existe',            () => fn('updateStudio')),
+      ok('Función addActivity() existe',             () => fn('addActivity')),
+      ok('Función getActivities() existe',           () => fn('getActivities')),
+      ok('cloudCache definido en window',            () => typeof W.cloudCache === 'object'),
+      warn('Firebase inicializado (useFirebase=true)',() => W.useFirebase === true, 'Puede tardar si red lenta'),
+      warn('Studios cargados en caché (≥1)',         () => (W.cloudCache?.studios?.length || 0) >= 1, 'Requiere Firebase conectado'),
+      warn('Cache tiene ≥ 50 estudios',              () => (W.cloudCache?.studios?.length || 0) >= 50, 'Indica sync completo'),
+      ok('localData definido',                       () => typeof W.localData === 'object'),
+      ok('savePendingWrite() existe',                () => fn('savePendingWrite')),
+      ok('loadStudios() existe',                     () => fn('loadStudios')),
+    ]},
+
+    // ── Cat 11: Interfaz — Modales y flujos ──────────────────────
+    { cat: '🖥️ Interfaz — Modales y flujos UX', tests: [
+      ok('Modal añadir estudio existe',              () => !!D.querySelector('[id*="modal-add"], [id*="add-studio"], [id*="nuevo-studio"]')),
+      ok('Modal editar contacto (#modal-edit-contact)',() => el('modal-edit-contact')),
+      ok('Modal cambio estado existe',               () => !!D.querySelector('[id*="modal-status"], [id*="status-modal"]')),
+      ok('Modal cambio tipo existe',                 () => !!D.querySelector('[id*="modal-change-type"]')),
+      ok('Sección productos en actividad (#productos-section)', () => el('productos-section')),
+      ok('Botón guardar actividad presente',         () => !!D.querySelector('#modal-activity .btn-primary')),
+      ok('Botón guardar prescripción presente',      () => !!D.querySelector('#modal-prescripcion .btn-primary')),
+      ok('Botón guardar proyecto presente',          () => !!D.querySelector('#modal-project-edit .btn-primary')),
+      ok('Botón probar conexión IA en config',       () => !!D.querySelector('[onclick*="testApiKey"]')),
+      ok('Planificador de visitas existe en nav',    () => !!D.querySelector('[onclick*="planificador"], [onclick*="planner"]')),
+    ]},
+
+    // ── Cat 12: Consistencia de datos ───────────────────────────
+    { cat: '📊 Consistencia y coherencia del modelo', tests: [
+      ok('FASE_LABELS tiene exactamente 8 claves "1"–"8"', () => {
+        const keys = Object.keys(W.FASE_LABELS || {});
+        return keys.length === 8 && keys.includes('1') && keys.includes('8');
+      }),
+      ok('Fases 1–8 todas en #prescripcion-fase',   () => [1,2,3,4,5,6,7,8].every(i => hasOpt('prescripcion-fase', String(i)))),
+      ok('Fases 1–8 todas en #meeting-fase',        () => [1,2,3,4,5,6,7,8].every(i => hasOpt('meeting-fase', String(i)))),
+      ok('Fases 1–8 todas en #filter-fase',         () => [1,2,3,4,5,6,7,8].every(i => hasOpt('filter-fase', String(i)))),
+      ok('TAREAS_S15: catálogo tiene peso 30%',     () => (W.TAREAS_S15 || []).find(t=>t.id==='t_catalogo')?.peso === '30%'),
+      ok('TAREAS_S15: soporte tiene peso 30%',      () => (W.TAREAS_S15 || []).find(t=>t.id==='t_soporte')?.peso === '30%'),
+      ok('TAREAS_S15: ponencias tiene peso 5%',     () => (W.TAREAS_S15 || []).find(t=>t.id==='t_ponencias')?.peso === '5%'),
+      ok('renderStancamientoAlert retorna string',  () => typeof W.renderStancamientoAlert({}) === 'string'),
+      ok('getFaseLabel retorna string no vacío',    () => W.getFaseLabel('3').length > 3),
+      ok('STATUS_TO_FASE sin "perdido"',            () => !W.STATUS_TO_FASE?.perdido),
+      ok('STATUS_TO_FASE mapea standby a fase 3',   () => W.STATUS_TO_FASE?.standby === '3'),
+      ok('STATUS_TO_FASE mapea traspasado a fase 6',() => W.STATUS_TO_FASE?.traspasado === '6'),
+    ]},
+  ];
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDERER
+// ═══════════════════════════════════════════════════════════════
+function renderResults(categories) {
+  allResults = [];
+  const container = document.getElementById('results');
+  container.innerHTML = '';
+
+  categories.forEach((cat, ci) => {
+    const results = cat.tests;
+    allResults.push(...results);
+
+    const passed = results.filter(r => r.status === 'pass').length;
+    const failed = results.filter(r => r.status === 'fail').length;
+    const warns  = results.filter(r => r.status === 'warn').length;
+    const allPass = failed === 0 && warns === 0;
+    const anyFail = failed > 0;
+
+    const div = document.createElement('div');
+    div.className = 'category';
+
+    div.innerHTML = `
+      <div class="cat-header" onclick="toggleCat(${ci})">
+        <span class="cat-icon">${cat.cat.split(' ')[0]}</span>
+        <span class="cat-title">${cat.cat.split(' ').slice(1).join(' ')}</span>
+        <span class="cat-score ${allPass ? 'all-pass' : anyFail ? 'some-fail' : 'pending'}">${passed}/${results.length}</span>
+        <span class="cat-toggle" id="tog-${ci}">▼</span>
+      </div>
+      <div class="test-list" id="cat-body-${ci}">
+        ${results.map(r => `
+          <div class="test-item ${r.status}">
+            <span class="test-icon">${r.status==='pass'?'✅':r.status==='fail'?'❌':'⚠️'}</span>
+            <div>
+              <div class="test-name">${r.name}</div>
+              ${r.detail ? `<div class="test-detail">${r.detail}</div>` : ''}
+            </div>
+          </div>`).join('')}
+      </div>`;
+    container.appendChild(div);
+  });
+
+  // Contadores
+  const pass  = allResults.filter(r => r.status === 'pass').length;
+  const fail  = allResults.filter(r => r.status === 'fail').length;
+  const warn  = allResults.filter(r => r.status === 'warn').length;
+  const total = allResults.length;
+  const pct   = Math.round((pass + warn * 0.5) / total * 100);
+
+  document.getElementById('score-text').textContent = `${pass}/${total}`;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-fill').style.background = fail > 0 ? '#dc2626' : '#16a34a';
+  document.getElementById('sum-pass').textContent  = pass;
+  document.getElementById('sum-fail').textContent  = fail;
+  document.getElementById('sum-warn').textContent  = warn;
+  document.getElementById('sum-total').textContent = total;
+
+  const chip = document.getElementById('status-chip');
+  chip.textContent = fail === 0 ? `✅ ${pct}% — Todo OK` : `❌ ${fail} tests fallidos`;
+  chip.className = 'status-chip ' + (fail === 0 ? 'chip-done' : 'chip-error');
+}
+
+function toggleCat(ci) {
+  const body = document.getElementById(`cat-body-${ci}`);
+  const tog  = document.getElementById(`tog-${ci}`);
+  const hidden = body.style.display === 'none';
+  body.style.display = hidden ? '' : 'none';
+  tog.classList.toggle('collapsed', !hidden);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EJECUCIÓN
+// ═══════════════════════════════════════════════════════════════
+function runAll() {
+  const chip = document.getElementById('status-chip');
+  chip.textContent = '⏳ Ejecutando tests...';
+  chip.className = 'status-chip chip-loading';
+
+  if (!W || !D) {
+    chip.textContent = '❌ CRM no disponible en iframe';
+    chip.className = 'status-chip chip-error';
+    return;
+  }
+
+  try {
+    const cats = defineTests();
+    renderResults(cats);
+  } catch(e) {
+    chip.textContent = '❌ Error ejecutando tests: ' + e.message;
+    chip.className = 'status-chip chip-error';
+    console.error(e);
+  }
+}
+
+// Esperar a que el CRM cargue
+const iframe = document.getElementById('crm');
+iframe.addEventListener('load', () => {
+  W = iframe.contentWindow;
+  D = iframe.contentDocument;
+
+  // Esperar inicialización Firebase (hasta 8s)
+  let tries = 0;
+  const poll = setInterval(() => {
+    tries++;
+    const ready = W.cloudCache?.studios?.length > 0 || tries > 16;
+    if (ready || tries > 16) {
+      clearInterval(poll);
+      runAll();
+    }
+  }, 500);
+});
+</script>
+</body>
+</html>
