@@ -12152,8 +12152,9 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
             
             // Buscar por nombre similar o por URL
             for (const studio of existingStudios) {
+                if (!studio.name) continue;  // saltar registros sin nombre
                 const studioName = studio.name.toLowerCase().trim();
-                const searchName = name.toLowerCase().trim();
+                const searchName = (name || '').toLowerCase().trim();
                 const studioUrl = studio.data?.contact?.web?.toLowerCase() || '';
                 const searchUrl = providedUrl?.toLowerCase() || '';
                 
