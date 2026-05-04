@@ -6040,7 +6040,15 @@
         async function getStudio(id) {
             // CLOUD / FIREBASE: usar caché local
             if (useCloudStorage || useFirebase) {
-                return cloudCache.studios.find(s => s.id == id) || null;
+                // Normalizar el id a string para evitar problemas de igualdad débil (ej: 2411 == '2411')
+                const idStr = String(id);
+                const found = cloudCache.studios.find(s => String(s.id) === idStr);
+                if (!found) {
+                    // Fallback: igualdad débil para compatibilidad con IDs legacy
+                    console.warn('⚠️ getStudio: ID', id, 'no encontrado con igualdad estricta. Probando débil...');
+                    return cloudCache.studios.find(s => s.id == id) || null;
+                }
+                return found;
             }
             
             // LOCAL: localStorage
