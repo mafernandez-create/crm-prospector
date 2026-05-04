@@ -8146,6 +8146,9 @@
         // STUDIO DETAIL
         // ============================================
         async function showStudioDetail(id) {
+            console.log('🔍 showStudioDetail llamado con id:', id, '| tipo:', typeof id);
+            const foundInCache = (window.cloudCache?.studios || []).find(s => s.id == id);
+            console.log('🔍 Studio encontrado en caché:', foundInCache ? foundInCache.name + ' (id=' + foundInCache.id + ')' : 'NO ENCONTRADO');
             currentStudioId = id;
             const studio = await getStudio(id);
             const activities = await getActivities(id);
