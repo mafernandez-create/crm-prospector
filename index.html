@@ -8111,7 +8111,7 @@
                     : `<div class="table-avatar">${escapeHtml(initials(logoName))}</div>`;
 
                 return `
-                <tr onclick="showStudioDetail('${studio.id}')" style="cursor:pointer;">
+                <tr onclick="showStudioDetail('${studio.id}')" data-studio-id="${studio.id}" style="cursor:pointer;">
                     <td>
                         <div class="table-studio">
                             <div class="table-logo-container">${logoHtml}</div>
@@ -8155,8 +8155,15 @@
         // ============================================
         async function showStudioDetail(id) {
             console.log('🔍 showStudioDetail llamado con id:', id, '| tipo:', typeof id);
-            const foundInCache = (window.cloudCache?.studios || []).find(s => s.id == id);
-            console.log('🔍 Studio encontrado en caché:', foundInCache ? foundInCache.name + ' (id=' + foundInCache.id + ')' : 'NO ENCONTRADO');
+            // Buscar con igualdad estricta (string) — nuevo método
+            const idStr = String(id);
+            const foundStrict = (window.cloudCache?.studios || []).find(s => String(s.id) === idStr);
+            // Buscar todos los que coincidan con igualdad débil (para detectar colisiones)
+            const allLoose = (window.cloudCache?.studios || []).filter(s => s.id == id);
+            if (allLoose.length > 1) {
+                console.error('🚨 COLISIÓN DE ID: ' + allLoose.length + ' estudios con id==' + id + ':', allLoose.map(s => s.name + '(id=' + s.id + ')'));
+            }
+            console.log('🔍 Studio encontrado (estricto):', foundStrict ? foundStrict.name + ' (id=' + foundStrict.id + ')' : 'NO ENCONTRADO');
             currentStudioId = id;
             const studio = await getStudio(id);
             const activities = await getActivities(id);
