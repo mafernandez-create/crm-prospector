@@ -12170,10 +12170,12 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                 const searchUrl = providedUrl?.toLowerCase() || '';
                 
                 // Coincidencia por nombre (exacta o parcial significativa)
-                const nameMatch = studioName === searchName || 
-                    studioName.includes(searchName) || 
-                    searchName.includes(studioName) ||
-                    (studioName.split(' ')[0] === searchName.split(' ')[0] && studioName.length > 5);
+                // NOTA: searchName.includes(studioName) requiere longitud mínima de 6 para evitar
+                // que nombres cortos o siglas (ej: 'cr', 'jgv') coincidan con dominios como 'crguadalcacin'
+                const nameMatch = studioName === searchName ||
+                    studioName.includes(searchName) ||
+                    (searchName.includes(studioName) && studioName.length >= 6) ||
+                    (studioName.split(' ')[0] === searchName.split(' ')[0] && studioName.length > 5 && searchName.length > 5);
                 
                 // Coincidencia por URL
                 const urlMatch = searchUrl && studioUrl && (
