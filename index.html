@@ -17639,8 +17639,8 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 return { success: false, emails: [], noEmails: true, emailAddresses: [] };
             }
 
-            if (!useCloudStorage) {
-                showNotification('⚠️ La búsqueda de emails requiere sincronización cloud activa', 'warning');
+            if (!useCloudStorage && !useFirebase) {
+                showNotification('⚠️ La búsqueda de emails requiere sincronización cloud activa (Firebase o Google Sheets)', 'warning');
                 return { success: false, emails: [], emailAddresses: emailEntries.map(e => e.email) };
             }
 
