@@ -26917,7 +26917,7 @@ Analiza y responde en español con:
 Sé directo y práctico. Máximo 250 palabras.`;
 
             try {
-                const response = await callClaudeAPI([{ role:'user', content: prompt }], 600, 'claude-haiku-4-20250514');
+                const response = await callClaudeAPI([{ role:'user', content: prompt }], 600, 'claude-haiku-4-5-20250514');
                 const texto = response?.content?.[0]?.text || 'Sin respuesta.';
                 statusDiv.style.background = 'rgba(14,165,233,0.1)';
                 statusDiv.style.color = '#e2e8f0';
