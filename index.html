@@ -25039,7 +25039,7 @@ updateMap();
 
                 // 5. OPORTUNIDADES
                 secHdr('5. OPORTUNIDADES'), pv(),
-                pTxt(typeof data.oportunidades === 'string' ? data.oportunidades : '—'),
+                ...(arr(data.oportunidades) ? data.oportunidades.map(bullet) : [pTxt(typeof data.oportunidades === 'string' && data.oportunidades ? data.oportunidades : '—')]),
                 ...(arr(data.productos_demandados) ? [pv(), pTxt('Productos de interés:', { bold: true, color: AZUL1 }), ...data.productos_demandados.map(bullet)] : []),
                 pv(), pv(),
 
