@@ -5838,12 +5838,12 @@
         function getPendingWrites() {
             try { return JSON.parse(localStorage.getItem(PENDING_KEY) || '[]'); } catch { return []; }
         }
-        function savePendingWrite(id, updates) {
+        function savePendingWrite(id, updates, isNew = false) {
             const queue = getPendingWrites();
             // Merge si ya hay una entrada pendiente para este id
             const existing = queue.findIndex(e => String(e.id) === String(id));
             if (existing !== -1) { Object.assign(queue[existing].updates, updates); queue[existing].ts = Date.now(); }
-            else { queue.push({ id, updates, ts: Date.now() }); }
+            else { queue.push({ id, updates, isNew, ts: Date.now() }); }
             localStorage.setItem(PENDING_KEY, JSON.stringify(queue));
         }
         async function flushPendingWrites() {
