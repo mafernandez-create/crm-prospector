@@ -25099,11 +25099,14 @@ updateMap();
                 const _priorityHex = _pColorMap[studio?.priority] || '2E5DA6';
                 const doc = await buildDocxGPF(data, studio, _priorityHex);
                 const blob = await window.docx.Packer.toBlob(doc);
-                const url = URL.createObjectURL(blob);
+                const dlName = report.fileName || 'informe_visita.docx';
+                const file = new File([blob], dlName, { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+                const url = URL.createObjectURL(file);
                 const a = document.createElement('a');
-                a.href = url; a.download = report.fileName||'informe_visita.docx';
+                a.href = url; a.download = dlName;
+                a.style.display = 'none';
                 document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                setTimeout(() => URL.revokeObjectURL(url), 2000);
             } catch(e) {
                 console.error('Error generando .docx:', e);
                 showNotification('❌ Error al generar el Word: ' + e.message, 'error');
