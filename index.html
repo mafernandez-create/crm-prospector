@@ -5788,12 +5788,28 @@
             
             // FIREBASE
             if (useFirebase) {
-                studio.id = await getNextFirebaseId('studios');
-                await firestoreDB.collection('studios').doc(String(studio.id)).set(studio);
-                cloudCache.studios.push(studio);
-                localData.studios.push(studio);
-                saveToLocalStorage();
-                return studio.id;
+                try {
+                    studio.id = await getNextFirebaseId('studios');
+                    await firestoreDB.collection('studios').doc(String(studio.id)).set(studio);
+                    cloudCache.studios.push(studio);
+                    localData.studios.push(studio);
+                    saveToLocalStorage();
+                    return studio.id;
+                } catch(e) {
+                    if (e.code === 'resource-exhausted' || (e.message||'').toLowerCase().includes('quota')) {
+                        // Firestore sin cuota — asignar ID local y encolar para sync posterior
+                        const maxId = Math.max(0, ...cloudCache.studios.map(s => parseInt(s.id) || 0));
+                        studio.id = maxId + 1;
+                        cloudCache.studios.push(studio);
+                        localData.studios.push(studio);
+                        saveToLocalStorage();
+                        savePendingWrite(studio.id, studio, true);
+                        updatePendingBadge();
+                        showNotification('⚠️ Cuota Firestore agotada — estudio guardado localmente y pendiente de subir', 'warning');
+                        return studio.id;
+                    }
+                    throw e;
+                }
             }
 
             // CLOUD: Google Sheets
@@ -5854,7 +5870,11 @@
             for (const entry of queue) {
                 try {
                     const updatesWithTs = { ...entry.updates, updatedAt: new Date().toISOString() };
-                    await firestoreDB.collection('studios').doc(String(entry.id)).update(updatesWithTs);
+                    if (entry.isNew) {
+                        await firestoreDB.collection('studios').doc(String(entry.id)).set(updatesWithTs);
+                    } else {
+                        await firestoreDB.collection('studios').doc(String(entry.id)).update(updatesWithTs);
+                    }
                     const idx = cloudCache.studios.findIndex(s => s.id == entry.id);
                     if (idx !== -1) Object.assign(cloudCache.studios[idx], updatesWithTs);
                     flushed++;
