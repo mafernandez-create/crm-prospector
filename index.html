@@ -5739,7 +5739,184 @@
                 details
             };
         }
-        
+
+        // ============================================
+        // SCORING V2 — DOBLE EJE (Método Unificado v1.1)
+        // ============================================
+        // Eje 1: Valor Directo (máx 15 pts) → Alta/Medio/Bajo
+        // Eje 2: Valor de Red (máx 15 pts)  → Alta/Media/Baja
+        // Combinación → Cuadrante 1-9 (matriz 3×3)
+        // Los campos legacy (priority/score/priorityCalculatedScore) se mantienen como DEPRECATED.
+
+        const _SV2_QUADRANT_MAP = {
+            'Alto_Alta': 1,  'Alto_Media': 2,  'Alto_Baja': 3,
+            'Medio_Alta': 4, 'Medio_Media': 5, 'Medio_Baja': 6,
+            'Bajo_Alta': 7,  'Bajo_Media': 8,  'Bajo_Baja': 9,
+        };
+        const _SV2_QUADRANT_NAMES = {
+            1: 'Estratégico',       2: 'Cliente core',     3: 'Cliente volumen',
+            4: 'Puerta de entrada', 5: 'Cartera estándar', 6: 'Mantenimiento',
+            7: 'Conector',          8: 'Seguimiento ligero', 9: 'Congelar',
+        };
+        const _SV2_ACTIONS = {
+            1: 'Visita trimestral. Cuenta clave. Profundizar relación y cartografiar red.',
+            2: 'Visita trimestral. Comercial técnico. Mantener prescripción y detectar proyectos nuevos.',
+            3: 'Visita semestral. Técnico-comercial. Sostener volumen.',
+            4: 'Visita semestral. Exploratorio. Extraer info de cartera, identificar 2-3 targets accesibles a través de él.',
+            5: 'Visita anual o en ruta. Mantener relación y captar cambios.',
+            6: 'Contacto anual telefónico. Visita solo si pasa por zona.',
+            7: 'Visita solo si en ruta a otro cliente A/B. Contacto cordial sin pitch.',
+            8: 'Contacto telefónico anual. Confirmar vigencia.',
+            9: 'Sin contacto programado. Re-evaluación a 18 meses.',
+        };
+
+        function calculateScoringV2(studio) {
+            const data      = studio.data || {};
+            const social    = data.social  || {};
+            const contact   = data.contact || {};
+            const team      = data.team    || [];
+            const projects  = data.projects || [];
+            const tipoPpal  = getTipoPrincipal(studio);
+
+            // ── EJE 1: VALOR DIRECTO ──────────────────────────────────────────
+
+            // D1: Tipo de cliente (dato estructural — siempre computable)
+            let d1 = 0;
+            if (tipoPpal === 'ARQ' || tipoPpal === 'ING') d1 = 3;
+            else if (tipoPpal === 'OCV') d1 = 2;
+            else if (tipoPpal === 'AAPP' || tipoPpal === 'CCRR' || tipoPpal === 'CICA') d1 = 1;
+
+            // D2: Tamaño (empleados, umbrales según tipo)
+            let d2 = 0;
+            const empVal = parseInt(getValor(data.studio?.employees)) || 0;
+            if (empVal > 0) {
+                if (tipoPpal === 'OCV') {
+                    if (empVal >= 50) d2 = 3; else if (empVal >= 20) d2 = 2; else if (empVal >= 5) d2 = 1;
+                } else {
+                    if (empVal >= 20) d2 = 3; else if (empVal >= 10) d2 = 2; else if (empVal >= 3) d2 = 1;
+                }
+            }
+
+            // D3: Facturación — solo si verificado. Campo no existe aún → sin_dato_fiable
+            const d3 = 0;
+
+            // D4: Actividad reciente (proyectos en últimos 12 meses o proxy)
+            let d4 = 0, d4Recent = 0;
+            const d4Cutoff = new Date(); d4Cutoff.setFullYear(d4Cutoff.getFullYear() - 1);
+            d4Recent = projects.filter(p => {
+                if (p.year) return parseInt(p.year) >= d4Cutoff.getFullYear();
+                if (p.date) { try { return new Date(p.date) >= d4Cutoff; } catch(e) {} }
+                return false;
+            }).length;
+            const d4Effective = d4Recent > 0 ? d4Recent : Math.round(projects.length * 0.6);
+            if (d4Effective >= 5) d4 = 3; else if (d4Effective >= 3) d4 = 2; else if (d4Effective >= 1) d4 = 1;
+
+            // D5: Fit catálogo GPF (cruce de proyectos con familias de producto)
+            let d5 = 0;
+            const projText = projects.map(p => ((p.name||'') + ' ' + (p.type||'')).toLowerCase()).join(' ');
+            const _GPF_FIT_FAMILIES = [
+                ['evacuacion_mute',    ['evacuación','bajante','saneamiento pvc','insonori','acústic']],
+                ['red_saneamiento',    ['colector','alcantarillado','red saneamiento','edar','depuradora','saneamiento']],
+                ['riego_biopipe',      ['riego','regadío','pvc-o','pe100','conducción agua','biorientado']],
+                ['abastecimiento',     ['abastecimiento','agua potable','red distribución','captación']],
+                ['pe_presion_gas',     ['polietileno','pe 100','gas pe','condusan','presión gas']],
+            ];
+            let d5Fits = _GPF_FIT_FAMILIES.filter(([, kws]) => kws.some(kw => projText.includes(kw))).length;
+            if ((tipoPpal === 'ARQ' || tipoPpal === 'ING') && projects.length > 0) d5Fits = Math.max(d5Fits, 1);
+            if (d5Fits >= 3) d5 = 2; else if (d5Fits >= 1) d5 = 1;
+
+            // D6: Contacto completo (igual que DEPRECATED v1)
+            let d6 = 0, d6Pts = 0;
+            if (getValor(contact.phone)   && getValor(contact.phone)   !== 'No encontrado') d6Pts++;
+            if (getValor(contact.email)   && getValor(contact.email)   !== 'No encontrado') d6Pts++;
+            if (getValor(contact.address) && getValor(contact.address) !== 'No encontrado') d6Pts++;
+            if (getValor(contact.web)     && getValor(contact.web)     !== 'No encontrado') d6Pts++;
+            if (team.some(t => t.isDecisionMaker)) d6Pts++;
+            if (team.some(t => t.email   && t.email   !== 'No encontrado')) d6Pts++;
+            if (team.some(t => t.linkedin && t.linkedin !== 'No encontrado')) d6Pts++;
+            if (d6Pts >= 5) d6 = 2; else if (d6Pts >= 2) d6 = 1;
+
+            const rawDirect = d1 + d2 + d3 + d4 + d5 + d6;
+            const priorityDirect = rawDirect >= 10 ? 'Alto' : rawDirect >= 6 ? 'Medio' : 'Bajo';
+
+            // ── EJE 2: VALOR DE RED ───────────────────────────────────────────
+            // R1, R2, R3, R5 — requieren datos externos verificados (fase futura)
+            // R4: Posición referente — detectable desde datos existentes
+            const liFollowers = parseInt((getValor(social.linkedin?.followers) || '').replace(/[^0-9]/g, '') || '0') || 0;
+            const _awardKws   = ['premio','bienal','award','finalista','reconoci','distinción','medalla','ganador'];
+            const _teachKws   = ['profesor','docente','universidad','cátedra','master','máster'];
+            let socialCount = 0;
+            if (getValor(social.linkedin?.url))   socialCount++;
+            if (getValor(social.instagram?.url))  socialCount++;
+            if (getValor(social.twitter?.url))    socialCount++;
+
+            const _r4Signals = {
+                li_followers:  liFollowers >= 1000,
+                awards:        projects.some(p => _awardKws.some(kw => ((p.name||'')+(p.type||'')).toLowerCase().includes(kw)))
+                               || _awardKws.some(kw => (data.description||'').toLowerCase().includes(kw)),
+                teaching:      team.some(t => _teachKws.some(kw => ((t.role||'')+(t.bio||'')).toLowerCase().includes(kw))),
+                wide_portfolio: projects.length >= 10,
+                social_active: socialCount >= 2 && liFollowers >= 500,
+            };
+            const r4Signals = Object.values(_r4Signals).filter(Boolean).length;
+            const r4 = r4Signals >= 4 ? 4 : r4Signals >= 2 ? 2 : 0;
+
+            const rawNetwork = r4; // R1+R2+R3+R5 = 0 hasta fase futura
+            const priorityNetwork = r4 >= 4 ? 'Alta' : r4 >= 2 ? 'Media' : 'Baja';
+
+            // ── CUADRANTE ─────────────────────────────────────────────────────
+            const priorityQuadrant = _SV2_QUADRANT_MAP[`${priorityDirect}_${priorityNetwork}`] || 5;
+
+            return {
+                // Eje 1
+                priorityDirect,
+                priorityDirectScore: rawDirect,
+                priorityDirectDetails: [
+                    { dimension: 'D1_tipo',        pts: d1, tipo: tipoPpal },
+                    { dimension: 'D2_tamaño',      pts: d2, empleados: empVal },
+                    { dimension: 'D3_facturacion', pts: d3, estado: 'sin_dato_fiable' },
+                    { dimension: 'D4_actividad',   pts: d4, total: projects.length, recientes: d4Recent },
+                    { dimension: 'D5_fit_gpf',     pts: d5, matches: d5Fits },
+                    { dimension: 'D6_contacto',    pts: d6, datos: d6Pts },
+                ],
+                // Eje 2
+                priorityNetwork,
+                priorityNetworkScore: rawNetwork,
+                priorityNetworkDetails: [
+                    { dimension: 'R1_cartera',      pts: 0, estado: 'sin_dato_fiable' },
+                    { dimension: 'R2_densidad_gpf', pts: 0, estado: 'sin_dato_fiable' },
+                    { dimension: 'R3_exclusividad', pts: 0, estado: 'sin_dato_fiable' },
+                    { dimension: 'R4_referente',    pts: r4, señales: r4Signals, detalle: _r4Signals },
+                    { dimension: 'R5_diversidad',   pts: 0, estado: 'sin_dato_fiable' },
+                ],
+                // Cuadrante
+                priorityQuadrant,
+                priorityQuadrantName:      _SV2_QUADRANT_NAMES[priorityQuadrant],
+                priorityRecommendedAction: _SV2_ACTIONS[priorityQuadrant],
+            };
+        }
+
+        /**
+         * Genera el objeto de updates de scoring v2 listo para updateStudio(),
+         * incluyendo una nueva entrada en scoringHistory (máx 20 entradas).
+         * @param {object} studio - documento completo del estudio
+         * @param {string} trigger - origen del cálculo (ej. 'importacion', 'cambio_tipo', 'reanálisis', 'recalculo_masivo')
+         */
+        function buildScoringV2Updates(studio, trigger) {
+            const v2 = calculateScoringV2(studio);
+            const histEntry = {
+                fecha:               new Date().toISOString(),
+                priorityDirect:      v2.priorityDirect,
+                priorityDirectScore: v2.priorityDirectScore,
+                priorityNetwork:     v2.priorityNetwork,
+                priorityNetworkScore: v2.priorityNetworkScore,
+                priorityQuadrant:    v2.priorityQuadrant,
+                trigger:             trigger || 'manual',
+            };
+            const prevHistory = Array.isArray(studio.scoringHistory) ? studio.scoringHistory : [];
+            return { ...v2, scoringHistory: [...prevHistory, histEntry].slice(-20) };
+        }
+
         // ── Extracción automática de ciudad a partir del nombre ──────────────────
         const _MUNICIPIOS_ES = {
           'Málaga':['Málaga','Marbella','Fuengirola','Torremolinos','Benalmádena','Estepona','Vélez-Málaga','Antequera','Ronda','Mijas','Nerja','Alhaurín de la Torre','Alhaurín el Grande','Coín','Manilva','Campillos','Archidona','Torrox','Frigiliana'],
