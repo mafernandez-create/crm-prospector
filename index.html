@@ -14273,70 +14273,15 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                         } catch (e) { debugLog('Error analizando URL: ' + e.message); }
                     }
 
-                    // Búsquedas web
-                    const tipoLabel = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['ARQ']).label.toLowerCase();
-                    document.getElementById('progress-text').textContent = '🔍 Buscando información en la web...';
-                    const mainSearch = await searchWeb('"' + name + '" ' + tipoLabel + ' ' + province + ' España');
-                    debugLog('Búsqueda principal: ' + mainSearch.length + ' resultados');
-
-                    let domainContactSearch = [];
-                    if (providedUrl) {
-                        try { const domain = new URL(providedUrl).hostname.replace('www.', ''); domainContactSearch = await searchWeb(domain + ' teléfono email contacto'); } catch (e) {}
-                    }
-
-                    document.getElementById('progress-text').textContent = '🔍 Buscando variaciones...';
-                    const altName = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    const altSearch = await searchWeb(altName + ' estudio ' + tipoLabel + ' ' + province);
-
-                    document.getElementById('progress-text').textContent = '📞 Buscando datos de contacto...';
-                    const contactSearch = await searchWeb('"' + name + '" ' + province + ' teléfono dirección email contacto');
-
-                    document.getElementById('progress-text').textContent = '🌐 Buscando web oficial...';
-                    const webSearch = await searchWeb('"' + name + '" ' + tipoLabel + ' web oficial ' + province);
-
-                    document.getElementById('progress-text').textContent = '🏗️ Buscando proyectos...';
-                    const projectSearch = await searchWeb('"' + name + '" ' + tipoLabel + ' proyectos obras ' + province);
-
-                    document.getElementById('progress-text').textContent = '🏆 Buscando premios...';
-                    const awardsSearch = await searchWeb('"' + name + '" ' + tipoLabel + ' premio reconocimiento ' + province);
-
-                    document.getElementById('progress-text').textContent = '💼 Buscando en LinkedIn...';
-                    const linkedinSearch = await searchWeb('site:linkedin.com "' + name + '" ' + tipoLabel + ' ' + province);
-
-                    document.getElementById('progress-text').textContent = '👥 Buscando equipo...';
-                    const teamSearch = await searchWeb('"' + name + '" arquitecto fundador director ' + province);
-
-                    document.getElementById('progress-text').textContent = '📱 Buscando en redes sociales...';
-                    const instagramSearch = await searchWeb('site:instagram.com "' + name + '" ' + tipoLabel);
-                    const facebookSearch = await searchWeb('site:facebook.com "' + name + '" ' + tipoLabel + ' ' + province);
-
-                    document.getElementById('progress-text').textContent = '📋 Buscando en directorios...';
-                    const directoryResults = await searchBusinessDirectories(name, province);
-
-                    document.getElementById('progress-text').textContent = '📰 Buscando noticias...';
-                    const newsSearch = await searchWeb('"' + name + '" ' + tipoLabel + ' noticias entrevista ' + province);
-
-                    document.getElementById('progress-text').textContent = '🏛️ Buscando en plataformas...';
-                    const archSearch = await searchWeb('"' + name + '" site:plataformaarquitectura.cl OR site:archdaily.com OR site:dezeen.com');
-
-                    // Compilar resultados
-                    webData += '\n=== RESULTADOS DE BÚSQUEDA WEB PARA "' + name + '" en ' + province + ' ===\n\n';
-                    const sections = [
-                        ['BÚSQUEDA PRINCIPAL', mainSearch], ['BÚSQUEDA ALTERNATIVA', altSearch],
-                        ['DATOS DE CONTACTO', contactSearch], ['WEB OFICIAL', webSearch],
-                        ['PROYECTOS Y OBRAS', projectSearch], ['PREMIOS', awardsSearch],
-                        ['LINKEDIN', linkedinSearch], ['EQUIPO', teamSearch],
-                        ['INSTAGRAM', instagramSearch], ['FACEBOOK', facebookSearch],
-                        ['DIRECTORIOS', directoryResults], ['NOTICIAS', newsSearch],
-                        ['PLATAFORMAS', archSearch], ['CONTACTO DOMINIO', domainContactSearch]
-                    ];
-                    sections.forEach(([title, results]) => {
-                        webData += '--- ' + title + ' ---\n' + results.map(r => '• ' + r.title + '\n  URL: ' + r.url + '\n  ' + r.snippet).join('\n\n') + '\n\n';
+                    // === MÉTODO UNIFICADO v1.1 ===
+                    const metodoResult = await ejecutarMetodoUnificado(name, province, {
+                        providedUrl,
+                        studioType,
+                        studioTypes: getTiposArray(studio),
+                        onProgress: (msg) => { document.getElementById('progress-text').textContent = msg; }
                     });
-
-                    // Extraer contactos de snippets
-                    const allSearchResults = [...mainSearch, ...contactSearch, ...webSearch, ...directoryResults, ...teamSearch, ...domainContactSearch];
-                    let snippetsText = allSearchResults.map(r => r.snippet + ' ' + r.title).join(' ');
+                    webData += metodoResult.webData;
+                    let snippetsText = metodoResult.snippetsText;
                     if (directWebContent) {
                         if (directWebContent.emails) snippetsText += ' ' + directWebContent.emails.join(' ');
                         if (directWebContent.phones) snippetsText += ' ' + directWebContent.phones.join(' ');
@@ -14348,11 +14293,6 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     phonePatterns.forEach(rx => { const m = snippetsText.match(rx) || []; snippetPhones.push(...m); });
                     snippetPhones = [...new Set(snippetPhones)].filter(p => p.replace(/\D/g, '').length >= 9);
                     if (snippetPhones.length > 0) webData += '\n--- TELÉFONOS ENCONTRADOS ---\n' + snippetPhones.join('\n') + '\n';
-
-                    // Colegios
-                    document.getElementById('progress-text').textContent = '🏛️ Buscando en Colegios...';
-                    const colegioResults = await searchColegiosArquitectos(name, province);
-                    if (colegioResults.length > 0) webData += '\n--- COLEGIOS ---\n' + colegioResults.map(r => '• ' + r.title + '\n  ' + r.snippet).join('\n\n') + '\n';
 
                     // Análisis profundo del sitio web
                     const allResults = [...mainSearch, ...contactSearch, ...webSearch, ...projectSearch];
