@@ -14375,7 +14375,8 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 await updateStudio(currentStudioId, {
                     priority: autoPriority.priority,
                     score: autoPriority.score,
-                    priorityDetails: autoPriority.details
+                    priorityDetails: autoPriority.details,
+                    ...buildScoringV2Updates(updated, 'cambio_tipo')
                 });
             }
 
@@ -15908,19 +15909,21 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 
                 for (const studio of studios) {
                     const autoPriority = calculateAutoPriority(studio);
-                    const oldPriority = studio.priority || 'Media';
-                    
-                    if (oldPriority !== autoPriority.priority || !studio.priorityCalculatedScore) {
+                    const v2updates    = buildScoringV2Updates(studio, 'recalculo_masivo');
+                    const oldPriority  = studio.priority || 'Media';
+
+                    if (oldPriority !== autoPriority.priority || !studio.priorityCalculatedScore || !studio.priorityQuadrant) {
                         await updateStudio(studio.id, {
                             priority: autoPriority.priority,
                             score: autoPriority.score,
                             priorityDetails: autoPriority.details,
-                            priorityCalculatedScore: autoPriority.calculatedScore
+                            priorityCalculatedScore: autoPriority.calculatedScore,
+                            ...v2updates
                         });
                         updated++;
-                        console.log(`📊 ${studio.name}: ${oldPriority} → ${autoPriority.priority} (${autoPriority.calculatedScore}/15)`);
+                        console.log(`📊 ${studio.name}: ${oldPriority} → ${autoPriority.priority} (${autoPriority.calculatedScore}/15) | Q${v2updates.priorityQuadrant} ${v2updates.priorityQuadrantName}`);
                     }
-                    
+
                     stats[autoPriority.priority]++;
                 }
                 
