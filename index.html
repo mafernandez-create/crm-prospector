@@ -267,6 +267,17 @@
         .priority-alta { background: var(--danger-light); color: var(--danger); }
         .priority-media { background: var(--warning-light); color: var(--warning); }
         .priority-baja { background: var(--surface); color: var(--muted); }
+
+        /* ── Scoring v2 · Matriz 3×3 ──────────────────────────────────── */
+        .sv2-matrix { display:grid; grid-template-columns:auto 1fr 1fr 1fr; gap:2px; font-size:0.68rem; margin:10px 0; }
+        .sv2-cell { padding:5px 3px; border-radius:4px; text-align:center; cursor:default; transition:outline .1s; }
+        .sv2-cell.active { outline:2px solid var(--primary); outline-offset:1px; font-weight:700; opacity:1 !important; }
+        .sv2-cell-header { padding:3px 2px; text-align:center; font-weight:600; color:var(--muted); font-size:0.65rem; }
+        .sv2-cell-rowhdr { padding:3px 4px; font-weight:600; color:var(--muted); text-align:right; white-space:nowrap; display:flex; align-items:center; justify-content:flex-end; }
+        .sv2-score-bar { display:flex; align-items:center; gap:8px; margin-bottom:6px; font-size:0.8rem; }
+        .sv2-score-track { flex:1; background:#e5e7eb; border-radius:4px; height:7px; overflow:hidden; }
+        .sv2-score-fill { height:100%; border-radius:4px; transition:width .3s; }
+        .sv2-action-box { background:#eff6ff; border-left:3px solid var(--primary); border-radius:0 6px 6px 0; padding:8px 10px; font-size:0.8rem; margin-top:4px; }
         
         /* Re-analysis Comparison View */
         .reanalysis-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:var(--surface); z-index:999; display:none; flex-direction:column; overflow:hidden; }
