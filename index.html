@@ -8993,26 +8993,20 @@
                             </div>
                         </div>
                         
-                        <!-- Status History -->
+                        <!-- Status + Scoring v2 -->
                         <div class="card">
-                            <div class="card-header"><h3 class="card-title">📊 Estado y Prioridad</h3></div>
+                            <div class="card-header"><h3 class="card-title">📊 Estado y Scoring</h3></div>
                             <div class="card-body">
-                                <div style="text-align:center;padding:20px;">
+                                <div style="text-align:center;padding:12px 0 8px 0;">
                                     <span class="status status-${studio.status}" style="font-size:1rem;padding:8px 16px;">${getStatusLabel(studio.status)}</span>
-                                    <div style="margin-top:12px;">
-                                        <span class="priority priority-${(studio.priority || 'media').toLowerCase().replace(/[^a-z]/g,'')}">${escapeHtml(studio.priority || 'Media')} Prioridad</span>
-                                        ${studio.priorityCalculatedScore !== undefined ? `
-                                            <span style="font-size:0.75rem;color:var(--muted);margin-left:8px;">(${studio.priorityCalculatedScore}/12 pts)</span>
-                                        ` : ''}
-                                    </div>
-                                    ${studio.priorityDetails && studio.priorityDetails.length > 0 ? `
-                                        <div style="margin-top:12px;padding:10px;background:var(--surface);border-radius:8px;text-align:left;font-size:0.8rem;">
-                                            <div style="font-weight:600;margin-bottom:6px;color:var(--text);">📈 Criterios de puntuación:</div>
-                                            ${studio.priorityDetails.map(d => `<div style="color:var(--muted);padding:2px 0;">• ${d}</div>`).join('')}
-                                        </div>
-                                    ` : ''}
                                 </div>
-                                <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="openStatusModal()">🔄 Cambiar Estado</button>
+                                ${renderScoringV2Card(studio)}
+                                <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:0.72rem;color:var(--muted);">
+                                    <span style="font-weight:600;">Prioridad v1 (legacy):</span>
+                                    <span class="priority priority-${(studio.priority || 'media').toLowerCase().replace(/[^a-z]/g,'')}" style="font-size:0.7rem;padding:2px 7px;margin-left:4px;">${escapeHtml(studio.priority || 'Media')}</span>
+                                    ${studio.priorityCalculatedScore !== undefined ? '<span style="margin-left:4px;">(' + studio.priorityCalculatedScore + '/15)</span>' : ''}
+                                </div>
+                                <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="openStatusModal()">🔄 Cambiar Estado</button>
                             </div>
                         </div>
                     </div>
