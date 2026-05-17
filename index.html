@@ -10065,6 +10065,159 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
         }
 
         // ============================================
+        // MÉTODO UNIFICADO DE BÚSQUEDA Y SCORING v1.1
+        // ============================================
+
+        async function ejecutarCapa1(name, province, opts = {}) {
+            // opts: { providedUrl, studioType }
+            const nameClean = name.normalize("NFD").replace(/[̀-ͯ]/g, "");
+            const tipoLabel = (TIPOS_ESTUDIO[opts.studioType] || TIPOS_ESTUDIO['ARQ']).label.toLowerCase();
+
+            const queries = [
+                `"${name}" ${province}`,
+                `"${nameClean}" ${province}`,
+                `"${name}" teléfono email contacto ${province}`,
+                `"${name}" "aviso legal" OR "política de privacidad"`,
+                `"${name}" BORME`,
+                `site:linkedin.com/company "${name}"`,
+                `"${name}" site:empresite.eleconomista.es OR site:einforma.com OR site:axesor.es`,
+                `"${name}" ${province} noticias`,
+                `"${name}" entrevista OR jornada OR ponencia`,
+                `"${name}" datos.gob.es`,
+            ];
+
+            debugLog(`[Capa1] Lanzando ${queries.length} búsquedas paralelas para: ${name}`);
+            const results = await Promise.allSettled(queries.map(q => searchWeb(q)));
+
+            const sections = [
+                'PRESENCIA_GENERAL', 'VARIANTE_ORTOGRAFICA', 'CONTACTO', 'AVISO_LEGAL',
+                'BORME', 'LINKEDIN', 'DIRECTORIOS', 'NOTICIAS', 'EQUIPO_DIRECTIVO', 'DATASETS_PUBLICOS'
+            ];
+
+            const compiled = {};
+            results.forEach((r, i) => {
+                compiled[sections[i]] = r.status === 'fulfilled' ? r.value : [];
+            });
+
+            // Añadir directorios de negocio si hay URL
+            if (opts.providedUrl) {
+                try {
+                    const domain = new URL(opts.providedUrl).hostname.replace('www.', '');
+                    compiled['CONTACTO_DOMINIO'] = await searchWeb(domain + ' teléfono email contacto');
+                } catch(e) {}
+            }
+
+            return compiled;
+        }
+
+        async function ejecutarBloqueSectorial(tipo, name, province) {
+            const queries = [];
+            const nameClean = name.normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+            if (tipo === 'ARQ') {
+                queries.push(
+                    `site:archdaily.com OR site:dezeen.com OR site:plataformaarquitectura.cl "${name}"`,
+                    `site:metalocus.es OR site:hicarquitectura.com "${name}"`,
+                    `"${name}" concurso OR bienal OR premio arquitectura`,
+                    `site:concursosdearquitectura.com "${name}"`,
+                    `"${name}" arquitecto fundador OR director OR socio`
+                );
+            } else if (tipo === 'ING') {
+                queries.push(
+                    `"${name}" proyecto OR estudio OR redacción "${province}"`,
+                    `site:tecniberia.com "${name}"`,
+                    `"asociación ingenierías" "${province}" "${name}"`,
+                );
+            } else if (tipo === 'OCV') {
+                queries.push(
+                    `"${name}" adjudicación OR contrato ${province}`,
+                    `site:seopan.es "${name}"`,
+                    `site:anci.es OR site:anesco.org "${name}"`,
+                    `"${name}" REA ${province}`,
+                );
+            } else if (tipo === 'AAPP') {
+                queries.push(
+                    `"${name}" licitación OR contrato PLACSP`,
+                    `"${name}" BOE OR BOJA OR DOE OR DOCM`,
+                    `site:datos.gob.es "${nameClean}"`,
+                );
+            } else if (tipo === 'CCRR') {
+                queries.push(
+                    `"${name}" FENACORE OR fenacore.org`,
+                    `"${name}" modernización regadío OR PERTE OR SEIASA`,
+                    `"${name}" confederación hidrográfica`,
+                );
+            } else if (tipo === 'CICA') {
+                queries.push(
+                    `site:iagua.es "${name}"`,
+                    `site:retema.es "${name}"`,
+                    `"${name}" AEAS OR abastecimiento saneamiento`,
+                );
+            }
+
+            if (queries.length === 0) return {};
+
+            debugLog(`[Capa2-${tipo}] ${queries.length} búsquedas sectoriales`);
+            const results = await Promise.allSettled(queries.map(q => searchWeb(q)));
+            return { [`SECTOR_${tipo}`]: results.flatMap(r => r.status === 'fulfilled' ? r.value : []) };
+        }
+
+        function compilarWebData(sections, name, province) {
+            let webData = `\n=== RESULTADOS DE BÚSQUEDA WEB PARA "${name}" en ${province} ===\n\n`;
+            for (const [key, results] of Object.entries(sections)) {
+                if (!results || results.length === 0) continue;
+                webData += `--- ${key} ---\n`;
+                webData += results.map(r => `• ${r.title}\n  URL: ${r.url}\n  ${r.snippet}`).join('\n\n');
+                webData += '\n\n';
+            }
+            return webData;
+        }
+
+        async function ejecutarMetodoUnificado(name, province, opts = {}) {
+            // opts: { providedUrl, studioType, studioTypes, onProgress }
+            const onProgress = opts.onProgress || ((msg) => {
+                const el = document.getElementById('progress-text');
+                if (el) el.textContent = msg;
+            });
+
+            const allSections = {};
+
+            // Capa 1: búsquedas base (10 paralelas)
+            onProgress('🔍 Capa 1: búsquedas base...');
+            const capa1 = await ejecutarCapa1(name, province, opts);
+            Object.assign(allSections, capa1);
+
+            // Capa 2: bloque sectorial
+            const tipos = opts.studioTypes || [opts.studioType || 'ARQ'];
+            for (const tipo of tipos) {
+                onProgress(`🔍 Capa 2: bloque ${tipo}...`);
+                const bloqueData = await ejecutarBloqueSectorial(tipo, name, province);
+                Object.assign(allSections, bloqueData);
+            }
+
+            // Colegios (específico ARQ/ING)
+            if (tipos.includes('ARQ') || tipos.includes('ING')) {
+                onProgress('🏛️ Buscando en Colegios Profesionales...');
+                const colegioResults = await searchColegiosArquitectos(name, province);
+                if (colegioResults.length > 0) allSections['COLEGIOS'] = colegioResults;
+            }
+
+            // Directorios de negocio
+            onProgress('📋 Buscando en directorios...');
+            const directoryResults = await searchBusinessDirectories(name, province);
+            if (directoryResults.length > 0) allSections['DIRECTORIOS_NEGOCIO'] = directoryResults;
+
+            // Compilar a texto
+            const webData = compilarWebData(allSections, name, province);
+
+            // Extraer contactos de snippets
+            const allResults = Object.values(allSections).flat();
+            const snippetsText = allResults.map(r => (r.snippet || '') + ' ' + (r.title || '')).join(' ');
+
+            return { webData, allSections, allResults, snippetsText };
+        }
+
+        // ============================================
         // ANÁLISIS PROFUNDO DE PÁGINA WEB
         // ============================================
         async function deepAnalyzeWebsite(url) {
