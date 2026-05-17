@@ -8541,6 +8541,7 @@
                             <span>📅 Creado: ${formatDate(studio.createdAt)}</span>
                             <span class="status status-${studio.status}">${getStatusLabel(studio.status)}</span>
                             <span class="priority priority-${(studio.priority || 'media').toLowerCase().replace(/[^a-z]/g,'')}">${escapeHtml(studio.priority || 'Media')}</span>
+                            ${studio.priorityQuadrant ? `<span style="background:#eff6ff;color:var(--primary);border-radius:10px;padding:2px 8px;font-size:0.75rem;font-weight:600;" title="${escapeHtml(studio.priorityRecommendedAction||'')}">Q${studio.priorityQuadrant} ${escapeHtml(studio.priorityQuadrantName||'')}</span>` : ''}
                         </div>
                     </div>
                     <div class="detail-actions">
