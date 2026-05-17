@@ -15066,11 +15066,15 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             if (selections['studio.shortName'] && newData.studio?.shortName) updates.shortName = newData.studio.shortName;
             if (selections['contact.city'] && newData.contact?.city && !isNoData(newData.contact.city)) updates.city = newData.contact.city;
 
-            // Recalculate priority
+            // Recalculate priority (DEPRECATED v1)
             if (selections['sales.priority'] || selections['sales.score']) {
                 if (newData.sales?.priority) updates.priority = newData.sales.priority;
                 if (newData.sales?.score) updates.score = newData.sales.score;
             }
+
+            // Scoring v2 — recalcular con los datos actualizados
+            const studioForV2 = { ...existingStudio, data, ...updates };
+            Object.assign(updates, buildScoringV2Updates(studioForV2, 'reanálisis'));
 
             try {
                 await updateStudio(studioId, updates);
