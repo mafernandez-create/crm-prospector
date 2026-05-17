@@ -26962,6 +26962,462 @@ ${jsonTemplate}`;
             }
         }
 
+        function openBriefingModal() {
+            const prev = document.getElementById('briefing-modal');
+            if (prev) prev.remove();
+
+            const today = new Date().toISOString().split('T')[0];
+            const modal = document.createElement('div');
+            modal.id = 'briefing-modal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+            modal.innerHTML = `
+                <div style="background:#1e293b;border-radius:16px;padding:28px;width:460px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                        <h3 style="color:#f1f5f9;margin:0;font-size:1.15rem;">📋 Briefing pre-visita</h3>
+                        <button onclick="document.getElementById('briefing-modal').remove()"
+                            style="background:none;border:none;color:#64748b;font-size:1.3rem;cursor:pointer;line-height:1;">✕</button>
+                    </div>
+                    <div style="margin-bottom:16px;">
+                        <label style="display:block;color:#94a3b8;font-size:0.82rem;margin-bottom:6px;">Fecha prevista de visita</label>
+                        <input id="briefing-fecha" type="date" value="${today}"
+                            style="width:100%;background:#0f172a;border:1px solid #334155;color:#f1f5f9;border-radius:8px;padding:9px 12px;font-size:0.9rem;box-sizing:border-box;">
+                    </div>
+                    <div style="margin-bottom:20px;">
+                        <label style="display:block;color:#94a3b8;font-size:0.82rem;margin-bottom:6px;">Contexto adicional <span style="color:#475569;">(opcional)</span></label>
+                        <textarea id="briefing-contexto" rows="3" placeholder="Ej: quieren saber sobre BIOPIPE, tienen un proyecto de depuradora en fase de proyecto básico..."
+                            style="width:100%;background:#0f172a;border:1px solid #334155;color:#f1f5f9;border-radius:8px;padding:9px 12px;font-size:0.85rem;resize:vertical;box-sizing:border-box;"></textarea>
+                    </div>
+                    <div id="briefing-status" style="display:none;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:0.85rem;"></div>
+                    <div style="display:flex;gap:10px;justify-content:flex-end;">
+                        <button onclick="document.getElementById('briefing-modal').remove()"
+                            style="background:#334155;color:#cbd5e1;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:0.875rem;">
+                            Cancelar
+                        </button>
+                        <button id="btn-generar-briefing" onclick="generarBriefing(currentStudioId)"
+                            style="background:linear-gradient(135deg,#0f766e,#0d9488);color:white;border:none;padding:9px 22px;border-radius:8px;cursor:pointer;font-size:0.875rem;font-weight:600;">
+                            📋 Generar Briefing
+                        </button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+        }
+
+        async function generarBriefing(studioId) {
+            const fecha = document.getElementById('briefing-fecha')?.value || new Date().toISOString().split('T')[0];
+            const contextoExtra = document.getElementById('briefing-contexto')?.value?.trim() || '';
+            const statusDiv = document.getElementById('briefing-status');
+            const btnGen = document.getElementById('btn-generar-briefing');
+
+            const setStatus = (msg, color='rgba(13,148,136,0.15)', textColor='#5eead4') => {
+                if (!statusDiv) return;
+                statusDiv.style.display = 'block';
+                statusDiv.style.background = color;
+                statusDiv.style.color = textColor;
+                statusDiv.textContent = msg;
+            };
+
+            if (btnGen) { btnGen.disabled = true; btnGen.textContent = '⏳ Generando...'; }
+            setStatus('📂 Cargando datos del estudio...');
+
+            try {
+                if (typeof window.docx === 'undefined') throw new Error('Librería Word no cargada. Recarga la página.');
+
+                // ── 1. Cargar estudio ──────────────────────────────────────────
+                let studio;
+                try {
+                    if (typeof firestoreDB !== 'undefined') {
+                        const snap = await firestoreDB.collection('studios').doc(String(studioId)).get();
+                        studio = snap.exists ? snap.data() : null;
+                    }
+                } catch(_) {}
+                if (!studio) studio = await getStudio(studioId);
+                if (!studio) throw new Error('No se encontró el estudio en la base de datos.');
+
+                const studioName = studio.name || 'Empresa';
+                const province = studio.province || studio.city || '';
+                const city = studio.city || province;
+                const studioTypes = Array.isArray(studio.type) ? studio.type : [studio.type || 'ARQ'];
+
+                // ── 2. Últimas 3 informes ──────────────────────────────────────
+                const allReports = Array.isArray(studio.data?.reports) ? studio.data.reports : [];
+                const lastReports = allReports.slice(0, 3); // ya están en orden unshift (más reciente primero)
+
+                // ── 3. Últimas 5 actividades ────────────────────────────────────
+                setStatus('📅 Cargando historial de actividades...');
+                let activities = [];
+                try {
+                    activities = await getActivities(studioId);
+                    // Ordenar por fecha desc
+                    activities = activities
+                        .filter(a => a.type === 'meeting' || a.type === 'comercial' || a.type === 'note')
+                        .sort((a, b) => {
+                            const da = new Date(a.createdAt || a.fecha || a.date || 0);
+                            const db2 = new Date(b.createdAt || b.fecha || b.date || 0);
+                            return db2 - da;
+                        })
+                        .slice(0, 5);
+                } catch(_) {}
+
+                // ── 4. Búsqueda web fresca ─────────────────────────────────────
+                setStatus('🔍 Buscando información actualizada en la web...');
+                let webData = '';
+                let snippetsText = '';
+                try {
+                    const metodoResult = await ejecutarMetodoUnificado(studioName, province, {
+                        studioType: studioTypes[0],
+                        studioTypes,
+                        onProgress: (msg) => setStatus('🔍 ' + msg)
+                    });
+                    webData = metodoResult.webData || '';
+                    snippetsText = metodoResult.snippetsText || '';
+                } catch(eWeb) {
+                    console.warn('Búsqueda web falló en briefing:', eWeb);
+                    webData = '';
+                }
+
+                // ── 5. Construir contexto CRM ──────────────────────────────────
+                const getV = campo => {
+                    if (!campo) return '';
+                    if (typeof campo === 'object' && 'valor' in campo) return campo.valor || '';
+                    return String(campo);
+                };
+
+                const crmContext = [
+                    `NOMBRE: ${studioName}`,
+                    `CIUDAD: ${city || '—'}`,
+                    `PROVINCIA: ${province || '—'}`,
+                    `TIPOS: ${studioTypes.join(', ')}`,
+                    `ESTADO CRM: ${studio.status || '—'}`,
+                    studio.data?.contact?.phone ? `TELÉFONO: ${getV(studio.data.contact.phone)}` : null,
+                    studio.data?.contact?.email ? `EMAIL: ${getV(studio.data.contact.email)}` : null,
+                    studio.data?.contact?.web   ? `WEB: ${getV(studio.data.contact.web)}` : null,
+                    studio.data?.studio?.employees ? `EMPLEADOS: ${getV(studio.data.studio.employees)}` : null,
+                    studio.priorityQuadrant ? `CUADRANTE SCORING: Q${studio.priorityQuadrant} ${studio.priorityQuadrantName || ''} | Directo: ${studio.priorityDirect || '—'} | Red: ${studio.priorityNetwork || '—'}` : null,
+                    studio.data?.description ? `DESCRIPCIÓN: ${studio.data.description}` : null,
+                ].filter(Boolean).join('\n');
+
+                // Últimos informes
+                let informesCtx = '';
+                if (lastReports.length > 0) {
+                    informesCtx = lastReports.map((r, i) => {
+                        const rj = r.reportJson || {};
+                        const lines = [
+                            `--- INFORME ${i+1} (${r.date || r.uploadedAt?.substring(0,10) || 'fecha desconocida'}) ---`,
+                            rj.objetivo          ? `Objetivo: ${rj.objetivo}` : null,
+                            rj.productos_presentados ? `Productos presentados: ${rj.productos_presentados}` : null,
+                            rj.oportunidades     ? `Oportunidades: ${Array.isArray(rj.oportunidades) ? rj.oportunidades.join(' | ') : rj.oportunidades}` : null,
+                            rj.compromisos_empresa ? `Compromisos cliente: ${Array.isArray(rj.compromisos_empresa) ? rj.compromisos_empresa.join(' | ') : rj.compromisos_empresa}` : null,
+                            rj.compromisos_gpf   ? `Compromisos GPF: ${Array.isArray(rj.compromisos_gpf) ? rj.compromisos_gpf.join(' | ') : rj.compromisos_gpf}` : null,
+                            rj.plan_seguimiento  ? `Plan seguimiento: ${rj.plan_seguimiento}` : null,
+                            rj.obstaculos        ? `Obstáculos: ${rj.obstaculos}` : null,
+                            rj.nivel_interes     ? `Nivel interés: ${rj.nivel_interes}` : null,
+                        ].filter(Boolean).join('\n');
+                        return lines;
+                    }).join('\n\n');
+                }
+
+                // Últimas actividades
+                let actividadesCtx = '';
+                if (activities.length > 0) {
+                    actividadesCtx = activities.map(a => {
+                        const fecha_a = (a.createdAt || a.fecha || a.date || '').substring(0, 10);
+                        const tipo = a.type || '';
+                        const texto = a.text || '';
+                        const resultado = a.visitaResultado ? ` [${a.visitaResultado}]` : '';
+                        return `${fecha_a} (${tipo}${resultado}): ${texto}`;
+                    }).join('\n');
+                }
+
+                // ── 6. Prompt a Claude ──────────────────────────────────────────
+                setStatus('🤖 Generando dossier de briefing con IA...');
+
+                const systemPrompt = `Eres el asistente comercial de Manuel Fernández (Manolo), prescriptor de Grupo GPF (productos Ferroplast, Tuyper, Ecosan, Biopipe, PVC-O) en Andalucía, Extremadura y Levante.
+
+Tu misión: generar un BRIEFING ESTRATÉGICO PRE-VISITA conciso y accionable.
+
+REGLAS:
+- Sé concreto y práctico. Nada de perogrulladas genéricas.
+- Si hay informes anteriores: extrae compromisos pendientes y mensajes clave de esa relación.
+- Si no hay informes: es visita fría — enfócate en el perfil de la empresa y cómo abrir la conversación.
+- La agenda debe ser de 3-5 puntos directamente útiles para Manolo en esa visita.
+- Los productos GPF a mencionar: Ferroplast Mute (saneamiento insonorizado PVC), Ecosan (saneamiento ecológico), Biopipe (tuberías bioplástico), PVC-O (conducción a presión), Tuyper, sistemas de pozos modulares.
+- Devuelve ÚNICAMENTE el objeto JSON indicado, sin texto extra.`;
+
+                const userMsg = `Genera el briefing pre-visita para la siguiente empresa.
+
+DATOS CRM:
+${crmContext}
+${contextoExtra ? `\nCONTEXTO ADICIONAL DEL COMERCIAL:\n${contextoExtra}` : ''}
+
+${informesCtx ? `HISTORIAL DE INFORMES DE VISITA (últimos ${lastReports.length}):\n${informesCtx}` : 'HISTORIAL: No hay visitas registradas anteriormente (primera visita).'}
+
+${actividadesCtx ? `ACTIVIDADES RECIENTES:\n${actividadesCtx}` : ''}
+
+${webData.length > 100 ? `INFORMACIÓN WEB ACTUALIZADA:\n${webData.substring(0, 4000)}` : ''}
+
+FECHA DE LA PRÓXIMA VISITA: ${fecha}
+
+Devuelve ÚNICAMENTE este JSON con los campos rellenados (no añadas claves extra):
+{
+  "resumen_cliente": "2-3 párrafos describiendo quiénes son, qué hacen, cómo encajan con GPF",
+  "ultimo_contacto": "Qué se habló en la(s) última(s) visita(s) y compromisos pendientes. Si es primera visita, escribe 'Primera visita — sin historial previo'",
+  "novedades_recientes": "Qué hay de nuevo en la empresa (noticias, proyectos, concursos) según la web. Si no hay novedades destacables, escríbelo",
+  "scoring_contexto": "Interpretación del scoring del cliente: por qué está en este cuadrante y qué significa para la estrategia comercial",
+  "agenda": ["Punto 1 de agenda", "Punto 2", "Punto 3", "Punto 4 (opcional)", "Punto 5 (opcional)"],
+  "productos_recomendados": ["Producto A — razón específica para este cliente", "Producto B — razón"],
+  "avisos": ["Aviso o aspecto crítico a tener en cuenta (si los hay)"]
+}`;
+
+                const response = await callClaudeAPI(
+                    [{ role: 'user', content: userMsg }],
+                    4096,
+                    'claude-sonnet-4-20250514',
+                    systemPrompt
+                );
+
+                let rawText = response?.content?.[0]?.text || response?.content?.[0]?.value || response?.text || '';
+                if (!rawText) throw new Error('La IA no devolvió contenido.');
+
+                // Parsear JSON
+                let briefingJson;
+                try {
+                    const cleaned = rawText.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
+                    try { briefingJson = JSON.parse(cleaned); } catch(_) {
+                        const s2 = rawText.indexOf('{'), e2 = rawText.lastIndexOf('}');
+                        if (s2 === -1 || e2 === -1) throw new Error('sin JSON en respuesta');
+                        briefingJson = JSON.parse(rawText.slice(s2, e2+1));
+                    }
+                } catch(pe) {
+                    throw new Error('No se pudo parsear la respuesta de la IA: ' + pe.message);
+                }
+
+                // ── 7. Construir DOCX ──────────────────────────────────────────
+                setStatus('📄 Construyendo documento Word...');
+                const docxBlob = await _buildBriefingDocx(briefingJson, studio, fecha, studioName, city, studioTypes);
+
+                // ── 8. Descargar ────────────────────────────────────────────────
+                const safeName = studioName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+                const safeDate = fecha.replace(/-/g,'');
+                const fileName = `Briefing_${safeName}_${safeDate}.docx`;
+
+                const url = URL.createObjectURL(docxBlob);
+                const a2 = document.createElement('a');
+                a2.href = url; a2.download = fileName;
+                a2.style.display = 'none';
+                document.body.appendChild(a2); a2.click(); document.body.removeChild(a2);
+                setTimeout(() => URL.revokeObjectURL(url), 3000);
+
+                setStatus('✅ Briefing descargado: ' + fileName, 'rgba(16,185,129,0.15)', '#34d399');
+                if (btnGen) { btnGen.disabled = false; btnGen.textContent = '📋 Generar Briefing'; }
+                showNotification('✅ Briefing pre-visita generado', 'success');
+
+            } catch(e) {
+                console.error('Error generarBriefing:', e);
+                setStatus('❌ Error: ' + e.message, 'rgba(239,68,68,0.15)', '#fca5a5');
+                if (btnGen) { btnGen.disabled = false; btnGen.textContent = '📋 Generar Briefing'; }
+            }
+        }
+
+        async function _buildBriefingDocx(bj, studio, fecha, studioName, city, studioTypes) {
+            const {
+                Document, Paragraph, TextRun, Table, TableRow, TableCell,
+                WidthType, BorderStyle, ShadingType, AlignmentType,
+                Header, Footer, PageNumber, Packer
+            } = window.docx;
+
+            const TEAL1  = '0F766E';
+            const TEAL2  = '0D9488';
+            const TEAL3  = 'CCFBF1';
+            const GRIS1  = 'F8FAFC';
+            const GRIS2  = 'E2E8F0';
+            const DARK   = '0F172A';
+
+            const bd   = { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' };
+            const bAll = { top: bd, bottom: bd, left: bd, right: bd };
+            const nbrd = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
+            const noBorders = { top: nbrd, bottom: nbrd, left: nbrd, right: nbrd };
+
+            const pv = () => new Paragraph({ children: [new TextRun({ text: '', size: 18 })] });
+            const pTxt = (t, opts={}) => new Paragraph({
+                spacing: { before: opts.before||60, after: opts.after||80 },
+                children: [new TextRun({ text: String(t||''), size: opts.size||20, font: 'Arial',
+                    color: opts.color||'1E293B', italic: !!opts.italic, bold: !!opts.bold })]
+            });
+
+            const secHdr = (t, color) => new Table({
+                width: { size: 9026, type: WidthType.DXA }, columnWidths: [9026],
+                rows: [new TableRow({ children: [new TableCell({
+                    width: { size: 9026, type: WidthType.DXA },
+                    shading: { fill: color || TEAL2, type: ShadingType.CLEAR },
+                    margins: { top: 80, bottom: 80, left: 200, right: 160 },
+                    borders: noBorders,
+                    children: [new Paragraph({ children: [new TextRun({ text: String(t||''), bold: true, color: 'FFFFFF', size: 22, font: 'Arial' })] })]
+                })]})],
+            });
+
+            const caja = (t, color) => new Table({
+                width: { size: 9026, type: WidthType.DXA }, columnWidths: [9026],
+                rows: [new TableRow({ children: [new TableCell({
+                    width: { size: 9026, type: WidthType.DXA },
+                    margins: { top: 100, bottom: 100, left: 200, right: 180 },
+                    borders: { top: nbrd, bottom: nbrd, right: nbrd, left: { style: BorderStyle.THICK, size: 12, color: String(color||TEAL2) } },
+                    shading: { fill: GRIS1, type: ShadingType.CLEAR },
+                    children: [new Paragraph({ children: [new TextRun({ text: String(t||''), size: 19, font: 'Arial', italic: true, color: '1E293B' })] })]
+                })]})],
+            });
+
+            const bullet = t => pTxt('• ' + String(t||''), { size: 19, before: 40, after: 40 });
+
+            const arr = v => Array.isArray(v) && v.length > 0 ? v : (v && typeof v === 'string' ? [v] : []);
+            const str = v => {
+                if (!v) return '';
+                if (Array.isArray(v)) return v.join(', ');
+                return String(v);
+            };
+
+            const fechaFormateada = fecha ? (fecha.split('-').reverse().join('/')) : '';
+            const tiposStr = (studioTypes || []).join(' · ') || '—';
+
+            // ── CONTENIDO ──────────────────────────────────────────────────────
+            const children = [];
+
+            // Cabecera: empresa + fecha
+            children.push(new Table({
+                width: { size: 9026, type: WidthType.DXA }, columnWidths: [6026, 3000],
+                rows: [new TableRow({ children: [
+                    new TableCell({
+                        width: { size: 6026, type: WidthType.DXA },
+                        shading: { fill: TEAL1, type: ShadingType.CLEAR },
+                        margins: { top: 120, bottom: 120, left: 200, right: 160 },
+                        borders: noBorders,
+                        children: [
+                            new Paragraph({ children: [new TextRun({ text: studioName, bold: true, color: 'FFFFFF', size: 28, font: 'Arial' })] }),
+                            new Paragraph({ children: [new TextRun({ text: `${city || ''}  ·  ${tiposStr}`, color: 'CCFBF1', size: 18, font: 'Arial' })] }),
+                        ]
+                    }),
+                    new TableCell({
+                        width: { size: 3000, type: WidthType.DXA },
+                        shading: { fill: TEAL2, type: ShadingType.CLEAR },
+                        margins: { top: 120, bottom: 120, left: 160, right: 160 },
+                        borders: noBorders,
+                        verticalAlign: 'center',
+                        children: [
+                            new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '📋 BRIEFING', bold: true, color: 'FFFFFF', size: 22, font: 'Arial' })] }),
+                            new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'Visita: ' + fechaFormateada, color: 'CCFBF1', size: 18, font: 'Arial' })] }),
+                        ]
+                    }),
+                ]})]
+            }));
+            children.push(pv());
+
+            // Resumen del cliente
+            if (bj.resumen_cliente) {
+                children.push(secHdr('📌 PERFIL DEL CLIENTE'));
+                children.push(pv());
+                const parrafos = bj.resumen_cliente.split('\n').filter(p => p.trim());
+                parrafos.forEach(p => children.push(pTxt(p)));
+                children.push(pv());
+            }
+
+            // Scoring context
+            if (bj.scoring_contexto) {
+                children.push(caja(bj.scoring_contexto, TEAL1));
+                children.push(pv());
+            }
+
+            // Último contacto
+            if (bj.ultimo_contacto) {
+                children.push(secHdr('🗓️ ÚLTIMO CONTACTO', '1F4E79'));
+                children.push(pv());
+                const parrafos2 = bj.ultimo_contacto.split('\n').filter(p => p.trim());
+                parrafos2.forEach(p => children.push(pTxt(p)));
+                children.push(pv());
+            }
+
+            // Novedades recientes
+            if (bj.novedades_recientes && !bj.novedades_recientes.toLowerCase().includes('no hay novedades') && bj.novedades_recientes.length > 20) {
+                children.push(secHdr('📡 NOVEDADES RECIENTES'));
+                children.push(pv());
+                const parrafos3 = bj.novedades_recientes.split('\n').filter(p => p.trim());
+                parrafos3.forEach(p => children.push(pTxt(p)));
+                children.push(pv());
+            }
+
+            // Agenda
+            const agenda = arr(bj.agenda).filter(Boolean).slice(0, 5);
+            if (agenda.length > 0) {
+                children.push(secHdr('✅ AGENDA DE LA VISITA', '1F4E79'));
+                children.push(pv());
+                agenda.forEach((punto, i) => {
+                    children.push(new Paragraph({
+                        spacing: { before: 60, after: 60 },
+                        children: [
+                            new TextRun({ text: `${i+1}.  `, bold: true, size: 22, font: 'Arial', color: TEAL1 }),
+                            new TextRun({ text: String(punto||''), size: 20, font: 'Arial', color: '1E293B' }),
+                        ]
+                    }));
+                });
+                children.push(pv());
+            }
+
+            // Productos recomendados
+            const prods = arr(bj.productos_recomendados).filter(Boolean);
+            if (prods.length > 0) {
+                children.push(secHdr('🔧 PRODUCTOS A PRESENTAR'));
+                children.push(pv());
+                prods.forEach(p => children.push(bullet(p)));
+                children.push(pv());
+            }
+
+            // Avisos
+            const avisos = arr(bj.avisos).filter(Boolean);
+            if (avisos.length > 0) {
+                children.push(secHdr('⚠️ AVISOS', 'B45309'));
+                children.push(pv());
+                avisos.forEach(av => children.push(caja(av, 'B45309')));
+                children.push(pv());
+            }
+
+            // ── DOCUMENTO ─────────────────────────────────────────────────────
+            const doc = new Document({
+                sections: [{
+                    properties: {
+                        page: {
+                            size: { width: 11906, height: 16838 },
+                            margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 }
+                        }
+                    },
+                    headers: {
+                        default: new Header({ children: [
+                            new Paragraph({
+                                border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: TEAL2, space: 4 } },
+                                children: [
+                                    new TextRun({ text: 'Grupo GPF — Briefing pre-visita', size: 16, font: 'Arial', color: '64748B' }),
+                                    new TextRun({ text: `   |   ${studioName}`, size: 16, font: 'Arial', bold: true, color: TEAL1 }),
+                                ]
+                            })
+                        ]})
+                    },
+                    footers: {
+                        default: new Footer({ children: [
+                            new Paragraph({
+                                alignment: AlignmentType.CENTER,
+                                border: { top: { style: BorderStyle.SINGLE, size: 4, color: GRIS2, space: 4 } },
+                                children: [
+                                    new TextRun({ text: 'Página ', size: 16, font: 'Arial', color: '94A3B8' }),
+                                    new TextRun({ children: [PageNumber.CURRENT], size: 16, font: 'Arial', color: '94A3B8' }),
+                                    new TextRun({ text: ' — Generado con CRM GPF', size: 16, font: 'Arial', color: '94A3B8' }),
+                                ]
+                            })
+                        ]})
+                    },
+                    children
+                }]
+            });
+
+            return await Packer.toBlob(doc);
+        }
+
         async function editarProductosInforme(reportIdx) {
             const studio = await getStudioFresh(currentStudioId);
             if (!studio) return;
