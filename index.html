@@ -16064,6 +16064,233 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
         }
 
         // ============================================
+        // FASE E — BATCH CUALIFICACIÓN
+        // ============================================
+
+        function openCualificarLoteModal() {
+            const prev = document.getElementById('batch-qualify-modal');
+            if (prev) prev.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'batch-qualify-modal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;';
+
+            const totalStudios = (typeof allStudios !== 'undefined' ? allStudios : []).length;
+            const sinCuadrante = (typeof allStudios !== 'undefined' ? allStudios : []).filter(s => !s.priorityQuadrant).length;
+
+            modal.innerHTML = `
+                <div style="background:#1e293b;border-radius:16px;padding:28px;width:520px;max-width:96vw;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                        <h3 style="color:#f1f5f9;margin:0;font-size:1.15rem;">🤖 Cualificar Lote</h3>
+                        <button onclick="document.getElementById('batch-qualify-modal').remove()"
+                            style="background:none;border:none;color:#64748b;font-size:1.3rem;cursor:pointer;line-height:1;">✕</button>
+                    </div>
+                    <p style="color:#94a3b8;font-size:0.85rem;margin:0 0 18px;">
+                        Recalcula el Scoring v2 (cuadrante 3×3) para un lote de estudios usando los datos actuales del CRM.
+                    </p>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
+                        <div>
+                            <label style="display:block;color:#94a3b8;font-size:0.82rem;margin-bottom:6px;">Selección</label>
+                            <select id="batch-filter" style="width:100%;background:#0f172a;border:1px solid #334155;color:#f1f5f9;border-radius:8px;padding:9px 12px;font-size:0.88rem;">
+                                <option value="sin_cuadrante">Sin cuadrante (${sinCuadrante})</option>
+                                <option value="todos">Todos los estudios (${totalStudios})</option>
+                                <option value="ARQ">Solo ARQ</option>
+                                <option value="ING">Solo ING</option>
+                                <option value="OCV">Solo OCV</option>
+                                <option value="AAPP">Solo AAPP</option>
+                                <option value="CCRR">Solo CCRR</option>
+                                <option value="CICA">Solo CICA</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display:block;color:#94a3b8;font-size:0.82rem;margin-bottom:6px;">Límite máximo</label>
+                            <input id="batch-limit" type="number" value="200" min="1" max="1535"
+                                style="width:100%;background:#0f172a;border:1px solid #334155;color:#f1f5f9;border-radius:8px;padding:9px 12px;font-size:0.88rem;box-sizing:border-box;">
+                        </div>
+                    </div>
+
+                    <div id="batch-progress-wrapper" style="display:none;margin-bottom:18px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                            <span style="color:#94a3b8;font-size:0.82rem;" id="batch-progress-label">Preparando...</span>
+                            <span style="color:#7c3aed;font-size:0.82rem;font-weight:600;" id="batch-progress-pct">0%</span>
+                        </div>
+                        <div style="background:#0f172a;border-radius:6px;height:10px;overflow:hidden;">
+                            <div id="batch-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#7c3aed,#6d28d9);border-radius:6px;transition:width 0.3s ease;"></div>
+                        </div>
+                        <div style="color:#64748b;font-size:0.78rem;margin-top:6px;" id="batch-progress-detail">—</div>
+                    </div>
+
+                    <div id="batch-result-box" style="display:none;background:rgba(16,185,129,0.1);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:0.85rem;color:#34d399;"></div>
+
+                    <div style="display:flex;gap:10px;justify-content:flex-end;">
+                        <button id="btn-batch-cancel" onclick="document.getElementById('batch-qualify-modal').remove()"
+                            style="background:#334155;color:#cbd5e1;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:0.875rem;">
+                            Cancelar
+                        </button>
+                        <button id="btn-batch-start" onclick="iniciarCualificarLote()"
+                            style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;border:none;padding:9px 22px;border-radius:8px;cursor:pointer;font-size:0.875rem;font-weight:600;">
+                            🤖 Iniciar Cualificación
+                        </button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+        }
+
+        async function iniciarCualificarLote() {
+            const filterVal = document.getElementById('batch-filter')?.value || 'sin_cuadrante';
+            const limitVal  = parseInt(document.getElementById('batch-limit')?.value || '200', 10) || 200;
+            const btnStart  = document.getElementById('btn-batch-start');
+            const btnCancel = document.getElementById('btn-batch-cancel');
+            const progWrap  = document.getElementById('batch-progress-wrapper');
+            const progLabel = document.getElementById('batch-progress-label');
+            const progPct   = document.getElementById('batch-progress-pct');
+            const progBar   = document.getElementById('batch-progress-bar');
+            const progDetail= document.getElementById('batch-progress-detail');
+            const resBox    = document.getElementById('batch-result-box');
+
+            if (btnStart) { btnStart.disabled = true; btnStart.textContent = '⏳ Procesando...'; }
+
+            // Seleccionar estudios según filtro
+            const source = typeof allStudios !== 'undefined' ? allStudios : [];
+            let pool = [];
+            if (filterVal === 'sin_cuadrante') {
+                pool = source.filter(s => !s.priorityQuadrant);
+            } else if (filterVal === 'todos') {
+                pool = [...source];
+            } else {
+                pool = source.filter(s => {
+                    const types = Array.isArray(s.type) ? s.type : [s.type];
+                    return types.includes(filterVal);
+                });
+            }
+            pool = pool.slice(0, limitVal);
+
+            if (pool.length === 0) {
+                if (btnStart) { btnStart.disabled = false; btnStart.textContent = '🤖 Iniciar Cualificación'; }
+                showNotification('No hay estudios que coincidan con el filtro.', 'info');
+                return;
+            }
+
+            // Mostrar barra de progreso
+            if (progWrap) progWrap.style.display = 'block';
+            if (resBox) resBox.style.display = 'none';
+
+            const studioIds = pool.map(s => String(s.id));
+            const trigger = 'batch_' + new Date().toISOString().substring(0,10).replace(/-/g,'');
+
+            try {
+                const result = await cualificarLote(studioIds, trigger, {
+                    onProgress: (done, total, lastName) => {
+                        const pct = Math.round(done / total * 100);
+                        if (progBar)    progBar.style.width = pct + '%';
+                        if (progPct)    progPct.textContent = pct + '%';
+                        if (progLabel)  progLabel.textContent = `Procesando ${done} / ${total}...`;
+                        if (progDetail) progDetail.textContent = lastName ? `Último: ${lastName}` : '';
+                    },
+                    onComplete: (done, total) => {
+                        if (progLabel) progLabel.textContent = `✅ Completado — ${done} estudios cualificados`;
+                        if (progPct)   progPct.textContent = '100%';
+                        if (progBar)   progBar.style.width = '100%';
+                    }
+                });
+
+                // Recargar estudios para reflejar cambios
+                if (typeof loadStudios === 'function') await loadStudios();
+
+                if (resBox) {
+                    resBox.style.display = 'block';
+                    resBox.innerHTML = `✅ <strong>${result.processed} estudios cualificados</strong> con Scoring v2.<br>
+                    <span style="font-size:0.8rem;color:#6ee7b7;">El cuadrante 3×3 está ahora actualizado para estos estudios.</span>`;
+                }
+
+                if (btnStart) { btnStart.disabled = false; btnStart.textContent = '🤖 Repetir'; }
+                if (btnCancel) btnCancel.textContent = 'Cerrar';
+                showNotification(`✅ ${result.processed} estudios cualificados`, 'success');
+
+            } catch(e) {
+                console.error('Error en batch cualificación:', e);
+                if (progLabel) progLabel.textContent = '❌ Error: ' + e.message;
+                if (btnStart) { btnStart.disabled = false; btnStart.textContent = '🤖 Reintentar'; }
+                showNotification('Error en batch: ' + e.message, 'error');
+            }
+        }
+
+        async function cualificarLote(studioIds, trigger, callbacks = {}) {
+            const { onProgress, onComplete } = callbacks;
+            const WRITE_BATCH_SIZE = 400; // Firestore batch limit
+            const CHUNK_PROCESS    = 50;  // studios per UI tick
+            let processed = 0;
+            const total = studioIds.length;
+
+            // Helper: save checkpoint to Firestore
+            const saveCheckpoint = async (lastId) => {
+                if (typeof firestoreDB === 'undefined') return;
+                try {
+                    await firestoreDB.collection('_meta').doc('batch_checkpoint').set({
+                        trigger,
+                        total,
+                        processed,
+                        lastId: String(lastId || ''),
+                        updatedAt: new Date().toISOString()
+                    });
+                } catch(_) {}
+            };
+
+            // Build lookup map from in-memory cache
+            const studioMap = {};
+            const src = typeof allStudios !== 'undefined' ? allStudios : [];
+            src.forEach(s => { studioMap[String(s.id)] = s; });
+
+            // Process in Firestore write batches
+            for (let i = 0; i < studioIds.length; i += WRITE_BATCH_SIZE) {
+                const chunk = studioIds.slice(i, i + WRITE_BATCH_SIZE);
+                let batch = null;
+                if (typeof firestoreDB !== 'undefined') {
+                    batch = firestoreDB.batch();
+                }
+
+                const results = [];
+                for (const id of chunk) {
+                    const studio = studioMap[id];
+                    if (!studio) continue;
+                    const v2 = buildScoringV2Updates(studio, trigger);
+                    if (batch && typeof firestoreDB !== 'undefined') {
+                        const ref = firestoreDB.collection('studios').doc(id);
+                        batch.update(ref, v2);
+                    }
+                    // Update in-memory cache
+                    Object.assign(studio, v2);
+                    processed++;
+                    results.push({ id, name: studio.name || id });
+
+                    // UI tick every CHUNK_PROCESS studios
+                    if (processed % CHUNK_PROCESS === 0) {
+                        if (onProgress) onProgress(processed, total, studio.name || id);
+                        await new Promise(r => setTimeout(r, 0)); // yield to UI
+                    }
+                }
+
+                // Commit Firestore batch
+                if (batch) await batch.commit();
+
+                // Checkpoint every write batch
+                await saveCheckpoint(chunk[chunk.length - 1]);
+
+                // Final progress update for this chunk
+                if (onProgress) onProgress(processed, total, results[results.length - 1]?.name || '');
+
+                // Small pause between write batches to avoid overwhelming Firebase
+                if (i + WRITE_BATCH_SIZE < studioIds.length) {
+                    await new Promise(r => setTimeout(r, 300));
+                }
+            }
+
+            if (onComplete) onComplete(processed, total);
+            return { processed, total };
+        }
+
+        // ============================================
         // GOOGLE CALENDAR ACCESS
         // ============================================
         function openGoogleCalendar() {
