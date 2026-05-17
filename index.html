@@ -4655,10 +4655,29 @@
         function getTipoPrincipal(studio) { return getTiposArray(studio)[0]; }
         /** ¿El estudio tiene este tipo (código)? */
         function studioTieneType(studio, code) { return getTiposArray(studio).includes(code); }
-        /** Nombre legacy para el sistema B2B (no modificar getB2BTimeline/getTriggersByType) */
+        /**
+         * Nombre legacy para el sistema B2B.
+         * Para OCV (promotora+constructora fusionadas) consulta b2bTimeline.subType si existe,
+         * permitiendo que studios que eran 'promotora' mantengan su ruta B2B correcta.
+         */
         function getB2BTypeName(studio) {
             const code = getTipoPrincipal(studio);
+            // OCV puede ser 'promotora' o 'constructora' en B2B — usar subType guardado si existe
+            if (code === 'OCV' && studio.b2bTimeline?.subType) return studio.b2bTimeline.subType;
             return TIPO_B2B_MAP[code] || 'arquitectura';
+        }
+
+        /**
+         * Detecta si un estudio OCV es promotora o constructora a partir del nombre y datos.
+         * @returns {string|null} 'promotora' | 'constructora' | null (ambiguo → preguntar al usuario)
+         */
+        function detectOCVSubtype(studio) {
+            const text = ((studio.name || '') + ' ' + (studio.data?.description || '') + ' ' + (studio.data?.studio?.description || '')).toLowerCase();
+            const isP = ['promotora','inmobiliaria','desarrollo inmobiliario','residencial','viviendas','apartamentos','promoci'].some(kw => text.includes(kw));
+            const isC = ['constructora','construcción','obras','contratista','edificaciones','rehabilitación','instalaciones','obra civil'].some(kw => text.includes(kw));
+            if (isP && !isC) return 'promotora';
+            if (isC && !isP) return 'constructora';
+            return null; // ambiguo — preguntar al usuario
         }
 
         // ── Helpers de dato con metadatos (v1.1) ─────────────────────────────
