@@ -8416,6 +8416,81 @@
         // ============================================
         // STUDIO DETAIL
         // ============================================
+        // ============================================
+        // SCORING V2 UI — Renders matrix + axis bars
+        // ============================================
+        function renderScoringV2Card(studio) {
+            const v2 = (studio.priorityQuadrant !== undefined)
+                ? { priorityDirect: studio.priorityDirect, priorityDirectScore: studio.priorityDirectScore || 0,
+                    priorityNetwork: studio.priorityNetwork, priorityNetworkScore: studio.priorityNetworkScore || 0,
+                    priorityQuadrant: studio.priorityQuadrant,
+                    priorityQuadrantName: studio.priorityQuadrantName,
+                    priorityRecommendedAction: studio.priorityRecommendedAction }
+                : calculateScoringV2(studio);
+
+            const q  = v2.priorityQuadrant || 5;
+            const bandColor = { Alto:'#22c55e', Medio:'#f59e0b', Bajo:'#9ca3af', Alta:'#22c55e', Media:'#f59e0b', Baja:'#9ca3af' };
+            const dCol = bandColor[v2.priorityDirect] || '#9ca3af';
+            const nCol = bandColor[v2.priorityNetwork] || '#9ca3af';
+
+            // Score bars
+            const bar = (label, score, max, band, color) =>
+                '<div class="sv2-score-bar">' +
+                '<div style="width:90px;color:var(--muted);flex-shrink:0;">' + label + '</div>' +
+                '<div class="sv2-score-track"><div class="sv2-score-fill" style="width:' + Math.round((score||0)/max*100) + '%;background:' + color + ';"></div></div>' +
+                '<span style="color:' + color + ';font-weight:700;width:44px;">' + (band||'—') + '</span>' +
+                '<span style="color:var(--muted);font-size:0.7rem;">' + (score||0) + '/' + max + '</span>' +
+                '</div>';
+
+            // Matrix 3×3
+            const rows  = ['Alto', 'Medio', 'Bajo'];
+            const cols  = ['Alta', 'Media', 'Baja'];
+            const rBg   = ['#dcfce7', '#fef9c3', '#f3f4f6'];  // row backgrounds
+            const cOp   = ['1', '0.75', '0.55'];               // col opacity
+            const qEmoji= ['①','②','③','④','⑤','⑥','⑦','⑧','⑨'];
+            const qShort= ['Estratégico','Core','Volumen','Entrada','Estándar','Manteni.','Conector','Ligero','Congelar'];
+
+            let matrixHtml = '<div class="sv2-matrix">';
+            // Header row
+            matrixHtml += '<div></div>';
+            cols.forEach(c => { matrixHtml += '<div class="sv2-cell-header">Red ' + c + '</div>'; });
+            // Data rows
+            rows.forEach((row, ri) => {
+                matrixHtml += '<div class="sv2-cell-rowhdr">D.' + row + '</div>';
+                cols.forEach((col, ci) => {
+                    const cellQ   = ri * 3 + ci + 1;
+                    const isActive = cellQ === q;
+                    const tip = (_SV2_QUADRANT_NAMES[cellQ] || '') + ': ' + (_SV2_ACTIONS[cellQ] || '');
+                    matrixHtml +=
+                        '<div class="sv2-cell' + (isActive ? ' active' : '') + '" ' +
+                        'style="background:' + rBg[ri] + ';opacity:' + cOp[ci] + ';" title="' + escapeHtml(tip) + '">' +
+                        '<div style="font-size:0.9rem;">' + qEmoji[cellQ - 1] + '</div>' +
+                        '<div style="font-size:0.62rem;line-height:1.3;color:#374151;">' + qShort[cellQ - 1] + '</div>' +
+                        '</div>';
+                });
+            });
+            matrixHtml += '</div>';
+
+            // Action box
+            const actionHtml =
+                '<div class="sv2-action-box">' +
+                '<div style="font-weight:700;color:var(--primary);margin-bottom:3px;">' +
+                escapeHtml(qEmoji[q-1] + ' ' + (v2.priorityQuadrantName || '—')) + '</div>' +
+                '<div style="color:#374151;line-height:1.5;">' + escapeHtml(v2.priorityRecommendedAction || '') + '</div>' +
+                '</div>';
+
+            // History badge
+            const histLen = Array.isArray(studio.scoringHistory) ? studio.scoringHistory.length : 0;
+            const histBadge = histLen > 1
+                ? '<div style="font-size:0.7rem;color:var(--muted);margin-top:6px;text-align:right;">📈 ' + histLen + ' cálculos registrados</div>'
+                : '';
+
+            return '<div style="padding:4px 0 8px 0;">' +
+                bar('Valor Directo', v2.priorityDirectScore, 15, v2.priorityDirect, dCol) +
+                bar('Valor de Red',  v2.priorityNetworkScore, 15, v2.priorityNetwork, nCol) +
+                matrixHtml + actionHtml + histBadge + '</div>';
+        }
+
         async function showStudioDetail(id) {
             console.log('🔍 showStudioDetail llamado con id:', id, '| tipo:', typeof id);
             // Buscar con igualdad estricta (string) — nuevo método
