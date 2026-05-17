@@ -21410,7 +21410,27 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const studio = await getStudio(studioId);
             if (!studio) return;
 
-            const studioType = getB2BTypeName(studio);
+            // ── OCV: determinar subtipo (promotora vs constructora) ───────────────
+            let b2bSubType = null;
+            if (getTipoPrincipal(studio) === 'OCV') {
+                const detected = detectOCVSubtype(studio);
+                if (detected) {
+                    b2bSubType = detected;
+                } else {
+                    // Ambiguo → preguntar
+                    const esPromotora = confirm(
+                        `"${studio.name}" es de tipo Obra Civil / Constructora.\n\n` +
+                        `¿Es principalmente una Promotora o Inmobiliaria?\n\n` +
+                        `Aceptar → Promotora / Inmobiliaria (ruta por proyecto)\n` +
+                        `Cancelar → Constructora / Obra Civil`
+                    );
+                    b2bSubType = esPromotora ? 'promotora' : 'constructora';
+                }
+            }
+
+            // studioType ya refleja el subType gracias al getB2BTypeName actualizado
+            // (pero aquí aún no está guardado, así que lo calculamos directamente)
+            const studioType = b2bSubType || getB2BTypeName(studio);
 
             // Aviso ciclo largo para AAPP, Aguas, Regantes
             if (['aapp', 'aguas', 'regantes'].includes(studioType) && AVISOS_CICLO_LARGO[studioType]) {
