@@ -6011,7 +6011,9 @@
                 studio.priorityDetails = autoPriority.details;
                 studio.priorityCalculatedScore = autoPriority.calculatedScore;
             }
-            
+            // Scoring v2 — siempre en alta creación
+            Object.assign(studio, buildScoringV2Updates(studio, 'importacion'));
+
             // FIREBASE
             if (useFirebase) {
                 try {
