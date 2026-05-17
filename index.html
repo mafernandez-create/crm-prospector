@@ -8386,7 +8386,10 @@
                     </td>
                     <td data-label="Tipo"><span style="font-size:0.85rem;">${getTypeLabel(studio.type)}</span></td>
                     <td data-label="Estado"><span class="status status-${studio.status}">${getStatusLabel(studio.status)}</span></td>
-                    <td data-label="Prioridad"><span class="priority priority-${(studio.priority || 'media').toLowerCase().replace(/[^a-z]/g,'')}">${escapeHtml(studio.priority || 'Media')}</span></td>
+                    <td data-label="Prioridad">
+                        <span class="priority priority-${(studio.priority || 'media').toLowerCase().replace(/[^a-z]/g,'')}">${escapeHtml(studio.priority || 'Media')}</span>
+                        ${studio.priorityQuadrant ? `<br><span style="font-size:0.68rem;color:var(--primary);font-weight:600;" title="${escapeHtml(studio.priorityRecommendedAction||'')}">Q${studio.priorityQuadrant} ${escapeHtml(studio.priorityQuadrantName||'')}</span>` : ''}
+                    </td>
                     <td data-label="Última Actividad">${formatDate(studio.updatedAt)}</td>
                     <td data-label="Creado">${formatDate(studio.createdAt)}</td>
                     <td data-label="Días en fase" style="text-align:center;">${(() => {
