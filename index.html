@@ -21606,9 +21606,9 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 seasonalWarning = `<div style="padding:10px 14px;border-radius:8px;margin-bottom:16px;background:${bg};color:${color};">${win.message}</div>`;
             }
 
-            // Aviso variante promotora
+            // Aviso variante promotora (también para OCV con subType=promotora)
             let variantBadge = '';
-            if (studioType === 'promotora' && b2b.variant) {
+            if ((studioType === 'promotora' || b2b.subType === 'promotora') && b2b.variant) {
                 const v = b2b.variant === 'rutaA' ? PROMOTORA_VARIANTES.rutaA : PROMOTORA_VARIANTES.rutaB;
                 variantBadge = `<span style="background:#7c3aed;color:white;padding:3px 10px;border-radius:12px;font-size:0.78rem;font-weight:600;">${v.label}</span>`;
             }
