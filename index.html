@@ -14295,7 +14295,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     if (snippetPhones.length > 0) webData += '\n--- TELÉFONOS ENCONTRADOS ---\n' + snippetPhones.join('\n') + '\n';
 
                     // Análisis profundo del sitio web
-                    const allResults = [...mainSearch, ...contactSearch, ...webSearch, ...projectSearch];
+                    const allResults = metodoResult.allResults;
                     const possibleWebsites = allResults.filter(r => r.url && !r.url.includes('linkedin') && !r.url.includes('facebook') && !r.url.includes('instagram') && !r.url.includes('twitter') && !r.url.includes('google') && !r.url.includes('bing') && !r.url.includes('youtube') && !r.url.includes('paginasamarillas'));
                     const uniqueWebsites = [...new Map(possibleWebsites.map(item => { try { return [new URL(item.url).hostname, item]; } catch { return [item.url, item]; } })).values()];
                     if (providedUrl && !uniqueWebsites.find(w => w.url === providedUrl)) uniqueWebsites.unshift({ url: providedUrl, title: name });
@@ -14331,12 +14331,15 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     }
 
                     // Social media data
-                    if (deepAnalysisData?.socialLinks?.instagram || instagramSearch.length > 0) {
-                        const instaUrl = deepAnalysisData?.socialLinks?.instagram || instagramSearch[0]?.url;
+                    const instagramSearchSections = metodoResult.allSections['SECTOR_ARQ'] || [];
+                    const instagramFallbackUrl = instagramSearchSections.find(r => r.url && r.url.includes('instagram.com'))?.url;
+                    if (deepAnalysisData?.socialLinks?.instagram || instagramFallbackUrl) {
+                        const instaUrl = deepAnalysisData?.socialLinks?.instagram || instagramFallbackUrl;
                         if (instaUrl) { const u = instaUrl.match(/instagram\.com\/([^\/\?]+)/)?.[1]; if (u && u !== 'p' && u !== 'reel') { const d = await getInstagramPublicData(u); webData += '\n\n--- DATOS INSTAGRAM ---\n' + JSON.stringify(d, null, 2); } }
                     }
-                    if (deepAnalysisData?.socialLinks?.linkedin || linkedinSearch.length > 0) {
-                        const liUrl = deepAnalysisData?.socialLinks?.linkedin || linkedinSearch[0]?.url;
+                    const linkedinSearchSections = metodoResult.allSections['LINKEDIN'] || [];
+                    if (deepAnalysisData?.socialLinks?.linkedin || linkedinSearchSections.length > 0) {
+                        const liUrl = deepAnalysisData?.socialLinks?.linkedin || linkedinSearchSections[0]?.url;
                         if (liUrl && liUrl.includes('/company/')) { const d = await getLinkedInPublicData(liUrl); webData += '\n\n--- DATOS LINKEDIN ---\n' + JSON.stringify(d, null, 2); }
                     }
 
