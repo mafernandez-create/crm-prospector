@@ -4607,17 +4607,66 @@
         // TIPOS DE ESTUDIO - Fuente única de verdad
         // ============================================
         const TIPOS_ESTUDIO = {
-            'arquitectura':   { icon: '🏛️', label: 'Arquitectura',          labelLargo: 'Empresa de Arquitectura' },
-            'ingenieria':     { icon: '⚙️', label: 'Ingeniería',            labelLargo: 'Empresa de Ingeniería' },
-            'promotora':      { icon: '🏗️', label: 'Promotora',             labelLargo: 'Promotora' },
-            'constructora':   { icon: '🔨', label: 'Constructora',          labelLargo: 'Constructora' },
-            'aapp':           { icon: '🏛️', label: 'AAPP',                  labelLargo: 'Administración Pública' },
-            'aguas':          { icon: '💧', label: 'Empresa de Aguas',      labelLargo: 'Empresa de Aguas' },
-            'regantes':       { icon: '🌾', label: 'Comunidad de Regantes', labelLargo: 'Comunidad de Regantes' },
-            'almacen':             { icon: '🏭', label: 'Almacén',               labelLargo: 'Almacén / Nave Industrial' },
-            'colegio_profesional': { icon: '🎓', label: 'Colegio Profesional',  labelLargo: 'Colegio Profesional (COA/COAAT/CICCP/COIA)' },
-            'otros':               { icon: '📋', label: 'Otros',                labelLargo: 'Otros' }
+            'ARQ':  { icon: '🏛️', label: 'Arquitectura',            labelLargo: 'Empresa de Arquitectura' },
+            'ING':  { icon: '⚙️', label: 'Ingeniería',              labelLargo: 'Empresa de Ingeniería' },
+            'OCV':  { icon: '🏗️', label: 'Obra Civil / Constructora', labelLargo: 'Constructora / Promotora / Obra Civil' },
+            'AAPP': { icon: '🏛️', label: 'AAPP',                    labelLargo: 'Administración Pública' },
+            'CCRR': { icon: '🌾', label: 'Comunidad de Regantes',   labelLargo: 'Comunidad de Regantes' },
+            'CICA': { icon: '💧', label: 'Empresa de Aguas',         labelLargo: 'Empresa del Ciclo del Agua' },
+            'almacen':             { icon: '🏭', label: 'Almacén',              labelLargo: 'Almacén / Nave Industrial' },
+            'colegio_profesional': { icon: '🎓', label: 'Colegio Profesional', labelLargo: 'Colegio Profesional' },
+            'otros':               { icon: '📋', label: 'Otros',               labelLargo: 'Otros' }
         };
+
+        // ── Mapeos de tipos (v1.1) ────────────────────────────────────────────
+        // Código nuevo → nombre legacy que usan getB2BTimeline / getTriggersByType
+        const TIPO_B2B_MAP = {
+            ARQ: 'arquitectura', ING: 'ingenieria', OCV: 'constructora',
+            AAPP: 'aapp', CCRR: 'regantes', CICA: 'aguas'
+        };
+        // Valor legacy (string) → código nuevo
+        const TIPO_LEGACY_MAP = {
+            arquitectura: 'ARQ', ingenieria: 'ING',
+            promotora: 'OCV', constructora: 'OCV',
+            aapp: 'AAPP', aguas: 'CICA', regantes: 'CCRR',
+            almacen: 'almacen', colegio_profesional: 'colegio_profesional', otros: 'otros'
+        };
+
+        // ── Helpers de tipo (v1.1) ────────────────────────────────────────────
+        /** Devuelve el array de códigos de tipo del estudio, normalizando strings legacy */
+        function getTiposArray(studio) {
+            if (!studio || !studio.type) return ['ARQ'];
+            if (Array.isArray(studio.type)) return studio.type.length > 0 ? studio.type : ['ARQ'];
+            const code = TIPO_LEGACY_MAP[studio.type] || studio.type;
+            return [code];
+        }
+        /** Tipo principal (primer elemento del array) */
+        function getTipoPrincipal(studio) { return getTiposArray(studio)[0]; }
+        /** ¿El estudio tiene este tipo (código)? */
+        function studioTieneType(studio, code) { return getTiposArray(studio).includes(code); }
+        /** Nombre legacy para el sistema B2B (no modificar getB2BTimeline/getTriggersByType) */
+        function getB2BTypeName(studio) {
+            const code = getTipoPrincipal(studio);
+            return TIPO_B2B_MAP[code] || 'arquitectura';
+        }
+
+        // ── Helpers de dato con metadatos (v1.1) ─────────────────────────────
+        /** Extrae el valor de un campo que puede ser string (legacy) u objeto con metadatos */
+        function getValor(campo) {
+            if (campo === null || campo === undefined) return '';
+            if (typeof campo === 'string') return campo;
+            if (typeof campo === 'object' && 'valor' in campo) return campo.valor ?? '';
+            return '';
+        }
+        /** True si el dato está verificado (>=2 fuentes o verificación humana) */
+        function esDatoVerificado(campo) {
+            if (campo === null || campo === undefined || campo === '') return false;
+            if (typeof campo === 'string') return campo !== '' && campo !== 'No encontrado';
+            if (typeof campo === 'object') {
+                return ['verificado', 'verificado_humano'].includes(campo.nivel_confianza);
+            }
+            return false;
+        }
 
         // ============================================
         // CONOCIMIENTO DE PRODUCTO GPF
@@ -4927,10 +4976,10 @@
                 startDate = new Date(); // Fallback a fecha actual
             }
             
-            const timeline = getB2BTimeline(studio.type || 'arquitectura', studio.b2bTimeline?.variant).map((step, index) => {
+            const timeline = getB2BTimeline(getB2BTypeName(studio), studio.b2bTimeline?.variant).map((step, index) => {
                 const stepDate = new Date(startDate.getTime()); // Clonar la fecha
                 stepDate.setDate(stepDate.getDate() + step.day);
-                
+
                 // Si ya está completado, no incluirlo
                 const isCompleted = studio.b2bTimeline.steps && studio.b2bTimeline.steps[index];
                 
@@ -4992,7 +5041,7 @@
             }
             
             const _studioForTimeline = await getStudio(studioId);
-            const _studioType = _studioForTimeline?.type || 'arquitectura';
+            const _studioType = getB2BTypeName(_studioForTimeline);
             const timeline = getB2BTimeline(_studioType, b2bTimeline.variant).map((step, index) => {
                 const stepDate = new Date(startDate.getTime()); // Clonar la fecha
                 stepDate.setDate(stepDate.getDate() + step.day);
@@ -5558,14 +5607,14 @@
             const data = studio.data || {};
 
             // 0. TIPO DE EMPRESA (prescripción) - hasta 3 puntos
-            const tipo = (studio.type || '').toLowerCase();
-            if (tipo === 'arquitectura' || tipo === 'ingenieria') {
+            const tipoPpal = getTipoPrincipal(studio);
+            if (tipoPpal === 'ARQ' || tipoPpal === 'ING') {
                 score += 3;
                 details.push(`Tipo: prescriptor directo (+3)`);
-            } else if (tipo === 'promotora' || tipo === 'constructora') {
+            } else if (tipoPpal === 'OCV') {
                 score += 2;
                 details.push(`Tipo: decisor de compra (+2)`);
-            } else if (tipo === 'aguas' || tipo === 'aapp' || tipo === 'regantes') {
+            } else if (tipoPpal === 'AAPP' || tipoPpal === 'CCRR' || tipoPpal === 'CICA') {
                 score += 1;
                 details.push(`Tipo: usuario final (+1)`);
             }
@@ -5622,13 +5671,13 @@
             const social = data.social || {};
             let socialScore = 0;
             
-            if (social.linkedin?.url && social.linkedin.url !== 'No encontrado') socialScore++;
-            if (social.instagram?.url && social.instagram.url !== 'No encontrado') socialScore++;
-            if (social.twitter?.url && social.twitter.url !== 'No encontrado') socialScore++;
-            if (social.facebook?.url && social.facebook.url !== 'No encontrado') socialScore++;
+            if (getValor(social.linkedin?.url) && getValor(social.linkedin?.url) !== 'No encontrado') socialScore++;
+            if (getValor(social.instagram?.url) && getValor(social.instagram?.url) !== 'No encontrado') socialScore++;
+            if (getValor(social.twitter?.url) && getValor(social.twitter?.url) !== 'No encontrado') socialScore++;
+            if (getValor(social.facebook?.url) && getValor(social.facebook?.url) !== 'No encontrado') socialScore++;
             
             // Verificar seguidores de LinkedIn
-            const linkedinFollowers = parseInt(social.linkedin?.followers) || 0;
+            const linkedinFollowers = parseInt(getValor(social.linkedin?.followers)) || 0;
             if (linkedinFollowers >= 1000) socialScore++;
             
             if (socialScore >= 3) {
@@ -5643,10 +5692,10 @@
             const contact = data.contact || {};
             let contactScore = 0;
             
-            if (contact.phone && contact.phone !== 'No encontrado') contactScore++;
-            if (contact.email && contact.email !== 'No encontrado') contactScore++;
-            if (contact.address && contact.address !== 'No encontrado') contactScore++;
-            if (contact.web && contact.web !== 'No encontrado') contactScore++;
+            if (getValor(contact.phone) && getValor(contact.phone) !== 'No encontrado') contactScore++;
+            if (getValor(contact.email) && getValor(contact.email) !== 'No encontrado') contactScore++;
+            if (getValor(contact.address) && getValor(contact.address) !== 'No encontrado') contactScore++;
+            if (getValor(contact.web) && getValor(contact.web) !== 'No encontrado') contactScore++;
             
             // Verificar equipo con decision makers
             const team = data.team || [];
@@ -6696,7 +6745,7 @@
             let filtered = studios.filter(s => {
                 if (province && (s.province || s.city || '') !== province) return false;
                 if (status && (s.status || 'nuevo') !== status) return false;
-                if (type && s.type !== type) return false;
+                if (type && !getTiposArray(s).includes(type)) return false;
                 return true;
             }).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
@@ -6820,7 +6869,7 @@
             overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
 
             const types = Object.keys(DEFAULT_TEMPLATES);
-            const typeLabels = { arquitectura:'Arquitectura', ingenieria:'Ingeniería', promotora:'Promotora', constructora:'Constructora', aapp:'AAPP', aguas:'Aguas', regantes:'Regantes' };
+            const typeLabels = Object.fromEntries(Object.entries(TIPOS_ESTUDIO).map(([k,v]) => [k, v.label]));
 
             overlay.innerHTML = `
                 <div style="background:#ffffff;border-radius:14px;width:100%;max-width:800px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
@@ -7060,7 +7109,7 @@
         let kanbanMode = 'fase'; // 'fase' | 'status'
 
         function _kanbanCard(s, borderColor) {
-            const tipo = TIPOS_ESTUDIO[s.type] || TIPOS_ESTUDIO.otros;
+            const tipo = TIPOS_ESTUDIO[getTipoPrincipal(s)] || TIPOS_ESTUDIO.otros;
             let stancAlert = '';
             if (s.fase && s.faseChangedAt && s.fase !== '1' && s.fase !== '8') {
                 const dias = Math.floor((Date.now() - new Date(s.faseChangedAt).getTime()) / 86400000);
@@ -7099,7 +7148,7 @@
             const typeFilter = document.getElementById('kanban-type')?.value || '';
             const filtered = studios.filter(s => {
                 if (search && !s.name?.toLowerCase().includes(search)) return false;
-                if (typeFilter && s.type !== typeFilter) return false;
+                if (typeFilter && !getTiposArray(s).includes(typeFilter)) return false;
                 return true;
             });
 
@@ -7926,7 +7975,7 @@
             }
 
             let filtered = allStudios.filter(studio => {
-                if (typeFilter && (studio.type || 'arquitectura') !== typeFilter) return false;
+                if (typeFilter && !getTiposArray(studio).includes(typeFilter)) return false;
                 if (statusFilter && studio.status !== statusFilter) return false;
                 if (faseFilter && String(studio.fase || '') !== faseFilter) return false;
                 if (programaFilter && !(studio.programaFinanciacion || []).includes(programaFilter)) return false;
@@ -8039,6 +8088,7 @@
             const priorityOrder = { 'Alta': 1, 'Media': 2, 'Baja': 3 };
             const statusOrder = { 'nuevo': 1, 'contactado': 2, 'standby': 3, 'reunion': 4, 'negociacion': 5, 'traspasado': 6, 'prescripcion': 7, 'venta': 8, 'ganado': 9, 'perdido': 10 };
             const typeOrder = Object.fromEntries(Object.keys(TIPOS_ESTUDIO).map((k, i) => [k, i + 1]));
+            // Para ordenar por tipo principal
             
             return [...studios].sort((a, b) => {
                 // Null guard: registros sin nombre siempre al final, independientemente de la dirección
@@ -8055,8 +8105,8 @@
                         valB = b.name.toLowerCase();
                         break;
                     case 'type':
-                        valA = typeOrder[a.type || 'arquitectura'] || 1;
-                        valB = typeOrder[b.type || 'arquitectura'] || 1;
+                        valA = typeOrder[getTipoPrincipal(a)] || 1;
+                        valB = typeOrder[getTipoPrincipal(b)] || 1;
                         break;
                     case 'status':
                         valA = statusOrder[a.status] || 99;
@@ -8100,12 +8150,15 @@
         }
 
         function getTypeLabel(type) {
-            const t = TIPOS_ESTUDIO[type];
+            // Soporta string legacy, código nuevo, o array
+            let code = Array.isArray(type) ? (type[0] || 'ARQ') : (TIPO_LEGACY_MAP[type] || type || 'ARQ');
+            const t = TIPOS_ESTUDIO[code];
             return t ? t.icon + ' ' + t.label : '🏛️ Arquitectura';
         }
 
         function getTypeIcon(type) {
-            const t = TIPOS_ESTUDIO[type];
+            let code = Array.isArray(type) ? (type[0] || 'ARQ') : (TIPO_LEGACY_MAP[type] || type || 'ARQ');
+            const t = TIPOS_ESTUDIO[code];
             return t ? t.icon : '🏛️';
         }
 
@@ -8141,7 +8194,7 @@
                             </div>
                         </div>
                     </td>
-                    <td data-label="Tipo"><span style="font-size:0.85rem;">${getTypeLabel(studio.type || 'arquitectura')}</span></td>
+                    <td data-label="Tipo"><span style="font-size:0.85rem;">${getTypeLabel(studio.type)}</span></td>
                     <td data-label="Estado"><span class="status status-${studio.status}">${getStatusLabel(studio.status)}</span></td>
                     <td data-label="Prioridad"><span class="priority priority-${(studio.priority || 'media').toLowerCase().replace(/[^a-z]/g,'')}">${escapeHtml(studio.priority || 'Media')}</span></td>
                     <td data-label="Última Actividad">${formatDate(studio.updatedAt)}</td>
@@ -8208,7 +8261,7 @@
                     <div class="detail-info">
                         <div class="detail-name">${escapeHtml(studio.name)}</div>
                         <div class="detail-meta">
-                            <span onclick="openChangeTypeModal()" style="cursor:pointer;background:var(--bg-tertiary);padding:2px 10px;border-radius:12px;transition:all 0.2s;" onmouseover="this.style.background='var(--primary-light)';this.style.color='var(--primary)'" onmouseout="this.style.background='var(--bg-tertiary)';this.style.color='inherit'" title="Haz clic para cambiar el tipo">${getTypeIcon(studio.type)} ${getTypeLabel(studio.type || 'arquitectura')} <span style="font-size:0.7rem;opacity:0.6;">✏️</span></span>
+                            <span onclick="openChangeTypeModal()" style="cursor:pointer;background:var(--bg-tertiary);padding:2px 10px;border-radius:12px;transition:all 0.2s;" onmouseover="this.style.background='var(--primary-light)';this.style.color='var(--primary)'" onmouseout="this.style.background='var(--bg-tertiary)';this.style.color='inherit'" title="Haz clic para cambiar el tipo">${getTypeIcon(studio.type)} ${getTypeLabel(studio.type)} <span style="font-size:0.7rem;opacity:0.6;">✏️</span></span>
                             <span>📍 ${studio.city ? escapeHtml(studio.city) + ', ' : ''}${escapeHtml(studio.province)}</span>
                             ${(() => {
                                 const com = getComercialForZona(studio.province);
@@ -8768,8 +8821,8 @@
             closeModal('modal-new-studio');
             openModal('modal-progress');
             
-            const tipoTexto = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).label.toLowerCase();
-            const tipoPlural = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).labelLargo.toLowerCase() + 's';
+            const tipoTexto = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['ARQ']).label.toLowerCase();
+            const tipoPlural = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['ARQ']).labelLargo.toLowerCase() + 's';
             
             document.getElementById('progress-text').textContent = `🔍 Buscando ${tipoPlural} en ${province}...`;
             
@@ -8914,7 +8967,7 @@
         }
 
         function showFoundStudiosModal(province, studioType) {
-            const tipoTexto = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).label.toLowerCase();
+            const tipoTexto = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['ARQ']).label.toLowerCase();
 
             let html = `
                 <div style="margin-bottom:16px;">
@@ -9061,7 +9114,7 @@
                 
                 // Búsquedas básicas
                 const searches = [
-                    `"${name}" ${(TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).label} ${province}`,
+                    `"${name}" ${(TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['ARQ']).label} ${province}`,
                     `"${name}" teléfono email contacto ${province}`,
                     `"${name}" proyectos obras`
                 ];
@@ -9094,7 +9147,7 @@
                 name: analysis.nombreEstudio || name,
                 province: province,
                 city: analysis.ciudad || '',
-                type: studioType,
+                type: Array.isArray(studioType) ? studioType : [studioType],
                 status: 'nuevo',
                 priority: 'Media',
                 data: {
@@ -9157,7 +9210,7 @@
         
         // Función auxiliar para construir el prompt de análisis
         function buildAnalysisPrompt(name, province, studioType, webData, directWebContent) {
-            const tipoTexto = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).label.toLowerCase();
+            const tipoTexto = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['ARQ']).label.toLowerCase();
 
             return `Analiza la siguiente información sobre la empresa de ${tipoTexto} "${name}" ubicado en ${province}, España.
 
@@ -9209,7 +9262,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             
             // Limpiar formulario
             document.getElementById('manual-name').value = '';
-            document.getElementById('manual-type').value = 'arquitectura';
+            document.getElementById('manual-type').value = 'ARQ';
             document.getElementById('manual-province').value = 'Sevilla';
             document.getElementById('manual-priority').value = 'Media';
             document.getElementById('manual-email').value = '';
@@ -9317,7 +9370,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 city: city || '',
                 priority: priority,
                 score: priority === 'Alta' ? 8 : (priority === 'Media' ? 5 : 3),
-                type: type,
+                type: Array.isArray(type) ? type : [type],
                 status: 'nuevo',
                 logo: null,
                 origenPrescriptor: document.getElementById('manual-origen')?.value || null,
@@ -11212,7 +11265,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             try {
                 // 1. Búsqueda en Colegio de Arquitectos/Ingenieros
                 updateProgress('🏛️ Consultando colegios profesionales...', province);
-                const colegioQueries = studioType === 'arquitectura'
+                const colegioQueries = (studioType === 'arquitectura' || studioType === 'ARQ')
                     ? [`colegio arquitectos ${province} listado colegiados`, `COAM COAS COA${province.substring(0,2)} arquitectos`]
                     : [`colegio ingenieros ${province} listado`, `COIIM CICCP ingenieros ${province}`];
                 
@@ -11848,7 +11901,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
             closeModal('modal-bulk-results');
             
             // Obtener tipo de empresa del formulario original
-            const studioType = document.getElementById('new-studio-type')?.value || 'arquitectura';
+            const studioType = document.getElementById('new-studio-type')?.value || 'ARQ';
             const province = document.getElementById('new-studio-province')?.value || selectedStudios[0]?.province;
             
             // Confirmar importación
@@ -12084,7 +12137,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                 name: analysis?.nombreEstudio || name,
                 province: province,
                 city: bestCity,
-                type: studioType,
+                type: Array.isArray(studioType) ? studioType : [studioType],
                 status: 'nuevo',
                 priority: 'Media',
                 data: {
@@ -12141,7 +12194,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
             
             let inputValue = nameInput.value.trim();
             const province = provinceInput.value;
-            const studioType = typeInput?.value || 'arquitectura';
+            const studioType = typeInput?.value || 'ARQ';
             
             if (!inputValue) {
                 // Si no hay nombre, buscar empresas en la provincia
@@ -12853,7 +12906,7 @@ ${domainContactSearch.map(r => `• ${r.title}\n  URL: ${r.url}\n  ${r.snippet}`
             // PASO 2: Análisis con IA usando los datos reales encontrados
             document.getElementById('progress-text').textContent = '🤖 Analizando toda la información encontrada...';
 
-            const studioTypeLabel = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).labelLargo.toLowerCase();
+            const studioTypeLabel = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['ARQ']).labelLargo.toLowerCase();
             const prompt = `Analiza los siguientes RESULTADOS DE BÚSQUEDA WEB REALES sobre el ${studioTypeLabel} "${name}" en ${province}, España.
 
 ${webData}
@@ -12937,7 +12990,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     score: data.sales?.score || 5,
                     data: data,
                     logo: logoToSave,
-                    type: studioType  // Tipo de empresa: arquitectura o ingenieria
+                    type: Array.isArray(studioType) ? studioType : [studioType]  // Tipo de empresa (v1.1: array de códigos)
                 };
                 
                 let id;
@@ -13966,7 +14019,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const studio = await getStudio(currentStudioId);
             if (!studio) return;
             populateTypeSelect('new-studio-type-change', null);
-            document.getElementById('new-studio-type-change').value = studio.type || 'arquitectura';
+            document.getElementById('new-studio-type-change').value = getTipoPrincipal(studio);
             openModal('modal-change-type');
         }
 
@@ -13975,13 +14028,13 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const studio = await getStudio(currentStudioId);
             if (!studio) return;
 
-            const oldType = studio.type || 'arquitectura';
+            const oldType = getTipoPrincipal(studio);
             if (oldType === newType) {
                 closeModal('modal-change-type');
                 return;
             }
 
-            await updateStudio(currentStudioId, { type: newType });
+            await updateStudio(currentStudioId, { type: Array.isArray(newType) ? newType : [newType] });
 
             // Recalcular prioridad ya que el tipo influye en el scoring
             const updated = await getStudio(currentStudioId);
@@ -14018,7 +14071,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
 
             const name = studio.name;
             const province = studio.province;
-            const studioType = studio.type || 'arquitectura';
+            const studioType = getTipoPrincipal(studio);
             const providedUrl = (studio.data?.contact?.web && studio.data.contact.web !== 'No encontrado') ? studio.data.contact.web : null;
 
             openModal('modal-progress');
@@ -14068,7 +14121,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     }
 
                     // Búsquedas web
-                    const tipoLabel = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).label.toLowerCase();
+                    const tipoLabel = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['ARQ']).label.toLowerCase();
                     document.getElementById('progress-text').textContent = '🔍 Buscando información en la web...';
                     const mainSearch = await searchWeb('"' + name + '" ' + tipoLabel + ' ' + province + ' España');
                     debugLog('Búsqueda principal: ' + mainSearch.length + ' resultados');
@@ -14247,7 +14300,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
 
                 // === FASE 2: ANÁLISIS CON CLAUDE ===
                 document.getElementById('progress-text').textContent = '🤖 Analizando información con IA...';
-                const studioTypeLabel = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).labelLargo.toLowerCase();
+                const studioTypeLabel = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['ARQ']).labelLargo.toLowerCase();
 
                 // Limitar tamaño de webData para evitar exceder límites del proxy
                 let webDataTrimmed = webData;
@@ -16050,8 +16103,8 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 return;
             }
 
-            var selectedType = document.getElementById('import-studio-type').value || 'arquitectura';
-            var typeInfo = TIPOS_ESTUDIO[selectedType] || TIPOS_ESTUDIO['arquitectura'];
+            var selectedType = document.getElementById('import-studio-type').value || 'ARQ';
+            var typeInfo = TIPOS_ESTUDIO[selectedType] || TIPOS_ESTUDIO['ARQ'];
 
             if (!confirm('¿Importar ' + toImport.length + ' estudios como "' + typeInfo.label + '" al CRM?')) {
                 return;
@@ -16070,7 +16123,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                     var studioData = {
                         name: s.name,
                         province: s.province || 'Sin provincia',
-                        type: selectedType,
+                        type: Array.isArray(selectedType) ? selectedType : [selectedType],
                         logoUrl: '',
                         status: 'nuevo',
                         priority: 'media',
@@ -18832,7 +18885,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             
             const startDate = new Date(studio.b2bTimeline.startDate);
             
-            for (const step of getB2BTimeline(studio.type || 'arquitectura', studio.b2bTimeline?.variant)) {
+            for (const step of getB2BTimeline(getB2BTypeName(studio), studio.b2bTimeline?.variant)) {
                 const scheduledDate = new Date(startDate);
                 scheduledDate.setDate(scheduledDate.getDate() + step.day);
                 
@@ -18848,7 +18901,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 const studio = await getStudio(studioId);
                 if (!studio || !studio.b2bTimeline || typeof studio.b2bTimeline !== 'object') return;
 
-                const step = getB2BTimeline(studio.type || 'arquitectura', studio.b2bTimeline?.variant)[stepIndex];
+                const step = getB2BTimeline(getB2BTypeName(studio), studio.b2bTimeline?.variant)[stepIndex];
                 if (!step) return;
                 const plannedDate = getPlannedDate(studio.b2bTimeline.startDate, step.day);
 
@@ -18888,7 +18941,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const studio = await getStudio(studioId);
             if (!studio || !studio.b2bTimeline || typeof studio.b2bTimeline !== 'object') return;
 
-            const step = getB2BTimeline(studio.type || 'arquitectura', studio.b2bTimeline?.variant)[stepIndex];
+            const step = getB2BTimeline(getB2BTypeName(studio), studio.b2bTimeline?.variant)[stepIndex];
             if (!step) return;
             const plannedDate = getPlannedDate(studio.b2bTimeline.startDate, step.day);
 
@@ -20972,7 +21025,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const studio = await getStudio(studioId);
             if (!studio) return;
 
-            const studioType = studio.type || 'arquitectura';
+            const studioType = getB2BTypeName(studio);
 
             // Aviso ciclo largo para AAPP, Aguas, Regantes
             if (['aapp', 'aguas', 'regantes'].includes(studioType) && AVISOS_CICLO_LARGO[studioType]) {
@@ -21042,7 +21095,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const studio = await getStudio(studioId);
             if (!studio || !studio.b2bTimeline) return;
 
-            const step = getB2BTimeline(studio.type || 'arquitectura', studio.b2bTimeline?.variant)[stepIndex];
+            const step = getB2BTimeline(getB2BTypeName(studio), studio.b2bTimeline?.variant)[stepIndex];
             studio.b2bTimeline.steps[stepIndex] = {
                 completedAt: new Date().toISOString(),
                 notes: ''
@@ -21076,7 +21129,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                     currentStep: 0,
                     steps: [],
 
-                    triggers: { ...getTriggersByType(studio.type || 'arquitectura').initialState }
+                    triggers: { ...getTriggersByType(getB2BTypeName(studio)).initialState }
                 };
             }
 
@@ -21099,7 +21152,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
 
         function renderB2BPanel(studio, activities) {
             const b2b = studio.b2bTimeline;
-            const studioType = studio.type || 'arquitectura';
+            const studioType = getB2BTypeName(studio);
 
             if (!b2b || typeof b2b !== 'object') {
                 const cycleInfo = getCycleInfo(studioType);
@@ -21295,7 +21348,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 const b2b = studio.b2bTimeline;
                 const currentStep = b2b.currentStep;
 
-                const _studioTimeline = getB2BTimeline(studio.type || 'arquitectura', b2b?.variant); if (currentStep == null || currentStep >= _studioTimeline.length) continue;
+                const _studioTimeline = getB2BTimeline(getB2BTypeName(studio), b2b?.variant); if (currentStep == null || currentStep >= _studioTimeline.length) continue;
 
                 const step = _studioTimeline[currentStep];
                 if (!step) continue;
@@ -21573,7 +21626,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const b2b = studio.b2bTimeline;
             const currentStep = b2b.currentStep;
 
-            const _nextTimeline = getB2BTimeline(studio.type || 'arquitectura', b2b?.variant);
+            const _nextTimeline = getB2BTimeline(getB2BTypeName(studio), b2b?.variant);
             if (currentStep == null || currentStep >= _nextTimeline.length) return null;
 
             const step = _nextTimeline[currentStep];
@@ -24825,7 +24878,7 @@ updateMap();
 
                 planificadorData.schedule[dateStr].filter(s => !s.reserva).forEach((s, idx) => {
                     const com = getComercialForZona(s.province);
-                    const tipoLabel = TIPOS_ESTUDIO[s.type]?.label || s.type || '';
+                    const tipoLabel = TIPOS_ESTUDIO[getTipoPrincipal(s)]?.label || getTipoPrincipal(s) || '';
                     rows.push([
                         dateFormatted,
                         dayName.charAt(0).toUpperCase() + dayName.slice(1),
@@ -25039,7 +25092,7 @@ updateMap();
 
                 // 5. OPORTUNIDADES
                 secHdr('5. OPORTUNIDADES'), pv(),
-                pTxt(typeof data.oportunidades === 'string' ? data.oportunidades : '—'),
+                ...(arr(data.oportunidades) ? data.oportunidades.map(bullet) : [pTxt(typeof data.oportunidades === 'string' && data.oportunidades ? data.oportunidades : '—')]),
                 ...(arr(data.productos_demandados) ? [pv(), pTxt('Productos de interés:', { bold: true, color: AZUL1 }), ...data.productos_demandados.map(bullet)] : []),
                 pv(), pv(),
 
@@ -25099,11 +25152,14 @@ updateMap();
                 const _priorityHex = _pColorMap[studio?.priority] || '2E5DA6';
                 const doc = await buildDocxGPF(data, studio, _priorityHex);
                 const blob = await window.docx.Packer.toBlob(doc);
-                const url = URL.createObjectURL(blob);
+                const dlName = report.fileName || 'informe_visita.docx';
+                const file = new File([blob], dlName, { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+                const url = URL.createObjectURL(file);
                 const a = document.createElement('a');
-                a.href = url; a.download = report.fileName||'informe_visita.docx';
+                a.href = url; a.download = dlName;
+                a.style.display = 'none';
                 document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                setTimeout(() => URL.revokeObjectURL(url), 2000);
             } catch(e) {
                 console.error('Error generando .docx:', e);
                 showNotification('❌ Error al generar el Word: ' + e.message, 'error');
@@ -27246,7 +27302,7 @@ Notas:
                     const city    = s.data?.contact?.city    || s.province || '';
                     const web     = s.data?.contact?.web     || '';
                     const desc    = s.data?.studio?.description || '';
-                    const tipo    = s.type ? (typeof TIPOS_ESTUDIO !== 'undefined' && TIPOS_ESTUDIO?.[s.type] ? TIPOS_ESTUDIO[s.type] : s.type) : '';
+                    const tipo    = s.type ? (typeof TIPOS_ESTUDIO !== 'undefined' && TIPOS_ESTUDIO?.[getTipoPrincipal(s)] ? TIPOS_ESTUDIO[getTipoPrincipal(s)] : getTipoPrincipal(s)) : '';
                     const crmLink = `https://mafernandez-create.github.io/crm-prospector/?view=studio&id=${s.id}`;
                     const wazeQuery = address ? (address + ', ' + city) : (s.name + (city ? ', ' + city : ''));
                     const wazeLink = wazeQuery ? `https://waze.com/ul?q=${encodeURIComponent(wazeQuery)}&navigate=yes` : '';
@@ -27328,7 +27384,7 @@ Notas:
             const allTypes = {};
             sortedDates.forEach(d => {
                 (planificadorData.schedule[d] || []).filter(s => !s.reserva).forEach(s => {
-                    const t = TIPOS_ESTUDIO[s.type]?.label || s.type || 'otros';
+                    const t = TIPOS_ESTUDIO[getTipoPrincipal(s)]?.label || getTipoPrincipal(s) || 'otros';
                     allTypes[t] = (allTypes[t] || 0) + 1;
                 });
             });
@@ -27443,7 +27499,7 @@ Notas:
                         lunchInserted = true;
                     }
 
-                    const tipoLabel = TIPOS_ESTUDIO[s.type]?.label || s.type || '';
+                    const tipoLabel = TIPOS_ESTUDIO[getTipoPrincipal(s)]?.label || getTipoPrincipal(s) || '';
                     const prioridad = s.priority || 'Media';
                     const bgBadge = prioridad === 'Alta' ? '#fef2f2;color:#dc2626' :
                                     prioridad === 'Baja' ? '#f0fdf4;color:#16a34a' : '#fffbeb;color:#d97706';
