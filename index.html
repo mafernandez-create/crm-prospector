@@ -19678,24 +19678,46 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 console.log('✅ CRM inicializado correctamente');
                 console.log(`📱 Modo: ${deviceType}`);
 
-                // Auto-qualify batch — triggered by launchd via ?auto-qualify=1
+                // Auto-reanalysis batch — triggered by launchd via ?auto-qualify=1 (solo al encender)
+                // Fase 1: reanalyzeLote sobre los 10 estudios Q5/Q6 con menos datos web (scoreN más bajo)
+                // Fase 2: cualificarLote sobre todos (recalcula cuadrantes con datos frescos)
                 if (new URLSearchParams(window.location.search).get('auto-qualify') === '1') {
-                    const GUARD_MS = 20 * 3600 * 1000; // 20 h
+                    const GUARD_MS = 12 * 3600 * 1000; // 12 h — una vez por día aunque reinicies
                     const lastRun = parseInt(localStorage.getItem('crm_auto_batch_lastrun') || '0');
                     if (Date.now() - lastRun >= GUARD_MS) {
                         localStorage.setItem('crm_auto_batch_lastrun', String(Date.now()));
-                        showNotification('🤖 Auto-cualificación iniciada (launchd)...', 'info');
-                        const ids = allStudios.map(s => String(s.id));
-                        const tag = 'batch_' + new Date().toISOString().substring(0, 10).replace(/-/g, '');
+                        showNotification('🔬 Auto-análisis iniciado (launchd)...', 'info');
                         try {
-                            await cualificarLote(ids, tag, {
-                                onComplete: () => showNotification('✅ Auto-cualificación completada — ' + ids.length + ' estudios', 'success'),
+                            // Seleccionar los 10 estudios Q5/Q6 con scoreN más bajo (menos datos web)
+                            const CUADRANTES_ACTIVOS = ['⑤', '⑥', '5', '6', 'estandar', 'mantenimiento'];
+                            const candidatos = allStudios
+                                .filter(s => {
+                                    const q = String(s.priorityQuadrant || '');
+                                    return CUADRANTES_ACTIVOS.some(c => q.includes(c));
+                                })
+                                .sort((a, b) => (a.scoreN || 0) - (b.scoreN || 0))
+                                .slice(0, 10);
+
+                            if (candidatos.length > 0) {
+                                const reanalysisIds = candidatos.map(s => String(s.id));
+                                console.log(`🔬 Auto-reanalysis: ${reanalysisIds.length} estudios Q5/Q6 con menos datos`);
+                                await reanalyzeLote(reanalysisIds, {
+                                    onProgress: (msg) => console.log('reanalysis:', msg),
+                                    onDone: (ok, err) => console.log(`reanalysis done: ${ok} ok, ${err} errores`)
+                                });
+                            }
+
+                            // Fase 2: recalcular cuadrantes para todos los estudios
+                            const allIds = allStudios.map(s => String(s.id));
+                            const tag = 'auto_' + new Date().toISOString().substring(0, 10).replace(/-/g, '');
+                            await cualificarLote(allIds, tag, {
+                                onComplete: () => showNotification('✅ Auto-análisis completado — ' + allIds.length + ' estudios actualizados', 'success'),
                             });
                         } catch (e) {
                             console.error('Auto-qualify error:', e);
                         }
                     } else {
-                        console.log('⏭ Auto-qualify omitido — ejecutado hace menos de 20 h');
+                        console.log('⏭ Auto-análisis omitido — ejecutado hace menos de 12 h');
                     }
                 }
 
