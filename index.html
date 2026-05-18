@@ -7793,7 +7793,7 @@
             document.getElementById('stat-ganados').textContent = studios.filter(s => s.status === 'ganado').length;
             document.getElementById('stat-reunion').textContent = studios.filter(s => s.status === 'reunion').length;
             document.getElementById('stat-nuevos').textContent = studios.filter(s => s.status === 'nuevo').length;
-            document.getElementById('stat-alta').textContent = studios.filter(s => s.priority === 'Alta').length;
+            document.getElementById('stat-alta').textContent = studios.filter(s => s.priorityDirect === 'Alto' || (!s.priorityDirect && s.priority === 'Alta')).length;
 
             // KPIs Oficiales 2026
             const anio2026 = new Date().getFullYear(); // usa el año actual para que funcione en 2027+
@@ -8195,7 +8195,14 @@
                 if (programaFilter && !(studio.programaFinanciacion || []).includes(programaFilter)) return false;
                 if (normaFilter && !(studio.normasExigidas || []).includes(normaFilter)) return false;
                 if (origenFilter && (studio.origenPrescriptor || studio.data?.origenPrescriptor || '') !== origenFilter) return false;
-                if (priorityFilter && studio.priority !== priorityFilter) return false;
+                if (priorityFilter) {
+                    // Map Alta/Media/Baja filter to both legacy and v2 values
+                    const v2Map = { 'Alta': 'Alto', 'Media': 'Medio', 'Baja': 'Bajo' };
+                    const v2Val = v2Map[priorityFilter] || priorityFilter;
+                    const matchLegacy = studio.priority === priorityFilter;
+                    const matchV2 = studio.priorityDirect === v2Val;
+                    if (!matchLegacy && !matchV2) return false;
+                }
                 if (provinceFilter) {
                     const studioProvince = studio.province || studio.data?.contact?.province || '';
                     if (studioProvince !== provinceFilter) return false;
@@ -16133,23 +16140,18 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 let stats = { Alta: 0, Media: 0, Baja: 0 };
                 
                 for (const studio of studios) {
-                    const autoPriority = calculateAutoPriority(studio);
-                    const v2updates    = buildScoringV2Updates(studio, 'recalculo_masivo');
-                    const oldPriority  = studio.priority || 'Media';
+                    const v2updates = buildScoringV2Updates(studio, 'recalculo_masivo');
 
-                    if (oldPriority !== autoPriority.priority || !studio.priorityCalculatedScore || !studio.priorityQuadrant) {
-                        await updateStudio(studio.id, {
-                            priority: autoPriority.priority,
-                            score: autoPriority.score,
-                            priorityDetails: autoPriority.details,
-                            priorityCalculatedScore: autoPriority.calculatedScore,
-                            ...v2updates
-                        });
+                    if (!studio.priorityQuadrant) {
+                        await updateStudio(studio.id, v2updates);
                         updated++;
-                        console.log(`📊 ${studio.name}: ${oldPriority} → ${autoPriority.priority} (${autoPriority.calculatedScore}/15) | Q${v2updates.priorityQuadrant} ${v2updates.priorityQuadrantName}`);
+                        console.log(`📊 ${studio.name}: Q${v2updates.priorityQuadrant} ${v2updates.priorityQuadrantName} | D:${v2updates.priorityDirect} R:${v2updates.priorityNetwork}`);
                     }
 
-                    stats[autoPriority.priority]++;
+                    const dKey = v2updates.priorityDirect || studio.priorityDirect || 'Bajo';
+                    if (dKey === 'Alto') stats.Alta++;
+                    else if (dKey === 'Medio') stats.Media++;
+                    else stats.Baja++;
                 }
                 
                 await loadStudios();
