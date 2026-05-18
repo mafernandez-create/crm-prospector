@@ -10675,31 +10675,67 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             throw new Error('Todos los proxies fallaron');
         }
 
+        // Motor 1: DuckDuckGo HTML (sin API key, vía proxies CORS)
+        async function searchDuckDuckGo(query) {
+            const searchUrl = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(query);
+            const html = await fetchWithProxy(searchUrl);
+            const results = [];
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const links    = doc.querySelectorAll('.result__a');
+            const snippets = doc.querySelectorAll('.result__snippet');
+            for (let i = 0; i < Math.min(links.length, 15); i++) {
+                results.push({
+                    title:   links[i]?.textContent || '',
+                    snippet: snippets[i]?.textContent || '',
+                    url:     links[i]?.href || '',
+                });
+            }
+            return results;
+        }
+
+        // Motor 2: Brave Search API (requiere clave en Ajustes → Brave Search)
+        async function searchBrave(query) {
+            const key = localStorage.getItem('crm_brave_api_key') || '';
+            if (!key) throw new Error('Brave Search: clave no configurada');
+            const url = 'https://api.search.brave.com/res/v1/web/search'
+                + '?q=' + encodeURIComponent(query)
+                + '&count=10&country=es&search_lang=es';
+            const ctrl = new AbortController();
+            const tid  = setTimeout(() => ctrl.abort(), 10000);
+            try {
+                const resp = await fetch(url, {
+                    headers: { 'X-Subscription-Token': key, 'Accept': 'application/json' },
+                    signal: ctrl.signal,
+                });
+                clearTimeout(tid);
+                if (!resp.ok) throw new Error(`Brave HTTP ${resp.status}`);
+                const data = await resp.json();
+                return (data.web?.results || []).map(r => ({
+                    title:   r.title       || '',
+                    snippet: r.description || '',
+                    url:     r.url         || '',
+                }));
+            } finally {
+                clearTimeout(tid);
+            }
+        }
+
+        // Failover: Motor 1 → Motor 2 cuando DDG falla o devuelve ≤2 resultados
         async function searchWeb(query) {
             try {
-                // Usamos múltiples proxies CORS para acceder a DuckDuckGo
-                const searchUrl = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(query);
-                const html = await fetchWithProxy(searchUrl);
-                
-                // Extraer resultados del HTML
-                const results = [];
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const links = doc.querySelectorAll('.result__a');
-                const snippets = doc.querySelectorAll('.result__snippet');
-                
-                // Aumentado a 15 resultados por búsqueda
-                for (let i = 0; i < Math.min(links.length, 15); i++) {
-                    results.push({
-                        title: links[i]?.textContent || '',
-                        snippet: snippets[i]?.textContent || '',
-                        url: links[i]?.href || ''
-                    });
-                }
-                
+                const results = await searchDuckDuckGo(query);
+                if (results.length > 2) return results;
+                debugLog(`DDG: ${results.length} resultados — activando Brave Search`);
+            } catch (e) {
+                debugLog(`DDG falló (${e.message}) — activando Brave Search`);
+            }
+            try {
+                const results = await searchBrave(query);
+                debugLog(`Brave Search: ${results.length} resultados`);
                 return results;
-            } catch (error) {
-                debugLog('Error en búsqueda web: ' + error.message);
+            } catch (e) {
+                debugLog(`Brave Search falló: ${e.message}`);
                 return [];
             }
         }
