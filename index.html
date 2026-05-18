@@ -25257,13 +25257,17 @@ updateMap();
                                 const principales = dayStudiosEnriched.filter(s => !s.reserva);
                                 const reservas = dayStudiosEnriched.filter(s => s.reserva);
                                 let html = festivoHtml;
-                                html += principales.map((s, idx) => `
+                                html += principales.map((s, idx) => {
+                                    const _fsData = allStudiosForPlan.find(x => x.id == s.id);
+                                    const _hasInforme = (_fsData?.data?.reports || []).some(r => r.reportJson || r.markdownContent);
+                                    return `
                                     <div class="calendar-visit">
                                         <button class="calendar-visit-remove" onclick="removeFromDay('${dateStr}', ${s.id})">✕</button>
                                         <div class="calendar-visit-name">${idx + 1}. ${s.name}</div>
                                         <div class="calendar-visit-meta">📍 ${s._city}${s._province ? ' · ' + s._province : ''}</div>
+                                        ${_hasInforme ? `<div style="margin-top:4px;"><button onclick="event.stopPropagation();descargarInformePlan(${s.id})" title="Descargar último informe de visita" style="background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.3);border-radius:4px;color:#60a5fa;font-size:0.65rem;cursor:pointer;padding:2px 7px;line-height:1.6;">📥 Informe</button></div>` : ''}
                                     </div>
-                                `).join('');
+                                `}).join('');
                                 if (reservas.length > 0) {
                                     html += '<div class="reserva-separator">⬇ RESERVAS ⬇</div>';
                                     html += reservas.map((s, idx) => `
@@ -25914,6 +25918,48 @@ updateMap();
                 setTimeout(() => URL.revokeObjectURL(url), 2000);
             } catch(e) {
                 console.error('Error generando .docx:', e);
+                showNotification('❌ Error al generar el Word: ' + e.message, 'error');
+            }
+        }
+
+        // ── Descarga informe desde el Planificador de Visitas ──────────────────────
+        async function descargarInformePlan(studioId) {
+            showNotification('⏳ Cargando informe...', 'info');
+            let studio;
+            try {
+                const snap = await firestoreDB.collection('studios').doc(String(studioId)).get();
+                studio = snap.exists ? snap.data() : null;
+            } catch(e) { console.warn('descargarInformePlan Firestore:', e); }
+            if (!studio) studio = await getStudio(studioId);
+            if (!studio) { showNotification('❌ No se encontró el estudio', 'error'); return; }
+
+            const reports = studio?.data?.reports || [];
+            const report = reports.find(r => r.reportJson || r.markdownContent);
+            if (!report) { showNotification('⚠️ Este estudio no tiene informe IA generado', 'warning'); return; }
+            if (typeof window.docx === 'undefined') { showNotification('❌ Librería Word no cargada. Recarga la página.', 'error'); return; }
+
+            try {
+                const data = { ...(report.reportJson || {}) };
+                if (!data.fecha && report.date) {
+                    const p = report.date.split('-');
+                    if (p.length === 3) data.fecha = `${p[2]}/${p[1]}/${p[0]}`;
+                }
+                const _pColorMap = { 'Alta':'dc3545', 'Media':'f5a623', 'Baja':'6b7c93', 'Alto':'dc3545', 'Medio':'f5a623', 'Bajo':'6b7c93' };
+                const _prio = getDisplayPriority(studio);
+                const _priorityHex = _pColorMap[_prio] || '2E5DA6';
+                const doc = await buildDocxGPF(data, studio, _priorityHex);
+                const blob = await window.docx.Packer.toBlob(doc);
+                const dlName = report.fileName || `Informe_${(studio.name||'estudio').replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9]/g,'_')}.docx`;
+                const file = new File([blob], dlName, { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+                const url = URL.createObjectURL(file);
+                const a = document.createElement('a');
+                a.href = url; a.download = dlName;
+                a.style.display = 'none';
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 2000);
+                showNotification('✅ Informe descargado: ' + dlName, 'success');
+            } catch(e) {
+                console.error('Error descargarInformePlan:', e);
                 showNotification('❌ Error al generar el Word: ' + e.message, 'error');
             }
         }
