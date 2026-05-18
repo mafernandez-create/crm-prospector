@@ -3211,6 +3211,26 @@
                 </div>
             </div>
 
+            <!-- Reporte Semanal — §16.2 -->
+            <div class="view" id="view-reporte">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+                    <h2 style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin:0;">📊 Reporte Semanal</h2>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <input type="date" id="reporte-fecha-ini" class="filter-select" onchange="loadReporte()" style="font-size:0.8rem;padding:4px 8px;">
+                        <span style="color:var(--muted);font-size:0.85rem;">→</span>
+                        <input type="date" id="reporte-fecha-fin" class="filter-select" onchange="loadReporte()" style="font-size:0.8rem;padding:4px 8px;">
+                        <button class="btn btn-secondary" onclick="loadReporte()" style="font-size:0.8rem;">🔄 Actualizar</button>
+                    </div>
+                </div>
+                <div class="reporte-actions">
+                    <button class="btn btn-primary" onclick="copiarBorradorMarkdown()" style="font-size:0.8rem;">📋 Copiar borrador</button>
+                    <button class="btn btn-secondary" onclick="generateWeeklyReport()" style="font-size:0.8rem;">🖨️ Abrir en ventana</button>
+                </div>
+                <div id="reporte-content">
+                    <p style="color:var(--muted);font-style:italic;font-size:0.85rem;">Selecciona un rango de fechas para generar el reporte.</p>
+                </div>
+            </div>
+
             <!-- Detail View -->
             <div class="view" id="view-kanban">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
