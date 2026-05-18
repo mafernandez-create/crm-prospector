@@ -8098,7 +8098,9 @@
         // Extraer código postal de una dirección (5 dígitos)
         function extractCP(address) {
             if (!address) return null;
-            const match = address.match(/\b(\d{5})\b/);
+            const addrStr = (address && typeof address === 'object') ? (address.valor || '') : String(address);
+            if (!addrStr) return null;
+            const match = addrStr.match(/\b(\d{5})\b/);
             return match ? match[1] : null;
         }
         
@@ -25015,7 +25017,8 @@ updateMap();
                 const name = (s.name || '').toLowerCase();
                 const shortName = (s.shortName || '').toLowerCase();
                 const city = (s.data?.contact?.city || s.city || '').toLowerCase();
-                const address = (s.data?.contact?.address || '').toLowerCase();
+                const _addr = s.data?.contact?.address;
+                const address = ((_addr && typeof _addr === 'object') ? (_addr.valor || '') : (_addr || '')).toLowerCase();
                 const province = (s.province || '').toLowerCase();
 
                 return name.includes(searchTerm) ||
@@ -25045,7 +25048,9 @@ updateMap();
         
         function extractPostalCode(address) {
             if (!address) return '99999';
-            const match = address.match(/\b(\d{5})\b/);
+            const addrStr = (address && typeof address === 'object') ? (address.valor || '') : String(address);
+            if (!addrStr) return '99999';
+            const match = addrStr.match(/\b(\d{5})\b/);
             return match ? match[1] : '99999';
         }
         
