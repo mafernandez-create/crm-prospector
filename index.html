@@ -8306,13 +8306,14 @@
         // ============================================
         async function loadStudios() {
             allStudios = await getAllStudios();
-            
+
             // Resetear filtros dependientes al cargar
             document.getElementById('filter-city').value = '';
             document.getElementById('filter-cp').value = '';
-            
+
             updateCityFilter();
             applyFilters();
+            updateBandejaNavBadge();
         }
         
         function updateCityFilter() {
