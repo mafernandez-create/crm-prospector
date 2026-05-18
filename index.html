@@ -14716,7 +14716,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                 const nombre = sData?.name || String(id);
                 updateBar(`Analizando ${done + 1}/${total}: ${nombre}`, 'búsquedas web + Claude...');
                 try {
-                    await reanalyzeStudio(id);
+                    await reanalyzeStudio(id, { batchMode: true });
                     ok++;
                 } catch(e) {
                     errors++;
