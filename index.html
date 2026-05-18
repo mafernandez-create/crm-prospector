@@ -6046,15 +6046,7 @@
                 if (autoCity) studio.city = autoCity;
             }
 
-            // Calcular prioridad automáticamente si no se especifica o es por defecto
-            if (!studio.priority || studio.priority === 'Media') {
-                const autoPriority = calculateAutoPriority(studio);
-                studio.priority = autoPriority.priority;
-                studio.score = autoPriority.score;
-                studio.priorityDetails = autoPriority.details;
-                studio.priorityCalculatedScore = autoPriority.calculatedScore;
-            }
-            // Scoring v2 — siempre en alta creación
+            // Scoring v2 — siempre en alta creación (legacy priority/score ya no se escriben)
             Object.assign(studio, buildScoringV2Updates(studio, 'importacion'));
 
             // FIREBASE
@@ -14601,14 +14593,10 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
 
             await updateStudio(currentStudioId, { type: Array.isArray(newType) ? newType : [newType] });
 
-            // Recalcular prioridad ya que el tipo influye en el scoring
+            // Recalcular scoring v2 (tipo influye en el scoring)
             const updated = await getStudio(currentStudioId);
             if (updated) {
-                const autoPriority = calculateAutoPriority(updated);
                 await updateStudio(currentStudioId, {
-                    priority: autoPriority.priority,
-                    score: autoPriority.score,
-                    priorityDetails: autoPriority.details,
                     ...buildScoringV2Updates(updated, 'cambio_tipo')
                 });
             }
