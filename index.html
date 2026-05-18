@@ -8306,7 +8306,7 @@
         }
 
         function sortStudios(studios, column, direction) {
-            const priorityOrder = { 'Alta': 1, 'Media': 2, 'Baja': 3 };
+            const priorityOrder = { 'Alta': 1, 'Alto': 1, 'Media': 2, 'Medio': 2, 'Baja': 3, 'Bajo': 3 };
             const statusOrder = { 'nuevo': 1, 'contactado': 2, 'standby': 3, 'reunion': 4, 'negociacion': 5, 'traspasado': 6, 'prescripcion': 7, 'venta': 8, 'ganado': 9, 'perdido': 10 };
             const typeOrder = Object.fromEntries(Object.keys(TIPOS_ESTUDIO).map((k, i) => [k, i + 1]));
             // Para ordenar por tipo principal
@@ -8334,8 +8334,8 @@
                         valB = statusOrder[b.status] || 99;
                         break;
                     case 'priority':
-                        valA = priorityOrder[a.priority] || 2;
-                        valB = priorityOrder[b.priority] || 2;
+                        valA = a.priorityQuadrant || priorityOrder[a.priorityDirect] || priorityOrder[a.priority] || 5;
+                        valB = b.priorityQuadrant || priorityOrder[b.priorityDirect] || priorityOrder[b.priority] || 5;
                         break;
                     case 'updatedAt':
                         valA = (typeof a.updatedAt === 'object' && a.updatedAt?.seconds) ? a.updatedAt.seconds * 1000 : new Date(a.updatedAt || 0).getTime();
@@ -8418,7 +8418,7 @@
                     <td data-label="Tipo"><span style="font-size:0.85rem;">${getTypeLabel(studio.type)}</span></td>
                     <td data-label="Estado"><span class="status status-${studio.status}">${getStatusLabel(studio.status)}</span></td>
                     <td data-label="Prioridad">
-                        <span class="priority priority-${(studio.priority || 'media').toLowerCase().replace(/[^a-z]/g,'')}">${escapeHtml(studio.priority || 'Media')}</span>
+                        <span class="priority priority-${getDisplayPriorityClass(studio)}">${escapeHtml(getDisplayPriority(studio))}</span>
                         ${studio.priorityQuadrant ? `<br><span style="font-size:0.68rem;color:var(--primary);font-weight:600;" title="${escapeHtml(studio.priorityRecommendedAction||'')}">Q${studio.priorityQuadrant} ${escapeHtml(studio.priorityQuadrantName||'')}</span>` : ''}
                     </td>
                     <td data-label="Última Actividad">${formatDate(studio.updatedAt)}</td>
