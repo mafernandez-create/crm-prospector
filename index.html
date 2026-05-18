@@ -10690,11 +10690,21 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 socialLinks: {},
                 logo: null  // Nueva propiedad para el logotipo
             };
-            
+
+            // Helper: prueba los primeros N candidatos en paralelo, devuelve el primero con contenido
+            const fetchFirstAvailable = async (candidates, minLength = 200, batchSize = 5) => {
+                const batch = candidates.slice(0, batchSize);
+                const results = await Promise.allSettled(batch.map(u => fetchPageContentDeep(u)));
+                for (const r of results) {
+                    if (r.status === 'fulfilled' && r.value?.text?.length > minLength) return r.value;
+                }
+                return null;
+            };
+
             try {
                 debugLog('Análisis profundo de: ' + url);
                 const baseUrl = new URL(url).origin;
-                
+
                 // 1. Analizar página principal
                 const mainContent = await fetchPageContentDeep(url);
                 analysis.mainPage = mainContent.text;
@@ -10703,46 +10713,40 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 analysis.allPhones.push(...mainContent.phones);
                 analysis.allAddresses.push(...mainContent.addresses);
                 Object.assign(analysis.socialLinks, mainContent.social);
-                
+
                 // Guardar logo si se encontró
                 if (mainContent.logo) {
                     analysis.logo = mainContent.logo;
                     debugLog('Logo guardado desde página principal');
                 }
-                
-                // 2. Buscar y analizar página de contacto
+
+                // 2. Buscar y analizar página de contacto (paralelo — top 5 candidatos)
                 const contactUrls = [
                     baseUrl + '/contacto',
                     baseUrl + '/contact',
+                    baseUrl + '/contactanos',
+                    baseUrl + '/donde-estamos',
+                    baseUrl + '/es/contacto',
                     baseUrl + '/contacto.html',
                     baseUrl + '/contact.html',
                     baseUrl + '/contacta',
-                    baseUrl + '/contactanos',
                     baseUrl + '/#contacto',
-                    baseUrl + '/es/contacto',
-                    baseUrl + '/donde-estamos',
                     baseUrl + '/ubicacion',
-                    baseUrl + '/la-empresa',  // Living Kits usa esta
+                    baseUrl + '/la-empresa',
                     baseUrl + '/empresa',
                     baseUrl + '/info',
                     baseUrl + '/legal',
-                    baseUrl + '/aviso-legal'  // A veces tienen CIF aquí
+                    baseUrl + '/aviso-legal'
                 ];
-                
-                for (const contactUrl of contactUrls) {
-                    try {
-                        debugLog('Probando página contacto: ' + contactUrl);
-                        const contactContent = await fetchPageContentDeep(contactUrl);
-                        if (contactContent.text && contactContent.text.length > 200) {
-                            analysis.contactPage = contactContent.text;
-                            analysis.allEmails.push(...contactContent.emails);
-                            analysis.allPhones.push(...contactContent.phones);
-                            analysis.allAddresses.push(...contactContent.addresses);
-                            Object.assign(analysis.socialLinks, contactContent.social);
-                            debugLog('Página de contacto encontrada: ' + contactUrl);
-                            break;
-                        }
-                    } catch (e) { /* continuar */ }
+
+                const contactContent = await fetchFirstAvailable(contactUrls);
+                if (contactContent) {
+                    analysis.contactPage = contactContent.text;
+                    analysis.allEmails.push(...contactContent.emails);
+                    analysis.allPhones.push(...contactContent.phones);
+                    analysis.allAddresses.push(...contactContent.addresses);
+                    Object.assign(analysis.socialLinks, contactContent.social);
+                    debugLog('Página de contacto encontrada (paralelo)');
                 }
                 
                 // 3. Buscar y analizar página "sobre nosotros" / "estudio"
