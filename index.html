@@ -8322,6 +8322,16 @@ ${newStudios.length > 0 ? `
         let currentStudioId = null;
         let allStudios = [];
 
+        // Estado captura post-visita §16.1
+        let _visitaStream = null;
+        let _visitaRecorder = null;
+        let _visitaRecognition = null;
+        let _visitaTranscriptText = '';
+        let _visitaRecTimerInterval = null;
+        let _visitaRecSeconds = 0;
+        let _visitaCurrentStudioId = null;
+        let _visitaCurrentMode = null;
+
         function showView(view, filter = null) {
             // Cerrar menú móvil si está abierto
             if (isMobile) {
