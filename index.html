@@ -14709,7 +14709,11 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const name = studio.name;
             const province = studio.province;
             const studioType = getTipoPrincipal(studio);
-            const providedUrl = (studio.data?.contact?.web && studio.data.contact.web !== 'No encontrado') ? studio.data.contact.web : null;
+            const _webRaw = studio.data?.contact?.web;
+            const providedUrl = (() => {
+                const url = (_webRaw && typeof _webRaw === 'object') ? _webRaw.valor : _webRaw;
+                return (url && url !== 'No encontrado' && url.startsWith('http')) ? url : null;
+            })();
 
             openModal('modal-progress');
             document.getElementById('progress-text').textContent = '🔬 Re-analizando ' + name + '...';
