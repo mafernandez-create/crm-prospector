@@ -5927,6 +5927,14 @@
             const rawNetwork = r4; // R1+R2+R3+R5 = 0 hasta fase futura
             const priorityNetwork = r4 >= 4 ? 'Alta' : r4 >= 2 ? 'Media' : 'Baja';
 
+            // ── CLIENTE PUENTE (§7.2.1) ───────────────────────────────────────
+            // Candidato: Bajo en Directo + Media/Alta en Red + ≥5 proyectos detectables
+            const esCandidatoPuente = rawDirect < 6 && rawNetwork >= 2 && projects.length >= 5;
+            // Bonus D1+2 / D5+2 solo cuando el usuario confirma es_cliente_puente: true
+            const puenteActivo = studio.es_cliente_puente === true;
+            const rawDirectFinal = puenteActivo ? rawDirect + 4 : rawDirect;
+            const priorityDirect = rawDirectFinal >= 10 ? 'Alto' : rawDirectFinal >= 6 ? 'Medio' : 'Bajo';
+
             // ── CUADRANTE ─────────────────────────────────────────────────────
             const priorityQuadrant = _SV2_QUADRANT_MAP[`${priorityDirect}_${priorityNetwork}`] || 5;
 
