@@ -14872,7 +14872,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                         if (instaUrl) { const u = instaUrl.match(/instagram\.com\/([^\/\?]+)/)?.[1]; if (u && u !== 'p' && u !== 'reel') { const d = await getInstagramPublicData(u); webData += '\n\n--- DATOS INSTAGRAM ---\n' + JSON.stringify(d, null, 2); } }
                     }
                     const linkedinSearchSections = metodoResult.allSections['LINKEDIN'] || [];
-                    if (deepAnalysisData?.socialLinks?.linkedin || linkedinSearchSections.length > 0) {
+                    if (!batchMode && (deepAnalysisData?.socialLinks?.linkedin || linkedinSearchSections.length > 0)) {
                         const liUrl = deepAnalysisData?.socialLinks?.linkedin || linkedinSearchSections[0]?.url;
                         if (liUrl && liUrl.includes('/company/')) { const d = await getLinkedInPublicData(liUrl); webData += '\n\n--- DATOS LINKEDIN ---\n' + JSON.stringify(d, null, 2); }
                     }
