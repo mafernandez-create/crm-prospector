@@ -25286,7 +25286,78 @@ updateMap();
             const modal = document.getElementById('planificador-modal');
             if (modal) modal.remove();
         }
-        
+
+        // ── Prioritarios sin contacto reciente — §16.3 ──────────────────────
+
+        async function cargarPrioritariosSinContacto() {
+            const el = document.getElementById('plan-prior-list');
+            if (!el) return;
+            el.innerHTML = '<span style="color:var(--muted);">⏳ Calculando...</span>';
+
+            const activities = await getAllActivities();
+            // Índice estudio → última actividad
+            const lastAct = {};
+            activities.forEach(a => {
+                const id = String(a.studioId);
+                const d = new Date(a.createdAt || 0).getTime();
+                if (!lastAct[id] || d > lastAct[id]) lastAct[id] = d;
+            });
+
+            const now = Date.now();
+            const WEEKS_Q1 = 12, WEEKS_REST = 16;
+            const MS_Q1   = WEEKS_Q1   * 7 * 24 * 3600 * 1000;
+            const MS_REST = WEEKS_REST * 7 * 24 * 3600 * 1000;
+
+            const prioritarios = allStudios
+                .filter(s => s.priorityQuadrant >= 1 && s.priorityQuadrant <= 4)
+                .map(s => {
+                    const threshold = s.priorityQuadrant === 1 ? MS_Q1 : MS_REST;
+                    const last = lastAct[String(s.id)] || 0;
+                    const sinceMs = now - last;
+                    return { s, sinceMs, threshold, weeks: Math.floor(sinceMs / (7*24*3600*1000)) };
+                })
+                .filter(({ sinceMs, threshold }) => sinceMs >= threshold)
+                .sort((a, b) => b.sinceMs - a.sinceMs)
+                .slice(0, 15);
+
+            if (prioritarios.length === 0) {
+                el.innerHTML = '<span style="color:var(--success);">✅ Todos los prioritarios tienen contacto reciente</span>';
+                return;
+            }
+
+            const qNames = {1:'①',2:'②',3:'③',4:'④'};
+            el.innerHTML = prioritarios.map(({ s, weeks }) => `
+                <div class="plan-prior-item">
+                    <span style="flex-shrink:0;font-weight:700;color:var(--primary);">${qNames[s.priorityQuadrant]||s.priorityQuadrant}</span>
+                    <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                          onclick="showStudioDetail('${s.id}')" style="cursor:pointer;">${escapeHtml(s.name)}</span>
+                    <span style="color:var(--warning);font-size:0.75rem;white-space:nowrap;">${weeks}sem</span>
+                </div>`).join('');
+        }
+
+        function guardarPlanSemanalDesdeModal() {
+            // Recopila las visitas asignadas en el planificador actual
+            const dias = document.querySelectorAll('.calendar-day');
+            const visitasPlanificadas = [];
+            dias.forEach(dia => {
+                const fecha = dia.dataset?.date;
+                dia.querySelectorAll('.assigned-studio').forEach(card => {
+                    const id = card.dataset?.studioId || card.dataset?.id;
+                    const name = card.querySelector('.studio-name, .assigned-name')?.textContent?.trim() || '';
+                    if (fecha && (id || name)) visitasPlanificadas.push({ id_cliente: id, nombre: name, fecha_prevista: fecha });
+                });
+            });
+
+            // Semana ISO a partir del primer campo de fecha
+            const fechaIni = document.getElementById('plan-fecha-inicio')?.value || new Date().toISOString().split('T')[0];
+            const d = new Date(fechaIni + 'T12:00:00');
+            const startOfYear = new Date(d.getFullYear(), 0, 1);
+            const weekNum = Math.ceil(((d - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+            const semanaIso = `${d.getFullYear()}-W${String(weekNum).padStart(2,'0')}`;
+
+            guardarPlanSemanal(semanaIso, visitasPlanificadas);
+        }
+
         // Mapeo CCAA → Provincias
         const CCAA_PROVINCIAS = {
             'Andalucía': ['Almería', 'Cádiz', 'Córdoba', 'Granada', 'Huelva', 'Jaén', 'Málaga', 'Sevilla'],
