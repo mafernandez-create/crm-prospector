@@ -12825,7 +12825,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                         }
 
                         // Espera entre peticiones
-                        await new Promise(resolve => setTimeout(resolve, 1500));
+                        await new Promise(resolve => setTimeout(resolve, 500));
                     }
                     console.log(`🌐 Enriquecidos ${enrichedCount} de ${studiosWithUrl.length} estudios con datos web`);
                 } catch (enrichErr) {
