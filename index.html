@@ -4888,6 +4888,7 @@
                 
                 // Determinar si usar POST (para acciones que requieren datos complejos)
                 const usePost = action === 'gmail' ||
+                                action === 'fetchUrl' ||   // URLs largas — siempre POST
                                 action === 'addStudio' ||
                                 action === 'updateStudio' ||
                                 action === 'addActivity' ||
