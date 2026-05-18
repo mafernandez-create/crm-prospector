@@ -12674,6 +12674,13 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                         `servicio municipal aguas ${province}`,
                         `gestión agua potable ${province} concesión`
                     ],
+                    'colegio': [
+                        `colegio oficial arquitectos ${province}`,
+                        `colegio ingenieros ${province} caminos industriales`,
+                        `colegio aparejadores arquitectos técnicos ${province}`,
+                        `site:coam.org OR site:coas.es colegio arquitectos ${province}`,
+                        `colegio profesional arquitectura ingeniería ${province} jornadas formación`
+                    ],
                     'concesionaria': [
                         `concesionaria agua ${province} FCC Aqualia Acciona Agbar`,
                         `gestión privada abastecimiento saneamiento ${province}`,
@@ -13430,6 +13437,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                 'constructora': 'construcción', 'promotora': 'promoción inmobiliaria',
                 'regantes': 'comunidades de regantes', 'aguas': 'gestión de aguas',
                 'concesionaria': 'concesionaria privada del ciclo del agua',
+                'colegio': 'colegio profesional',
                 'aapp': 'administración pública', 'otros': 'servicios profesionales'
             };
             const typeLabel = typeConfig[studioType] || studioType;
