@@ -10853,28 +10853,22 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                     } catch (e) { /* continuar */ }
                 }
                 
-                // 6. Buscar y analizar página de proyectos
+                // 6. Buscar y analizar página de proyectos (paralelo — top 5)
                 const projectUrls = [
                     baseUrl + '/proyectos',
+                    baseUrl + '/portfolio',
                     baseUrl + '/projects',
                     baseUrl + '/obras',
-                    baseUrl + '/portfolio',
                     baseUrl + '/trabajos',
                     baseUrl + '/work',
                     baseUrl + '/es/proyectos',
                     baseUrl + '/arquitectura'
                 ];
-                
-                for (const projectUrl of projectUrls) {
-                    try {
-                        debugLog('Probando página proyectos: ' + projectUrl);
-                        const projectContent = await fetchPageContentDeep(projectUrl);
-                        if (projectContent.text && projectContent.text.length > 200) {
-                            analysis.projectsPage = projectContent.text;
-                            debugLog('Página de proyectos encontrada: ' + projectUrl);
-                            break;
-                        }
-                    } catch (e) { /* continuar */ }
+
+                const projectContent = await fetchFirstAvailable(projectUrls);
+                if (projectContent) {
+                    analysis.projectsPage = projectContent.text;
+                    debugLog('Página de proyectos encontrada (paralelo)');
                 }
                 
                 // 7. NUEVO: Buscar en sitemap.xml para encontrar más páginas de equipo
