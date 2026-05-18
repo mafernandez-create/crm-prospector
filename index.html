@@ -16484,6 +16484,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 try {
                     await firestoreDB.collection('_meta').doc('batch_checkpoint').set({
                         trigger,
+                        procesandose_por: trigger.includes('github') ? 'github_actions' : (trigger.startsWith('batch_') ? 'mac_local' : null),
                         total,
                         processed,
                         lastId: String(lastId || ''),
