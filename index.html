@@ -25368,6 +25368,247 @@ updateMap();
                 </div>`).join('');
         }
 
+        // ── CAPTURA POST-VISITA §16.1 ────────────────────────────────────────
+
+        function abrirModalVisita(studioId, mode) {
+            cerrarModalVisita();
+            _visitaCurrentStudioId = studioId;
+            _visitaCurrentMode = mode;
+
+            const studio = allStudios.find(s => String(s.id) === String(studioId));
+            const studioName = studio?.name || 'Empresa';
+            const now = new Date();
+            const localIso = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+
+            const vozSection = mode === 'voz' ? `
+                <div class="visita-rec-row">
+                    <button class="visita-rec-btn idle" id="visita-rec-btn" onclick="toggleGrabacion()">🎙️ Iniciar grabación</button>
+                    <span class="visita-rec-status" id="visita-rec-status">Listo para grabar</span>
+                    <span id="visita-rec-timer" style="font-size:0.75rem;color:var(--muted);white-space:nowrap;">0:00</span>
+                </div>
+                <div style="margin-bottom:4px;font-size:0.78rem;font-weight:700;color:var(--text-secondary);display:flex;align-items:center;justify-content:space-between;">
+                    <span>🗒️ Transcripción</span>
+                    <button onclick="distribuirTranscripcion()" style="font-size:0.72rem;padding:2px 8px;background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;">→ Distribuir en bloques</button>
+                </div>
+                <textarea class="visita-transcript" id="visita-transcript" placeholder="La transcripción aparecerá aquí mientras hablas. Si el navegador no soporta reconocimiento de voz, pega el texto manualmente."></textarea>
+            ` : '';
+
+            const overlay = document.createElement('div');
+            overlay.className = 'visita-overlay';
+            overlay.id = 'visita-overlay';
+            overlay.innerHTML = `
+                <div class="visita-modal" onclick="event.stopPropagation()">
+                    <div class="visita-modal-header">
+                        <span style="font-size:1.2rem;flex-shrink:0;">${mode === 'voz' ? '🎙️' : '📝'}</span>
+                        <div class="visita-modal-title">${mode === 'voz' ? 'Grabar visita' : 'Escribir visita'} — ${escapeHtml(studioName)}</div>
+                        <button onclick="cerrarModalVisita()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted);flex-shrink:0;">✕</button>
+                    </div>
+                    <div class="visita-modal-body">
+                        <div style="margin-bottom:14px;">
+                            <div class="visita-bloque-label">📅 Fecha y hora de la visita</div>
+                            <input type="datetime-local" id="visita-fecha" value="${localIso}" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);font-size:0.82rem;width:100%;box-sizing:border-box;">
+                        </div>
+                        ${vozSection}
+                        <div class="visita-bloque">
+                            <div class="visita-bloque-label">👤 Interlocutor</div>
+                            <textarea class="visita-bloque-textarea" id="visita-interlocutor" placeholder="Nombre, cargo, rol detectado en la reunión" style="min-height:54px;"></textarea>
+                        </div>
+                        <div class="visita-bloque">
+                            <div class="visita-bloque-label">💬 Temas tratados</div>
+                            <textarea class="visita-bloque-textarea" id="visita-temas" placeholder="3-5 puntos clave discutidos (síntesis, no transcripción literal)" style="min-height:90px;"></textarea>
+                        </div>
+                        <div class="visita-bloque">
+                            <div class="visita-bloque-label">🤝 Compromisos</div>
+                            <textarea class="visita-bloque-textarea" id="visita-compromisos" placeholder="Compromisos asumidos por ambas partes, con fecha si se mencionó"></textarea>
+                        </div>
+                        <div class="visita-bloque">
+                            <div class="visita-bloque-label">➡️ Próximo paso</div>
+                            <textarea class="visita-bloque-textarea" id="visita-proximo-paso" placeholder="Qué hay que hacer, cuándo, quién lo dispara" style="min-height:54px;"></textarea>
+                        </div>
+                        <div class="visita-bloque">
+                            <div class="visita-bloque-label">🔍 Señales</div>
+                            <textarea class="visita-bloque-textarea" id="visita-señales" placeholder="Proyectos mencionados, cambios estructurales, oportunidades, riesgos"></textarea>
+                        </div>
+                    </div>
+                    <div class="visita-modal-footer">
+                        <button class="btn btn-secondary" onclick="cerrarModalVisita()">Cancelar</button>
+                        <button class="btn btn-primary" onclick="submitRegistroVisita()">💾 Guardar visita</button>
+                    </div>
+                </div>
+            `;
+            overlay.addEventListener('click', e => { if (e.target === overlay) cerrarModalVisita(); });
+            document.body.appendChild(overlay);
+        }
+
+        function cerrarModalVisita() {
+            detenerGrabacion();
+            const el = document.getElementById('visita-overlay');
+            if (el) el.remove();
+            _visitaCurrentStudioId = null;
+            _visitaCurrentMode = null;
+            _visitaTranscriptText = '';
+        }
+
+        async function toggleGrabacion() {
+            const btn = document.getElementById('visita-rec-btn');
+            if (!btn) return;
+            if (btn.classList.contains('recording')) {
+                detenerGrabacion();
+            } else {
+                await iniciarGrabacion();
+            }
+        }
+
+        async function iniciarGrabacion() {
+            const btn = document.getElementById('visita-rec-btn');
+            const status = document.getElementById('visita-rec-status');
+            const timerEl = document.getElementById('visita-rec-timer');
+            const transcriptEl = document.getElementById('visita-transcript');
+
+            try {
+                _visitaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            } catch (e) {
+                showNotification('No se pudo acceder al micrófono. Usa "Escribir visita" o activa el micrófono en el navegador.', 'warning');
+                return;
+            }
+
+            _visitaRecorder = new MediaRecorder(_visitaStream);
+            _visitaRecorder.start();
+
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRec) {
+                _visitaRecognition = new SpeechRec();
+                _visitaRecognition.lang = 'es-ES';
+                _visitaRecognition.continuous = true;
+                _visitaRecognition.interimResults = true;
+                _visitaTranscriptText = '';
+
+                _visitaRecognition.onresult = e => {
+                    let interim = '';
+                    for (let i = e.resultIndex; i < e.results.length; i++) {
+                        if (e.results[i].isFinal) _visitaTranscriptText += e.results[i][0].transcript + ' ';
+                        else interim += e.results[i][0].transcript;
+                    }
+                    if (transcriptEl) transcriptEl.value = _visitaTranscriptText + interim;
+                };
+                _visitaRecognition.onerror = () => {};
+                _visitaRecognition.onend = () => {
+                    // Auto-restart if still recording (Chrome stops after silence)
+                    if (_visitaRecorder && _visitaRecorder.state === 'recording') {
+                        try { _visitaRecognition.start(); } catch (e) {}
+                    }
+                };
+                _visitaRecognition.start();
+                if (status) status.textContent = 'Grabando — transcripción en tiempo real';
+            } else {
+                if (status) status.textContent = 'Grabando — pega la transcripción manualmente';
+                if (transcriptEl) transcriptEl.removeAttribute('readonly');
+            }
+
+            if (btn) { btn.className = 'visita-rec-btn recording'; btn.textContent = '⏹ Detener grabación'; }
+
+            _visitaRecSeconds = 0;
+            _visitaRecTimerInterval = setInterval(() => {
+                _visitaRecSeconds++;
+                const m = Math.floor(_visitaRecSeconds / 60), s = _visitaRecSeconds % 60;
+                if (timerEl) timerEl.textContent = `${m}:${String(s).padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function detenerGrabacion() {
+            if (_visitaRecognition) { try { _visitaRecognition.stop(); } catch (e) {} _visitaRecognition = null; }
+            if (_visitaRecorder && _visitaRecorder.state !== 'inactive') { try { _visitaRecorder.stop(); } catch (e) {} }
+            _visitaRecorder = null;
+            if (_visitaStream) { _visitaStream.getTracks().forEach(t => t.stop()); _visitaStream = null; }
+            if (_visitaRecTimerInterval) { clearInterval(_visitaRecTimerInterval); _visitaRecTimerInterval = null; }
+
+            const btn = document.getElementById('visita-rec-btn');
+            const status = document.getElementById('visita-rec-status');
+            if (btn) { btn.className = 'visita-rec-btn idle'; btn.textContent = '🎙️ Iniciar grabación'; }
+            if (status) status.textContent = _visitaRecSeconds > 0 ? `Grabación completada (${_visitaRecSeconds}s)` : 'Listo para grabar';
+        }
+
+        function distribuirTranscripcion() {
+            const transcriptEl = document.getElementById('visita-transcript');
+            const temasEl = document.getElementById('visita-temas');
+            if (!transcriptEl || !temasEl) return;
+            const text = transcriptEl.value.trim();
+            if (!text) { showNotification('No hay transcripción que distribuir', 'warning'); return; }
+            if (!temasEl.value.trim()) temasEl.value = text;
+            showNotification('Transcripción copiada a "Temas tratados". Edita y completa los demás bloques.', 'info');
+        }
+
+        async function submitRegistroVisita() {
+            const studioId = _visitaCurrentStudioId;
+            const mode = _visitaCurrentMode;
+            if (!studioId) return;
+
+            const fecha = document.getElementById('visita-fecha')?.value || new Date().toISOString();
+            const interlocutor = document.getElementById('visita-interlocutor')?.value.trim() || '';
+            const temas = document.getElementById('visita-temas')?.value.trim() || '';
+            const compromisos = document.getElementById('visita-compromisos')?.value.trim() || '';
+            const proximoPaso = document.getElementById('visita-proximo-paso')?.value.trim() || '';
+            const senales = document.getElementById('visita-señales')?.value.trim() || '';
+            const transcripcion = document.getElementById('visita-transcript')?.value.trim() || '';
+
+            if (!temas && !interlocutor) {
+                showNotification('Rellena al menos el interlocutor o los temas tratados', 'warning');
+                return;
+            }
+
+            const lines = [];
+            if (interlocutor) lines.push(`👤 ${interlocutor}`);
+            if (temas) lines.push(`💬 ${temas.substring(0, 140)}${temas.length > 140 ? '…' : ''}`);
+            if (compromisos) lines.push(`🤝 ${compromisos.substring(0, 80)}${compromisos.length > 80 ? '…' : ''}`);
+            if (proximoPaso) lines.push(`➡️ ${proximoPaso.substring(0, 80)}${proximoPaso.length > 80 ? '…' : ''}`);
+
+            const registroVisita = {
+                modalidad: mode,
+                fecha_visita: fecha,
+                nivel_confianza: 'verificado_humano',
+                fuente_tipo: 'visita_presencial',
+                interlocutor,
+                temas_tratados: temas,
+                compromisos,
+                proximo_paso: proximoPaso,
+                senales,
+                ...(mode === 'voz' && transcripcion ? {
+                    transcripcion_completa: transcripcion,
+                    duracion_audio_seg: _visitaRecSeconds,
+                } : {}),
+            };
+
+            const activity = {
+                studioId: String(studioId),
+                type: 'registro_visita',
+                text: lines.join('\n'),
+                registroVisita,
+                createdAt: new Date(fecha).toISOString(),
+            };
+
+            try {
+                await addActivity(activity);
+                cerrarModalVisita();
+                showNotification('✅ Visita guardada correctamente', 'success');
+                showStudioDetail(studioId);
+            } catch (e) {
+                showNotification('Error al guardar la visita: ' + e.message, 'danger');
+            }
+        }
+
+        function renderRegistroVisitaTimeline(act) {
+            const rv = act.registroVisita || {};
+            const badge = rv.modalidad === 'voz' ? '🎙️ Voz' : '📝 Manual';
+            const badgeColor = rv.modalidad === 'voz' ? '#8b5cf6' : '#3b82f6';
+            return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                <span style="font-weight:700;font-size:0.82rem;">VISITA REGISTRADA</span>
+                <span style="background:${badgeColor};color:white;font-size:0.68rem;padding:1px 7px;border-radius:8px;font-weight:600;">${badge}</span>
+            </div>
+            ${rv.interlocutor ? `<div style="font-size:0.8rem;margin-bottom:4px;"><strong>👤</strong> ${escapeHtml(rv.interlocutor)}</div>` : ''}
+            ${rv.temas_tratados ? `<div style="font-size:0.8rem;margin-bottom:4px;color:var(--text-secondary);"><strong>💬</strong> ${escapeHtml(rv.temas_tratados.substring(0, 150))}${rv.temas_tratados.length > 150 ? '…' : ''}</div>` : ''}
+            ${rv.proximo_paso ? `<div style="font-size:0.78rem;color:var(--success);"><strong>➡️</strong> ${escapeHtml(rv.proximo_paso.substring(0, 100))}${rv.proximo_paso.length > 100 ? '…' : ''}</div>` : ''}`;
+        }
+
         function guardarPlanSemanalDesdeModal() {
             // Recopila las visitas asignadas en el planificador actual
             const dias = document.querySelectorAll('.calendar-day');
