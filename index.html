@@ -10345,13 +10345,21 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
         // En localhost: el proxy Node.js local (cors-proxy.js) va primero — sin bloqueos de DuckDuckGo
         // En producción (HTTPS): usa proxies cloud
         const _isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-        const CORS_PROXIES = [
-            ...(_isLocalhost ? [(url) => `http://localhost:3001/${encodeURIComponent(url)}`] : []),
-            (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-            (url) => `https://cors.deno.dev/${url}`,
-            (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-            (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
-        ];
+        const CORS_PROXIES = _isLocalhost
+            // En localhost: proxy local primero (sin bloqueos), luego cloud como fallback
+            ? [
+                (url) => `http://localhost:3001/${encodeURIComponent(url)}`,
+                (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+            ]
+            // En producción (HTTPS): proxies cloud
+            : [
+                (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                (url) => `https://cors.deno.dev/${url}`,
+                (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+            ];
         
         // Función para hacer fetch con reintentos usando diferentes proxies
         async function fetchWithProxy(url, timeout = 10000) {
