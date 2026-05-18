@@ -5941,13 +5941,17 @@
             return {
                 // Eje 1
                 priorityDirect,
-                priorityDirectScore: rawDirect,
+                priorityDirectScore: rawDirectFinal,
+                priorityDirectScoreNatural: rawDirect,
+                // Cliente puente
+                esCandidatoPuente,
+                puenteActivo,
                 priorityDirectDetails: [
-                    { dimension: 'D1_tipo',        pts: d1, tipo: tipoPpal },
+                    { dimension: 'D1_tipo',        pts: puenteActivo ? d1 + 2 : d1, tipo: tipoPpal, puenteBonus: puenteActivo ? 2 : 0 },
                     { dimension: 'D2_tamaño',      pts: d2, empleados: empVal },
                     { dimension: 'D3_facturacion', pts: d3, estado: 'sin_dato_fiable' },
                     { dimension: 'D4_actividad',   pts: d4, total: projects.length, recientes: d4Recent },
-                    { dimension: 'D5_fit_gpf',     pts: d5, matches: d5Fits },
+                    { dimension: 'D5_fit_gpf',     pts: puenteActivo ? d5 + 2 : d5, matches: d5Fits, puenteBonus: puenteActivo ? 2 : 0 },
                     { dimension: 'D6_contacto',    pts: d6, datos: d6Pts },
                 ],
                 // Eje 2
