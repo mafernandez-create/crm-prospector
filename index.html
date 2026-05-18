@@ -11089,31 +11089,26 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             return results;
         }
 
-        // Motor 2: Brave Search API (requiere clave en Ajustes → Brave Search)
+        // Motor 2: Brave Search API — enrutado por proxy GAS para evitar CORS
         async function searchBrave(query) {
             const key = localStorage.getItem('crm_brave_api_key') || '';
             if (!key) throw new Error('Brave Search: clave no configurada');
             const url = 'https://api.search.brave.com/res/v1/web/search'
                 + '?q=' + encodeURIComponent(query)
                 + '&count=10&country=es&search_lang=es';
-            const ctrl = new AbortController();
-            const tid  = setTimeout(() => ctrl.abort(), 10000);
-            try {
-                const resp = await fetch(url, {
-                    headers: { 'X-Subscription-Token': key, 'Accept': 'application/json' },
-                    signal: ctrl.signal,
-                });
-                clearTimeout(tid);
-                if (!resp.ok) throw new Error(`Brave HTTP ${resp.status}`);
-                const data = await resp.json();
-                return (data.web?.results || []).map(r => ({
-                    title:   r.title       || '',
-                    snippet: r.description || '',
-                    url:     r.url         || '',
-                }));
-            } finally {
-                clearTimeout(tid);
-            }
+            const result = await callAPI('fetchUrl', {
+                url,
+                extraHeaders: { 'X-Subscription-Token': key, 'Accept': 'application/json' }
+            });
+            if (result?.error) throw new Error('Brave GAS: ' + result.error);
+            if (!result?.content) throw new Error('Brave GAS: respuesta vacía');
+            if (result.status >= 400) throw new Error(`Brave HTTP ${result.status}`);
+            const data = JSON.parse(result.content);
+            return (data.web?.results || []).map(r => ({
+                title:   r.title       || '',
+                snippet: r.description || '',
+                url:     r.url         || '',
+            }));
         }
 
         // Failover: Motor 1 → Motor 2 cuando DDG falla o devuelve ≤2 resultados
