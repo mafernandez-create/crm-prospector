@@ -6939,16 +6939,19 @@
         }
 
         // Helper seguro: escapa HTML automáticamente
-        function s(v, d = '') { return escapeHtml(v ?? d); }
+        // Extrae string de un campo que puede ser string o {valor, ...} (metadata v1.1)
+        function _vStr(v) { return (typeof v === 'object' && v !== null && 'valor' in v) ? (v.valor ?? '') : v; }
+        function s(v, d = '') { return escapeHtml(_vStr(v) ?? d); }
 
         // Helper sin escapar (solo para HTML intencionalmente construido)
-        function raw(v, d = '') { return v ?? d; }
+        function raw(v, d = '') { return _vStr(v) ?? d; }
 
         // Validar que una URL sea segura (http/https)
         function safeUrl(url, fallback = '#') {
-            if (!url || url === 'No encontrado' || url === '-') return fallback;
+            const u = _vStr(url);
+            if (!u || u === 'No encontrado' || u === '-') return fallback;
             try {
-                const parsed = new URL(url.startsWith('http') ? url : 'https://' + url);
+                const parsed = new URL(u.startsWith('http') ? u : 'https://' + u);
                 if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.href;
                 return fallback;
             } catch { return fallback; }
