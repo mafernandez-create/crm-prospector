@@ -22192,6 +22192,216 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
 
 
         // ──────────────────────────────────────────────────────────────────────
+        // 2.9  CONCESIONARIA — CONCESIONARIA PRIVADA DEL CICLO DEL AGUA
+        // Ciclo: 60–120 días. Decisión corporativa. Responsable: Dpto. Técnico / Compras.
+        // Objetivo: homologación GPF como proveedor aprobado + referenciación en pliegos.
+        // Actores: FCC Aqualia, Acciona Agua, Agbar/Suez, Valoriza Agua, Tedagua…
+        // ──────────────────────────────────────────────────────────────────────
+
+        const TIMELINE_CONCESIONARIA = [
+          {
+            day: 0,
+            name: 'Llamada — identificar responsable técnico / compras',
+            channel: 'phone',
+            icon: '📞',
+            description: 'Localizar al jefe técnico de la concesión o al responsable de compras de materiales. Tono técnico-corporativo.',
+            script: `Lun–Mié, 9:00–10:30.
+
+        LLAMADA A CENTRALITA:
+        "Buenos días, ¿podría hablar con el Departamento Técnico o con el responsable
+        de compras de materiales de red? Soy técnico de GPF (Ferroplast / Tuyper)."
+
+        CON EL TÉCNICO / COMPRAS:
+        "Buenos días [nombre], soy [nombre], técnico prescriptor de GPF. Fabricamos sistemas
+        de evacuación insonorizados para redes de saneamiento y depuración. Me gustaría
+        hacerles llegar documentación técnica y certificaciones. ¿Es usted el responsable
+        técnico o de compras para materiales de tubería y evacuación?"
+
+        PREGUNTAS:
+        • "¿Tienen previstas obras de renovación de red o nuevas instalaciones en la concesión?"
+        • "¿Trabajan con un listado de proveedores aprobados para materiales de tubería?"
+        • "¿Cuál es el proceso de homologación de nuevos proveedores en su empresa?"
+
+        NOTA ROL: si pregunta por precio o condiciones →
+        "Para eso les pongo en contacto con nuestro comercial de zona."`,
+            bestTime: 'Lun–Mié, 9:00–10:30',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 2,
+            name: 'Email técnico con certificaciones y ficha de proveedor',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Email técnico-corporativo con documentación certificada y ficha de homologación.',
+            script: `ASUNTO: "Sistemas evacuación insonorizados GPF — Documentación técnica y certificaciones"
+
+        CUERPO:
+        "Estimado/a [nombre],
+
+        Le escribo de GPF (Ferroplast / Tuyper) conforme a nuestra conversación.
+        Adjunto documentación técnica de nuestros sistemas de evacuación de aguas:
+
+        • Ficha técnica: dimensiones, presiones, resistencia química (pH 2–12, 95°C)
+        • Certificado de ensayo acústico EN 14366 (laboratorio acreditado ENAC)
+        • Declaración de prestaciones (Reglamento UE 305/2011)
+        • Marcado CE y norma UNE-EN 1451
+        • Ficha de inicio de proceso de homologación GPF como proveedor aprobado
+
+        Para precios, condiciones y oferta formal, nuestro comercial de zona es el
+        interlocutor adecuado. Me lo indica y le pongo en contacto.
+
+        [Nombre] · Técnico prescriptor GPF · [contacto]"`,
+            bestTime: 'Mismo día o al siguiente, 9:00–10:00',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 14,
+            name: 'Llamada de seguimiento + propuesta de demostración',
+            channel: 'phone',
+            icon: '📞',
+            description: 'Verificar documentación recibida. Proponer visita técnica a sus instalaciones.',
+            script: `Duración: 5–8 minutos.
+
+        "Hola [nombre], le envié documentación técnica hace unos días.
+        ¿Tuvo oportunidad de revisarla?"
+
+        PREGUNTAS:
+        • "¿Tienen proveedores homologados para este tipo de material actualmente?"
+        • "¿Qué documentación necesitarían para iniciar el proceso de alta como proveedor?"
+        • "¿En qué tipo de instalaciones de la concesión utilizan sistemas de bajantes o evacuación?"
+
+        PROPUESTA:
+        "Si le parece bien, podría pasarme con muestras para que vea el sistema
+        físicamente. Y si en algún momento quieren hacer una prueba en alguna de
+        sus instalaciones, podemos organizarlo."
+
+        NOTA ROL: no gestionar precios. Si los piden → comercial de zona.`,
+            bestTime: 'Mar–Jue, 10:00–11:30',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 25,
+            name: 'Visita técnica a instalaciones de la concesión',
+            channel: 'visit',
+            icon: '🏭',
+            description: 'Visita presencial a ETAP, EDAR o red gestionada. Muestras y documentación de homologación.',
+            script: `PREPARACIÓN:
+        • Muestras de distintos diámetros y accesorios
+        • Documentación técnica impresa: fichas, certificados, tablas de resistencia química
+        • Dossier de homologación como proveedor GPF
+        • Datos del comercial de zona
+
+        EN LA VISITA:
+        1. Presentación del sistema: componentes, instalación, ventajas técnicas
+        2. Discusión técnica: compatibilidad con sus condiciones de red y planta
+        3. Proceso de homologación: qué documentación necesitan, qué auditorías realizan
+        4. Preguntar cómo incluirían nuestro sistema en sus especificaciones de compra
+        5. Si preguntan por precio → datos del comercial
+
+        OBJETIVO:
+        → Que el sistema quede referenciado en sus especificaciones de compra, Y/O
+        → Inicio del proceso de homologación GPF como proveedor aprobado, Y/O
+        → Visita conjunta con el comercial acordada`,
+            bestTime: 'Mar–Jue, 10:00–13:00',
+            critical: true,
+            final: false,
+            handoff: true
+          },
+          {
+            day: 40,
+            name: 'Envío documentación formal de homologación',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Tramitar el alta de GPF como proveedor aprobado en el sistema corporativo.',
+            script: `ASUNTO: "Documentación homologación GPF como proveedor aprobado — [concesionaria]"
+
+        CUERPO:
+        "Estimado/a [nombre],
+
+        Conforme a nuestra visita del [fecha], adjunto la documentación para iniciar
+        el proceso de homologación de GPF como proveedor aprobado:
+
+        DOCUMENTACIÓN EMPRESARIAL:
+        • CIF + datos de empresa (Ferroplast / Tuyper / GPF)
+        • Certificado corriente AEAT y TGSS
+        • Seguros de responsabilidad civil
+
+        DOCUMENTACIÓN TÉCNICA:
+        • Declaración de prestaciones (DoP) por producto
+        • Marcado CE + norma UNE-EN 1451
+        • Certificado de ensayo EN 14366 (laboratorio acreditado)
+        • Ficha de seguridad (REACH, si aplica)
+
+        Para condiciones comerciales y oferta formal, nuestro comercial [nombre]
+        es el interlocutor adecuado: [teléfono / email].
+
+        [Nombre] · Técnico prescriptor GPF"`,
+            bestTime: 'Lun–Mar, 9:00–10:00',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 60,
+            name: 'Seguimiento homologación + traspaso al comercial',
+            channel: 'phone',
+            icon: '🔄',
+            description: 'Verificar estado de la homologación. Activar al comercial de zona.',
+            script: `LLAMADA AL TÉCNICO / COMPRAS (5 minutos):
+        "Hola [nombre], le llamo para saber en qué punto está el proceso de
+        homologación de la documentación que le envié."
+
+        Si avanza → notificar al comercial de zona con todos los datos.
+        Si falta documentación → enviarla ese día.
+        Si está aprobada → traspasar al comercial para gestionar la oferta.
+
+        MENSAJE AL COMERCIAL:
+        "Hola [nombre], he trabajado [concesionaria X]. El responsable técnico/compras es
+        [nombre, teléfono, email]. La homologación está [en proceso / aprobada].
+        Sus especificaciones de compra ya contemplan [sistema / prestaciones equivalentes].
+        Puedes contactarles para gestionar la oferta."`,
+            bestTime: 'Mar–Jue, 10:00–11:30',
+            critical: true,
+            final: false,
+            handoff: true
+          },
+          {
+            day: 90,
+            name: 'Visita conjunta prescriptor + comercial',
+            channel: 'meeting',
+            icon: '🤝',
+            description: 'OBJETIVO FINAL. Visita conjunta para cerrar homologación y primer acuerdo comercial.',
+            script: `CONDICIÓN: homologación completada o en fase final.
+
+        COORDINACIÓN:
+        • Prescriptor: parte técnica (prestaciones, especificaciones, demostración)
+        • Comercial: condiciones comerciales, precio, contrato marco o primer pedido
+
+        EN LA REUNIÓN:
+        Prescriptor presenta las ventajas técnicas y la prescripción en especificaciones.
+        Comercial presenta la oferta y cierra las condiciones de suministro.
+
+        RESULTADO ESPERADO:
+        → GPF homologado como proveedor aprobado en la concesión, Y
+        → Sistema referenciado en especificaciones de compra / pliegos de la concesión, Y
+        → Primer pedido o contrato marco gestionado por el comercial
+
+        Registrar en CRM: resultado, próximas acciones, responsable de seguimiento.`,
+            bestTime: 'Mar–Jue, 10:00–12:00',
+            critical: true,
+            final: true,
+            handoff: true
+          }
+        ];
+
+
+        // ──────────────────────────────────────────────────────────────────────
         // 2.8  REGANTES — COMUNIDADES DE REGANTES
         // Ciclo: 60–365 días. Decisión colectiva. ESTACIONAL (enero–marzo).
         // Objetivos: prescripción para la junta + visita conjunta + traspaso
