@@ -25257,13 +25257,17 @@ updateMap();
                                 const principales = dayStudiosEnriched.filter(s => !s.reserva);
                                 const reservas = dayStudiosEnriched.filter(s => s.reserva);
                                 let html = festivoHtml;
-                                html += principales.map((s, idx) => `
+                                html += principales.map((s, idx) => {
+                                    const _fsData = allStudiosForPlan.find(x => x.id == s.id);
+                                    const _hasInforme = (_fsData?.data?.reports || []).some(r => r.reportJson || r.markdownContent);
+                                    return `
                                     <div class="calendar-visit">
                                         <button class="calendar-visit-remove" onclick="removeFromDay('${dateStr}', ${s.id})">✕</button>
                                         <div class="calendar-visit-name">${idx + 1}. ${s.name}</div>
                                         <div class="calendar-visit-meta">📍 ${s._city}${s._province ? ' · ' + s._province : ''}</div>
+                                        ${_hasInforme ? `<div style="margin-top:4px;"><button onclick="event.stopPropagation();descargarInformePlan(${s.id})" title="Descargar último informe de visita" style="background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.3);border-radius:4px;color:#60a5fa;font-size:0.65rem;cursor:pointer;padding:2px 7px;line-height:1.6;">📥 Informe</button></div>` : ''}
                                     </div>
-                                `).join('');
+                                `}).join('');
                                 if (reservas.length > 0) {
                                     html += '<div class="reserva-separator">⬇ RESERVAS ⬇</div>';
                                     html += reservas.map((s, idx) => `
