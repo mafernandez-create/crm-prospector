@@ -4372,6 +4372,25 @@
                     </p>
                 </div>
 
+                <!-- Migración legacy v1.1 -->
+                <div style="background:#fefce8;border:1px solid #fde68a;padding:16px;border-radius:12px;margin-bottom:20px;">
+                    <h4 style="margin:0 0 8px 0;color:#92400e;font-size:0.9rem;">🔄 Migración datos legacy → v1.1</h4>
+                    <p style="font-size:0.78rem;color:#78350f;margin:0 0 10px 0;">
+                        Envuelve los campos de contacto y social (teléfono, email, web, empleados…) en objetos
+                        <code style="background:#fef3c7;padding:1px 4px;border-radius:3px;">{valor, fuente_tipo:"legacy"}</code>.
+                        Los datos siguen siendo visibles sin cambios. Solo deben migrarse una vez.
+                    </p>
+                    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                        <button class="btn btn-secondary" onclick="exportAllData()" style="font-size:0.78rem;">
+                            📤 Backup primero
+                        </button>
+                        <button class="btn btn-primary" id="btn-migrar-legacy" onclick="ejecutarMigracionLegacy()" style="font-size:0.78rem;background:#d97706;border-color:#d97706;">
+                            🔄 Migrar strings → metadatos
+                        </button>
+                        <span id="migrar-legacy-result" style="font-size:0.78rem;color:var(--muted);"></span>
+                    </div>
+                </div>
+
                 <!-- Sección Plan v5 — M2 -->
                 <div style="background:#eff6ff;border:1px solid #bfdbfe;padding:16px;border-radius:12px;margin-bottom:20px;">
                     <h4 style="margin:0 0 8px 0;color:#1e40af;">📐 Plan v5 — Migración de datos</h4>
