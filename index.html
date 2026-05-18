@@ -22416,6 +22416,159 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
 
 
         // ──────────────────────────────────────────────────────────────────────
+        // 2.10  COLEGIO PROFESIONAL — CANAL DE PRESCRIPCIÓN
+        // Ciclo: 60–120 días. Decisión: junta directiva / área técnica / formación.
+        // Objetivo: multiplicar prescripción entre colegiados (ARQ / ING / APar).
+        // Actores: Secretario técnico, Director de Formación, Biblioteca técnica.
+        // ──────────────────────────────────────────────────────────────────────
+
+        const TIMELINE_COLEGIO = [
+          {
+            day: 0,
+            name: 'Llamada — identificar área técnica o de formación',
+            channel: 'phone',
+            icon: '📞',
+            description: 'Localizar al secretario técnico, director de formación o responsable de publicaciones. Tono técnico-institucional.',
+            script: `Lun–Mié, 9:00–10:30.
+
+        LLAMADA A CENTRALITA:
+        "Buenos días, ¿podría hablar con el Área Técnica o con el responsable de
+        Formación del colegio? Soy técnico de GPF (Ferroplast / Tuyper)."
+
+        CON EL TÉCNICO / FORMACIÓN:
+        "Buenos días [nombre], soy [nombre], técnico prescriptor de GPF. Fabricamos
+        sistemas de evacuación insonorizados certificados (triple certificación AENOR,
+        marcado CE, ensayo EN 14366). Me gustaría explorar cómo podemos colaborar
+        para que vuestros colegiados conozcan estos sistemas en sus proyectos."
+
+        PREGUNTAS:
+        • "¿Organizáis jornadas técnicas o webinars sobre instalaciones o normativa?"
+        • "¿Tenéis guías técnicas o publicaciones de referencia para los colegiados?"
+        • "¿Existe un proceso para que proveedores técnicos presenten sus soluciones?"
+
+        NOTA ROL: el objetivo es prescripción, no venta directa al colegio.`,
+            bestTime: 'Lun–Mié, 9:00–10:30',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 3,
+            name: 'Email técnico + propuesta de colaboración',
+            channel: 'email',
+            icon: '✉️',
+            description: 'Email con documentación técnica y propuesta concreta de colaboración para difusión entre colegiados.',
+            script: `ASUNTO: "Colaboración técnica GPF — Sistemas evacuación insonorizados para colegiados"
+
+        CUERPO:
+        "Estimado/a [nombre],
+
+        Le escribo de GPF (Ferroplast / Tuyper) conforme a nuestra conversación.
+        Adjunto documentación técnica de nuestros sistemas:
+
+        • Ficha técnica y nota de normativa (UNE-EN 1451, EN 14366)
+        • Certificado de ensayo acústico (laboratorio acreditado ENAC): <21dB
+        • Triple certificación AENOR (acústica, mecánica, higiene)
+        • Catálogo BIM descargable
+
+        PROPUESTA DE COLABORACIÓN:
+        Podemos aportar a vuestros colegiados:
+        ① Ponencia técnica en jornada o webinar: acústica en instalaciones, normativa
+        ② Ficha técnica para vuestra biblioteca / guías de referencia
+        ③ Artículo técnico para boletín del colegio
+
+        El objetivo es que los profesionales tengan criterio técnico fundado al especificar
+        sistemas de evacuación. No hay interés comercial directo con el colegio.
+
+        [Nombre] · Técnico prescriptor GPF · [contacto]"`,
+            bestTime: 'Mismo día o al siguiente, 9:00–10:00',
+            critical: false,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 18,
+            name: 'Reunión presencial con dirección técnica',
+            channel: 'visit',
+            icon: '🏛️',
+            description: 'Visita a la sede del colegio. Presentar la propuesta de colaboración y acordar formato de difusión.',
+            script: `PREPARACIÓN:
+        • Documentación técnica impresa: fichas, certificados, nota normativa
+        • Presentación PPT: acústica en instalaciones residenciales y terciarias
+        • Propuesta concreta de ponencia (título, duración, formato)
+        • Ejemplos de materiales para biblioteca técnica
+
+        EN LA REUNIÓN:
+        1. Presentación breve de GPF y el sistema (5 min)
+        2. Explicar la problemática técnica que resuelve: normativa acústica, CTE DB-HR
+        3. Proponer formato de colaboración: jornada, artículo, ficha biblioteca
+        4. Acordar calendario y próximos pasos
+
+        OBJETIVO:
+        → Que el colegio incluya una referencia al sistema en sus publicaciones técnicas, Y/O
+        → Que GPF sea ponente o colaborador técnico en una jornada, Y/O
+        → Que la ficha técnica quede en la biblioteca de referencia del colegio`,
+            bestTime: 'Mar–Jue, 10:00–12:00',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 45,
+            name: 'Ponencia técnica o publicación en boletín',
+            channel: 'meeting',
+            icon: '🎓',
+            description: 'Ejecución: jornada técnica, webinar o artículo en publicación del colegio.',
+            script: `FORMATO A (jornada / webinar):
+        Título sugerido: "Acústica en instalaciones: normativa CTE DB-HR y soluciones prácticas"
+        Duración: 45–60 min + preguntas
+        Contenido:
+        • Problemática: quejas por ruido de bajantes en edificios residenciales
+        • Marco normativo: CTE DB-HR, UNE-EN 1451, EN 14366
+        • Soluciones técnicas: sistemas insonorizados vs. PVC convencional
+        • Demostración: diferencia de ensayo acústico
+
+        FORMATO B (artículo boletín):
+        Título: "Sistemas de evacuación insonorizados: criterios técnicos para la prescripción"
+        Extensión: 600–900 palabras + imagen técnica
+        Enviar texto definitivo con 2 semanas de antelación
+
+        OBJETIVO: que colegiados queden con referencia técnica de GPF para futuros proyectos.`,
+            bestTime: 'Según calendario del colegio',
+            critical: true,
+            final: false,
+            handoff: false
+          },
+          {
+            day: 90,
+            name: 'Revisión de impacto + activación del canal',
+            channel: 'phone',
+            icon: '📡',
+            description: 'OBJETIVO FINAL. Verificar difusión entre colegiados y establecer colaboración continuada.',
+            script: `LLAMADA AL CONTACTO DEL COLEGIO (10 minutos):
+        "Hola [nombre], le llamo para saber cómo recibieron los colegiados la
+        [jornada / artículo / ficha técnica]. ¿Ha habido consultas o interés?"
+
+        PREGUNTAS:
+        • "¿Podemos repetir la colaboración en el próximo ciclo de formación?"
+        • "¿Estaría bien incluirnos en vuestra base de datos de colaboradores técnicos?"
+        • "¿Hay algún tema técnico en el que podamos aportar próximamente?"
+
+        RESULTADO ESPERADO:
+        → Colegio como canal de prescripción activo y recurrente, Y
+        → GPF referenciado en guías / biblioteca del colegio, Y
+        → Prescripciones de colegiados fluyendo hacia el canal comercial
+
+        Registrar en CRM: formato utilizado, asistentes/alcance, próxima colaboración prevista.`,
+            bestTime: 'Mar–Jue, 10:00–11:30',
+            critical: true,
+            final: true,
+            handoff: false
+          }
+        ];
+
+
+        // ──────────────────────────────────────────────────────────────────────
         // 2.8  REGANTES — COMUNIDADES DE REGANTES
         // Ciclo: 60–365 días. Decisión colectiva. ESTACIONAL (enero–marzo).
         // Objetivos: prescripción para la junta + visita conjunta + traspaso
