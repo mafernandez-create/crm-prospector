@@ -9041,6 +9041,47 @@
                                 <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="openStatusModal()">🔄 Cambiar Estado</button>
                             </div>
                         </div>
+                        ${(data.adjudicaciones?.valor?.length > 0) ? `
+                        <div class="card" style="margin-top:12px;">
+                            <div class="card-header" style="border-left:4px solid #7c3aed;">
+                                <h3 class="card-title">🏛️ Adjudicaciones PLACSP</h3>
+                                <span style="font-size:0.78rem;color:var(--muted);">${data.adjudicaciones.valor.length} registros · ${(data.adjudicaciones.fecha_captura||'').substring(0,10)}</span>
+                            </div>
+                            <div class="card-body" style="padding:0;">
+                                <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
+                                    <thead>
+                                        <tr style="background:var(--surface);">
+                                            <th style="padding:6px 10px;text-align:left;color:var(--muted);font-weight:600;">Expediente / Título</th>
+                                            <th style="padding:6px 8px;text-align:right;color:var(--muted);font-weight:600;">Importe</th>
+                                            <th style="padding:6px 8px;text-align:center;color:var(--muted);font-weight:600;">Estado</th>
+                                            <th style="padding:6px 8px;text-align:center;color:var(--muted);font-weight:600;">Fecha</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.adjudicaciones.valor.slice(0,10).map(l => {
+                                            const estadoColor = l.estado === 'ADJUDICADA' ? '#22c55e' : l.estado === 'EN_PLAZO' ? '#3b82f6' : '#94a3b8';
+                                            const importeStr = l.importe ? (l.importe/1000).toFixed(0) + ' k€' : '—';
+                                            const fechaStr = (l.fecha_publicacion||'').substring(0,10);
+                                            const linkHtml = l.url_placsp ? ` <a href="${escapeHtml(l.url_placsp)}" target="_blank" rel="noopener" style="color:var(--accent);font-size:0.72rem;" onclick="event.stopPropagation();">↗</a>` : '';
+                                            return `<tr style="border-top:1px solid var(--border);">
+                                                <td style="padding:7px 10px;max-width:280px;">
+                                                    <div style="font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(l.titulo||'')}">
+                                                        ${escapeHtml((l.titulo||'').substring(0,80))}${linkHtml}
+                                                    </div>
+                                                    <div style="color:var(--muted);font-size:0.75rem;">${escapeHtml((l.organismo||'').substring(0,50))}</div>
+                                                </td>
+                                                <td style="padding:7px 8px;text-align:right;color:var(--text);font-variant-numeric:tabular-nums;">${importeStr}</td>
+                                                <td style="padding:7px 8px;text-align:center;">
+                                                    <span style="font-size:0.72rem;padding:2px 7px;border-radius:8px;background:${estadoColor}22;color:${estadoColor};font-weight:600;">${escapeHtml(l.estado||'—')}</span>
+                                                </td>
+                                                <td style="padding:7px 8px;text-align:center;color:var(--muted);">${fechaStr}</td>
+                                            </tr>`;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                                ${data.adjudicaciones.valor.length > 10 ? `<div style="padding:8px 12px;font-size:0.78rem;color:var(--muted);">… y ${data.adjudicaciones.valor.length - 10} más</div>` : ''}
+                            </div>
+                        </div>` : ''}
                     </div>
                 </div>
             `;
