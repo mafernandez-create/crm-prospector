@@ -304,6 +304,26 @@
         .plan-prior-item { display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.8rem; }
         .plan-prior-item:last-child { border-bottom:none; }
 
+        /* Captura post-visita — §16.1 */
+        .visita-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:3000;display:flex;align-items:center;justify-content:center;padding:16px; }
+        .visita-modal { background:var(--bg-primary);border-radius:14px;width:100%;max-width:560px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+        .visita-modal-header { padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px; }
+        .visita-modal-title { font-weight:700;font-size:1rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+        .visita-modal-body { padding:16px 20px;overflow-y:auto;flex:1; }
+        .visita-modal-footer { padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;background:var(--bg-secondary); }
+        .visita-bloque { margin-bottom:14px; }
+        .visita-bloque-label { font-size:0.78rem;font-weight:700;color:var(--text-secondary);margin-bottom:4px; }
+        .visita-bloque-textarea { width:100%;min-height:72px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);font-size:0.82rem;resize:vertical;font-family:inherit;box-sizing:border-box; }
+        .visita-bloque-textarea:focus { outline:none;border-color:var(--primary); }
+        .visita-rec-row { display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-secondary);border-radius:10px;margin-bottom:14px; }
+        .visita-rec-btn { padding:7px 16px;border:none;border-radius:8px;font-size:0.83rem;font-weight:700;cursor:pointer;transition:all 0.2s; }
+        .visita-rec-btn.idle { background:#3b82f6;color:white; }
+        .visita-rec-btn.recording { background:#ef4444;color:white;animation:pulse-rec 1.2s infinite; }
+        @keyframes pulse-rec { 0%,100%{opacity:1} 50%{opacity:0.55} }
+        .visita-rec-status { font-size:0.77rem;color:var(--muted);flex:1; }
+        .visita-transcript { width:100%;min-height:80px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);font-size:0.8rem;resize:vertical;font-family:inherit;margin-bottom:14px;box-sizing:border-box; }
+        .visita-transcript:focus { outline:none;border-color:var(--primary); }
+
         .kanban-col { flex: 0 0 220px; background: var(--bg-secondary); border-radius: 10px; padding: 10px 8px; }
         .kanban-col-header { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 8px; border-radius: 6px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
         .kanban-card { background: var(--bg-primary); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; border-left: 3px solid transparent; transition: box-shadow 0.15s, transform 0.1s; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
