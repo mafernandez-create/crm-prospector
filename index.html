@@ -10342,7 +10342,11 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
 
         // Función para buscar en la web usando DuckDuckGo (no requiere API key)
         // Lista de proxies CORS disponibles
+        // En localhost: el proxy Node.js local (cors-proxy.js) va primero — sin bloqueos de DuckDuckGo
+        // En producción (HTTPS): usa proxies cloud
+        const _isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
         const CORS_PROXIES = [
+            ...(_isLocalhost ? [(url) => `http://localhost:3001/${encodeURIComponent(url)}`] : []),
             (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
             (url) => `https://cors.deno.dev/${url}`,
             (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
