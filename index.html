@@ -9646,9 +9646,11 @@ ${newStudios.length > 0 ? `
                                                     <div class="timeline-dot ${act.type}"></div>
                                                     <div class="timeline-date">${formatDateTime(act.createdAt)}${act.followupDate ? ` · 📅 Seguimiento: ${formatDateTime(act.followupDate)}` : ''}</div>
                                                     <div class="timeline-content">
-                                                        <div class="timeline-type">${escapeHtml(act.type.toUpperCase())}</div>
-                                                        <div class="timeline-text">${escapeHtml(act.text)}</div>
-                                                        ${getActivityOriginBadge(act)}
+                                                        ${act.type === 'registro_visita'
+                                                            ? renderRegistroVisitaTimeline(act)
+                                                            : `<div class="timeline-type">${escapeHtml(act.type.toUpperCase())}</div>
+                                                               <div class="timeline-text">${escapeHtml(act.text)}</div>
+                                                               ${getActivityOriginBadge(act)}`}
                                                     </div>
                                                     <button class="btn btn-sm btn-secondary" onclick="openEditActivityModal(${act.id})" style="position:absolute;top:0;right:0;padding:4px 8px;font-size:0.7rem;">✏️</button>
                                                 </div>
