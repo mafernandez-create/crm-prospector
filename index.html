@@ -10408,6 +10408,15 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                     // Continuar con el siguiente proxy
                 }
             }
+            // Último recurso: GAS UrlFetchApp (server-side, sin CORS ni bloqueos)
+            try {
+                debugLog('Intentando vía GAS (UrlFetchApp)...');
+                const gasContent = await fetchViaGAS(url);
+                debugLog('✅ GAS fetch OK');
+                return gasContent;
+            } catch (gasErr) {
+                debugLog('GAS fetch falló: ' + gasErr.message);
+            }
             throw new Error('Todos los proxies fallaron');
         }
 
