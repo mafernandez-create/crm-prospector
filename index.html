@@ -6970,36 +6970,32 @@
 
         // Generar enlace de navegación para direcciones
         function navigationLink(address, fallback = '-') {
-            if (!address || address === 'No encontrado' || address === '-') {
-                return fallback;
-            }
-            const encodedAddress = encodeURIComponent(address);
-            const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+            const val = _vStr(address);
+            if (!val || val === 'No encontrado' || val === '-') return fallback;
+            const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val)}`;
             return `<a href="${mapsUrl}" target="_blank" class="nav-link" onclick="event.stopPropagation();">
                 <span class="nav-link-icon">📍</span>
-                <span class="nav-link-text">${escapeHtml(address)}</span>
+                <span class="nav-link-text">${escapeHtml(val)}</span>
                 <span class="nav-link-arrow">→</span>
             </a>`;
         }
 
         // Generar enlace de teléfono
         function phoneLink(phone, fallback = '-') {
-            if (!phone || phone === 'No encontrado' || phone === '-') {
-                return fallback;
-            }
-            const cleanPhone = phone.replace(/[^\d+\-\s()]/g, '').replace(/\s+/g, '');
+            const val = _vStr(phone);
+            if (!val || val === 'No encontrado' || val === '-') return fallback;
+            const cleanPhone = val.replace(/[^\d+\-\s()]/g, '').replace(/\s+/g, '');
             return `<a href="tel:${cleanPhone}" class="phone-link" onclick="event.stopPropagation();">
                 <span class="phone-link-icon">📞</span>
-                <span class="phone-link-text">${escapeHtml(phone)}</span>
+                <span class="phone-link-text">${escapeHtml(val)}</span>
             </a>`;
         }
 
         // Generar enlace de email
         function emailLink(email, fallback = '-') {
-            if (!email || email === 'No encontrado' || email === '-') {
-                return fallback;
-            }
-            const safeEmail = email.replace(/["<>]/g, '');
+            const val = _vStr(email);
+            if (!val || val === 'No encontrado' || val === '-') return fallback;
+            const safeEmail = val.replace(/["<>]/g, '');
             return `<a href="mailto:${encodeURIComponent(safeEmail)}" class="email-link" onclick="event.stopPropagation();">
                 <span class="email-link-icon">✉️</span>
                 <span class="email-link-text">${escapeHtml(email)}</span>
