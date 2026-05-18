@@ -22983,6 +22983,13 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
         especificaciones de compra y la homologación de GPF como proveedor aprobado.
         Solo después de eso el comercial puede gestionar ofertas. La venta viene después.`
           },
+          colegio: {
+            titulo: '🎓 Canal de prescripción — Colegio Profesional',
+            mensaje: `El ciclo es de 2 a 4 meses. El objetivo NO es vender al colegio, sino
+        convertirlo en canal multiplicador hacia sus colegiados (ARQ / ING / APar).
+        El interlocutor es el área técnica o de formación, no la dirección gerencial.
+        El éxito se mide en difusión y referencias, no en transacciones.`
+          },
           concesionaria: {
             titulo: '⚠️ Proceso de ciclo largo — Concesionaria Privada del Ciclo del Agua',
             mensaje: `El ciclo es de 2 a 4 meses. El interlocutor clave es el responsable técnico o de compras
@@ -23046,7 +23053,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const studioType = b2bSubType || getB2BTypeName(studio);
 
             // Aviso ciclo largo para AAPP, Aguas, Regantes
-            if (['aapp', 'aguas', 'concesionaria', 'regantes'].includes(studioType) && AVISOS_CICLO_LARGO[studioType]) {
+            if (['aapp', 'aguas', 'concesionaria', 'colegio', 'regantes'].includes(studioType) && AVISOS_CICLO_LARGO[studioType]) {
                 const aviso = AVISOS_CICLO_LARGO[studioType];
                 if (!confirm(`${aviso.titulo}\n\n${aviso.mensaje}\n\n¿Continuar con el inicio del proceso?`)) return;
             }
