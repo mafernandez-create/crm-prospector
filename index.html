@@ -12793,12 +12793,16 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                             !s.url.includes('empresia.es') &&
                             !s.url.includes('einforma.com'))
                         .sort((a, b) => b.relevance - a.relevance)
-                        .slice(0, 15);
+                        .slice(0, 5); // Limitado a 5 para no bloquear el flujo
 
                     let enrichedCount = 0;
                     for (const studio of studiosWithUrl) {
                         try {
-                            const pageData = await fetchPageContentDeep(studio.url);
+                            // Timeout de 8s por web — evita bloqueos en proxies cloud lentos
+                            const pageData = await Promise.race([
+                                fetchPageContentDeep(studio.url),
+                                new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
+                            ]);
                             if (pageData) {
                                 if (pageData.emails?.length > 0) studio.webEmails = pageData.emails;
                                 if (pageData.phones?.length > 0) studio.webPhones = pageData.phones;
