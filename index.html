@@ -10358,19 +10358,26 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             for (let i = 0; i < CORS_PROXIES.length; i++) {
                 try {
                     const proxyUrl = CORS_PROXIES[i](url);
+                    const isLocalProxy = proxyUrl.startsWith('http://localhost:');
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), timeout);
-                    
-                    const response = await fetch(proxyUrl, { 
+
+                    const response = await fetch(proxyUrl, {
                         signal: controller.signal,
                         headers: {
                             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
                         }
                     });
                     clearTimeout(timeoutId);
-                    
+
                     if (response.ok) {
                         return await response.text();
+                    }
+                    // El proxy local es fiable: si devuelve 4xx el destino no tiene esa URL.
+                    // No tiene sentido que proxies cloud intenten lo mismo — paramos.
+                    if (isLocalProxy && response.status >= 400 && response.status < 500) {
+                        debugLog(`Proxy local: HTTP ${response.status} — página no existe en destino`);
+                        break;
                     }
                 } catch (e) {
                     debugLog(`Proxy ${i + 1} falló: ${e.message}`);
