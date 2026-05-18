@@ -4401,6 +4401,21 @@
                         🔒 <strong>Seguridad:</strong> La API key de IA está almacenada de forma segura en el servidor. No se expone al navegador.
                     </p>
                 </div>
+
+                <!-- Sección Brave Search -->
+                <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px;">
+                    <h4 style="margin:0 0 8px 0;font-size:0.9rem;color:var(--text-primary);">🔍 Brave Search (motor secundario)</h4>
+                    <p style="font-size:0.78rem;color:var(--muted);margin:0 0 10px 0;">
+                        Motor de búsqueda de respaldo cuando DuckDuckGo falla o devuelve ≤2 resultados.<br>
+                        Plan gratuito: 2.000 consultas/mes. Obtén tu clave en <strong>api.search.brave.com</strong>.
+                    </p>
+                    <div style="display:flex;gap:8px;">
+                        <input type="password" id="brave-api-key-input" placeholder="BSA..." autocomplete="off"
+                            style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem;font-family:monospace;">
+                        <button class="btn btn-primary" onclick="saveBraveKey()" style="font-size:0.8rem;white-space:nowrap;">💾 Guardar</button>
+                    </div>
+                    <div id="brave-key-status" style="font-size:0.75rem;color:var(--muted);margin-top:6px;"></div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('modal-settings')">Cerrar</button>
