@@ -24573,12 +24573,16 @@ updateMap();
             `;
             document.body.appendChild(modal);
             
-            // Fechas por defecto
+            // Fechas por defecto: próximo lunes → viernes de esa semana
             const today = new Date();
-            const nextWeek = new Date(today);
-            nextWeek.setDate(today.getDate() + 14);
-            document.getElementById('plan-fecha-inicio').value = today.toISOString().split('T')[0];
-            document.getElementById('plan-fecha-fin').value = nextWeek.toISOString().split('T')[0];
+            const dow = today.getDay(); // 0=Dom, 1=Lun
+            const daysToNextMonday = dow === 1 ? 7 : (8 - dow) % 7;
+            const nextMonday = new Date(today);
+            nextMonday.setDate(today.getDate() + daysToNextMonday);
+            const nextFriday = new Date(nextMonday);
+            nextFriday.setDate(nextMonday.getDate() + 4);
+            document.getElementById('plan-fecha-inicio').value = nextMonday.toISOString().split('T')[0];
+            document.getElementById('plan-fecha-fin').value = nextFriday.toISOString().split('T')[0];
             
             await loadPlannerFilters();
             updateCalendarDays();
