@@ -8558,7 +8558,8 @@
                     <td data-label="Estado"><span class="status status-${studio.status}">${getStatusLabel(studio.status)}</span></td>
                     <td data-label="Prioridad">
                         <span class="priority priority-${getDisplayPriorityClass(studio)}">${escapeHtml(getDisplayPriority(studio))}</span>
-                        ${studio.priorityQuadrant ? `<br><span style="font-size:0.68rem;color:var(--primary);font-weight:600;" title="${escapeHtml(studio.priorityRecommendedAction||'')}">Q${studio.priorityQuadrant} ${escapeHtml(studio.priorityQuadrantName||'')}</span>` : ''}
+                        ${studio.priorityQuadrant ? `<br><span style="font-size:0.68rem;color:var(--primary);font-weight:600;" title="${escapeHtml(studio.priorityRecommendedAction||'')}">Q${studio.priorityQuadrant} ${escapeHtml(studio.priorityQuadrantName||'')}${(() => { const d = getQuadrantDelta(studio); if (!d) return ''; return d.trend === 'up' ? `<span class="q-delta q-delta-up" title="Antes Q${d.from}">↑Q${d.from}</span>` : d.trend === 'down' ? `<span class="q-delta q-delta-down" title="Antes Q${d.from}">↓Q${d.from}</span>` : ''; })()}</span>` : ''}
+                        ${studio.es_cliente_puente ? '<br><span style="font-size:0.65rem;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:8px;font-weight:600;">🌉 puente</span>' : (studio.es_candidato_puente ? '<br><span style="font-size:0.65rem;background:#fef9c3;color:#854d0e;padding:1px 5px;border-radius:8px;font-weight:600;">🌉 candidato</span>' : '')}
                     </td>
                     <td data-label="Última Actividad">${formatDate(studio.updatedAt)}</td>
                     <td data-label="Creado">${formatDate(studio.createdAt)}</td>
