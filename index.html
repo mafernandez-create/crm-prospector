@@ -5930,6 +5930,15 @@
             };
         }
 
+        // ── Helpers de display de prioridad (v2 con fallback legacy) ─────────
+        function getDisplayPriority(studio) {
+            if (studio.priorityDirect) return studio.priorityDirect;
+            return studio.priority || 'Media';
+        }
+        function getDisplayPriorityClass(studio) {
+            return (getDisplayPriority(studio)).toLowerCase().replace(/[^a-z]/g, '');
+        }
+
         /**
          * Genera el objeto de updates de scoring v2 listo para updateStudio(),
          * incluyendo una nueva entrada en scoringHistory (máx 20 entradas).
