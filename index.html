@@ -25329,8 +25329,7 @@ updateMap();
             el.innerHTML = prioritarios.map(({ s, weeks }) => `
                 <div class="plan-prior-item">
                     <span style="flex-shrink:0;font-weight:700;color:var(--primary);">${qNames[s.priorityQuadrant]||s.priorityQuadrant}</span>
-                    <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
-                          onclick="showStudioDetail('${s.id}')" style="cursor:pointer;">${escapeHtml(s.name)}</span>
+                    <span onclick="showStudioDetail('${s.id}')" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;">${escapeHtml(s.name)}</span>
                     <span style="color:var(--warning);font-size:0.75rem;white-space:nowrap;">${weeks}sem</span>
                 </div>`).join('');
         }
