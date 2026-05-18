@@ -12683,7 +12683,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                         `diputación ${province} infraestructuras obras`
                     ]
                 };
-                const portalQueries = portalQueriesByType[studioType] || [`${typeLabel} ${province} empresas listado`];
+                const portalQueries = portalQueriesByType[studioTypeLegacy] || portalQueriesByType[studioType] || [`${typeLabel} ${province} empresas listado`];
                 for (const query of portalQueries) {
                     const results = await searchWeb(query);
                     await processSearchResults(results, foundStudios, province, 'Portal especializado', 90);
