@@ -1,0 +1,61 @@
+# ============================================================
+# CRM GPF — Batch Qualify Scheduler
+# Fase E del Método Unificado v1.1
+#
+# ESTADO: PLACEHOLDER — Pendiente de endpoint /api/batch-qualify
+#
+# Este workflow está preparado para ejecutarse cada noche.
+# Cuando se implemente un endpoint server-side que dispare la
+# cualificación de lotes, descomentar la sección "steps" y
+# reemplazar BATCH_ENDPOINT por la URL real.
+#
+# Alternativa actual: ejecutar manualmente desde el CRM con
+# el botón "🤖 Cualificar Lote" en el menú de herramientas.
+# ============================================================
+
+name: Batch Qualify Studios
+
+on:
+  schedule:
+    # Ejecutar todos los días a las 02:00 (hora UTC)
+    - cron: '0 2 * * *'
+  workflow_dispatch:          # Permite lanzar manualmente desde GitHub Actions UI
+    inputs:
+      filtro:
+        description: 'Filtro de estudios (sin_cuadrante | todos | ARQ | ING | OCV | AAPP | CCRR | CICA)'
+        required: false
+        default: 'sin_cuadrante'
+      limite:
+        description: 'Número máximo de estudios a procesar (1-1535)'
+        required: false
+        default: '200'
+
+jobs:
+  batch-qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Placeholder: llamar al endpoint cuando esté disponible ──────────
+      # - name: Trigger batch qualification
+      #   run: |
+      #     curl -X POST "${{ secrets.BATCH_ENDPOINT }}" \
+      #       -H "Authorization: Bearer ${{ secrets.BATCH_API_KEY }}" \
+      #       -H "Content-Type: application/json" \
+      #       -d '{"filtro":"${{ inputs.filtro || 'sin_cuadrante' }}","limite":${{ inputs.limite || 200 }}}'
+
+      - name: Status report (placeholder)
+        run: |
+          echo "======================================"
+          echo "CRM GPF — Batch Qualify (placeholder)"
+          echo "======================================"
+          echo "Filtro:  ${{ inputs.filtro || 'sin_cuadrante' }}"
+          echo "Límite:  ${{ inputs.limite || 200 }}"
+          echo ""
+          echo "⚠️  Endpoint /api/batch-qualify aún no configurado."
+          echo "    Ejecuta la cualificación manualmente desde el CRM:"
+          echo "    → Menú lateral → '🤖 Cualificar Lote'"
+          echo "======================================"
