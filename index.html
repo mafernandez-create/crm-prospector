@@ -10540,6 +10540,45 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             return { webData, allSections, allResults, snippetsText };
         }
 
+        async function buscarAdjudicacionesPLACSP(name) {
+            const PLACSP_BASE = 'http://localhost:5001';
+            const url = `${PLACSP_BASE}/api/crm-buscar?q=${encodeURIComponent(name)}`;
+            const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+            if (!resp.ok) throw new Error('PLACSP error ' + resp.status);
+            return await resp.json();
+        }
+
+        async function _persistirAdjudicacionesPLACSP(studioId, placspData) {
+            try {
+                const studio = await getStudio(studioId);
+                if (!studio) return;
+                if (!studio.data) studio.data = {};
+                studio.data.adjudicaciones = {
+                    valor: placspData.licitaciones || [],
+                    fuente_url: 'http://localhost:5001/api/crm-buscar',
+                    fuente_tipo: 'PLACSP',
+                    fecha_captura: new Date().toISOString(),
+                    nivel_confianza: 'verificado'
+                };
+                // Also update scoring-relevant data: importe like D2/D4
+                if (placspData.empresa?.importe_adjudicado_eur) {
+                    if (!studio.data.studio) studio.data.studio = {};
+                    if (!studio.data.studio.volumen_licitaciones) {
+                        studio.data.studio.volumen_licitaciones = {
+                            valor: String(Math.round(placspData.empresa.importe_adjudicado_eur)),
+                            fuente_url: 'http://localhost:5001/api/crm-buscar',
+                            fuente_tipo: 'PLACSP',
+                            fecha_captura: new Date().toISOString(),
+                            nivel_confianza: 'verificado'
+                        };
+                    }
+                }
+                await updateStudio(studioId, { data: studio.data });
+            } catch(e) {
+                console.warn('Error persistiendo adjudicaciones PLACSP:', e);
+            }
+        }
+
         // ============================================
         // ANÁLISIS PROFUNDO DE PÁGINA WEB
         // ============================================
