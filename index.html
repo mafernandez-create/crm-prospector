@@ -251,6 +251,37 @@
         .status-prescripcion { background: #d1fae5; color: #065f46; }
         .status-venta { background: #dcfce7; color: #166534; font-weight:700; }
         .status-traspasado { background: #ede9fe; color: #7c3aed; }
+
+        /* ── Delta chips (cambio de cuadrante) ─────── */
+        .q-delta { display:inline-flex;align-items:center;gap:2px;font-size:0.65rem;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:4px;vertical-align:middle; }
+        .q-delta-up   { background:#dcfce7;color:#166534; }
+        .q-delta-down { background:#fee2e2;color:#991b1b; }
+        .q-chip { display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:0.72rem;font-weight:700;background:var(--primary);color:#fff;flex-shrink:0; }
+
+        /* ── Matriz 3×3 ─────────────────────────────── */
+        .matriz-3x3 { display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:12px 0; }
+        .m-cell { border-radius:8px;padding:10px 8px;cursor:pointer;transition:box-shadow 0.15s,transform 0.1s;border:2px solid transparent;min-height:72px; }
+        .m-cell:hover { box-shadow:0 4px 12px rgba(0,0,0,0.15);transform:translateY(-1px); }
+        .m-cell.selected { border-color:var(--primary); }
+        .m-cell-q { font-size:1rem;font-weight:800;line-height:1; }
+        .m-cell-name { font-size:0.68rem;font-weight:600;margin:2px 0; }
+        .m-cell-count { font-size:0.72rem;color:rgba(0,0,0,0.45); }
+        .m-axis-label { font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);text-align:center;padding:4px 0; }
+        .m-row-label { font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted);writing-mode:vertical-rl;text-align:center;padding:0 4px; }
+
+        /* ── Bandeja del agente ──────────────────────── */
+        .bandeja-section { background:var(--bg-primary);border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+        .bandeja-section-title { font-size:0.85rem;font-weight:700;color:var(--text-primary);margin-bottom:12px;display:flex;align-items:center;gap:8px; }
+        .bandeja-card { display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;background:var(--bg-secondary);margin-bottom:8px;cursor:pointer;transition:box-shadow 0.15s; }
+        .bandeja-card:hover { box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+        .bandeja-card-name { font-weight:600;font-size:0.88rem; }
+        .bandeja-card-meta { font-size:0.75rem;color:var(--muted);margin-top:2px; }
+        .bandeja-actions { display:flex;gap:6px;margin-left:auto;flex-shrink:0; }
+        .btn-confirmar { padding:4px 10px;font-size:0.75rem;font-weight:600;border:none;border-radius:6px;cursor:pointer;background:#dcfce7;color:#166534;transition:background 0.15s; }
+        .btn-confirmar:hover { background:#bbf7d0; }
+        .btn-descartar { padding:4px 10px;font-size:0.75rem;font-weight:600;border:none;border-radius:6px;cursor:pointer;background:#fee2e2;color:#991b1b;transition:background 0.15s; }
+        .btn-descartar:hover { background:#fecaca; }
+
         .kanban-col { flex: 0 0 220px; background: var(--bg-secondary); border-radius: 10px; padding: 10px 8px; }
         .kanban-col-header { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 8px; border-radius: 6px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
         .kanban-card { background: var(--bg-primary); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; border-left: 3px solid transparent; transition: box-shadow 0.15s, transform 0.1s; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
