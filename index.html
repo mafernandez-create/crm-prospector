@@ -5998,7 +5998,11 @@
                 trigger:             trigger || 'manual',
             };
             const prevHistory = Array.isArray(studio.scoringHistory) ? studio.scoringHistory : [];
-            return { ...v2, scoringHistory: [...prevHistory, histEntry].slice(-20) };
+            return {
+                ...v2,
+                es_candidato_puente: v2.esCandidatoPuente,
+                scoringHistory: [...prevHistory, histEntry].slice(-20),
+            };
         }
 
         // ── Extracción automática de ciudad a partir del nombre ──────────────────
