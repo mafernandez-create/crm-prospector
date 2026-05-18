@@ -14623,6 +14623,81 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
         // ============================================
         // RE-ANALYSIS WITH COMPARISON
         // ============================================
+        // ── Reenriquecimiento en lote (sin modal, en segundo plano) ─────────────────
+        async function reanalyzeLote(studioIds, callbacks = {}) {
+            const { onProgress, onDone } = callbacks;
+            const total = studioIds.length;
+            let done = 0, ok = 0, errors = 0;
+
+            // Barra de progreso flotante
+            let progressEl = document.getElementById('reanalyze-lote-bar');
+            if (!progressEl) {
+                progressEl = document.createElement('div');
+                progressEl.id = 'reanalyze-lote-bar';
+                progressEl.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:99999;background:#1e293b;border:1px solid rgba(99,102,241,0.5);border-radius:12px;padding:14px 18px;min-width:280px;box-shadow:0 8px 32px rgba(0,0,0,0.4);font-family:Arial,sans-serif;';
+                progressEl.innerHTML = `
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                        <span style="color:#a5b4fc;font-size:0.82rem;font-weight:600;">🔬 Reenriqueciendo lote</span>
+                        <span id="rla-pct" style="color:#7c3aed;font-size:0.82rem;font-weight:700;">0%</span>
+                    </div>
+                    <div style="background:#0f172a;border-radius:4px;height:6px;overflow:hidden;margin-bottom:8px;">
+                        <div id="rla-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#7c3aed,#6d28d9);border-radius:4px;transition:width 0.4s;"></div>
+                    </div>
+                    <div id="rla-label" style="color:#94a3b8;font-size:0.75rem;">Preparando...</div>
+                    <div id="rla-detail" style="color:#64748b;font-size:0.7rem;margin-top:3px;"></div>`;
+                document.body.appendChild(progressEl);
+            }
+            const rlaPct   = document.getElementById('rla-pct');
+            const rlaBar   = document.getElementById('rla-bar');
+            const rlaLabel = document.getElementById('rla-label');
+            const rlaDetail= document.getElementById('rla-detail');
+
+            const updateBar = (msg, detail) => {
+                const pct = total > 0 ? Math.round(done / total * 100) : 0;
+                if (rlaBar)    rlaBar.style.width = pct + '%';
+                if (rlaPct)    rlaPct.textContent = pct + '%';
+                if (rlaLabel)  rlaLabel.textContent = msg;
+                if (rlaDetail) rlaDetail.textContent = detail || '';
+                if (onProgress) onProgress(done, total, msg);
+            };
+
+            // Parche silencioso: suprimir modal-progress durante el lote
+            const origOpenModal  = window.openModal;
+            const origCloseModal = window.closeModal;
+            window.openModal  = (id) => { if (id !== 'modal-progress') origOpenModal && origOpenModal(id); };
+            window.closeModal = (id) => { if (id !== 'modal-progress') origCloseModal && origCloseModal(id); };
+
+            for (const id of studioIds) {
+                const sData = (typeof allStudios !== 'undefined' ? allStudios : []).find(s => String(s.id) === String(id));
+                const nombre = sData?.name || String(id);
+                updateBar(`Analizando ${done + 1}/${total}: ${nombre}`, 'búsquedas web + Claude...');
+                try {
+                    await reanalyzeStudio(id);
+                    ok++;
+                } catch(e) {
+                    errors++;
+                    console.warn('reanalyzeLote error en', id, e.message);
+                }
+                done++;
+                updateBar(`${done}/${total} completados — ${ok} OK, ${errors} errores`, 'Último: ' + nombre);
+                // Pausa entre estudios para no sobrecargar la API
+                await new Promise(r => setTimeout(r, 2000));
+            }
+
+            // Restaurar modal
+            window.openModal  = origOpenModal;
+            window.closeModal = origCloseModal;
+
+            if (rlaLabel) rlaLabel.textContent = `✅ Completado — ${ok}/${total} estudios reenriquecidos`;
+            if (rlaBar)   rlaBar.style.background = 'linear-gradient(90deg,#10b981,#059669)';
+            if (rlaPct)   rlaPct.style.color = '#34d399';
+            setTimeout(() => progressEl?.remove(), 15000);
+
+            if (onDone) onDone({ total, ok, errors });
+            showNotification(`✅ Reenriquecimiento completado: ${ok}/${total} estudios`, 'success');
+            return { total, ok, errors };
+        }
+
         async function reanalyzeStudio(id) {
             if (!useCloudStorage && !useFirebase) {
                 showNotification('⚠️ Se necesita conexión cloud para re-analizar.\n\nVerifica tu conexión a Google Sheets.', 'warning');
