@@ -10749,53 +10749,46 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                     debugLog('Página de contacto encontrada (paralelo)');
                 }
                 
-                // 3. Buscar y analizar página "sobre nosotros" / "estudio"
+                // 3. Buscar y analizar página "sobre nosotros" / "estudio" (paralelo — top 5)
                 const aboutUrls = [
-                    baseUrl + '/la-empresa',  // Living Kits usa esta - PRIORIDAD
                     baseUrl + '/sobre-nosotros',
-                    baseUrl + '/about',
-                    baseUrl + '/about-us',
                     baseUrl + '/estudio',
-                    baseUrl + '/el-estudio',  // Patrón Coboros
-                    baseUrl + '/studio',
                     baseUrl + '/quienes-somos',
+                    baseUrl + '/about',
+                    baseUrl + '/la-firma',
+                    baseUrl + '/la-empresa',
+                    baseUrl + '/about-us',
+                    baseUrl + '/el-estudio',
+                    baseUrl + '/studio',
                     baseUrl + '/nosotros',
                     baseUrl + '/es/estudio',
-                    baseUrl + '/la-firma',
                     baseUrl + '/filosofia',
                     baseUrl + '/empresa',
                     baseUrl + '/historia',
                     baseUrl + '/nuestro-estudio',
                     baseUrl + '/conocenos'
                 ];
-                
-                for (const aboutUrl of aboutUrls) {
-                    try {
-                        debugLog('Probando página about: ' + aboutUrl);
-                        const aboutContent = await fetchPageContentDeep(aboutUrl);
-                        if (aboutContent.text && aboutContent.text.length > 200) {
-                            analysis.aboutPage = aboutContent.text;
-                            // Añadir personas encontradas en esta página
-                            if (aboutContent.people?.length > 0) {
-                                analysis.allPeople = analysis.allPeople || [];
-                                analysis.allPeople.push(...aboutContent.people);
-                            }
-                            debugLog('Página about encontrada: ' + aboutUrl);
-                            break;
-                        }
-                    } catch (e) { /* continuar */ }
+
+                const aboutContent = await fetchFirstAvailable(aboutUrls);
+                if (aboutContent) {
+                    analysis.aboutPage = aboutContent.text;
+                    if (aboutContent.people?.length > 0) {
+                        analysis.allPeople = analysis.allPeople || [];
+                        analysis.allPeople.push(...aboutContent.people);
+                    }
+                    debugLog('Página about encontrada (paralelo)');
                 }
-                
-                // 4. Buscar y analizar página de equipo (AMPLIADA)
+
+                // 4. Buscar y analizar página de equipo (paralelo — top 5)
                 const teamUrls = [
                     baseUrl + '/equipo',
-                    baseUrl + '/el-equipo',
                     baseUrl + '/team',
-                    baseUrl + '/our-team',
+                    baseUrl + '/socios',
+                    baseUrl + '/el-equipo',
                     baseUrl + '/personas',
+                    baseUrl + '/our-team',
                     baseUrl + '/profesionales',
                     baseUrl + '/arquitectos',
-                    baseUrl + '/socios',
                     baseUrl + '/partners',
                     baseUrl + '/es/equipo',
                     baseUrl + '/nuestro-equipo',
@@ -10804,26 +10797,19 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                     baseUrl + '/colaboradores',
                     baseUrl + '/quienes-somos/equipo',
                     baseUrl + '/estudio/equipo',
-                    baseUrl + '/el-estudio',  // A veces el equipo está en la página dla empresa
+                    baseUrl + '/el-estudio',
                     baseUrl + '/fundadores'
                 ];
-                
-                for (const teamUrl of teamUrls) {
-                    try {
-                        debugLog('Probando página equipo: ' + teamUrl);
-                        const teamContent = await fetchPageContentDeep(teamUrl);
-                        if (teamContent.text && teamContent.text.length > 200) {
-                            analysis.teamPage = teamContent.text;
-                            analysis.allEmails.push(...teamContent.emails);
-                            // Añadir personas encontradas
-                            if (teamContent.people?.length > 0) {
-                                analysis.allPeople = analysis.allPeople || [];
-                                analysis.allPeople.push(...teamContent.people);
-                            }
-                            debugLog('Página de equipo encontrada: ' + teamUrl);
-                            break;
-                        }
-                    } catch (e) { /* continuar */ }
+
+                const teamContent = await fetchFirstAvailable(teamUrls);
+                if (teamContent) {
+                    analysis.teamPage = teamContent.text;
+                    analysis.allEmails.push(...teamContent.emails);
+                    if (teamContent.people?.length > 0) {
+                        analysis.allPeople = analysis.allPeople || [];
+                        analysis.allPeople.push(...teamContent.people);
+                    }
+                    debugLog('Página de equipo encontrada (paralelo)');
                 }
                 
                 // 5. NUEVO: Buscar páginas de autores/perfiles individuales
