@@ -14641,6 +14641,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                         providedUrl,
                         studioType,
                         studioTypes: getTiposArray(studio),
+                        studioId: studio.id,
                         onProgress: (msg) => { document.getElementById('progress-text').textContent = msg; }
                     });
                     webData += metodoResult.webData;
@@ -27368,6 +27369,7 @@ ${jsonTemplate}`;
                     const metodoResult = await ejecutarMetodoUnificado(studioName, province, {
                         studioType: studioTypes[0],
                         studioTypes,
+                        studioId: studioId,
                         onProgress: (msg) => setStatus('🔍 ' + msg)
                     });
                     webData = metodoResult.webData || '';
