@@ -4958,6 +4958,21 @@
         }
 
         // ============================================
+        // GAS FETCH PROXY (UrlFetchApp server-side)
+        // ============================================
+        /**
+         * Fetches a URL via GAS UrlFetchApp (bypasses CORS & proxy blocks).
+         * Requires handleFetchUrl() deployed in the GAS (gas-fetchurl.gs).
+         */
+        async function fetchViaGAS(url) {
+            const result = await callAPI('fetchUrl', { url });
+            if (result?.error) throw new Error('GAS: ' + result.error);
+            if (!result?.content) throw new Error('GAS: respuesta vacía');
+            if (result.status >= 400) throw new Error(`GAS: HTTP ${result.status}`);
+            return result.content;
+        }
+
+        // ============================================
         // GOOGLE CALENDAR VÍA APPS SCRIPT
         // ============================================
         
