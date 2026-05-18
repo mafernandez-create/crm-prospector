@@ -25280,8 +25280,9 @@ updateMap();
             
             await loadPlannerFilters();
             updateCalendarDays();
+            cargarPrioritariosSinContacto();
         }
-        
+
         function closePlanificador() {
             const modal = document.getElementById('planificador-modal');
             if (modal) modal.remove();
