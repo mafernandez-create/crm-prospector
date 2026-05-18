@@ -8098,7 +8098,9 @@
         // Extraer código postal de una dirección (5 dígitos)
         function extractCP(address) {
             if (!address) return null;
-            const match = address.match(/\b(\d{5})\b/);
+            const addrStr = (address && typeof address === 'object') ? (address.valor || '') : String(address);
+            if (!addrStr) return null;
+            const match = addrStr.match(/\b(\d{5})\b/);
             return match ? match[1] : null;
         }
         
