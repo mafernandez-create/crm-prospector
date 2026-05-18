@@ -14742,7 +14742,8 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             return { total, ok, errors };
         }
 
-        async function reanalyzeStudio(id) {
+        async function reanalyzeStudio(id, options = {}) {
+            const { batchMode = false } = options;
             if (!useCloudStorage && !useFirebase) {
                 showNotification('⚠️ Se necesita conexión cloud para re-analizar.\n\nVerifica tu conexión a Google Sheets.', 'warning');
                 return;
@@ -14866,7 +14867,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     // Social media data
                     const instagramSearchSections = metodoResult.allSections['SECTOR_ARQ'] || [];
                     const instagramFallbackUrl = instagramSearchSections.find(r => r.url && r.url.includes('instagram.com'))?.url;
-                    if (deepAnalysisData?.socialLinks?.instagram || instagramFallbackUrl) {
+                    if (!batchMode && (deepAnalysisData?.socialLinks?.instagram || instagramFallbackUrl)) {
                         const instaUrl = deepAnalysisData?.socialLinks?.instagram || instagramFallbackUrl;
                         if (instaUrl) { const u = instaUrl.match(/instagram\.com\/([^\/\?]+)/)?.[1]; if (u && u !== 'p' && u !== 'reel') { const d = await getInstagramPublicData(u); webData += '\n\n--- DATOS INSTAGRAM ---\n' + JSON.stringify(d, null, 2); } }
                     }
