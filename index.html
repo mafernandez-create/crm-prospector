@@ -8133,10 +8133,12 @@
                 'dashboard': 'Dashboard',
                 'studios': 'Empresas',
                 'kanban': 'Kanban — Pipeline',
+                'bandeja': 'Bandeja del Agente',
+                'reporte': 'Reporte Semanal',
                 'detail': 'Detalle de Empresa'
             };
             document.getElementById('topbar-title').textContent = titles[view] || view;
-            
+
             if (view === 'studios') {
                 if (filter) {
                     document.getElementById('filter-status').value = filter;
@@ -8148,6 +8150,9 @@
                 renderKanban();
             } else if (view === 'bandeja') {
                 loadBandeja();
+            } else if (view === 'reporte') {
+                initReporteDates();
+                loadReporte();
             }
         }
 
