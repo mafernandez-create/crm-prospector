@@ -6998,7 +6998,7 @@
             const safeEmail = val.replace(/["<>]/g, '');
             return `<a href="mailto:${encodeURIComponent(safeEmail)}" class="email-link" onclick="event.stopPropagation();">
                 <span class="email-link-icon">✉️</span>
-                <span class="email-link-text">${escapeHtml(email)}</span>
+                <span class="email-link-text">${escapeHtml(val)}</span>
             </a>`;
         }
         function a(v) { return Array.isArray(v) ? v : []; }
