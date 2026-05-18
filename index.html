@@ -6225,6 +6225,108 @@
             loadBandeja();
         }
 
+        // ── Migración legacy string → objeto metadatos (§4.5) ───────────────────
+
+        // Rutas de campos a migrar (path relativo a studio.data)
+        const _LEGACY_PATHS = [
+            ['contact', 'phone'],
+            ['contact', 'email'],
+            ['contact', 'address'],
+            ['contact', 'web'],
+            ['studio',  'employees'],
+            ['studio',  'revenue'],
+            ['studio',  'founded'],
+            ['studio',  'cif'],
+            ['social',  'linkedin',  'url'],
+            ['social',  'linkedin',  'followers'],
+            ['social',  'instagram', 'url'],
+            ['social',  'twitter',   'url'],
+            ['social',  'facebook',  'url'],
+            ['social',  'facebook',  'likes'],
+        ];
+
+        function wrapLegacyField(value, createdAt) {
+            if (value === null || value === undefined) return value;
+            // Already wrapped — skip
+            if (typeof value === 'object' && 'valor' in value) return value;
+            return {
+                valor:            String(value),
+                fuente_url:       null,
+                fuente_tipo:      'legacy',
+                fecha_captura:    createdAt || null,
+                nivel_confianza:  'legacy',
+            };
+        }
+
+        // Devuelve el objeto `data` modificado, o null si no hubo cambios.
+        function migrarEstudioLegacy(studio) {
+            const d = JSON.parse(JSON.stringify(studio.data || {}));
+            const createdAt = (typeof studio.createdAt === 'string' ? studio.createdAt : null);
+            let changed = false;
+
+            for (const path of _LEGACY_PATHS) {
+                let node = d;
+                for (let i = 0; i < path.length - 1; i++) {
+                    if (!node[path[i]] || typeof node[path[i]] !== 'object') { node = null; break; }
+                    node = node[path[i]];
+                }
+                if (!node) continue;
+                const key = path[path.length - 1];
+                const val = node[key];
+                if (val === null || val === undefined) continue;
+                if (typeof val === 'object' && 'valor' in val) continue; // already migrated
+                node[key] = wrapLegacyField(val, createdAt);
+                changed = true;
+            }
+
+            return changed ? d : null;
+        }
+
+        async function ejecutarMigracionLegacy() {
+            const total = allStudios.length;
+            if (!confirm(
+                `Migración legacy v1.1 — §4.5\n\n` +
+                `Convierte ${total} estudios: campos de contacto y social pasan\n` +
+                `de string plano a objeto {valor, fuente_tipo: "legacy"}.\n\n` +
+                `• Los datos siguen funcionando sin cambios visuales.\n` +
+                `• Operación reversible exportando un backup antes.\n\n` +
+                `¿Continuar?`
+            )) return;
+
+            let processed = 0, changed = 0, errors = 0;
+            const btn = document.getElementById('btn-migrar-legacy');
+            if (btn) { btn.disabled = true; btn.textContent = '⏳ Migrando...'; }
+
+            for (const studio of allStudios) {
+                try {
+                    const newData = migrarEstudioLegacy(studio);
+                    if (newData) {
+                        await updateStudio(studio.id, { data: newData });
+                        changed++;
+                    }
+                } catch (e) {
+                    errors++;
+                    console.error('Migración error estudio ' + studio.id + ':', e);
+                }
+                processed++;
+                if (processed % 100 === 0) {
+                    const pct = Math.round(processed / total * 100);
+                    if (btn) btn.textContent = `⏳ ${pct}%…`;
+                    showNotification(`⏳ Migración: ${processed}/${total} (${changed} actualizados)…`, 'info');
+                    await new Promise(r => setTimeout(r, 0)); // yield UI
+                }
+            }
+
+            if (btn) { btn.disabled = false; btn.textContent = '🔄 Migrar strings → metadatos'; }
+            const resEl = document.getElementById('migrar-legacy-result');
+            if (resEl) resEl.textContent = `✅ ${changed} migrados, ${errors} errores`;
+            showNotification(
+                `✅ Migración completa: ${changed} actualizados, ${errors} errores de ${total}`,
+                errors > 0 ? 'warning' : 'success'
+            );
+            await loadStudios();
+        }
+
         // ── Extracción automática de ciudad a partir del nombre ──────────────────
         const _MUNICIPIOS_ES = {
           'Málaga':['Málaga','Marbella','Fuengirola','Torremolinos','Benalmádena','Estepona','Vélez-Málaga','Antequera','Ronda','Mijas','Nerja','Alhaurín de la Torre','Alhaurín el Grande','Coín','Manilva','Campillos','Archidona','Torrox','Frigiliana'],
