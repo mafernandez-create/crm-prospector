@@ -8311,6 +8311,7 @@
             const programaFilter       = document.getElementById('filter-programa')?.value || '';
             const normaFilter          = document.getElementById('filter-norma')?.value || '';
             const origenFilter         = document.getElementById('filter-origen')?.value || '';
+            const quadrantFilter       = parseInt(document.getElementById('filter-quadrant')?.value || '0') || 0;
             const searchTerm           = normalizeText(document.getElementById('global-search').value);
 
             const now = new Date();
@@ -8332,6 +8333,7 @@
                 if (programaFilter && !(studio.programaFinanciacion || []).includes(programaFilter)) return false;
                 if (normaFilter && !(studio.normasExigidas || []).includes(normaFilter)) return false;
                 if (origenFilter && (studio.origenPrescriptor || studio.data?.origenPrescriptor || '') !== origenFilter) return false;
+                if (quadrantFilter && (studio.priorityQuadrant || 0) !== quadrantFilter) return false;
                 if (priorityFilter) {
                     // Map Alta/Media/Baja filter to both legacy and v2 values
                     const v2Map = { 'Alta': 'Alto', 'Media': 'Medio', 'Baja': 'Bajo' };
