@@ -6271,6 +6271,195 @@
             updateBandejaNavBadge();
         }
 
+        // ── REPORTE SEMANAL §16.2 ────────────────────────────────────────────
+
+        function initReporteDates() {
+            const ini = document.getElementById('reporte-fecha-ini');
+            const fin = document.getElementById('reporte-fecha-fin');
+            if (!ini || !fin || ini.value) return; // ya inicializado
+            const today = new Date();
+            const dow = today.getDay(); // 0=dom
+            const diffMon = (dow === 0) ? -6 : 1 - dow;
+            const mon = new Date(today); mon.setDate(today.getDate() + diffMon);
+            const fri = new Date(mon); fri.setDate(mon.getDate() + 4);
+            ini.value = mon.toISOString().split('T')[0];
+            fin.value = fri.toISOString().split('T')[0];
+        }
+
+        async function loadReporte() {
+            const container = document.getElementById('reporte-content');
+            if (!container) return;
+            const fechaIni = document.getElementById('reporte-fecha-ini')?.value;
+            const fechaFin = document.getElementById('reporte-fecha-fin')?.value;
+            if (!fechaIni || !fechaFin) return;
+
+            container.innerHTML = '<p style="color:var(--muted);font-style:italic;font-size:0.85rem;">⏳ Cargando...</p>';
+
+            const startDate = new Date(fechaIni + 'T00:00:00');
+            const endDate   = new Date(fechaFin + 'T23:59:59');
+
+            // ── Actividades de la semana ──────────────────────────────────────
+            const activities = await getAllActivities();
+            const weekActs = activities.filter(a => {
+                const d = new Date(a.createdAt || 0);
+                return d >= startDate && d <= endDate;
+            });
+            const visits  = weekActs.filter(a => a.type === 'meeting');
+            const calls   = weekActs.filter(a => a.type === 'call');
+            const emails  = weekActs.filter(a => a.type === 'email');
+            const comlls  = weekActs.filter(a => a.type === 'comercial');
+
+            // ── Cambios de cuadrante en la semana ─────────────────────────────
+            const qChanges = allStudios.filter(s => {
+                const h = s.scoringHistory || [];
+                if (h.length < 2) return false;
+                const last = h[h.length - 1];
+                const prev = h[h.length - 2];
+                if (!last?.fecha) return false;
+                const d = new Date(last.fecha);
+                return d >= startDate && d <= endDate && last.priorityQuadrant !== prev.priorityQuadrant;
+            });
+
+            // ── Nuevos estudios añadidos esta semana ─────────────────────────
+            const newStudios = allStudios.filter(s => {
+                const d = new Date(s.createdAt || 0);
+                return d >= startDate && d <= endDate;
+            });
+
+            // ── Distribución por tipo (cuadrantes 1-4) ───────────────────────
+            const activeQ14 = allStudios.filter(s => s.priorityQuadrant >= 1 && s.priorityQuadrant <= 4);
+            const byType = {};
+            activeQ14.forEach(s => {
+                const t = (Array.isArray(s.type) ? s.type[0] : s.type) || 'Otro';
+                byType[t] = (byType[t] || 0) + 1;
+            });
+
+            // ── Render ────────────────────────────────────────────────────────
+            const fmtDate = d => new Date(d).toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit'});
+            const fmtRange = `${fmtDate(fechaIni)} – ${fmtDate(fechaFin)}`;
+            const qNames = {1:'① Estratégico',2:'② Core',3:'③ Volumen',4:'④ Puerta entrada',5:'⑤ Estándar',6:'⑥ Mantenimiento',7:'⑦ Conector',8:'⑧ Seguimiento',9:'⑨ Congelar'};
+
+            // Guardar para markdown
+            window._reporteData = { fechaIni, fechaFin, visits, calls, emails, comlls, qChanges, newStudios, byType };
+
+            container.innerHTML = `
+<div class="reporte-grid">
+  <div class="reporte-metric"><div class="reporte-metric-label">🏢 Visitas realizadas</div><div class="reporte-metric-value">${visits.length}</div><div class="reporte-metric-sub">Reuniones registradas</div></div>
+  <div class="reporte-metric"><div class="reporte-metric-label">📞 Llamadas</div><div class="reporte-metric-value">${calls.length}</div><div class="reporte-metric-sub">Incl. con comerciales: ${comlls.length}</div></div>
+  <div class="reporte-metric"><div class="reporte-metric-label">✉️ Emails</div><div class="reporte-metric-value">${emails.length}</div><div class="reporte-metric-sub">Total actividades: ${weekActs.length}</div></div>
+  <div class="reporte-metric"><div class="reporte-metric-label">🔄 Cambios cuadrante</div><div class="reporte-metric-value">${qChanges.length}</div><div class="reporte-metric-sub">Subidas + bajadas</div></div>
+  <div class="reporte-metric"><div class="reporte-metric-label">🆕 Nuevas empresas</div><div class="reporte-metric-value">${newStudios.length}</div><div class="reporte-metric-sub">Añadidas al CRM</div></div>
+  <div class="reporte-metric"><div class="reporte-metric-label">🎯 Activos Q1-4</div><div class="reporte-metric-value">${activeQ14.length}</div><div class="reporte-metric-sub">En cuadrantes prioritarios</div></div>
+</div>
+
+${visits.length > 0 ? `
+<div class="reporte-section">
+  <div class="reporte-section-title">📅 Visitas destacadas — ${fmtRange}</div>
+  ${visits.slice(0,10).map(a => {
+      const st = allStudios.find(x => String(x.id) === String(a.studioId));
+      return `<div class="reporte-row">
+        <div class="reporte-row-name">${escapeHtml(st?.name || 'N/A')} <span style="font-weight:400;color:var(--muted);font-size:0.76rem;">${escapeHtml(st?.province || '')}</span></div>
+        <div class="reporte-row-meta">${fmtDate(a.createdAt)}${a.visitaConjunta?' · conjunta':''}</div>
+      </div>`;
+  }).join('')}
+</div>` : ''}
+
+${qChanges.length > 0 ? `
+<div class="reporte-section">
+  <div class="reporte-section-title">🔄 Cambios de cuadrante — ${fmtRange}</div>
+  ${qChanges.map(s => {
+      const h = s.scoringHistory || [];
+      const last = h[h.length-1], prev = h[h.length-2];
+      const up = last.priorityQuadrant < prev.priorityQuadrant;
+      return `<div class="reporte-row">
+        <div class="reporte-row-name" onclick="showStudioDetail('${s.id}')" style="cursor:pointer;">${escapeHtml(s.name)}</div>
+        <div class="reporte-row-meta">${qNames[prev.priorityQuadrant]||prev.priorityQuadrant} ${up?'↑':'↓'} ${qNames[last.priorityQuadrant]||last.priorityQuadrant}</div>
+      </div>`;
+  }).join('')}
+</div>` : ''}
+
+${newStudios.length > 0 ? `
+<div class="reporte-section">
+  <div class="reporte-section-title">🆕 Candidatos nuevos — ${fmtRange}</div>
+  ${newStudios.slice(0,10).map(s => `<div class="reporte-row">
+    <div class="reporte-row-name" onclick="showStudioDetail('${s.id}')" style="cursor:pointer;">${escapeHtml(s.name)} <span style="font-weight:400;color:var(--muted);font-size:0.76rem;">${escapeHtml(s.province||'')}</span></div>
+    <div class="reporte-row-meta">${s.type||'—'}</div>
+  </div>`).join('')}
+</div>` : ''}
+
+<div class="reporte-section">
+  <div class="reporte-section-title">📋 Próximos pasos y pendientes</div>
+  <div class="reporte-empty">[ Añade aquí tus próximos pasos antes de copiar el borrador ]</div>
+</div>
+
+<div class="reporte-section">
+  <div class="reporte-section-title">📊 Distribución cartera activa (Q1-4) por tipo</div>
+  <div class="reporte-grid" style="margin-bottom:0;">
+    ${Object.entries(byType).sort((a,b)=>b[1]-a[1]).map(([t,n]) => `
+    <div class="reporte-metric"><div class="reporte-metric-label">${escapeHtml(t)}</div><div class="reporte-metric-value" style="font-size:1.4rem;">${n}</div></div>`).join('')}
+  </div>
+</div>`;
+        }
+
+        function copiarBorradorMarkdown() {
+            const d = window._reporteData;
+            if (!d) { showNotification('Genera el reporte primero', 'warning'); return; }
+            const fmtDate = x => new Date(x).toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit'});
+            const fmtRange = `${fmtDate(d.fechaIni)} – ${fmtDate(d.fechaFin)}`;
+            const qNames = {1:'Estratégico',2:'Core',3:'Volumen',4:'Puerta entrada',5:'Estándar',6:'Mantenimiento',7:'Conector',8:'Seguimiento',9:'Congelar'};
+
+            let md = `# Informe semanal GPF — ${fmtRange}\n\n`;
+            md += `## Resumen\n`;
+            md += `- Visitas realizadas: ${d.visits.length}\n`;
+            md += `- Llamadas: ${d.calls.length} (con comerciales: ${d.comlls.length})\n`;
+            md += `- Emails: ${d.emails.length}\n`;
+            md += `- Cambios de cuadrante: ${d.qChanges.length}\n`;
+            md += `- Empresas nuevas: ${d.newStudios.length}\n\n`;
+
+            if (d.visits.length > 0) {
+                md += `## Visitas destacadas\n`;
+                d.visits.slice(0,10).forEach(a => {
+                    const st = allStudios.find(x => String(x.id) === String(a.studioId));
+                    md += `- **${st?.name || 'N/A'}** (${st?.province || ''}) — ${fmtDate(a.createdAt)}${a.visitaConjunta?' · conjunta':''}\n`;
+                    if (a.text) md += `  > ${a.text.substring(0,120)}${a.text.length>120?'...':''}\n`;
+                });
+                md += '\n';
+            }
+
+            if (d.qChanges.length > 0) {
+                md += `## Cambios de cuadrante\n`;
+                d.qChanges.forEach(s => {
+                    const h = s.scoringHistory || [];
+                    const last = h[h.length-1], prev = h[h.length-2];
+                    const arrow = last.priorityQuadrant < prev.priorityQuadrant ? '↑' : '↓';
+                    md += `- **${s.name}**: ${qNames[prev.priorityQuadrant]||prev.priorityQuadrant} ${arrow} ${qNames[last.priorityQuadrant]||last.priorityQuadrant}\n`;
+                });
+                md += '\n';
+            }
+
+            md += `## Próximos pasos\n`;
+            md += `- \n\n`;
+            md += `## Alertas y decisiones que requieren equipo\n`;
+            md += `- \n`;
+
+            navigator.clipboard.writeText(md)
+                .then(() => showNotification('📋 Borrador copiado al portapapeles', 'success'))
+                .catch(() => showNotification('No se pudo acceder al portapapeles', 'warning'));
+        }
+
+        async function guardarPlanSemanal(semanaIso, visitasPlanificadas, notas = '') {
+            if (!firestoreDB) { showNotification('Requiere Firebase', 'warning'); return; }
+            const plan = {
+                semana_iso: semanaIso,
+                visitas_planificadas: visitasPlanificadas,
+                notas,
+                fecha_creacion: new Date().toISOString(),
+            };
+            await firestoreDB.collection('_meta').doc('plan_semanal_' + semanaIso.replace('-','_')).set(plan);
+            showNotification('💾 Plan semana ' + semanaIso + ' guardado', 'success');
+            return plan;
+        }
+
         async function confirmPuente(studioId) {
             const studio = allStudios.find(s => String(s.id) === String(studioId));
             if (!studio) return;
