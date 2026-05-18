@@ -282,6 +282,28 @@
         .btn-descartar { padding:4px 10px;font-size:0.75rem;font-weight:600;border:none;border-radius:6px;cursor:pointer;background:#fee2e2;color:#991b1b;transition:background 0.15s; }
         .btn-descartar:hover { background:#fecaca; }
 
+        /* Reporte Semanal — §16.2 */
+        .reporte-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px; }
+        @media(max-width:640px){ .reporte-grid { grid-template-columns:repeat(2,1fr); } }
+        .reporte-metric { background:var(--bg-secondary);border-radius:10px;padding:14px 16px; }
+        .reporte-metric-label { font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--muted);margin-bottom:4px; }
+        .reporte-metric-value { font-size:1.8rem;font-weight:700;color:var(--primary);line-height:1; }
+        .reporte-metric-sub { font-size:0.75rem;color:var(--muted);margin-top:3px; }
+        .reporte-section { background:var(--bg-secondary);border-radius:10px;padding:16px 18px;margin-bottom:12px; }
+        .reporte-section-title { font-size:0.88rem;font-weight:700;color:var(--text-primary);border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:12px; }
+        .reporte-row { display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.82rem; }
+        .reporte-row:last-child { border-bottom:none; }
+        .reporte-row-name { font-weight:600;flex:1;min-width:0; }
+        .reporte-row-meta { color:var(--muted);font-size:0.76rem;white-space:nowrap; }
+        .reporte-empty { color:var(--muted);font-size:0.82rem;padding:8px 0;font-style:italic; }
+        .reporte-actions { display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px; }
+
+        /* Planificador — prioritarios panel */
+        .plan-prior-panel { background:var(--bg-secondary);border-radius:10px;padding:14px;margin-top:12px; }
+        .plan-prior-title { font-size:0.82rem;font-weight:700;color:var(--text-primary);margin-bottom:8px; }
+        .plan-prior-item { display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.8rem; }
+        .plan-prior-item:last-child { border-bottom:none; }
+
         .kanban-col { flex: 0 0 220px; background: var(--bg-secondary); border-radius: 10px; padding: 10px 8px; }
         .kanban-col-header { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 8px; border-radius: 6px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
         .kanban-card { background: var(--bg-primary); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; border-left: 3px solid transparent; transition: box-shadow 0.15s, transform 0.1s; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
