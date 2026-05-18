@@ -14895,7 +14895,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                         linkedinEmployees.forEach(e => { webData += '\n👤 ' + e.name + '\n   Cargo: ' + e.role + '\n   LinkedIn: ' + e.linkedin + '\n'; });
                     }
 
-                    const registroDirectors = await searchRegistroMercantil(name, province);
+                    const registroDirectors = batchMode ? [] : await searchRegistroMercantil(name, province);
                     if (registroDirectors.length > 0) {
                         webData += '\n\n=== ADMINISTRADORES ===\n';
                         registroDirectors.forEach(d => { webData += '\n👔 ' + d.name + '\n   Cargo: ' + d.role + '\n'; });
@@ -14911,15 +14911,24 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     }
                     if (consolidatedPeople.length > 0) {
                         webData += '\n\n=== EQUIPO CONSOLIDADO ===\n';
-                        for (const person of consolidatedPeople.slice(0, 8)) {
-                            if (!person.linkedin) {
-                                document.getElementById('progress-text').textContent = '🔍 LinkedIn de ' + person.name + '...';
-                                const info = await consolidatePersonInfo(person.name, name, province);
-                                if (info.linkedin) person.linkedin = info.linkedin;
-                                if (info.role && !person.role) person.role = info.role;
-                            }
-                            webData += '\n👤 ' + person.name + '\n   Cargo: ' + (person.role || 'No especificado') + (person.email ? '\n   Email: ' + person.email : '') + (person.linkedin ? '\n   LinkedIn: ' + person.linkedin : '') + '\n';
+                        const peopleToProcess = consolidatedPeople.slice(0, 8);
+                        if (!batchMode) {
+                            // Modo individual: buscar LinkedIn en paralelo (no secuencial)
+                            document.getElementById('progress-text').textContent = '🔍 Buscando LinkedIn del equipo...';
+                            await Promise.allSettled(
+                                peopleToProcess.filter(p => !p.linkedin).map(async (person) => {
+                                    try {
+                                        const info = await consolidatePersonInfo(person.name, name, province);
+                                        if (info.linkedin) person.linkedin = info.linkedin;
+                                        if (info.role && !person.role) person.role = info.role;
+                                    } catch(e) { /* ignorar error individual */ }
+                                })
+                            );
                         }
+                        // En batchMode se omite LinkedIn individual (se recupera en análisis individual posterior)
+                        peopleToProcess.forEach(person => {
+                            webData += '\n👤 ' + person.name + '\n   Cargo: ' + (person.role || 'No especificado') + (person.email ? '\n   Email: ' + person.email : '') + (person.linkedin ? '\n   LinkedIn: ' + person.linkedin : '') + '\n';
+                        });
                     }
 
                     debugLog('Búsqueda completada. Total: ' + webData.length + ' chars');
