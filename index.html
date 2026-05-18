@@ -10501,6 +10501,38 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             // Compilar a texto
             let webData = compilarWebData(allSections, name, province);
 
+            // Capa PLACSP: adjudicaciones (solo OCV/AAPP/CCRR/CICA)
+            const tiposPLACSP = ['OCV','AAPP','CCRR','CICA'];
+            if (tipos.some(t => tiposPLACSP.includes(t))) {
+                try {
+                    onProgress('🏛️ Consultando PLACSP Monitor...');
+                    const placspData = await buscarAdjudicacionesPLACSP(name);
+                    if (placspData?.licitaciones?.length > 0) {
+                        // Persistir si tenemos studioId en opts
+                        if (opts.studioId) {
+                            await _persistirAdjudicacionesPLACSP(opts.studioId, placspData);
+                        }
+                        // Añadir resumen al webData
+                        let placspText = `\n\n=== PLACSP Monitor — Licitaciones/Adjudicaciones ===\n`;
+                        if (placspData.empresa) {
+                            placspText += `Empresa: ${placspData.empresa.nombre} | Total licitaciones: ${placspData.empresa.total_licitaciones} | Adjudicadas: ${placspData.empresa.total_adjudicadas} | Importe adj.: ${(placspData.empresa.importe_adjudicado_eur||0).toLocaleString('es-ES')} €\n`;
+                        }
+                        placspData.licitaciones.slice(0, 10).forEach(l => {
+                            placspText += `• [${l.estado}] ${l.titulo} — ${l.organismo} — ${(l.importe||0).toLocaleString('es-ES')} € (${(l.fecha_publicacion||'').substring(0,10)})\n`;
+                        });
+                        webData += placspText;
+                        allSections['PLACSP'] = placspData.licitaciones.map(l => ({
+                            title: l.titulo,
+                            snippet: `${l.organismo} — ${l.estado} — ${(l.importe||0).toLocaleString('es-ES')} €`,
+                            url: l.url_placsp,
+                            source: 'PLACSP'
+                        }));
+                    }
+                } catch(ePlacsp) {
+                    console.log('PLACSP Monitor no disponible:', ePlacsp.message);
+                }
+            }
+
             // Extraer contactos de snippets
             const allResults = Object.values(allSections).flat();
             const snippetsText = allResults.map(r => (r.snippet || '') + ' ' + (r.title || '')).join(' ');
