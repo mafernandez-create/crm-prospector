@@ -6095,6 +6095,121 @@
             };
         }
 
+        // ── Bandeja del Agente — helpers ────────────────────────────────────────
+
+        function getQuadrantDelta(studio) {
+            const hist = Array.isArray(studio.scoringHistory) ? studio.scoringHistory : [];
+            if (hist.length < 2) return null;
+            const prev = hist[hist.length - 2].priorityQuadrant;
+            const curr = studio.priorityQuadrant;
+            if (!prev || !curr || prev === curr) return null;
+            return { from: prev, to: curr, trend: curr < prev ? 'up' : 'down' };
+        }
+
+        function updateBandejaNavBadge() {
+            const puente  = allStudios.filter(s => s.es_candidato_puente && !s.es_cliente_puente).length;
+            const deltas  = allStudios.filter(s => getQuadrantDelta(s) !== null).length;
+            const total   = puente + deltas;
+            const badge   = document.getElementById('nav-bandeja-count');
+            if (!badge) return;
+            badge.textContent = total;
+            badge.style.display = total > 0 ? '' : 'none';
+        }
+
+        const _M_COLORS = {
+            1:'#1e3a5f', 2:'#1e4d8c', 3:'#2563ab',
+            4:'#166534', 5:'#4b5563', 6:'#6b7280',
+            7:'#92400e', 8:'#9ca3af', 9:'#d1d5db',
+        };
+        const _M_TEXT_COLORS = { 1:'#fff',2:'#fff',3:'#fff',4:'#fff',5:'#fff',6:'#fff',7:'#fff',8:'#333',9:'#555' };
+        const _M_NUMS = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨'];
+
+        function loadBandeja() {
+            // ── Matriz 3×3 ──
+            const counts = {};
+            allStudios.forEach(s => { const q = s.priorityQuadrant; if (q) counts[q] = (counts[q]||0)+1; });
+            const total = allStudios.filter(s => s.priorityQuadrant).length;
+            document.getElementById('bandeja-matriz-total').textContent = total ? `(${total} empresas con cuadrante)` : '';
+
+            const matrizEl = document.getElementById('bandeja-matriz');
+            matrizEl.innerHTML = [1,2,3,4,5,6,7,8,9].map(q => {
+                const n = counts[q] || 0;
+                const bg = _M_COLORS[q];
+                const tc = _M_TEXT_COLORS[q];
+                return `<div class="m-cell" style="background:${bg};color:${tc};"
+                    onclick="document.getElementById('filter-quadrant').value='${q}';showView('studios');"
+                    title="${_SV2_QUADRANT_NAMES[q]} — ${_SV2_ACTIONS[q]}">
+                    <div class="m-cell-q">${_M_NUMS[q-1]}</div>
+                    <div class="m-cell-name">${_SV2_QUADRANT_NAMES[q]}</div>
+                    <div class="m-cell-count" style="color:${tc};opacity:0.7;">${n} empresa${n!==1?'s':''}</div>
+                </div>`;
+            }).join('');
+
+            // ── Candidatos puente ──
+            const candidatos = allStudios.filter(s => s.es_candidato_puente && !s.es_cliente_puente);
+            const puenteEl = document.getElementById('bandeja-puente-list');
+            const puenteCount = document.getElementById('bandeja-puente-count');
+            puenteCount.textContent = `(${candidatos.length})`;
+            if (candidatos.length === 0) {
+                puenteEl.innerHTML = '<p style="color:var(--muted);font-size:0.82rem;margin:0;">No hay candidatos detectados. Lanza "Cualificar Lote" para actualizar.</p>';
+            } else {
+                puenteEl.innerHTML = candidatos.map(s => `
+                    <div class="bandeja-card" onclick="showStudioDetail('${s.id}')">
+                        <span class="q-chip">${s.priorityQuadrant ? _M_NUMS[(s.priorityQuadrant||5)-1] : '?'}</span>
+                        <div>
+                            <div class="bandeja-card-name">${escapeHtml(s.name)}</div>
+                            <div class="bandeja-card-meta">${escapeHtml(s.province||'')} · D:${s.priorityDirectScore||0}pts · R:${s.priorityNetworkScore||0}pts · ${s.priorityDirectScoreNatural !== undefined ? 'natural '+s.priorityDirectScoreNatural+'pts' : ''}</div>
+                        </div>
+                        <div class="bandeja-actions" onclick="event.stopPropagation()">
+                            <button class="btn-confirmar" onclick="confirmPuente('${s.id}')">✓ Confirmar</button>
+                            <button class="btn-descartar" onclick="descartarPuente('${s.id}')">✕ Descartar</button>
+                        </div>
+                    </div>`).join('');
+            }
+
+            // ── Cambios de cuadrante ──
+            const cambios = allStudios
+                .map(s => ({ s, d: getQuadrantDelta(s) }))
+                .filter(({ d }) => d !== null)
+                .sort((a, b) => (a.d.trend === 'up' ? -1 : 1));
+            const deltaEl = document.getElementById('bandeja-delta-list');
+            const deltaCount = document.getElementById('bandeja-delta-count');
+            deltaCount.textContent = `(${cambios.length})`;
+            if (cambios.length === 0) {
+                deltaEl.innerHTML = '<p style="color:var(--muted);font-size:0.82rem;margin:0;">Sin cambios recientes. Los cambios aparecerán tras recalcular el lote.</p>';
+            } else {
+                deltaEl.innerHTML = cambios.map(({ s, d }) => `
+                    <div class="bandeja-card" onclick="showStudioDetail('${s.id}')">
+                        <span class="q-chip" style="background:${d.trend==='up'?'#166534':'#991b1b'}">${_M_NUMS[(d.to||5)-1]}</span>
+                        <div>
+                            <div class="bandeja-card-name">${escapeHtml(s.name)}</div>
+                            <div class="bandeja-card-meta">${escapeHtml(s.province||'')} · Q${d.from} → Q${d.to} ${d.trend==='up'?'↑ mejora':'↓ baja'} · ${escapeHtml(s.priorityQuadrantName||'')}</div>
+                        </div>
+                    </div>`).join('');
+            }
+
+            updateBandejaNavBadge();
+        }
+
+        async function confirmPuente(studioId) {
+            const studio = allStudios.find(s => String(s.id) === String(studioId));
+            if (!studio) return;
+            const updates = buildScoringV2Updates({ ...studio, es_cliente_puente: true }, 'puente_confirmado');
+            await updateStudio(studioId, { ...updates, es_cliente_puente: true });
+            showNotification(`✅ ${studio.name} confirmado como cliente puente — Q${updates.priorityQuadrant}`, 'success');
+            await loadStudios();
+            loadBandeja();
+        }
+
+        async function descartarPuente(studioId) {
+            const studio = allStudios.find(s => String(s.id) === String(studioId));
+            if (!studio) return;
+            await updateStudio(studioId, { es_candidato_puente: false, es_cliente_puente: false });
+            showNotification(`${studio.name} descartado como candidato puente`, 'info');
+            await loadStudios();
+            loadBandeja();
+        }
+
         // ── Extracción automática de ciudad a partir del nombre ──────────────────
         const _MUNICIPIOS_ES = {
           'Málaga':['Málaga','Marbella','Fuengirola','Torremolinos','Benalmádena','Estepona','Vélez-Málaga','Antequera','Ronda','Mijas','Nerja','Alhaurín de la Torre','Alhaurín el Grande','Coín','Manilva','Campillos','Archidona','Torrox','Frigiliana'],
