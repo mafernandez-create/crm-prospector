@@ -18997,6 +18997,27 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 console.log('✅ CRM inicializado correctamente');
                 console.log(`📱 Modo: ${deviceType}`);
 
+                // Auto-qualify batch — triggered by launchd via ?auto-qualify=1
+                if (new URLSearchParams(window.location.search).get('auto-qualify') === '1') {
+                    const GUARD_MS = 20 * 3600 * 1000; // 20 h
+                    const lastRun = parseInt(localStorage.getItem('crm_auto_batch_lastrun') || '0');
+                    if (Date.now() - lastRun >= GUARD_MS) {
+                        localStorage.setItem('crm_auto_batch_lastrun', String(Date.now()));
+                        showNotification('🤖 Auto-cualificación iniciada (launchd)...', 'info');
+                        const ids = allStudios.map(s => String(s.id));
+                        const tag = 'batch_' + new Date().toISOString().substring(0, 10).replace(/-/g, '');
+                        try {
+                            await cualificarLote(ids, tag, {
+                                onComplete: () => showNotification('✅ Auto-cualificación completada — ' + ids.length + ' estudios', 'success'),
+                            });
+                        } catch (e) {
+                            console.error('Auto-qualify error:', e);
+                        }
+                    } else {
+                        console.log('⏭ Auto-qualify omitido — ejecutado hace menos de 20 h');
+                    }
+                }
+
                 // Sincronizar planificador con Firebase (migra localStorage si Firebase está vacío)
                 if (typeof loadPlanificadorFromFirebase === 'function') {
                     loadPlanificadorFromFirebase().catch(e => console.warn('Sync planificador:', e));
