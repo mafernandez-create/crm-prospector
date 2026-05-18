@@ -2571,6 +2571,11 @@
                     <span>Empresas</span>
                     <span class="nav-item-badge" id="nav-total">0</span>
                 </div>
+                <div class="nav-item" onclick="showView('bandeja')">
+                    <span class="nav-item-icon">📬</span>
+                    <span>Bandeja del Agente</span>
+                    <span class="nav-item-badge" id="nav-bandeja-count" style="background:var(--warning);display:none;">0</span>
+                </div>
             </div>
             <div class="nav-section">
                 <div class="nav-section-title">Por Estado</div>
@@ -3017,6 +3022,21 @@
                             <option value="Alta">Alta</option>
                             <option value="Media">Media</option>
                             <option value="Baja">Baja</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label">Cuadrante:</span>
+                        <select class="filter-select" id="filter-quadrant" onchange="applyFilters()">
+                            <option value="">Todos</option>
+                            <option value="1">① Estratégico</option>
+                            <option value="2">② Cliente core</option>
+                            <option value="3">③ Cliente volumen</option>
+                            <option value="4">④ Puerta de entrada</option>
+                            <option value="5">⑤ Cartera estándar</option>
+                            <option value="6">⑥ Mantenimiento</option>
+                            <option value="7">⑦ Conector</option>
+                            <option value="8">⑧ Seguimiento ligero</option>
+                            <option value="9">⑨ Congelar</option>
                         </select>
                     </div>
                     <div class="filter-group">
