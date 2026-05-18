@@ -9692,7 +9692,10 @@ ${newStudios.length > 0 ? `
                                 <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;" onclick="copyToClipboard(${jsAttr(data.contact?.email || '')})">📧 Copiar Email</button>
                                 <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;" onclick="makePhoneCall(${jsAttr(data.contact?.phone || '')})">📞 Llamar</button>
                                 <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;" onclick="copyTemplate('email', '${id}')">📋 Copiar Email Template</button>
-                                <button class="btn btn-secondary" style="width:100%;" onclick="copyTemplate('linkedin', '${id}')">💼 Copiar LinkedIn</button>
+                                <button class="btn btn-secondary" style="width:100%;margin-bottom:8px;" onclick="copyTemplate('linkedin', '${id}')">💼 Copiar LinkedIn</button>
+                                <hr style="margin:12px 0;border:none;border-top:1px solid var(--border);">
+                                <button class="btn" style="width:100%;margin-bottom:8px;background:#8b5cf6;color:white;" onclick="abrirModalVisita('${id}','voz')">🎙️ Grabar visita</button>
+                                <button class="btn btn-secondary" style="width:100%;" onclick="abrirModalVisita('${id}','manual')">📝 Escribir visita</button>
                             </div>
                         </div>
                         
