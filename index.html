@@ -19361,11 +19361,38 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             }
         }
 
+        function loadBraveKey() {
+            const input  = document.getElementById('brave-api-key-input');
+            const status = document.getElementById('brave-key-status');
+            if (!input) return;
+            const key = localStorage.getItem('crm_brave_api_key') || '';
+            input.value = key ? '••••••••' + key.slice(-4) : '';
+            input.placeholder = key ? 'Clave guardada (edita para cambiar)' : 'BSA...';
+            if (status) status.textContent = key
+                ? '✅ Motor secundario activo — Brave Search configurado'
+                : '⚠️ Sin clave — se usará solo DuckDuckGo como motor de búsqueda';
+        }
+
+        function saveBraveKey() {
+            const input = document.getElementById('brave-api-key-input');
+            const key   = (input?.value || '').trim();
+            const displayKey = key.startsWith('••') ? localStorage.getItem('crm_brave_api_key') || '' : key;
+            if (displayKey) {
+                localStorage.setItem('crm_brave_api_key', displayKey);
+                showNotification('✅ Brave Search API key guardada', 'success');
+            } else {
+                localStorage.removeItem('crm_brave_api_key');
+                showNotification('Brave Search API key borrada', 'info');
+            }
+            loadBraveKey();
+        }
+
         function openSettingsModal() {
             // Cerrar menú móvil si está abierto
             if (isMobile) closeMobileMenu();
-            
+
             updateApiStatus();
+            loadBraveKey();
             openModal('modal-settings');
         }
 
