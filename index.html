@@ -267,6 +267,17 @@
         .priority-alta { background: var(--danger-light); color: var(--danger); }
         .priority-media { background: var(--warning-light); color: var(--warning); }
         .priority-baja { background: var(--surface); color: var(--muted); }
+
+        /* ── Scoring v2 · Matriz 3×3 ──────────────────────────────────── */
+        .sv2-matrix { display:grid; grid-template-columns:auto 1fr 1fr 1fr; gap:2px; font-size:0.68rem; margin:10px 0; }
+        .sv2-cell { padding:5px 3px; border-radius:4px; text-align:center; cursor:default; transition:outline .1s; }
+        .sv2-cell.active { outline:2px solid var(--primary); outline-offset:1px; font-weight:700; opacity:1 !important; }
+        .sv2-cell-header { padding:3px 2px; text-align:center; font-weight:600; color:var(--muted); font-size:0.65rem; }
+        .sv2-cell-rowhdr { padding:3px 4px; font-weight:600; color:var(--muted); text-align:right; white-space:nowrap; display:flex; align-items:center; justify-content:flex-end; }
+        .sv2-score-bar { display:flex; align-items:center; gap:8px; margin-bottom:6px; font-size:0.8rem; }
+        .sv2-score-track { flex:1; background:#e5e7eb; border-radius:4px; height:7px; overflow:hidden; }
+        .sv2-score-fill { height:100%; border-radius:4px; transition:width .3s; }
+        .sv2-action-box { background:#eff6ff; border-left:3px solid var(--primary); border-radius:0 6px 6px 0; padding:8px 10px; font-size:0.8rem; margin-top:4px; }
         
         /* Re-analysis Comparison View */
         .reanalysis-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:var(--surface); z-index:999; display:none; flex-direction:column; overflow:hidden; }
@@ -2670,6 +2681,10 @@
                             <span class="nav-item-icon">📊</span>
                             <span>Recalcular Prioridades</span>
                         </div>
+                        <div class="nav-item" onclick="openCualificarLoteModal(); if(typeof closeMobileMenu==='function'&&typeof isMobile!=='undefined'&&isMobile) closeMobileMenu();">
+                            <span class="nav-item-icon">🤖</span>
+                            <span>Cualificar Lote</span>
+                        </div>
                         <div class="nav-item" onclick="createFullBackup()">
                             <span class="nav-item-icon">💾</span>
                             <span>Copia de Seguridad</span>
@@ -4607,17 +4622,85 @@
         // TIPOS DE ESTUDIO - Fuente única de verdad
         // ============================================
         const TIPOS_ESTUDIO = {
-            'arquitectura':   { icon: '🏛️', label: 'Arquitectura',          labelLargo: 'Empresa de Arquitectura' },
-            'ingenieria':     { icon: '⚙️', label: 'Ingeniería',            labelLargo: 'Empresa de Ingeniería' },
-            'promotora':      { icon: '🏗️', label: 'Promotora',             labelLargo: 'Promotora' },
-            'constructora':   { icon: '🔨', label: 'Constructora',          labelLargo: 'Constructora' },
-            'aapp':           { icon: '🏛️', label: 'AAPP',                  labelLargo: 'Administración Pública' },
-            'aguas':          { icon: '💧', label: 'Empresa de Aguas',      labelLargo: 'Empresa de Aguas' },
-            'regantes':       { icon: '🌾', label: 'Comunidad de Regantes', labelLargo: 'Comunidad de Regantes' },
-            'almacen':             { icon: '🏭', label: 'Almacén',               labelLargo: 'Almacén / Nave Industrial' },
-            'colegio_profesional': { icon: '🎓', label: 'Colegio Profesional',  labelLargo: 'Colegio Profesional (COA/COAAT/CICCP/COIA)' },
-            'otros':               { icon: '📋', label: 'Otros',                labelLargo: 'Otros' }
+            'ARQ':  { icon: '🏛️', label: 'Arquitectura',            labelLargo: 'Empresa de Arquitectura' },
+            'ING':  { icon: '⚙️', label: 'Ingeniería',              labelLargo: 'Empresa de Ingeniería' },
+            'OCV':  { icon: '🏗️', label: 'Obra Civil / Constructora', labelLargo: 'Constructora / Promotora / Obra Civil' },
+            'AAPP': { icon: '🏛️', label: 'AAPP',                    labelLargo: 'Administración Pública' },
+            'CCRR': { icon: '🌾', label: 'Comunidad de Regantes',   labelLargo: 'Comunidad de Regantes' },
+            'CICA': { icon: '💧', label: 'Empresa de Aguas',         labelLargo: 'Empresa del Ciclo del Agua' },
+            'almacen':             { icon: '🏭', label: 'Almacén',              labelLargo: 'Almacén / Nave Industrial' },
+            'colegio_profesional': { icon: '🎓', label: 'Colegio Profesional', labelLargo: 'Colegio Profesional' },
+            'otros':               { icon: '📋', label: 'Otros',               labelLargo: 'Otros' }
         };
+
+        // ── Mapeos de tipos (v1.1) ────────────────────────────────────────────
+        // Código nuevo → nombre legacy que usan getB2BTimeline / getTriggersByType
+        const TIPO_B2B_MAP = {
+            ARQ: 'arquitectura', ING: 'ingenieria', OCV: 'constructora',
+            AAPP: 'aapp', CCRR: 'regantes', CICA: 'aguas'
+        };
+        // Valor legacy (string) → código nuevo
+        const TIPO_LEGACY_MAP = {
+            arquitectura: 'ARQ', ingenieria: 'ING',
+            promotora: 'OCV', constructora: 'OCV',
+            aapp: 'AAPP', aguas: 'CICA', regantes: 'CCRR',
+            almacen: 'almacen', colegio_profesional: 'colegio_profesional', otros: 'otros'
+        };
+
+        // ── Helpers de tipo (v1.1) ────────────────────────────────────────────
+        /** Devuelve el array de códigos de tipo del estudio, normalizando strings legacy */
+        function getTiposArray(studio) {
+            if (!studio || !studio.type) return ['ARQ'];
+            if (Array.isArray(studio.type)) return studio.type.length > 0 ? studio.type : ['ARQ'];
+            const code = TIPO_LEGACY_MAP[studio.type] || studio.type;
+            return [code];
+        }
+        /** Tipo principal (primer elemento del array) */
+        function getTipoPrincipal(studio) { return getTiposArray(studio)[0]; }
+        /** ¿El estudio tiene este tipo (código)? */
+        function studioTieneType(studio, code) { return getTiposArray(studio).includes(code); }
+        /**
+         * Nombre legacy para el sistema B2B.
+         * Para OCV (promotora+constructora fusionadas) consulta b2bTimeline.subType si existe,
+         * permitiendo que studios que eran 'promotora' mantengan su ruta B2B correcta.
+         */
+        function getB2BTypeName(studio) {
+            const code = getTipoPrincipal(studio);
+            // OCV puede ser 'promotora' o 'constructora' en B2B — usar subType guardado si existe
+            if (code === 'OCV' && studio.b2bTimeline?.subType) return studio.b2bTimeline.subType;
+            return TIPO_B2B_MAP[code] || 'arquitectura';
+        }
+
+        /**
+         * Detecta si un estudio OCV es promotora o constructora a partir del nombre y datos.
+         * @returns {string|null} 'promotora' | 'constructora' | null (ambiguo → preguntar al usuario)
+         */
+        function detectOCVSubtype(studio) {
+            const text = ((studio.name || '') + ' ' + (studio.data?.description || '') + ' ' + (studio.data?.studio?.description || '')).toLowerCase();
+            const isP = ['promotora','inmobiliaria','desarrollo inmobiliario','residencial','viviendas','apartamentos','promoci'].some(kw => text.includes(kw));
+            const isC = ['constructora','construcción','obras','contratista','edificaciones','rehabilitación','instalaciones','obra civil'].some(kw => text.includes(kw));
+            if (isP && !isC) return 'promotora';
+            if (isC && !isP) return 'constructora';
+            return null; // ambiguo — preguntar al usuario
+        }
+
+        // ── Helpers de dato con metadatos (v1.1) ─────────────────────────────
+        /** Extrae el valor de un campo que puede ser string (legacy) u objeto con metadatos */
+        function getValor(campo) {
+            if (campo === null || campo === undefined) return '';
+            if (typeof campo === 'string') return campo;
+            if (typeof campo === 'object' && 'valor' in campo) return campo.valor ?? '';
+            return '';
+        }
+        /** True si el dato está verificado (>=2 fuentes o verificación humana) */
+        function esDatoVerificado(campo) {
+            if (campo === null || campo === undefined || campo === '') return false;
+            if (typeof campo === 'string') return campo !== '' && campo !== 'No encontrado';
+            if (typeof campo === 'object') {
+                return ['verificado', 'verificado_humano'].includes(campo.nivel_confianza);
+            }
+            return false;
+        }
 
         // ============================================
         // CONOCIMIENTO DE PRODUCTO GPF
@@ -4927,10 +5010,10 @@
                 startDate = new Date(); // Fallback a fecha actual
             }
             
-            const timeline = getB2BTimeline(studio.type || 'arquitectura', studio.b2bTimeline?.variant).map((step, index) => {
+            const timeline = getB2BTimeline(getB2BTypeName(studio), studio.b2bTimeline?.variant).map((step, index) => {
                 const stepDate = new Date(startDate.getTime()); // Clonar la fecha
                 stepDate.setDate(stepDate.getDate() + step.day);
-                
+
                 // Si ya está completado, no incluirlo
                 const isCompleted = studio.b2bTimeline.steps && studio.b2bTimeline.steps[index];
                 
@@ -4992,7 +5075,7 @@
             }
             
             const _studioForTimeline = await getStudio(studioId);
-            const _studioType = _studioForTimeline?.type || 'arquitectura';
+            const _studioType = getB2BTypeName(_studioForTimeline);
             const timeline = getB2BTimeline(_studioType, b2bTimeline.variant).map((step, index) => {
                 const stepDate = new Date(startDate.getTime()); // Clonar la fecha
                 stepDate.setDate(stepDate.getDate() + step.day);
@@ -5558,14 +5641,14 @@
             const data = studio.data || {};
 
             // 0. TIPO DE EMPRESA (prescripción) - hasta 3 puntos
-            const tipo = (studio.type || '').toLowerCase();
-            if (tipo === 'arquitectura' || tipo === 'ingenieria') {
+            const tipoPpal = getTipoPrincipal(studio);
+            if (tipoPpal === 'ARQ' || tipoPpal === 'ING') {
                 score += 3;
                 details.push(`Tipo: prescriptor directo (+3)`);
-            } else if (tipo === 'promotora' || tipo === 'constructora') {
+            } else if (tipoPpal === 'OCV') {
                 score += 2;
                 details.push(`Tipo: decisor de compra (+2)`);
-            } else if (tipo === 'aguas' || tipo === 'aapp' || tipo === 'regantes') {
+            } else if (tipoPpal === 'AAPP' || tipoPpal === 'CCRR' || tipoPpal === 'CICA') {
                 score += 1;
                 details.push(`Tipo: usuario final (+1)`);
             }
@@ -5622,13 +5705,13 @@
             const social = data.social || {};
             let socialScore = 0;
             
-            if (social.linkedin?.url && social.linkedin.url !== 'No encontrado') socialScore++;
-            if (social.instagram?.url && social.instagram.url !== 'No encontrado') socialScore++;
-            if (social.twitter?.url && social.twitter.url !== 'No encontrado') socialScore++;
-            if (social.facebook?.url && social.facebook.url !== 'No encontrado') socialScore++;
+            if (getValor(social.linkedin?.url) && getValor(social.linkedin?.url) !== 'No encontrado') socialScore++;
+            if (getValor(social.instagram?.url) && getValor(social.instagram?.url) !== 'No encontrado') socialScore++;
+            if (getValor(social.twitter?.url) && getValor(social.twitter?.url) !== 'No encontrado') socialScore++;
+            if (getValor(social.facebook?.url) && getValor(social.facebook?.url) !== 'No encontrado') socialScore++;
             
             // Verificar seguidores de LinkedIn
-            const linkedinFollowers = parseInt(social.linkedin?.followers) || 0;
+            const linkedinFollowers = parseInt(getValor(social.linkedin?.followers)) || 0;
             if (linkedinFollowers >= 1000) socialScore++;
             
             if (socialScore >= 3) {
@@ -5643,10 +5726,10 @@
             const contact = data.contact || {};
             let contactScore = 0;
             
-            if (contact.phone && contact.phone !== 'No encontrado') contactScore++;
-            if (contact.email && contact.email !== 'No encontrado') contactScore++;
-            if (contact.address && contact.address !== 'No encontrado') contactScore++;
-            if (contact.web && contact.web !== 'No encontrado') contactScore++;
+            if (getValor(contact.phone) && getValor(contact.phone) !== 'No encontrado') contactScore++;
+            if (getValor(contact.email) && getValor(contact.email) !== 'No encontrado') contactScore++;
+            if (getValor(contact.address) && getValor(contact.address) !== 'No encontrado') contactScore++;
+            if (getValor(contact.web) && getValor(contact.web) !== 'No encontrado') contactScore++;
             
             // Verificar equipo con decision makers
             const team = data.team || [];
@@ -5690,7 +5773,193 @@
                 details
             };
         }
-        
+
+        // ============================================
+        // SCORING V2 — DOBLE EJE (Método Unificado v1.1)
+        // ============================================
+        // Eje 1: Valor Directo (máx 15 pts) → Alta/Medio/Bajo
+        // Eje 2: Valor de Red (máx 15 pts)  → Alta/Media/Baja
+        // Combinación → Cuadrante 1-9 (matriz 3×3)
+        // Los campos legacy (priority/score/priorityCalculatedScore) se mantienen como DEPRECATED.
+
+        const _SV2_QUADRANT_MAP = {
+            'Alto_Alta': 1,  'Alto_Media': 2,  'Alto_Baja': 3,
+            'Medio_Alta': 4, 'Medio_Media': 5, 'Medio_Baja': 6,
+            'Bajo_Alta': 7,  'Bajo_Media': 8,  'Bajo_Baja': 9,
+        };
+        const _SV2_QUADRANT_NAMES = {
+            1: 'Estratégico',       2: 'Cliente core',     3: 'Cliente volumen',
+            4: 'Puerta de entrada', 5: 'Cartera estándar', 6: 'Mantenimiento',
+            7: 'Conector',          8: 'Seguimiento ligero', 9: 'Congelar',
+        };
+        const _SV2_ACTIONS = {
+            1: 'Visita trimestral. Cuenta clave. Profundizar relación y cartografiar red.',
+            2: 'Visita trimestral. Comercial técnico. Mantener prescripción y detectar proyectos nuevos.',
+            3: 'Visita semestral. Técnico-comercial. Sostener volumen.',
+            4: 'Visita semestral. Exploratorio. Extraer info de cartera, identificar 2-3 targets accesibles a través de él.',
+            5: 'Visita anual o en ruta. Mantener relación y captar cambios.',
+            6: 'Contacto anual telefónico. Visita solo si pasa por zona.',
+            7: 'Visita solo si en ruta a otro cliente A/B. Contacto cordial sin pitch.',
+            8: 'Contacto telefónico anual. Confirmar vigencia.',
+            9: 'Sin contacto programado. Re-evaluación a 18 meses.',
+        };
+
+        function calculateScoringV2(studio) {
+            const data      = studio.data || {};
+            const social    = data.social  || {};
+            const contact   = data.contact || {};
+            const team      = data.team    || [];
+            const projects  = data.projects || [];
+            const tipoPpal  = getTipoPrincipal(studio);
+
+            // ── EJE 1: VALOR DIRECTO ──────────────────────────────────────────
+
+            // D1: Tipo de cliente (dato estructural — siempre computable)
+            let d1 = 0;
+            if (tipoPpal === 'ARQ' || tipoPpal === 'ING') d1 = 3;
+            else if (tipoPpal === 'OCV') d1 = 2;
+            else if (tipoPpal === 'AAPP' || tipoPpal === 'CCRR' || tipoPpal === 'CICA') d1 = 1;
+
+            // D2: Tamaño (empleados, umbrales según tipo)
+            let d2 = 0;
+            const empVal = parseInt(getValor(data.studio?.employees)) || 0;
+            if (empVal > 0) {
+                if (tipoPpal === 'OCV') {
+                    if (empVal >= 50) d2 = 3; else if (empVal >= 20) d2 = 2; else if (empVal >= 5) d2 = 1;
+                } else {
+                    if (empVal >= 20) d2 = 3; else if (empVal >= 10) d2 = 2; else if (empVal >= 3) d2 = 1;
+                }
+            }
+
+            // D3: Facturación — solo si verificado. Campo no existe aún → sin_dato_fiable
+            const d3 = 0;
+
+            // D4: Actividad reciente (proyectos en últimos 12 meses o proxy)
+            let d4 = 0, d4Recent = 0;
+            const d4Cutoff = new Date(); d4Cutoff.setFullYear(d4Cutoff.getFullYear() - 1);
+            d4Recent = projects.filter(p => {
+                if (p.year) return parseInt(p.year) >= d4Cutoff.getFullYear();
+                if (p.date) { try { return new Date(p.date) >= d4Cutoff; } catch(e) {} }
+                return false;
+            }).length;
+            const d4Effective = d4Recent > 0 ? d4Recent : Math.round(projects.length * 0.6);
+            if (d4Effective >= 5) d4 = 3; else if (d4Effective >= 3) d4 = 2; else if (d4Effective >= 1) d4 = 1;
+
+            // D5: Fit catálogo GPF (cruce de proyectos con familias de producto)
+            let d5 = 0;
+            const projText = projects.map(p => ((p.name||'') + ' ' + (p.type||'')).toLowerCase()).join(' ');
+            const _GPF_FIT_FAMILIES = [
+                ['evacuacion_mute',    ['evacuación','bajante','saneamiento pvc','insonori','acústic']],
+                ['red_saneamiento',    ['colector','alcantarillado','red saneamiento','edar','depuradora','saneamiento']],
+                ['riego_biopipe',      ['riego','regadío','pvc-o','pe100','conducción agua','biorientado']],
+                ['abastecimiento',     ['abastecimiento','agua potable','red distribución','captación']],
+                ['pe_presion_gas',     ['polietileno','pe 100','gas pe','condusan','presión gas']],
+            ];
+            let d5Fits = _GPF_FIT_FAMILIES.filter(([, kws]) => kws.some(kw => projText.includes(kw))).length;
+            if ((tipoPpal === 'ARQ' || tipoPpal === 'ING') && projects.length > 0) d5Fits = Math.max(d5Fits, 1);
+            if (d5Fits >= 3) d5 = 2; else if (d5Fits >= 1) d5 = 1;
+
+            // D6: Contacto completo (igual que DEPRECATED v1)
+            let d6 = 0, d6Pts = 0;
+            if (getValor(contact.phone)   && getValor(contact.phone)   !== 'No encontrado') d6Pts++;
+            if (getValor(contact.email)   && getValor(contact.email)   !== 'No encontrado') d6Pts++;
+            if (getValor(contact.address) && getValor(contact.address) !== 'No encontrado') d6Pts++;
+            if (getValor(contact.web)     && getValor(contact.web)     !== 'No encontrado') d6Pts++;
+            if (team.some(t => t.isDecisionMaker)) d6Pts++;
+            if (team.some(t => t.email   && t.email   !== 'No encontrado')) d6Pts++;
+            if (team.some(t => t.linkedin && t.linkedin !== 'No encontrado')) d6Pts++;
+            if (d6Pts >= 5) d6 = 2; else if (d6Pts >= 2) d6 = 1;
+
+            const rawDirect = d1 + d2 + d3 + d4 + d5 + d6;
+            const priorityDirect = rawDirect >= 10 ? 'Alto' : rawDirect >= 6 ? 'Medio' : 'Bajo';
+
+            // ── EJE 2: VALOR DE RED ───────────────────────────────────────────
+            // R1, R2, R3, R5 — requieren datos externos verificados (fase futura)
+            // R4: Posición referente — detectable desde datos existentes
+            const liFollowers = parseInt((getValor(social.linkedin?.followers) || '').replace(/[^0-9]/g, '') || '0') || 0;
+            const _awardKws   = ['premio','bienal','award','finalista','reconoci','distinción','medalla','ganador'];
+            const _teachKws   = ['profesor','docente','universidad','cátedra','master','máster'];
+            let socialCount = 0;
+            if (getValor(social.linkedin?.url))   socialCount++;
+            if (getValor(social.instagram?.url))  socialCount++;
+            if (getValor(social.twitter?.url))    socialCount++;
+
+            const _r4Signals = {
+                li_followers:  liFollowers >= 1000,
+                awards:        projects.some(p => _awardKws.some(kw => ((p.name||'')+(p.type||'')).toLowerCase().includes(kw)))
+                               || _awardKws.some(kw => (data.description||'').toLowerCase().includes(kw)),
+                teaching:      team.some(t => _teachKws.some(kw => ((t.role||'')+(t.bio||'')).toLowerCase().includes(kw))),
+                wide_portfolio: projects.length >= 10,
+                social_active: socialCount >= 2 && liFollowers >= 500,
+            };
+            const r4Signals = Object.values(_r4Signals).filter(Boolean).length;
+            const r4 = r4Signals >= 4 ? 4 : r4Signals >= 2 ? 2 : 0;
+
+            const rawNetwork = r4; // R1+R2+R3+R5 = 0 hasta fase futura
+            const priorityNetwork = r4 >= 4 ? 'Alta' : r4 >= 2 ? 'Media' : 'Baja';
+
+            // ── CUADRANTE ─────────────────────────────────────────────────────
+            const priorityQuadrant = _SV2_QUADRANT_MAP[`${priorityDirect}_${priorityNetwork}`] || 5;
+
+            return {
+                // Eje 1
+                priorityDirect,
+                priorityDirectScore: rawDirect,
+                priorityDirectDetails: [
+                    { dimension: 'D1_tipo',        pts: d1, tipo: tipoPpal },
+                    { dimension: 'D2_tamaño',      pts: d2, empleados: empVal },
+                    { dimension: 'D3_facturacion', pts: d3, estado: 'sin_dato_fiable' },
+                    { dimension: 'D4_actividad',   pts: d4, total: projects.length, recientes: d4Recent },
+                    { dimension: 'D5_fit_gpf',     pts: d5, matches: d5Fits },
+                    { dimension: 'D6_contacto',    pts: d6, datos: d6Pts },
+                ],
+                // Eje 2
+                priorityNetwork,
+                priorityNetworkScore: rawNetwork,
+                priorityNetworkDetails: [
+                    { dimension: 'R1_cartera',      pts: 0, estado: 'sin_dato_fiable' },
+                    { dimension: 'R2_densidad_gpf', pts: 0, estado: 'sin_dato_fiable' },
+                    { dimension: 'R3_exclusividad', pts: 0, estado: 'sin_dato_fiable' },
+                    { dimension: 'R4_referente',    pts: r4, señales: r4Signals, detalle: _r4Signals },
+                    { dimension: 'R5_diversidad',   pts: 0, estado: 'sin_dato_fiable' },
+                ],
+                // Cuadrante
+                priorityQuadrant,
+                priorityQuadrantName:      _SV2_QUADRANT_NAMES[priorityQuadrant],
+                priorityRecommendedAction: _SV2_ACTIONS[priorityQuadrant],
+            };
+        }
+
+        // ── Helpers de display de prioridad (v2 con fallback legacy) ─────────
+        function getDisplayPriority(studio) {
+            if (studio.priorityDirect) return studio.priorityDirect;
+            return studio.priority || 'Media';
+        }
+        function getDisplayPriorityClass(studio) {
+            return (getDisplayPriority(studio)).toLowerCase().replace(/[^a-z]/g, '');
+        }
+
+        /**
+         * Genera el objeto de updates de scoring v2 listo para updateStudio(),
+         * incluyendo una nueva entrada en scoringHistory (máx 20 entradas).
+         * @param {object} studio - documento completo del estudio
+         * @param {string} trigger - origen del cálculo (ej. 'importacion', 'cambio_tipo', 'reanálisis', 'recalculo_masivo')
+         */
+        function buildScoringV2Updates(studio, trigger) {
+            const v2 = calculateScoringV2(studio);
+            const histEntry = {
+                fecha:               new Date().toISOString(),
+                priorityDirect:      v2.priorityDirect,
+                priorityDirectScore: v2.priorityDirectScore,
+                priorityNetwork:     v2.priorityNetwork,
+                priorityNetworkScore: v2.priorityNetworkScore,
+                priorityQuadrant:    v2.priorityQuadrant,
+                trigger:             trigger || 'manual',
+            };
+            const prevHistory = Array.isArray(studio.scoringHistory) ? studio.scoringHistory : [];
+            return { ...v2, scoringHistory: [...prevHistory, histEntry].slice(-20) };
+        }
+
         // ── Extracción automática de ciudad a partir del nombre ──────────────────
         const _MUNICIPIOS_ES = {
           'Málaga':['Málaga','Marbella','Fuengirola','Torremolinos','Benalmádena','Estepona','Vélez-Málaga','Antequera','Ronda','Mijas','Nerja','Alhaurín de la Torre','Alhaurín el Grande','Coín','Manilva','Campillos','Archidona','Torrox','Frigiliana'],
@@ -5777,15 +6046,9 @@
                 if (autoCity) studio.city = autoCity;
             }
 
-            // Calcular prioridad automáticamente si no se especifica o es por defecto
-            if (!studio.priority || studio.priority === 'Media') {
-                const autoPriority = calculateAutoPriority(studio);
-                studio.priority = autoPriority.priority;
-                studio.score = autoPriority.score;
-                studio.priorityDetails = autoPriority.details;
-                studio.priorityCalculatedScore = autoPriority.calculatedScore;
-            }
-            
+            // Scoring v2 — siempre en alta creación (legacy priority/score ya no se escriben)
+            Object.assign(studio, buildScoringV2Updates(studio, 'importacion'));
+
             // FIREBASE
             if (useFirebase) {
                 try {
@@ -6696,7 +6959,7 @@
             let filtered = studios.filter(s => {
                 if (province && (s.province || s.city || '') !== province) return false;
                 if (status && (s.status || 'nuevo') !== status) return false;
-                if (type && s.type !== type) return false;
+                if (type && !getTiposArray(s).includes(type)) return false;
                 return true;
             }).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
@@ -6820,7 +7083,7 @@
             overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
 
             const types = Object.keys(DEFAULT_TEMPLATES);
-            const typeLabels = { arquitectura:'Arquitectura', ingenieria:'Ingeniería', promotora:'Promotora', constructora:'Constructora', aapp:'AAPP', aguas:'Aguas', regantes:'Regantes' };
+            const typeLabels = Object.fromEntries(Object.entries(TIPOS_ESTUDIO).map(([k,v]) => [k, v.label]));
 
             overlay.innerHTML = `
                 <div style="background:#ffffff;border-radius:14px;width:100%;max-width:800px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
@@ -7060,7 +7323,7 @@
         let kanbanMode = 'fase'; // 'fase' | 'status'
 
         function _kanbanCard(s, borderColor) {
-            const tipo = TIPOS_ESTUDIO[s.type] || TIPOS_ESTUDIO.otros;
+            const tipo = TIPOS_ESTUDIO[getTipoPrincipal(s)] || TIPOS_ESTUDIO.otros;
             let stancAlert = '';
             if (s.fase && s.faseChangedAt && s.fase !== '1' && s.fase !== '8') {
                 const dias = Math.floor((Date.now() - new Date(s.faseChangedAt).getTime()) / 86400000);
@@ -7099,7 +7362,7 @@
             const typeFilter = document.getElementById('kanban-type')?.value || '';
             const filtered = studios.filter(s => {
                 if (search && !s.name?.toLowerCase().includes(search)) return false;
-                if (typeFilter && s.type !== typeFilter) return false;
+                if (typeFilter && !getTiposArray(s).includes(typeFilter)) return false;
                 return true;
             });
 
@@ -7530,7 +7793,7 @@
             document.getElementById('stat-ganados').textContent = studios.filter(s => s.status === 'ganado').length;
             document.getElementById('stat-reunion').textContent = studios.filter(s => s.status === 'reunion').length;
             document.getElementById('stat-nuevos').textContent = studios.filter(s => s.status === 'nuevo').length;
-            document.getElementById('stat-alta').textContent = studios.filter(s => s.priority === 'Alta').length;
+            document.getElementById('stat-alta').textContent = studios.filter(s => s.priorityDirect === 'Alto' || (!s.priorityDirect && s.priority === 'Alta')).length;
 
             // KPIs Oficiales 2026
             const anio2026 = new Date().getFullYear(); // usa el año actual para que funcione en 2027+
@@ -7926,13 +8189,20 @@
             }
 
             let filtered = allStudios.filter(studio => {
-                if (typeFilter && (studio.type || 'arquitectura') !== typeFilter) return false;
+                if (typeFilter && !getTiposArray(studio).includes(typeFilter)) return false;
                 if (statusFilter && studio.status !== statusFilter) return false;
                 if (faseFilter && String(studio.fase || '') !== faseFilter) return false;
                 if (programaFilter && !(studio.programaFinanciacion || []).includes(programaFilter)) return false;
                 if (normaFilter && !(studio.normasExigidas || []).includes(normaFilter)) return false;
                 if (origenFilter && (studio.origenPrescriptor || studio.data?.origenPrescriptor || '') !== origenFilter) return false;
-                if (priorityFilter && studio.priority !== priorityFilter) return false;
+                if (priorityFilter) {
+                    // Map Alta/Media/Baja filter to both legacy and v2 values
+                    const v2Map = { 'Alta': 'Alto', 'Media': 'Medio', 'Baja': 'Bajo' };
+                    const v2Val = v2Map[priorityFilter] || priorityFilter;
+                    const matchLegacy = studio.priority === priorityFilter;
+                    const matchV2 = studio.priorityDirect === v2Val;
+                    if (!matchLegacy && !matchV2) return false;
+                }
                 if (provinceFilter) {
                     const studioProvince = studio.province || studio.data?.contact?.province || '';
                     if (studioProvince !== provinceFilter) return false;
@@ -8036,9 +8306,10 @@
         }
 
         function sortStudios(studios, column, direction) {
-            const priorityOrder = { 'Alta': 1, 'Media': 2, 'Baja': 3 };
+            const priorityOrder = { 'Alta': 1, 'Alto': 1, 'Media': 2, 'Medio': 2, 'Baja': 3, 'Bajo': 3 };
             const statusOrder = { 'nuevo': 1, 'contactado': 2, 'standby': 3, 'reunion': 4, 'negociacion': 5, 'traspasado': 6, 'prescripcion': 7, 'venta': 8, 'ganado': 9, 'perdido': 10 };
             const typeOrder = Object.fromEntries(Object.keys(TIPOS_ESTUDIO).map((k, i) => [k, i + 1]));
+            // Para ordenar por tipo principal
             
             return [...studios].sort((a, b) => {
                 // Null guard: registros sin nombre siempre al final, independientemente de la dirección
@@ -8055,16 +8326,16 @@
                         valB = b.name.toLowerCase();
                         break;
                     case 'type':
-                        valA = typeOrder[a.type || 'arquitectura'] || 1;
-                        valB = typeOrder[b.type || 'arquitectura'] || 1;
+                        valA = typeOrder[getTipoPrincipal(a)] || 1;
+                        valB = typeOrder[getTipoPrincipal(b)] || 1;
                         break;
                     case 'status':
                         valA = statusOrder[a.status] || 99;
                         valB = statusOrder[b.status] || 99;
                         break;
                     case 'priority':
-                        valA = priorityOrder[a.priority] || 2;
-                        valB = priorityOrder[b.priority] || 2;
+                        valA = a.priorityQuadrant || priorityOrder[a.priorityDirect] || priorityOrder[a.priority] || 5;
+                        valB = b.priorityQuadrant || priorityOrder[b.priorityDirect] || priorityOrder[b.priority] || 5;
                         break;
                     case 'updatedAt':
                         valA = (typeof a.updatedAt === 'object' && a.updatedAt?.seconds) ? a.updatedAt.seconds * 1000 : new Date(a.updatedAt || 0).getTime();
@@ -8100,12 +8371,15 @@
         }
 
         function getTypeLabel(type) {
-            const t = TIPOS_ESTUDIO[type];
+            // Soporta string legacy, código nuevo, o array
+            let code = Array.isArray(type) ? (type[0] || 'ARQ') : (TIPO_LEGACY_MAP[type] || type || 'ARQ');
+            const t = TIPOS_ESTUDIO[code];
             return t ? t.icon + ' ' + t.label : '🏛️ Arquitectura';
         }
 
         function getTypeIcon(type) {
-            const t = TIPOS_ESTUDIO[type];
+            let code = Array.isArray(type) ? (type[0] || 'ARQ') : (TIPO_LEGACY_MAP[type] || type || 'ARQ');
+            const t = TIPOS_ESTUDIO[code];
             return t ? t.icon : '🏛️';
         }
 
@@ -8141,9 +8415,12 @@
                             </div>
                         </div>
                     </td>
-                    <td data-label="Tipo"><span style="font-size:0.85rem;">${getTypeLabel(studio.type || 'arquitectura')}</span></td>
+                    <td data-label="Tipo"><span style="font-size:0.85rem;">${getTypeLabel(studio.type)}</span></td>
                     <td data-label="Estado"><span class="status status-${studio.status}">${getStatusLabel(studio.status)}</span></td>
-                    <td data-label="Prioridad"><span class="priority priority-${(studio.priority || 'media').toLowerCase().replace(/[^a-z]/g,'')}">${escapeHtml(studio.priority || 'Media')}</span></td>
+                    <td data-label="Prioridad">
+                        <span class="priority priority-${getDisplayPriorityClass(studio)}">${escapeHtml(getDisplayPriority(studio))}</span>
+                        ${studio.priorityQuadrant ? `<br><span style="font-size:0.68rem;color:var(--primary);font-weight:600;" title="${escapeHtml(studio.priorityRecommendedAction||'')}">Q${studio.priorityQuadrant} ${escapeHtml(studio.priorityQuadrantName||'')}</span>` : ''}
+                    </td>
                     <td data-label="Última Actividad">${formatDate(studio.updatedAt)}</td>
                     <td data-label="Creado">${formatDate(studio.createdAt)}</td>
                     <td data-label="Días en fase" style="text-align:center;">${(() => {
@@ -8173,6 +8450,81 @@
         // ============================================
         // STUDIO DETAIL
         // ============================================
+        // ============================================
+        // SCORING V2 UI — Renders matrix + axis bars
+        // ============================================
+        function renderScoringV2Card(studio) {
+            const v2 = (studio.priorityQuadrant !== undefined)
+                ? { priorityDirect: studio.priorityDirect, priorityDirectScore: studio.priorityDirectScore || 0,
+                    priorityNetwork: studio.priorityNetwork, priorityNetworkScore: studio.priorityNetworkScore || 0,
+                    priorityQuadrant: studio.priorityQuadrant,
+                    priorityQuadrantName: studio.priorityQuadrantName,
+                    priorityRecommendedAction: studio.priorityRecommendedAction }
+                : calculateScoringV2(studio);
+
+            const q  = v2.priorityQuadrant || 5;
+            const bandColor = { Alto:'#22c55e', Medio:'#f59e0b', Bajo:'#9ca3af', Alta:'#22c55e', Media:'#f59e0b', Baja:'#9ca3af' };
+            const dCol = bandColor[v2.priorityDirect] || '#9ca3af';
+            const nCol = bandColor[v2.priorityNetwork] || '#9ca3af';
+
+            // Score bars
+            const bar = (label, score, max, band, color) =>
+                '<div class="sv2-score-bar">' +
+                '<div style="width:90px;color:var(--muted);flex-shrink:0;">' + label + '</div>' +
+                '<div class="sv2-score-track"><div class="sv2-score-fill" style="width:' + Math.round((score||0)/max*100) + '%;background:' + color + ';"></div></div>' +
+                '<span style="color:' + color + ';font-weight:700;width:44px;">' + (band||'—') + '</span>' +
+                '<span style="color:var(--muted);font-size:0.7rem;">' + (score||0) + '/' + max + '</span>' +
+                '</div>';
+
+            // Matrix 3×3
+            const rows  = ['Alto', 'Medio', 'Bajo'];
+            const cols  = ['Alta', 'Media', 'Baja'];
+            const rBg   = ['#dcfce7', '#fef9c3', '#f3f4f6'];  // row backgrounds
+            const cOp   = ['1', '0.75', '0.55'];               // col opacity
+            const qEmoji= ['①','②','③','④','⑤','⑥','⑦','⑧','⑨'];
+            const qShort= ['Estratégico','Core','Volumen','Entrada','Estándar','Manteni.','Conector','Ligero','Congelar'];
+
+            let matrixHtml = '<div class="sv2-matrix">';
+            // Header row
+            matrixHtml += '<div></div>';
+            cols.forEach(c => { matrixHtml += '<div class="sv2-cell-header">Red ' + c + '</div>'; });
+            // Data rows
+            rows.forEach((row, ri) => {
+                matrixHtml += '<div class="sv2-cell-rowhdr">D.' + row + '</div>';
+                cols.forEach((col, ci) => {
+                    const cellQ   = ri * 3 + ci + 1;
+                    const isActive = cellQ === q;
+                    const tip = (_SV2_QUADRANT_NAMES[cellQ] || '') + ': ' + (_SV2_ACTIONS[cellQ] || '');
+                    matrixHtml +=
+                        '<div class="sv2-cell' + (isActive ? ' active' : '') + '" ' +
+                        'style="background:' + rBg[ri] + ';opacity:' + cOp[ci] + ';" title="' + escapeHtml(tip) + '">' +
+                        '<div style="font-size:0.9rem;">' + qEmoji[cellQ - 1] + '</div>' +
+                        '<div style="font-size:0.62rem;line-height:1.3;color:#374151;">' + qShort[cellQ - 1] + '</div>' +
+                        '</div>';
+                });
+            });
+            matrixHtml += '</div>';
+
+            // Action box
+            const actionHtml =
+                '<div class="sv2-action-box">' +
+                '<div style="font-weight:700;color:var(--primary);margin-bottom:3px;">' +
+                escapeHtml(qEmoji[q-1] + ' ' + (v2.priorityQuadrantName || '—')) + '</div>' +
+                '<div style="color:#374151;line-height:1.5;">' + escapeHtml(v2.priorityRecommendedAction || '') + '</div>' +
+                '</div>';
+
+            // History badge
+            const histLen = Array.isArray(studio.scoringHistory) ? studio.scoringHistory.length : 0;
+            const histBadge = histLen > 1
+                ? '<div style="font-size:0.7rem;color:var(--muted);margin-top:6px;text-align:right;">📈 ' + histLen + ' cálculos registrados</div>'
+                : '';
+
+            return '<div style="padding:4px 0 8px 0;">' +
+                bar('Valor Directo', v2.priorityDirectScore, 15, v2.priorityDirect, dCol) +
+                bar('Valor de Red',  v2.priorityNetworkScore, 15, v2.priorityNetwork, nCol) +
+                matrixHtml + actionHtml + histBadge + '</div>';
+        }
+
         async function showStudioDetail(id) {
             console.log('🔍 showStudioDetail llamado con id:', id, '| tipo:', typeof id);
             // Buscar con igualdad estricta (string) — nuevo método
@@ -8208,7 +8560,7 @@
                     <div class="detail-info">
                         <div class="detail-name">${escapeHtml(studio.name)}</div>
                         <div class="detail-meta">
-                            <span onclick="openChangeTypeModal()" style="cursor:pointer;background:var(--bg-tertiary);padding:2px 10px;border-radius:12px;transition:all 0.2s;" onmouseover="this.style.background='var(--primary-light)';this.style.color='var(--primary)'" onmouseout="this.style.background='var(--bg-tertiary)';this.style.color='inherit'" title="Haz clic para cambiar el tipo">${getTypeIcon(studio.type)} ${getTypeLabel(studio.type || 'arquitectura')} <span style="font-size:0.7rem;opacity:0.6;">✏️</span></span>
+                            <span onclick="openChangeTypeModal()" style="cursor:pointer;background:var(--bg-tertiary);padding:2px 10px;border-radius:12px;transition:all 0.2s;" onmouseover="this.style.background='var(--primary-light)';this.style.color='var(--primary)'" onmouseout="this.style.background='var(--bg-tertiary)';this.style.color='inherit'" title="Haz clic para cambiar el tipo">${getTypeIcon(studio.type)} ${getTypeLabel(studio.type)} <span style="font-size:0.7rem;opacity:0.6;">✏️</span></span>
                             <span>📍 ${studio.city ? escapeHtml(studio.city) + ', ' : ''}${escapeHtml(studio.province)}</span>
                             ${(() => {
                                 const com = getComercialForZona(studio.province);
@@ -8222,7 +8574,8 @@
                             })()}
                             <span>📅 Creado: ${formatDate(studio.createdAt)}</span>
                             <span class="status status-${studio.status}">${getStatusLabel(studio.status)}</span>
-                            <span class="priority priority-${(studio.priority || 'media').toLowerCase().replace(/[^a-z]/g,'')}">${escapeHtml(studio.priority || 'Media')}</span>
+                            <span class="priority priority-${getDisplayPriorityClass(studio)}">${escapeHtml(getDisplayPriority(studio))}</span>
+                            ${studio.priorityQuadrant ? `<span style="background:#eff6ff;color:var(--primary);border-radius:10px;padding:2px 8px;font-size:0.75rem;font-weight:600;" title="${escapeHtml(studio.priorityRecommendedAction||'')}">Q${studio.priorityQuadrant} ${escapeHtml(studio.priorityQuadrantName||'')}</span>` : ''}
                         </div>
                     </div>
                     <div class="detail-actions">
@@ -8374,7 +8727,7 @@
                         <!-- Reports Tab -->
                         <div class="tab-panel" id="panel-reports">
                             <!-- Botones de acción -->
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;">
                                 <div style="background:linear-gradient(135deg, var(--accent), var(--primary));border-radius:12px;padding:20px;text-align:center;cursor:pointer;" onclick="openAddReportModal()">
                                     <div style="font-size:2.5rem;margin-bottom:8px;">📎</div>
                                     <div style="color:white;font-size:1rem;font-weight:600;">Adjuntar Archivo</div>
@@ -8384,6 +8737,11 @@
                                     <div style="font-size:2.5rem;margin-bottom:8px;">✍️</div>
                                     <div style="color:white;font-size:1rem;font-weight:600;">Redactar con IA</div>
                                     <div style="color:rgba(255,255,255,0.8);font-size:0.8rem;margin-top:4px;">Escribe tus notas y la IA lo estructura</div>
+                                </div>
+                                <div style="background:linear-gradient(135deg,#0f766e,#0d9488);border-radius:12px;padding:20px;text-align:center;cursor:pointer;" onclick="openBriefingModal()">
+                                    <div style="font-size:2.5rem;margin-bottom:8px;">📋</div>
+                                    <div style="color:white;font-size:1rem;font-weight:600;">Briefing pre-visita</div>
+                                    <div style="color:rgba(255,255,255,0.8);font-size:0.8rem;margin-top:4px;">Dossier estratégico antes de visitar</div>
                                 </div>
                             </div>
                             
@@ -8675,28 +9033,62 @@
                             </div>
                         </div>
                         
-                        <!-- Status History -->
+                        <!-- Status + Scoring v2 -->
                         <div class="card">
-                            <div class="card-header"><h3 class="card-title">📊 Estado y Prioridad</h3></div>
+                            <div class="card-header"><h3 class="card-title">📊 Estado y Scoring</h3></div>
                             <div class="card-body">
-                                <div style="text-align:center;padding:20px;">
+                                <div style="text-align:center;padding:12px 0 8px 0;">
                                     <span class="status status-${studio.status}" style="font-size:1rem;padding:8px 16px;">${getStatusLabel(studio.status)}</span>
-                                    <div style="margin-top:12px;">
-                                        <span class="priority priority-${(studio.priority || 'media').toLowerCase().replace(/[^a-z]/g,'')}">${escapeHtml(studio.priority || 'Media')} Prioridad</span>
-                                        ${studio.priorityCalculatedScore !== undefined ? `
-                                            <span style="font-size:0.75rem;color:var(--muted);margin-left:8px;">(${studio.priorityCalculatedScore}/12 pts)</span>
-                                        ` : ''}
-                                    </div>
-                                    ${studio.priorityDetails && studio.priorityDetails.length > 0 ? `
-                                        <div style="margin-top:12px;padding:10px;background:var(--surface);border-radius:8px;text-align:left;font-size:0.8rem;">
-                                            <div style="font-weight:600;margin-bottom:6px;color:var(--text);">📈 Criterios de puntuación:</div>
-                                            ${studio.priorityDetails.map(d => `<div style="color:var(--muted);padding:2px 0;">• ${d}</div>`).join('')}
-                                        </div>
-                                    ` : ''}
                                 </div>
-                                <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="openStatusModal()">🔄 Cambiar Estado</button>
+                                ${renderScoringV2Card(studio)}
+                                <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:0.72rem;color:var(--muted);">
+                                    <span style="font-weight:600;">Prioridad v1 (legacy):</span>
+                                    <span class="priority priority-${getDisplayPriorityClass(studio)}" style="font-size:0.7rem;padding:2px 7px;margin-left:4px;">${escapeHtml(getDisplayPriority(studio))}</span>
+                                </div>
+                                <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="openStatusModal()">🔄 Cambiar Estado</button>
                             </div>
                         </div>
+                        ${(data.adjudicaciones?.valor?.length > 0) ? `
+                        <div class="card" style="margin-top:12px;">
+                            <div class="card-header" style="border-left:4px solid #7c3aed;">
+                                <h3 class="card-title">🏛️ Adjudicaciones PLACSP</h3>
+                                <span style="font-size:0.78rem;color:var(--muted);">${data.adjudicaciones.valor.length} registros · ${(data.adjudicaciones.fecha_captura||'').substring(0,10)}</span>
+                            </div>
+                            <div class="card-body" style="padding:0;">
+                                <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
+                                    <thead>
+                                        <tr style="background:var(--surface);">
+                                            <th style="padding:6px 10px;text-align:left;color:var(--muted);font-weight:600;">Expediente / Título</th>
+                                            <th style="padding:6px 8px;text-align:right;color:var(--muted);font-weight:600;">Importe</th>
+                                            <th style="padding:6px 8px;text-align:center;color:var(--muted);font-weight:600;">Estado</th>
+                                            <th style="padding:6px 8px;text-align:center;color:var(--muted);font-weight:600;">Fecha</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.adjudicaciones.valor.slice(0,10).map(l => {
+                                            const estadoColor = l.estado === 'ADJUDICADA' ? '#22c55e' : l.estado === 'EN_PLAZO' ? '#3b82f6' : '#94a3b8';
+                                            const importeStr = l.importe ? (l.importe/1000).toFixed(0) + ' k€' : '—';
+                                            const fechaStr = (l.fecha_publicacion||'').substring(0,10);
+                                            const linkHtml = l.url_placsp ? ` <a href="${escapeHtml(l.url_placsp)}" target="_blank" rel="noopener" style="color:var(--accent);font-size:0.72rem;" onclick="event.stopPropagation();">↗</a>` : '';
+                                            return `<tr style="border-top:1px solid var(--border);">
+                                                <td style="padding:7px 10px;max-width:280px;">
+                                                    <div style="font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(l.titulo||'')}">
+                                                        ${escapeHtml((l.titulo||'').substring(0,80))}${linkHtml}
+                                                    </div>
+                                                    <div style="color:var(--muted);font-size:0.75rem;">${escapeHtml((l.organismo||'').substring(0,50))}</div>
+                                                </td>
+                                                <td style="padding:7px 8px;text-align:right;color:var(--text);font-variant-numeric:tabular-nums;">${importeStr}</td>
+                                                <td style="padding:7px 8px;text-align:center;">
+                                                    <span style="font-size:0.72rem;padding:2px 7px;border-radius:8px;background:${estadoColor}22;color:${estadoColor};font-weight:600;">${escapeHtml(l.estado||'—')}</span>
+                                                </td>
+                                                <td style="padding:7px 8px;text-align:center;color:var(--muted);">${fechaStr}</td>
+                                            </tr>`;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                                ${data.adjudicaciones.valor.length > 10 ? `<div style="padding:8px 12px;font-size:0.78rem;color:var(--muted);">… y ${data.adjudicaciones.valor.length - 10} más</div>` : ''}
+                            </div>
+                        </div>` : ''}
                     </div>
                 </div>
             `;
@@ -8768,8 +9160,8 @@
             closeModal('modal-new-studio');
             openModal('modal-progress');
             
-            const tipoTexto = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).label.toLowerCase();
-            const tipoPlural = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).labelLargo.toLowerCase() + 's';
+            const tipoTexto = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['ARQ']).label.toLowerCase();
+            const tipoPlural = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['ARQ']).labelLargo.toLowerCase() + 's';
             
             document.getElementById('progress-text').textContent = `🔍 Buscando ${tipoPlural} en ${province}...`;
             
@@ -8914,7 +9306,7 @@
         }
 
         function showFoundStudiosModal(province, studioType) {
-            const tipoTexto = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).label.toLowerCase();
+            const tipoTexto = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['ARQ']).label.toLowerCase();
 
             let html = `
                 <div style="margin-bottom:16px;">
@@ -9061,7 +9453,7 @@
                 
                 // Búsquedas básicas
                 const searches = [
-                    `"${name}" ${(TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).label} ${province}`,
+                    `"${name}" ${(TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['ARQ']).label} ${province}`,
                     `"${name}" teléfono email contacto ${province}`,
                     `"${name}" proyectos obras`
                 ];
@@ -9094,7 +9486,7 @@
                 name: analysis.nombreEstudio || name,
                 province: province,
                 city: analysis.ciudad || '',
-                type: studioType,
+                type: Array.isArray(studioType) ? studioType : [studioType],
                 status: 'nuevo',
                 priority: 'Media',
                 data: {
@@ -9157,7 +9549,7 @@
         
         // Función auxiliar para construir el prompt de análisis
         function buildAnalysisPrompt(name, province, studioType, webData, directWebContent) {
-            const tipoTexto = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).label.toLowerCase();
+            const tipoTexto = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['ARQ']).label.toLowerCase();
 
             return `Analiza la siguiente información sobre la empresa de ${tipoTexto} "${name}" ubicado en ${province}, España.
 
@@ -9209,7 +9601,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             
             // Limpiar formulario
             document.getElementById('manual-name').value = '';
-            document.getElementById('manual-type').value = 'arquitectura';
+            document.getElementById('manual-type').value = 'ARQ';
             document.getElementById('manual-province').value = 'Sevilla';
             document.getElementById('manual-priority').value = 'Media';
             document.getElementById('manual-email').value = '';
@@ -9317,7 +9709,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 city: city || '',
                 priority: priority,
                 score: priority === 'Alta' ? 8 : (priority === 'Media' ? 5 : 3),
-                type: type,
+                type: Array.isArray(type) ? type : [type],
                 status: 'nuevo',
                 logo: null,
                 origenPrescriptor: document.getElementById('manual-origen')?.value || null,
@@ -10008,6 +10400,230 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             } catch (error) {
                 debugLog('Error en búsqueda web: ' + error.message);
                 return [];
+            }
+        }
+
+        // ============================================
+        // MÉTODO UNIFICADO DE BÚSQUEDA Y SCORING v1.1
+        // ============================================
+
+        async function ejecutarCapa1(name, province, opts = {}) {
+            // opts: { providedUrl, studioType }
+            const nameClean = name.normalize("NFD").replace(/[̀-ͯ]/g, "");
+            const tipoLabel = (TIPOS_ESTUDIO[opts.studioType] || TIPOS_ESTUDIO['ARQ']).label.toLowerCase();
+
+            const queries = [
+                `"${name}" ${province}`,
+                `"${nameClean}" ${province}`,
+                `"${name}" teléfono email contacto ${province}`,
+                `"${name}" "aviso legal" OR "política de privacidad"`,
+                `"${name}" BORME`,
+                `site:linkedin.com/company "${name}"`,
+                `"${name}" site:empresite.eleconomista.es OR site:einforma.com OR site:axesor.es`,
+                `"${name}" ${province} noticias`,
+                `"${name}" entrevista OR jornada OR ponencia`,
+                `"${name}" datos.gob.es`,
+            ];
+
+            debugLog(`[Capa1] Lanzando ${queries.length} búsquedas paralelas para: ${name}`);
+            const results = await Promise.allSettled(queries.map(q => searchWeb(q)));
+
+            const sections = [
+                'PRESENCIA_GENERAL', 'VARIANTE_ORTOGRAFICA', 'CONTACTO', 'AVISO_LEGAL',
+                'BORME', 'LINKEDIN', 'DIRECTORIOS', 'NOTICIAS', 'EQUIPO_DIRECTIVO', 'DATASETS_PUBLICOS'
+            ];
+
+            const compiled = {};
+            results.forEach((r, i) => {
+                compiled[sections[i]] = r.status === 'fulfilled' ? r.value : [];
+            });
+
+            // Añadir directorios de negocio si hay URL
+            if (opts.providedUrl) {
+                try {
+                    const domain = new URL(opts.providedUrl).hostname.replace('www.', '');
+                    compiled['CONTACTO_DOMINIO'] = await searchWeb(domain + ' teléfono email contacto');
+                } catch(e) {}
+            }
+
+            return compiled;
+        }
+
+        async function ejecutarBloqueSectorial(tipo, name, province) {
+            const queries = [];
+            const nameClean = name.normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+            if (tipo === 'ARQ') {
+                queries.push(
+                    `site:archdaily.com OR site:dezeen.com OR site:plataformaarquitectura.cl "${name}"`,
+                    `site:metalocus.es OR site:hicarquitectura.com "${name}"`,
+                    `"${name}" concurso OR bienal OR premio arquitectura`,
+                    `site:concursosdearquitectura.com "${name}"`,
+                    `"${name}" arquitecto fundador OR director OR socio`
+                );
+            } else if (tipo === 'ING') {
+                queries.push(
+                    `"${name}" proyecto OR estudio OR redacción "${province}"`,
+                    `site:tecniberia.com "${name}"`,
+                    `"asociación ingenierías" "${province}" "${name}"`,
+                );
+            } else if (tipo === 'OCV') {
+                queries.push(
+                    `"${name}" adjudicación OR contrato ${province}`,
+                    `site:seopan.es "${name}"`,
+                    `site:anci.es OR site:anesco.org "${name}"`,
+                    `"${name}" REA ${province}`,
+                );
+            } else if (tipo === 'AAPP') {
+                queries.push(
+                    `"${name}" licitación OR contrato PLACSP`,
+                    `"${name}" BOE OR BOJA OR DOE OR DOCM`,
+                    `site:datos.gob.es "${nameClean}"`,
+                );
+            } else if (tipo === 'CCRR') {
+                queries.push(
+                    `"${name}" FENACORE OR fenacore.org`,
+                    `"${name}" modernización regadío OR PERTE OR SEIASA`,
+                    `"${name}" confederación hidrográfica`,
+                );
+            } else if (tipo === 'CICA') {
+                queries.push(
+                    `site:iagua.es "${name}"`,
+                    `site:retema.es "${name}"`,
+                    `"${name}" AEAS OR abastecimiento saneamiento`,
+                );
+            }
+
+            if (queries.length === 0) return {};
+
+            debugLog(`[Capa2-${tipo}] ${queries.length} búsquedas sectoriales`);
+            const results = await Promise.allSettled(queries.map(q => searchWeb(q)));
+            return { [`SECTOR_${tipo}`]: results.flatMap(r => r.status === 'fulfilled' ? r.value : []) };
+        }
+
+        function compilarWebData(sections, name, province) {
+            let webData = `\n=== RESULTADOS DE BÚSQUEDA WEB PARA "${name}" en ${province} ===\n\n`;
+            for (const [key, results] of Object.entries(sections)) {
+                if (!results || results.length === 0) continue;
+                webData += `--- ${key} ---\n`;
+                webData += results.map(r => `• ${r.title}\n  URL: ${r.url}\n  ${r.snippet}`).join('\n\n');
+                webData += '\n\n';
+            }
+            return webData;
+        }
+
+        async function ejecutarMetodoUnificado(name, province, opts = {}) {
+            // opts: { providedUrl, studioType, studioTypes, onProgress }
+            const onProgress = opts.onProgress || ((msg) => {
+                const el = document.getElementById('progress-text');
+                if (el) el.textContent = msg;
+            });
+
+            const allSections = {};
+
+            // Capa 1: búsquedas base (10 paralelas)
+            onProgress('🔍 Capa 1: búsquedas base...');
+            const capa1 = await ejecutarCapa1(name, province, opts);
+            Object.assign(allSections, capa1);
+
+            // Capa 2: bloque sectorial
+            const tipos = opts.studioTypes || [opts.studioType || 'ARQ'];
+            for (const tipo of tipos) {
+                onProgress(`🔍 Capa 2: bloque ${tipo}...`);
+                const bloqueData = await ejecutarBloqueSectorial(tipo, name, province);
+                Object.assign(allSections, bloqueData);
+            }
+
+            // Colegios (específico ARQ/ING)
+            if (tipos.includes('ARQ') || tipos.includes('ING')) {
+                onProgress('🏛️ Buscando en Colegios Profesionales...');
+                const colegioResults = await searchColegiosArquitectos(name, province);
+                if (colegioResults.length > 0) allSections['COLEGIOS'] = colegioResults;
+            }
+
+            // Directorios de negocio
+            onProgress('📋 Buscando en directorios...');
+            const directoryResults = await searchBusinessDirectories(name, province);
+            if (directoryResults.length > 0) allSections['DIRECTORIOS_NEGOCIO'] = directoryResults;
+
+            // Compilar a texto
+            let webData = compilarWebData(allSections, name, province);
+
+            // Capa PLACSP: adjudicaciones (solo OCV/AAPP/CCRR/CICA)
+            const tiposPLACSP = ['OCV','AAPP','CCRR','CICA'];
+            if (tipos.some(t => tiposPLACSP.includes(t))) {
+                try {
+                    onProgress('🏛️ Consultando PLACSP Monitor...');
+                    const placspData = await buscarAdjudicacionesPLACSP(name);
+                    if (placspData?.licitaciones?.length > 0) {
+                        // Persistir si tenemos studioId en opts
+                        if (opts.studioId) {
+                            await _persistirAdjudicacionesPLACSP(opts.studioId, placspData);
+                        }
+                        // Añadir resumen al webData
+                        let placspText = `\n\n=== PLACSP Monitor — Licitaciones/Adjudicaciones ===\n`;
+                        if (placspData.empresa) {
+                            placspText += `Empresa: ${placspData.empresa.nombre} | Total licitaciones: ${placspData.empresa.total_licitaciones} | Adjudicadas: ${placspData.empresa.total_adjudicadas} | Importe adj.: ${(placspData.empresa.importe_adjudicado_eur||0).toLocaleString('es-ES')} €\n`;
+                        }
+                        placspData.licitaciones.slice(0, 10).forEach(l => {
+                            placspText += `• [${l.estado}] ${l.titulo} — ${l.organismo} — ${(l.importe||0).toLocaleString('es-ES')} € (${(l.fecha_publicacion||'').substring(0,10)})\n`;
+                        });
+                        webData += placspText;
+                        allSections['PLACSP'] = placspData.licitaciones.map(l => ({
+                            title: l.titulo,
+                            snippet: `${l.organismo} — ${l.estado} — ${(l.importe||0).toLocaleString('es-ES')} €`,
+                            url: l.url_placsp,
+                            source: 'PLACSP'
+                        }));
+                    }
+                } catch(ePlacsp) {
+                    console.log('PLACSP Monitor no disponible:', ePlacsp.message);
+                }
+            }
+
+            // Extraer contactos de snippets
+            const allResults = Object.values(allSections).flat();
+            const snippetsText = allResults.map(r => (r.snippet || '') + ' ' + (r.title || '')).join(' ');
+
+            return { webData, allSections, allResults, snippetsText };
+        }
+
+        async function buscarAdjudicacionesPLACSP(name) {
+            const PLACSP_BASE = 'http://localhost:5001';
+            const url = `${PLACSP_BASE}/api/crm-buscar?q=${encodeURIComponent(name)}`;
+            const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+            if (!resp.ok) throw new Error('PLACSP error ' + resp.status);
+            return await resp.json();
+        }
+
+        async function _persistirAdjudicacionesPLACSP(studioId, placspData) {
+            try {
+                const studio = await getStudio(studioId);
+                if (!studio) return;
+                if (!studio.data) studio.data = {};
+                studio.data.adjudicaciones = {
+                    valor: placspData.licitaciones || [],
+                    fuente_url: 'http://localhost:5001/api/crm-buscar',
+                    fuente_tipo: 'PLACSP',
+                    fecha_captura: new Date().toISOString(),
+                    nivel_confianza: 'verificado'
+                };
+                // Also update scoring-relevant data: importe like D2/D4
+                if (placspData.empresa?.importe_adjudicado_eur) {
+                    if (!studio.data.studio) studio.data.studio = {};
+                    if (!studio.data.studio.volumen_licitaciones) {
+                        studio.data.studio.volumen_licitaciones = {
+                            valor: String(Math.round(placspData.empresa.importe_adjudicado_eur)),
+                            fuente_url: 'http://localhost:5001/api/crm-buscar',
+                            fuente_tipo: 'PLACSP',
+                            fecha_captura: new Date().toISOString(),
+                            nivel_confianza: 'verificado'
+                        };
+                    }
+                }
+                await updateStudio(studioId, { data: studio.data });
+            } catch(e) {
+                console.warn('Error persistiendo adjudicaciones PLACSP:', e);
             }
         }
 
@@ -11212,7 +11828,7 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             try {
                 // 1. Búsqueda en Colegio de Arquitectos/Ingenieros
                 updateProgress('🏛️ Consultando colegios profesionales...', province);
-                const colegioQueries = studioType === 'arquitectura'
+                const colegioQueries = (studioType === 'arquitectura' || studioType === 'ARQ')
                     ? [`colegio arquitectos ${province} listado colegiados`, `COAM COAS COA${province.substring(0,2)} arquitectos`]
                     : [`colegio ingenieros ${province} listado`, `COIIM CICCP ingenieros ${province}`];
                 
@@ -11848,7 +12464,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
             closeModal('modal-bulk-results');
             
             // Obtener tipo de empresa del formulario original
-            const studioType = document.getElementById('new-studio-type')?.value || 'arquitectura';
+            const studioType = document.getElementById('new-studio-type')?.value || 'ARQ';
             const province = document.getElementById('new-studio-province')?.value || selectedStudios[0]?.province;
             
             // Confirmar importación
@@ -12084,7 +12700,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                 name: analysis?.nombreEstudio || name,
                 province: province,
                 city: bestCity,
-                type: studioType,
+                type: Array.isArray(studioType) ? studioType : [studioType],
                 status: 'nuevo',
                 priority: 'Media',
                 data: {
@@ -12141,7 +12757,7 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
             
             let inputValue = nameInput.value.trim();
             const province = provinceInput.value;
-            const studioType = typeInput?.value || 'arquitectura';
+            const studioType = typeInput?.value || 'ARQ';
             
             if (!inputValue) {
                 // Si no hay nombre, buscar empresas en la provincia
@@ -12853,7 +13469,7 @@ ${domainContactSearch.map(r => `• ${r.title}\n  URL: ${r.url}\n  ${r.snippet}`
             // PASO 2: Análisis con IA usando los datos reales encontrados
             document.getElementById('progress-text').textContent = '🤖 Analizando toda la información encontrada...';
 
-            const studioTypeLabel = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).labelLargo.toLowerCase();
+            const studioTypeLabel = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['ARQ']).labelLargo.toLowerCase();
             const prompt = `Analiza los siguientes RESULTADOS DE BÚSQUEDA WEB REALES sobre el ${studioTypeLabel} "${name}" en ${province}, España.
 
 ${webData}
@@ -12937,7 +13553,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     score: data.sales?.score || 5,
                     data: data,
                     logo: logoToSave,
-                    type: studioType  // Tipo de empresa: arquitectura o ingenieria
+                    type: Array.isArray(studioType) ? studioType : [studioType]  // Tipo de empresa (v1.1: array de códigos)
                 };
                 
                 let id;
@@ -13966,7 +14582,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const studio = await getStudio(currentStudioId);
             if (!studio) return;
             populateTypeSelect('new-studio-type-change', null);
-            document.getElementById('new-studio-type-change').value = studio.type || 'arquitectura';
+            document.getElementById('new-studio-type-change').value = getTipoPrincipal(studio);
             openModal('modal-change-type');
         }
 
@@ -13975,22 +14591,19 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             const studio = await getStudio(currentStudioId);
             if (!studio) return;
 
-            const oldType = studio.type || 'arquitectura';
+            const oldType = getTipoPrincipal(studio);
             if (oldType === newType) {
                 closeModal('modal-change-type');
                 return;
             }
 
-            await updateStudio(currentStudioId, { type: newType });
+            await updateStudio(currentStudioId, { type: Array.isArray(newType) ? newType : [newType] });
 
-            // Recalcular prioridad ya que el tipo influye en el scoring
+            // Recalcular scoring v2 (tipo influye en el scoring)
             const updated = await getStudio(currentStudioId);
             if (updated) {
-                const autoPriority = calculateAutoPriority(updated);
                 await updateStudio(currentStudioId, {
-                    priority: autoPriority.priority,
-                    score: autoPriority.score,
-                    priorityDetails: autoPriority.details
+                    ...buildScoringV2Updates(updated, 'cambio_tipo')
                 });
             }
 
@@ -14018,7 +14631,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
 
             const name = studio.name;
             const province = studio.province;
-            const studioType = studio.type || 'arquitectura';
+            const studioType = getTipoPrincipal(studio);
             const providedUrl = (studio.data?.contact?.web && studio.data.contact.web !== 'No encontrado') ? studio.data.contact.web : null;
 
             openModal('modal-progress');
@@ -14067,70 +14680,16 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                         } catch (e) { debugLog('Error analizando URL: ' + e.message); }
                     }
 
-                    // Búsquedas web
-                    const tipoLabel = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).label.toLowerCase();
-                    document.getElementById('progress-text').textContent = '🔍 Buscando información en la web...';
-                    const mainSearch = await searchWeb('"' + name + '" ' + tipoLabel + ' ' + province + ' España');
-                    debugLog('Búsqueda principal: ' + mainSearch.length + ' resultados');
-
-                    let domainContactSearch = [];
-                    if (providedUrl) {
-                        try { const domain = new URL(providedUrl).hostname.replace('www.', ''); domainContactSearch = await searchWeb(domain + ' teléfono email contacto'); } catch (e) {}
-                    }
-
-                    document.getElementById('progress-text').textContent = '🔍 Buscando variaciones...';
-                    const altName = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    const altSearch = await searchWeb(altName + ' estudio ' + tipoLabel + ' ' + province);
-
-                    document.getElementById('progress-text').textContent = '📞 Buscando datos de contacto...';
-                    const contactSearch = await searchWeb('"' + name + '" ' + province + ' teléfono dirección email contacto');
-
-                    document.getElementById('progress-text').textContent = '🌐 Buscando web oficial...';
-                    const webSearch = await searchWeb('"' + name + '" ' + tipoLabel + ' web oficial ' + province);
-
-                    document.getElementById('progress-text').textContent = '🏗️ Buscando proyectos...';
-                    const projectSearch = await searchWeb('"' + name + '" ' + tipoLabel + ' proyectos obras ' + province);
-
-                    document.getElementById('progress-text').textContent = '🏆 Buscando premios...';
-                    const awardsSearch = await searchWeb('"' + name + '" ' + tipoLabel + ' premio reconocimiento ' + province);
-
-                    document.getElementById('progress-text').textContent = '💼 Buscando en LinkedIn...';
-                    const linkedinSearch = await searchWeb('site:linkedin.com "' + name + '" ' + tipoLabel + ' ' + province);
-
-                    document.getElementById('progress-text').textContent = '👥 Buscando equipo...';
-                    const teamSearch = await searchWeb('"' + name + '" arquitecto fundador director ' + province);
-
-                    document.getElementById('progress-text').textContent = '📱 Buscando en redes sociales...';
-                    const instagramSearch = await searchWeb('site:instagram.com "' + name + '" ' + tipoLabel);
-                    const facebookSearch = await searchWeb('site:facebook.com "' + name + '" ' + tipoLabel + ' ' + province);
-
-                    document.getElementById('progress-text').textContent = '📋 Buscando en directorios...';
-                    const directoryResults = await searchBusinessDirectories(name, province);
-
-                    document.getElementById('progress-text').textContent = '📰 Buscando noticias...';
-                    const newsSearch = await searchWeb('"' + name + '" ' + tipoLabel + ' noticias entrevista ' + province);
-
-                    document.getElementById('progress-text').textContent = '🏛️ Buscando en plataformas...';
-                    const archSearch = await searchWeb('"' + name + '" site:plataformaarquitectura.cl OR site:archdaily.com OR site:dezeen.com');
-
-                    // Compilar resultados
-                    webData += '\n=== RESULTADOS DE BÚSQUEDA WEB PARA "' + name + '" en ' + province + ' ===\n\n';
-                    const sections = [
-                        ['BÚSQUEDA PRINCIPAL', mainSearch], ['BÚSQUEDA ALTERNATIVA', altSearch],
-                        ['DATOS DE CONTACTO', contactSearch], ['WEB OFICIAL', webSearch],
-                        ['PROYECTOS Y OBRAS', projectSearch], ['PREMIOS', awardsSearch],
-                        ['LINKEDIN', linkedinSearch], ['EQUIPO', teamSearch],
-                        ['INSTAGRAM', instagramSearch], ['FACEBOOK', facebookSearch],
-                        ['DIRECTORIOS', directoryResults], ['NOTICIAS', newsSearch],
-                        ['PLATAFORMAS', archSearch], ['CONTACTO DOMINIO', domainContactSearch]
-                    ];
-                    sections.forEach(([title, results]) => {
-                        webData += '--- ' + title + ' ---\n' + results.map(r => '• ' + r.title + '\n  URL: ' + r.url + '\n  ' + r.snippet).join('\n\n') + '\n\n';
+                    // === MÉTODO UNIFICADO v1.1 ===
+                    const metodoResult = await ejecutarMetodoUnificado(name, province, {
+                        providedUrl,
+                        studioType,
+                        studioTypes: getTiposArray(studio),
+                        studioId: studio.id,
+                        onProgress: (msg) => { document.getElementById('progress-text').textContent = msg; }
                     });
-
-                    // Extraer contactos de snippets
-                    const allSearchResults = [...mainSearch, ...contactSearch, ...webSearch, ...directoryResults, ...teamSearch, ...domainContactSearch];
-                    let snippetsText = allSearchResults.map(r => r.snippet + ' ' + r.title).join(' ');
+                    webData += metodoResult.webData;
+                    let snippetsText = metodoResult.snippetsText;
                     if (directWebContent) {
                         if (directWebContent.emails) snippetsText += ' ' + directWebContent.emails.join(' ');
                         if (directWebContent.phones) snippetsText += ' ' + directWebContent.phones.join(' ');
@@ -14143,13 +14702,8 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     snippetPhones = [...new Set(snippetPhones)].filter(p => p.replace(/\D/g, '').length >= 9);
                     if (snippetPhones.length > 0) webData += '\n--- TELÉFONOS ENCONTRADOS ---\n' + snippetPhones.join('\n') + '\n';
 
-                    // Colegios
-                    document.getElementById('progress-text').textContent = '🏛️ Buscando en Colegios...';
-                    const colegioResults = await searchColegiosArquitectos(name, province);
-                    if (colegioResults.length > 0) webData += '\n--- COLEGIOS ---\n' + colegioResults.map(r => '• ' + r.title + '\n  ' + r.snippet).join('\n\n') + '\n';
-
                     // Análisis profundo del sitio web
-                    const allResults = [...mainSearch, ...contactSearch, ...webSearch, ...projectSearch];
+                    const allResults = metodoResult.allResults;
                     const possibleWebsites = allResults.filter(r => r.url && !r.url.includes('linkedin') && !r.url.includes('facebook') && !r.url.includes('instagram') && !r.url.includes('twitter') && !r.url.includes('google') && !r.url.includes('bing') && !r.url.includes('youtube') && !r.url.includes('paginasamarillas'));
                     const uniqueWebsites = [...new Map(possibleWebsites.map(item => { try { return [new URL(item.url).hostname, item]; } catch { return [item.url, item]; } })).values()];
                     if (providedUrl && !uniqueWebsites.find(w => w.url === providedUrl)) uniqueWebsites.unshift({ url: providedUrl, title: name });
@@ -14185,12 +14739,15 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
                     }
 
                     // Social media data
-                    if (deepAnalysisData?.socialLinks?.instagram || instagramSearch.length > 0) {
-                        const instaUrl = deepAnalysisData?.socialLinks?.instagram || instagramSearch[0]?.url;
+                    const instagramSearchSections = metodoResult.allSections['SECTOR_ARQ'] || [];
+                    const instagramFallbackUrl = instagramSearchSections.find(r => r.url && r.url.includes('instagram.com'))?.url;
+                    if (deepAnalysisData?.socialLinks?.instagram || instagramFallbackUrl) {
+                        const instaUrl = deepAnalysisData?.socialLinks?.instagram || instagramFallbackUrl;
                         if (instaUrl) { const u = instaUrl.match(/instagram\.com\/([^\/\?]+)/)?.[1]; if (u && u !== 'p' && u !== 'reel') { const d = await getInstagramPublicData(u); webData += '\n\n--- DATOS INSTAGRAM ---\n' + JSON.stringify(d, null, 2); } }
                     }
-                    if (deepAnalysisData?.socialLinks?.linkedin || linkedinSearch.length > 0) {
-                        const liUrl = deepAnalysisData?.socialLinks?.linkedin || linkedinSearch[0]?.url;
+                    const linkedinSearchSections = metodoResult.allSections['LINKEDIN'] || [];
+                    if (deepAnalysisData?.socialLinks?.linkedin || linkedinSearchSections.length > 0) {
+                        const liUrl = deepAnalysisData?.socialLinks?.linkedin || linkedinSearchSections[0]?.url;
                         if (liUrl && liUrl.includes('/company/')) { const d = await getLinkedInPublicData(liUrl); webData += '\n\n--- DATOS LINKEDIN ---\n' + JSON.stringify(d, null, 2); }
                     }
 
@@ -14247,7 +14804,7 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
 
                 // === FASE 2: ANÁLISIS CON CLAUDE ===
                 document.getElementById('progress-text').textContent = '🤖 Analizando información con IA...';
-                const studioTypeLabel = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['arquitectura']).labelLargo.toLowerCase();
+                const studioTypeLabel = (TIPOS_ESTUDIO[studioType] || TIPOS_ESTUDIO['ARQ']).labelLargo.toLowerCase();
 
                 // Limitar tamaño de webData para evitar exceder límites del proxy
                 let webDataTrimmed = webData;
@@ -14737,11 +15294,14 @@ IMPORTANTE: Responde SOLO con JSON válido. Sin explicaciones. Sin markdown. Sin
             if (selections['studio.shortName'] && newData.studio?.shortName) updates.shortName = newData.studio.shortName;
             if (selections['contact.city'] && newData.contact?.city && !isNoData(newData.contact.city)) updates.city = newData.contact.city;
 
-            // Recalculate priority
+            // Recalculate priority (DEPRECATED v1)
             if (selections['sales.priority'] || selections['sales.score']) {
-                if (newData.sales?.priority) updates.priority = newData.sales.priority;
-                if (newData.sales?.score) updates.score = newData.sales.score;
+                // DEPRECATED: no escribimos priority/score legacy desde IA; sólo v2
             }
+
+            // Scoring v2 — recalcular con los datos actualizados
+            const studioForV2 = { ...existingStudio, data, ...updates };
+            Object.assign(updates, buildScoringV2Updates(studioForV2, 'reanálisis'));
 
             try {
                 await updateStudio(studioId, updates);
@@ -15579,21 +16139,18 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 let stats = { Alta: 0, Media: 0, Baja: 0 };
                 
                 for (const studio of studios) {
-                    const autoPriority = calculateAutoPriority(studio);
-                    const oldPriority = studio.priority || 'Media';
-                    
-                    if (oldPriority !== autoPriority.priority || !studio.priorityCalculatedScore) {
-                        await updateStudio(studio.id, {
-                            priority: autoPriority.priority,
-                            score: autoPriority.score,
-                            priorityDetails: autoPriority.details,
-                            priorityCalculatedScore: autoPriority.calculatedScore
-                        });
+                    const v2updates = buildScoringV2Updates(studio, 'recalculo_masivo');
+
+                    if (!studio.priorityQuadrant) {
+                        await updateStudio(studio.id, v2updates);
                         updated++;
-                        console.log(`📊 ${studio.name}: ${oldPriority} → ${autoPriority.priority} (${autoPriority.calculatedScore}/15)`);
+                        console.log(`📊 ${studio.name}: Q${v2updates.priorityQuadrant} ${v2updates.priorityQuadrantName} | D:${v2updates.priorityDirect} R:${v2updates.priorityNetwork}`);
                     }
-                    
-                    stats[autoPriority.priority]++;
+
+                    const dKey = v2updates.priorityDirect || studio.priorityDirect || 'Bajo';
+                    if (dKey === 'Alto') stats.Alta++;
+                    else if (dKey === 'Medio') stats.Media++;
+                    else stats.Baja++;
                 }
                 
                 await loadStudios();
@@ -15614,6 +16171,233 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 console.error('Error recalculando prioridades:', error);
                 showNotification('Error al recalcular: ' + (error.message || 'Error desconocido'), 'error');
             }
+        }
+
+        // ============================================
+        // FASE E — BATCH CUALIFICACIÓN
+        // ============================================
+
+        function openCualificarLoteModal() {
+            const prev = document.getElementById('batch-qualify-modal');
+            if (prev) prev.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'batch-qualify-modal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;';
+
+            const totalStudios = (typeof allStudios !== 'undefined' ? allStudios : []).length;
+            const sinCuadrante = (typeof allStudios !== 'undefined' ? allStudios : []).filter(s => !s.priorityQuadrant).length;
+
+            modal.innerHTML = `
+                <div style="background:#1e293b;border-radius:16px;padding:28px;width:520px;max-width:96vw;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                        <h3 style="color:#f1f5f9;margin:0;font-size:1.15rem;">🤖 Cualificar Lote</h3>
+                        <button onclick="document.getElementById('batch-qualify-modal').remove()"
+                            style="background:none;border:none;color:#64748b;font-size:1.3rem;cursor:pointer;line-height:1;">✕</button>
+                    </div>
+                    <p style="color:#94a3b8;font-size:0.85rem;margin:0 0 18px;">
+                        Recalcula el Scoring v2 (cuadrante 3×3) para un lote de estudios usando los datos actuales del CRM.
+                    </p>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
+                        <div>
+                            <label style="display:block;color:#94a3b8;font-size:0.82rem;margin-bottom:6px;">Selección</label>
+                            <select id="batch-filter" style="width:100%;background:#0f172a;border:1px solid #334155;color:#f1f5f9;border-radius:8px;padding:9px 12px;font-size:0.88rem;">
+                                <option value="sin_cuadrante">Sin cuadrante (${sinCuadrante})</option>
+                                <option value="todos">Todos los estudios (${totalStudios})</option>
+                                <option value="ARQ">Solo ARQ</option>
+                                <option value="ING">Solo ING</option>
+                                <option value="OCV">Solo OCV</option>
+                                <option value="AAPP">Solo AAPP</option>
+                                <option value="CCRR">Solo CCRR</option>
+                                <option value="CICA">Solo CICA</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display:block;color:#94a3b8;font-size:0.82rem;margin-bottom:6px;">Límite máximo</label>
+                            <input id="batch-limit" type="number" value="200" min="1" max="1535"
+                                style="width:100%;background:#0f172a;border:1px solid #334155;color:#f1f5f9;border-radius:8px;padding:9px 12px;font-size:0.88rem;box-sizing:border-box;">
+                        </div>
+                    </div>
+
+                    <div id="batch-progress-wrapper" style="display:none;margin-bottom:18px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                            <span style="color:#94a3b8;font-size:0.82rem;" id="batch-progress-label">Preparando...</span>
+                            <span style="color:#7c3aed;font-size:0.82rem;font-weight:600;" id="batch-progress-pct">0%</span>
+                        </div>
+                        <div style="background:#0f172a;border-radius:6px;height:10px;overflow:hidden;">
+                            <div id="batch-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#7c3aed,#6d28d9);border-radius:6px;transition:width 0.3s ease;"></div>
+                        </div>
+                        <div style="color:#64748b;font-size:0.78rem;margin-top:6px;" id="batch-progress-detail">—</div>
+                    </div>
+
+                    <div id="batch-result-box" style="display:none;background:rgba(16,185,129,0.1);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:0.85rem;color:#34d399;"></div>
+
+                    <div style="display:flex;gap:10px;justify-content:flex-end;">
+                        <button id="btn-batch-cancel" onclick="document.getElementById('batch-qualify-modal').remove()"
+                            style="background:#334155;color:#cbd5e1;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:0.875rem;">
+                            Cancelar
+                        </button>
+                        <button id="btn-batch-start" onclick="iniciarCualificarLote()"
+                            style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;border:none;padding:9px 22px;border-radius:8px;cursor:pointer;font-size:0.875rem;font-weight:600;">
+                            🤖 Iniciar Cualificación
+                        </button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+        }
+
+        async function iniciarCualificarLote() {
+            const filterVal = document.getElementById('batch-filter')?.value || 'sin_cuadrante';
+            const limitVal  = parseInt(document.getElementById('batch-limit')?.value || '200', 10) || 200;
+            const btnStart  = document.getElementById('btn-batch-start');
+            const btnCancel = document.getElementById('btn-batch-cancel');
+            const progWrap  = document.getElementById('batch-progress-wrapper');
+            const progLabel = document.getElementById('batch-progress-label');
+            const progPct   = document.getElementById('batch-progress-pct');
+            const progBar   = document.getElementById('batch-progress-bar');
+            const progDetail= document.getElementById('batch-progress-detail');
+            const resBox    = document.getElementById('batch-result-box');
+
+            if (btnStart) { btnStart.disabled = true; btnStart.textContent = '⏳ Procesando...'; }
+
+            // Seleccionar estudios según filtro
+            const source = typeof allStudios !== 'undefined' ? allStudios : [];
+            let pool = [];
+            if (filterVal === 'sin_cuadrante') {
+                pool = source.filter(s => !s.priorityQuadrant);
+            } else if (filterVal === 'todos') {
+                pool = [...source];
+            } else {
+                pool = source.filter(s => {
+                    const types = Array.isArray(s.type) ? s.type : [s.type];
+                    return types.includes(filterVal);
+                });
+            }
+            pool = pool.slice(0, limitVal);
+
+            if (pool.length === 0) {
+                if (btnStart) { btnStart.disabled = false; btnStart.textContent = '🤖 Iniciar Cualificación'; }
+                showNotification('No hay estudios que coincidan con el filtro.', 'info');
+                return;
+            }
+
+            // Mostrar barra de progreso
+            if (progWrap) progWrap.style.display = 'block';
+            if (resBox) resBox.style.display = 'none';
+
+            const studioIds = pool.map(s => String(s.id));
+            const trigger = 'batch_' + new Date().toISOString().substring(0,10).replace(/-/g,'');
+
+            try {
+                const result = await cualificarLote(studioIds, trigger, {
+                    onProgress: (done, total, lastName) => {
+                        const pct = Math.round(done / total * 100);
+                        if (progBar)    progBar.style.width = pct + '%';
+                        if (progPct)    progPct.textContent = pct + '%';
+                        if (progLabel)  progLabel.textContent = `Procesando ${done} / ${total}...`;
+                        if (progDetail) progDetail.textContent = lastName ? `Último: ${lastName}` : '';
+                    },
+                    onComplete: (done, total) => {
+                        if (progLabel) progLabel.textContent = `✅ Completado — ${done} estudios cualificados`;
+                        if (progPct)   progPct.textContent = '100%';
+                        if (progBar)   progBar.style.width = '100%';
+                    }
+                });
+
+                // Recargar estudios para reflejar cambios
+                if (typeof loadStudios === 'function') await loadStudios();
+
+                if (resBox) {
+                    resBox.style.display = 'block';
+                    resBox.innerHTML = `✅ <strong>${result.processed} estudios cualificados</strong> con Scoring v2.<br>
+                    <span style="font-size:0.8rem;color:#6ee7b7;">El cuadrante 3×3 está ahora actualizado para estos estudios.</span>`;
+                }
+
+                if (btnStart) { btnStart.disabled = false; btnStart.textContent = '🤖 Repetir'; }
+                if (btnCancel) btnCancel.textContent = 'Cerrar';
+                showNotification(`✅ ${result.processed} estudios cualificados`, 'success');
+
+            } catch(e) {
+                console.error('Error en batch cualificación:', e);
+                if (progLabel) progLabel.textContent = '❌ Error: ' + e.message;
+                if (btnStart) { btnStart.disabled = false; btnStart.textContent = '🤖 Reintentar'; }
+                showNotification('Error en batch: ' + e.message, 'error');
+            }
+        }
+
+        async function cualificarLote(studioIds, trigger, callbacks = {}) {
+            const { onProgress, onComplete } = callbacks;
+            const WRITE_BATCH_SIZE = 400; // Firestore batch limit
+            const CHUNK_PROCESS    = 50;  // studios per UI tick
+            let processed = 0;
+            const total = studioIds.length;
+
+            // Helper: save checkpoint to Firestore
+            const saveCheckpoint = async (lastId) => {
+                if (typeof firestoreDB === 'undefined') return;
+                try {
+                    await firestoreDB.collection('_meta').doc('batch_checkpoint').set({
+                        trigger,
+                        total,
+                        processed,
+                        lastId: String(lastId || ''),
+                        updatedAt: new Date().toISOString()
+                    });
+                } catch(_) {}
+            };
+
+            // Build lookup map from in-memory cache
+            const studioMap = {};
+            const src = typeof allStudios !== 'undefined' ? allStudios : [];
+            src.forEach(s => { studioMap[String(s.id)] = s; });
+
+            // Process in Firestore write batches
+            for (let i = 0; i < studioIds.length; i += WRITE_BATCH_SIZE) {
+                const chunk = studioIds.slice(i, i + WRITE_BATCH_SIZE);
+                let batch = null;
+                if (typeof firestoreDB !== 'undefined') {
+                    batch = firestoreDB.batch();
+                }
+
+                const results = [];
+                for (const id of chunk) {
+                    const studio = studioMap[id];
+                    if (!studio) continue;
+                    const v2 = buildScoringV2Updates(studio, trigger);
+                    if (batch && typeof firestoreDB !== 'undefined') {
+                        const ref = firestoreDB.collection('studios').doc(id);
+                        batch.update(ref, v2);
+                    }
+                    // Update in-memory cache
+                    Object.assign(studio, v2);
+                    processed++;
+                    results.push({ id, name: studio.name || id });
+
+                    // UI tick every CHUNK_PROCESS studios
+                    if (processed % CHUNK_PROCESS === 0) {
+                        if (onProgress) onProgress(processed, total, studio.name || id);
+                        await new Promise(r => setTimeout(r, 0)); // yield to UI
+                    }
+                }
+
+                // Commit Firestore batch
+                if (batch) await batch.commit();
+
+                // Checkpoint every write batch
+                await saveCheckpoint(chunk[chunk.length - 1]);
+
+                // Final progress update for this chunk
+                if (onProgress) onProgress(processed, total, results[results.length - 1]?.name || '');
+
+                // Small pause between write batches to avoid overwhelming Firebase
+                if (i + WRITE_BATCH_SIZE < studioIds.length) {
+                    await new Promise(r => setTimeout(r, 300));
+                }
+            }
+
+            if (onComplete) onComplete(processed, total);
+            return { processed, total };
         }
 
         // ============================================
@@ -16050,8 +16834,8 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 return;
             }
 
-            var selectedType = document.getElementById('import-studio-type').value || 'arquitectura';
-            var typeInfo = TIPOS_ESTUDIO[selectedType] || TIPOS_ESTUDIO['arquitectura'];
+            var selectedType = document.getElementById('import-studio-type').value || 'ARQ';
+            var typeInfo = TIPOS_ESTUDIO[selectedType] || TIPOS_ESTUDIO['ARQ'];
 
             if (!confirm('¿Importar ' + toImport.length + ' estudios como "' + typeInfo.label + '" al CRM?')) {
                 return;
@@ -16070,7 +16854,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                     var studioData = {
                         name: s.name,
                         province: s.province || 'Sin provincia',
-                        type: selectedType,
+                        type: Array.isArray(selectedType) ? selectedType : [selectedType],
                         logoUrl: '',
                         status: 'nuevo',
                         priority: 'media',
@@ -18832,7 +19616,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             
             const startDate = new Date(studio.b2bTimeline.startDate);
             
-            for (const step of getB2BTimeline(studio.type || 'arquitectura', studio.b2bTimeline?.variant)) {
+            for (const step of getB2BTimeline(getB2BTypeName(studio), studio.b2bTimeline?.variant)) {
                 const scheduledDate = new Date(startDate);
                 scheduledDate.setDate(scheduledDate.getDate() + step.day);
                 
@@ -18848,7 +19632,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 const studio = await getStudio(studioId);
                 if (!studio || !studio.b2bTimeline || typeof studio.b2bTimeline !== 'object') return;
 
-                const step = getB2BTimeline(studio.type || 'arquitectura', studio.b2bTimeline?.variant)[stepIndex];
+                const step = getB2BTimeline(getB2BTypeName(studio), studio.b2bTimeline?.variant)[stepIndex];
                 if (!step) return;
                 const plannedDate = getPlannedDate(studio.b2bTimeline.startDate, step.day);
 
@@ -18888,7 +19672,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const studio = await getStudio(studioId);
             if (!studio || !studio.b2bTimeline || typeof studio.b2bTimeline !== 'object') return;
 
-            const step = getB2BTimeline(studio.type || 'arquitectura', studio.b2bTimeline?.variant)[stepIndex];
+            const step = getB2BTimeline(getB2BTypeName(studio), studio.b2bTimeline?.variant)[stepIndex];
             if (!step) return;
             const plannedDate = getPlannedDate(studio.b2bTimeline.startDate, step.day);
 
@@ -20972,7 +21756,27 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const studio = await getStudio(studioId);
             if (!studio) return;
 
-            const studioType = studio.type || 'arquitectura';
+            // ── OCV: determinar subtipo (promotora vs constructora) ───────────────
+            let b2bSubType = null;
+            if (getTipoPrincipal(studio) === 'OCV') {
+                const detected = detectOCVSubtype(studio);
+                if (detected) {
+                    b2bSubType = detected;
+                } else {
+                    // Ambiguo → preguntar
+                    const esPromotora = confirm(
+                        `"${studio.name}" es de tipo Obra Civil / Constructora.\n\n` +
+                        `¿Es principalmente una Promotora o Inmobiliaria?\n\n` +
+                        `Aceptar → Promotora / Inmobiliaria (ruta por proyecto)\n` +
+                        `Cancelar → Constructora / Obra Civil`
+                    );
+                    b2bSubType = esPromotora ? 'promotora' : 'constructora';
+                }
+            }
+
+            // studioType ya refleja el subType gracias al getB2BTypeName actualizado
+            // (pero aquí aún no está guardado, así que lo calculamos directamente)
+            const studioType = b2bSubType || getB2BTypeName(studio);
 
             // Aviso ciclo largo para AAPP, Aguas, Regantes
             if (['aapp', 'aguas', 'regantes'].includes(studioType) && AVISOS_CICLO_LARGO[studioType]) {
@@ -21004,6 +21808,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 currentStep: 0,
                 steps: [],
                 variant: variant,
+                subType: b2bSubType || null,   // 'promotora'|'constructora' para estudios OCV
                 triggers: { ...triggerConfig.initialState }
             };
 
@@ -21042,7 +21847,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const studio = await getStudio(studioId);
             if (!studio || !studio.b2bTimeline) return;
 
-            const step = getB2BTimeline(studio.type || 'arquitectura', studio.b2bTimeline?.variant)[stepIndex];
+            const step = getB2BTimeline(getB2BTypeName(studio), studio.b2bTimeline?.variant)[stepIndex];
             studio.b2bTimeline.steps[stepIndex] = {
                 completedAt: new Date().toISOString(),
                 notes: ''
@@ -21076,7 +21881,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                     currentStep: 0,
                     steps: [],
 
-                    triggers: { ...getTriggersByType(studio.type || 'arquitectura').initialState }
+                    triggers: { ...getTriggersByType(getB2BTypeName(studio)).initialState }
                 };
             }
 
@@ -21099,7 +21904,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
 
         function renderB2BPanel(studio, activities) {
             const b2b = studio.b2bTimeline;
-            const studioType = studio.type || 'arquitectura';
+            const studioType = getB2BTypeName(studio);
 
             if (!b2b || typeof b2b !== 'object') {
                 const cycleInfo = getCycleInfo(studioType);
@@ -21147,9 +21952,9 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 seasonalWarning = `<div style="padding:10px 14px;border-radius:8px;margin-bottom:16px;background:${bg};color:${color};">${win.message}</div>`;
             }
 
-            // Aviso variante promotora
+            // Aviso variante promotora (también para OCV con subType=promotora)
             let variantBadge = '';
-            if (studioType === 'promotora' && b2b.variant) {
+            if ((studioType === 'promotora' || b2b.subType === 'promotora') && b2b.variant) {
                 const v = b2b.variant === 'rutaA' ? PROMOTORA_VARIANTES.rutaA : PROMOTORA_VARIANTES.rutaB;
                 variantBadge = `<span style="background:#7c3aed;color:white;padding:3px 10px;border-radius:12px;font-size:0.78rem;font-weight:600;">${v.label}</span>`;
             }
@@ -21295,7 +22100,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
                 const b2b = studio.b2bTimeline;
                 const currentStep = b2b.currentStep;
 
-                const _studioTimeline = getB2BTimeline(studio.type || 'arquitectura', b2b?.variant); if (currentStep == null || currentStep >= _studioTimeline.length) continue;
+                const _studioTimeline = getB2BTimeline(getB2BTypeName(studio), b2b?.variant); if (currentStep == null || currentStep >= _studioTimeline.length) continue;
 
                 const step = _studioTimeline[currentStep];
                 if (!step) continue;
@@ -21573,7 +22378,7 @@ PUNTUACIÓN TOTAL: 15 puntos máximo
             const b2b = studio.b2bTimeline;
             const currentStep = b2b.currentStep;
 
-            const _nextTimeline = getB2BTimeline(studio.type || 'arquitectura', b2b?.variant);
+            const _nextTimeline = getB2BTimeline(getB2BTypeName(studio), b2b?.variant);
             if (currentStep == null || currentStep >= _nextTimeline.length) return null;
 
             const step = _nextTimeline[currentStep];
@@ -24825,7 +25630,7 @@ updateMap();
 
                 planificadorData.schedule[dateStr].filter(s => !s.reserva).forEach((s, idx) => {
                     const com = getComercialForZona(s.province);
-                    const tipoLabel = TIPOS_ESTUDIO[s.type]?.label || s.type || '';
+                    const tipoLabel = TIPOS_ESTUDIO[getTipoPrincipal(s)]?.label || getTipoPrincipal(s) || '';
                     rows.push([
                         dateFormatted,
                         dayName.charAt(0).toUpperCase() + dayName.slice(1),
@@ -26498,6 +27303,463 @@ ${jsonTemplate}`;
             }
         }
 
+        function openBriefingModal() {
+            const prev = document.getElementById('briefing-modal');
+            if (prev) prev.remove();
+
+            const today = new Date().toISOString().split('T')[0];
+            const modal = document.createElement('div');
+            modal.id = 'briefing-modal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+            modal.innerHTML = `
+                <div style="background:#1e293b;border-radius:16px;padding:28px;width:460px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                        <h3 style="color:#f1f5f9;margin:0;font-size:1.15rem;">📋 Briefing pre-visita</h3>
+                        <button onclick="document.getElementById('briefing-modal').remove()"
+                            style="background:none;border:none;color:#64748b;font-size:1.3rem;cursor:pointer;line-height:1;">✕</button>
+                    </div>
+                    <div style="margin-bottom:16px;">
+                        <label style="display:block;color:#94a3b8;font-size:0.82rem;margin-bottom:6px;">Fecha prevista de visita</label>
+                        <input id="briefing-fecha" type="date" value="${today}"
+                            style="width:100%;background:#0f172a;border:1px solid #334155;color:#f1f5f9;border-radius:8px;padding:9px 12px;font-size:0.9rem;box-sizing:border-box;">
+                    </div>
+                    <div style="margin-bottom:20px;">
+                        <label style="display:block;color:#94a3b8;font-size:0.82rem;margin-bottom:6px;">Contexto adicional <span style="color:#475569;">(opcional)</span></label>
+                        <textarea id="briefing-contexto" rows="3" placeholder="Ej: quieren saber sobre BIOPIPE, tienen un proyecto de depuradora en fase de proyecto básico..."
+                            style="width:100%;background:#0f172a;border:1px solid #334155;color:#f1f5f9;border-radius:8px;padding:9px 12px;font-size:0.85rem;resize:vertical;box-sizing:border-box;"></textarea>
+                    </div>
+                    <div id="briefing-status" style="display:none;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:0.85rem;"></div>
+                    <div style="display:flex;gap:10px;justify-content:flex-end;">
+                        <button onclick="document.getElementById('briefing-modal').remove()"
+                            style="background:#334155;color:#cbd5e1;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:0.875rem;">
+                            Cancelar
+                        </button>
+                        <button id="btn-generar-briefing" onclick="generarBriefing(currentStudioId)"
+                            style="background:linear-gradient(135deg,#0f766e,#0d9488);color:white;border:none;padding:9px 22px;border-radius:8px;cursor:pointer;font-size:0.875rem;font-weight:600;">
+                            📋 Generar Briefing
+                        </button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+        }
+
+        async function generarBriefing(studioId) {
+            const fecha = document.getElementById('briefing-fecha')?.value || new Date().toISOString().split('T')[0];
+            const contextoExtra = document.getElementById('briefing-contexto')?.value?.trim() || '';
+            const statusDiv = document.getElementById('briefing-status');
+            const btnGen = document.getElementById('btn-generar-briefing');
+
+            const setStatus = (msg, color='rgba(13,148,136,0.15)', textColor='#5eead4') => {
+                if (!statusDiv) return;
+                statusDiv.style.display = 'block';
+                statusDiv.style.background = color;
+                statusDiv.style.color = textColor;
+                statusDiv.textContent = msg;
+            };
+
+            if (btnGen) { btnGen.disabled = true; btnGen.textContent = '⏳ Generando...'; }
+            setStatus('📂 Cargando datos del estudio...');
+
+            try {
+                if (typeof window.docx === 'undefined') throw new Error('Librería Word no cargada. Recarga la página.');
+
+                // ── 1. Cargar estudio ──────────────────────────────────────────
+                let studio;
+                try {
+                    if (typeof firestoreDB !== 'undefined') {
+                        const snap = await firestoreDB.collection('studios').doc(String(studioId)).get();
+                        studio = snap.exists ? snap.data() : null;
+                    }
+                } catch(_) {}
+                if (!studio) studio = await getStudio(studioId);
+                if (!studio) throw new Error('No se encontró el estudio en la base de datos.');
+
+                const studioName = studio.name || 'Empresa';
+                const province = studio.province || studio.city || '';
+                const city = studio.city || province;
+                const studioTypes = Array.isArray(studio.type) ? studio.type : [studio.type || 'ARQ'];
+
+                // ── 2. Últimas 3 informes ──────────────────────────────────────
+                const allReports = Array.isArray(studio.data?.reports) ? studio.data.reports : [];
+                const lastReports = allReports.slice(0, 3); // ya están en orden unshift (más reciente primero)
+
+                // ── 3. Últimas 5 actividades ────────────────────────────────────
+                setStatus('📅 Cargando historial de actividades...');
+                let activities = [];
+                try {
+                    activities = await getActivities(studioId);
+                    // Ordenar por fecha desc
+                    activities = activities
+                        .filter(a => a.type === 'meeting' || a.type === 'comercial' || a.type === 'note')
+                        .sort((a, b) => {
+                            const da = new Date(a.createdAt || a.fecha || a.date || 0);
+                            const db2 = new Date(b.createdAt || b.fecha || b.date || 0);
+                            return db2 - da;
+                        })
+                        .slice(0, 5);
+                } catch(_) {}
+
+                // ── 4. Búsqueda web fresca ─────────────────────────────────────
+                setStatus('🔍 Buscando información actualizada en la web...');
+                let webData = '';
+                let snippetsText = '';
+                try {
+                    const metodoResult = await ejecutarMetodoUnificado(studioName, province, {
+                        studioType: studioTypes[0],
+                        studioTypes,
+                        studioId: studioId,
+                        onProgress: (msg) => setStatus('🔍 ' + msg)
+                    });
+                    webData = metodoResult.webData || '';
+                    snippetsText = metodoResult.snippetsText || '';
+                } catch(eWeb) {
+                    console.warn('Búsqueda web falló en briefing:', eWeb);
+                    webData = '';
+                }
+
+                // ── 5. Construir contexto CRM ──────────────────────────────────
+                const getV = campo => {
+                    if (!campo) return '';
+                    if (typeof campo === 'object' && 'valor' in campo) return campo.valor || '';
+                    return String(campo);
+                };
+
+                const crmContext = [
+                    `NOMBRE: ${studioName}`,
+                    `CIUDAD: ${city || '—'}`,
+                    `PROVINCIA: ${province || '—'}`,
+                    `TIPOS: ${studioTypes.join(', ')}`,
+                    `ESTADO CRM: ${studio.status || '—'}`,
+                    studio.data?.contact?.phone ? `TELÉFONO: ${getV(studio.data.contact.phone)}` : null,
+                    studio.data?.contact?.email ? `EMAIL: ${getV(studio.data.contact.email)}` : null,
+                    studio.data?.contact?.web   ? `WEB: ${getV(studio.data.contact.web)}` : null,
+                    studio.data?.studio?.employees ? `EMPLEADOS: ${getV(studio.data.studio.employees)}` : null,
+                    studio.priorityQuadrant ? `CUADRANTE SCORING: Q${studio.priorityQuadrant} ${studio.priorityQuadrantName || ''} | Directo: ${studio.priorityDirect || '—'} | Red: ${studio.priorityNetwork || '—'}` : null,
+                    studio.data?.description ? `DESCRIPCIÓN: ${studio.data.description}` : null,
+                ].filter(Boolean).join('\n');
+
+                // Últimos informes
+                let informesCtx = '';
+                if (lastReports.length > 0) {
+                    informesCtx = lastReports.map((r, i) => {
+                        const rj = r.reportJson || {};
+                        const lines = [
+                            `--- INFORME ${i+1} (${r.date || r.uploadedAt?.substring(0,10) || 'fecha desconocida'}) ---`,
+                            rj.objetivo          ? `Objetivo: ${rj.objetivo}` : null,
+                            rj.productos_presentados ? `Productos presentados: ${rj.productos_presentados}` : null,
+                            rj.oportunidades     ? `Oportunidades: ${Array.isArray(rj.oportunidades) ? rj.oportunidades.join(' | ') : rj.oportunidades}` : null,
+                            rj.compromisos_empresa ? `Compromisos cliente: ${Array.isArray(rj.compromisos_empresa) ? rj.compromisos_empresa.join(' | ') : rj.compromisos_empresa}` : null,
+                            rj.compromisos_gpf   ? `Compromisos GPF: ${Array.isArray(rj.compromisos_gpf) ? rj.compromisos_gpf.join(' | ') : rj.compromisos_gpf}` : null,
+                            rj.plan_seguimiento  ? `Plan seguimiento: ${rj.plan_seguimiento}` : null,
+                            rj.obstaculos        ? `Obstáculos: ${rj.obstaculos}` : null,
+                            rj.nivel_interes     ? `Nivel interés: ${rj.nivel_interes}` : null,
+                        ].filter(Boolean).join('\n');
+                        return lines;
+                    }).join('\n\n');
+                }
+
+                // Últimas actividades
+                let actividadesCtx = '';
+                if (activities.length > 0) {
+                    actividadesCtx = activities.map(a => {
+                        const fecha_a = (a.createdAt || a.fecha || a.date || '').substring(0, 10);
+                        const tipo = a.type || '';
+                        const texto = a.text || '';
+                        const resultado = a.visitaResultado ? ` [${a.visitaResultado}]` : '';
+                        return `${fecha_a} (${tipo}${resultado}): ${texto}`;
+                    }).join('\n');
+                }
+
+                // ── 6. Prompt a Claude ──────────────────────────────────────────
+                setStatus('🤖 Generando dossier de briefing con IA...');
+
+                const systemPrompt = `Eres el asistente comercial de Manuel Fernández (Manolo), prescriptor de Grupo GPF (productos Ferroplast, Tuyper, Ecosan, Biopipe, PVC-O) en Andalucía, Extremadura y Levante.
+
+Tu misión: generar un BRIEFING ESTRATÉGICO PRE-VISITA conciso y accionable.
+
+REGLAS:
+- Sé concreto y práctico. Nada de perogrulladas genéricas.
+- Si hay informes anteriores: extrae compromisos pendientes y mensajes clave de esa relación.
+- Si no hay informes: es visita fría — enfócate en el perfil de la empresa y cómo abrir la conversación.
+- La agenda debe ser de 3-5 puntos directamente útiles para Manolo en esa visita.
+- Los productos GPF a mencionar: Ferroplast Mute (saneamiento insonorizado PVC), Ecosan (saneamiento ecológico), Biopipe (tuberías bioplástico), PVC-O (conducción a presión), Tuyper, sistemas de pozos modulares.
+- Devuelve ÚNICAMENTE el objeto JSON indicado, sin texto extra.`;
+
+                const userMsg = `Genera el briefing pre-visita para la siguiente empresa.
+
+DATOS CRM:
+${crmContext}
+${contextoExtra ? `\nCONTEXTO ADICIONAL DEL COMERCIAL:\n${contextoExtra}` : ''}
+
+${informesCtx ? `HISTORIAL DE INFORMES DE VISITA (últimos ${lastReports.length}):\n${informesCtx}` : 'HISTORIAL: No hay visitas registradas anteriormente (primera visita).'}
+
+${actividadesCtx ? `ACTIVIDADES RECIENTES:\n${actividadesCtx}` : ''}
+
+${webData.length > 100 ? `INFORMACIÓN WEB ACTUALIZADA:\n${webData.substring(0, 4000)}` : ''}
+
+FECHA DE LA PRÓXIMA VISITA: ${fecha}
+
+Devuelve ÚNICAMENTE este JSON con los campos rellenados (no añadas claves extra):
+{
+  "resumen_cliente": "2-3 párrafos describiendo quiénes son, qué hacen, cómo encajan con GPF",
+  "ultimo_contacto": "Qué se habló en la(s) última(s) visita(s) y compromisos pendientes. Si es primera visita, escribe 'Primera visita — sin historial previo'",
+  "novedades_recientes": "Qué hay de nuevo en la empresa (noticias, proyectos, concursos) según la web. Si no hay novedades destacables, escríbelo",
+  "scoring_contexto": "Interpretación del scoring del cliente: por qué está en este cuadrante y qué significa para la estrategia comercial",
+  "agenda": ["Punto 1 de agenda", "Punto 2", "Punto 3", "Punto 4 (opcional)", "Punto 5 (opcional)"],
+  "productos_recomendados": ["Producto A — razón específica para este cliente", "Producto B — razón"],
+  "avisos": ["Aviso o aspecto crítico a tener en cuenta (si los hay)"]
+}`;
+
+                const response = await callClaudeAPI(
+                    [{ role: 'user', content: userMsg }],
+                    4096,
+                    'claude-sonnet-4-20250514',
+                    systemPrompt
+                );
+
+                let rawText = response?.content?.[0]?.text || response?.content?.[0]?.value || response?.text || '';
+                if (!rawText) throw new Error('La IA no devolvió contenido.');
+
+                // Parsear JSON
+                let briefingJson;
+                try {
+                    const cleaned = rawText.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
+                    try { briefingJson = JSON.parse(cleaned); } catch(_) {
+                        const s2 = rawText.indexOf('{'), e2 = rawText.lastIndexOf('}');
+                        if (s2 === -1 || e2 === -1) throw new Error('sin JSON en respuesta');
+                        briefingJson = JSON.parse(rawText.slice(s2, e2+1));
+                    }
+                } catch(pe) {
+                    throw new Error('No se pudo parsear la respuesta de la IA: ' + pe.message);
+                }
+
+                // ── 7. Construir DOCX ──────────────────────────────────────────
+                setStatus('📄 Construyendo documento Word...');
+                const docxBlob = await _buildBriefingDocx(briefingJson, studio, fecha, studioName, city, studioTypes);
+
+                // ── 8. Descargar ────────────────────────────────────────────────
+                const safeName = studioName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+                const safeDate = fecha.replace(/-/g,'');
+                const fileName = `Briefing_${safeName}_${safeDate}.docx`;
+
+                const url = URL.createObjectURL(docxBlob);
+                const a2 = document.createElement('a');
+                a2.href = url; a2.download = fileName;
+                a2.style.display = 'none';
+                document.body.appendChild(a2); a2.click(); document.body.removeChild(a2);
+                setTimeout(() => URL.revokeObjectURL(url), 3000);
+
+                setStatus('✅ Briefing descargado: ' + fileName, 'rgba(16,185,129,0.15)', '#34d399');
+                if (btnGen) { btnGen.disabled = false; btnGen.textContent = '📋 Generar Briefing'; }
+                showNotification('✅ Briefing pre-visita generado', 'success');
+
+            } catch(e) {
+                console.error('Error generarBriefing:', e);
+                setStatus('❌ Error: ' + e.message, 'rgba(239,68,68,0.15)', '#fca5a5');
+                if (btnGen) { btnGen.disabled = false; btnGen.textContent = '📋 Generar Briefing'; }
+            }
+        }
+
+        async function _buildBriefingDocx(bj, studio, fecha, studioName, city, studioTypes) {
+            const {
+                Document, Paragraph, TextRun, Table, TableRow, TableCell,
+                WidthType, BorderStyle, ShadingType, AlignmentType,
+                Header, Footer, PageNumber, Packer
+            } = window.docx;
+
+            const TEAL1  = '0F766E';
+            const TEAL2  = '0D9488';
+            const TEAL3  = 'CCFBF1';
+            const GRIS1  = 'F8FAFC';
+            const GRIS2  = 'E2E8F0';
+            const DARK   = '0F172A';
+
+            const bd   = { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' };
+            const bAll = { top: bd, bottom: bd, left: bd, right: bd };
+            const nbrd = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
+            const noBorders = { top: nbrd, bottom: nbrd, left: nbrd, right: nbrd };
+
+            const pv = () => new Paragraph({ children: [new TextRun({ text: '', size: 18 })] });
+            const pTxt = (t, opts={}) => new Paragraph({
+                spacing: { before: opts.before||60, after: opts.after||80 },
+                children: [new TextRun({ text: String(t||''), size: opts.size||20, font: 'Arial',
+                    color: opts.color||'1E293B', italic: !!opts.italic, bold: !!opts.bold })]
+            });
+
+            const secHdr = (t, color) => new Table({
+                width: { size: 9026, type: WidthType.DXA }, columnWidths: [9026],
+                rows: [new TableRow({ children: [new TableCell({
+                    width: { size: 9026, type: WidthType.DXA },
+                    shading: { fill: color || TEAL2, type: ShadingType.CLEAR },
+                    margins: { top: 80, bottom: 80, left: 200, right: 160 },
+                    borders: noBorders,
+                    children: [new Paragraph({ children: [new TextRun({ text: String(t||''), bold: true, color: 'FFFFFF', size: 22, font: 'Arial' })] })]
+                })]})],
+            });
+
+            const caja = (t, color) => new Table({
+                width: { size: 9026, type: WidthType.DXA }, columnWidths: [9026],
+                rows: [new TableRow({ children: [new TableCell({
+                    width: { size: 9026, type: WidthType.DXA },
+                    margins: { top: 100, bottom: 100, left: 200, right: 180 },
+                    borders: { top: nbrd, bottom: nbrd, right: nbrd, left: { style: BorderStyle.THICK, size: 12, color: String(color||TEAL2) } },
+                    shading: { fill: GRIS1, type: ShadingType.CLEAR },
+                    children: [new Paragraph({ children: [new TextRun({ text: String(t||''), size: 19, font: 'Arial', italic: true, color: '1E293B' })] })]
+                })]})],
+            });
+
+            const bullet = t => pTxt('• ' + String(t||''), { size: 19, before: 40, after: 40 });
+
+            const arr = v => Array.isArray(v) && v.length > 0 ? v : (v && typeof v === 'string' ? [v] : []);
+            const str = v => {
+                if (!v) return '';
+                if (Array.isArray(v)) return v.join(', ');
+                return String(v);
+            };
+
+            const fechaFormateada = fecha ? (fecha.split('-').reverse().join('/')) : '';
+            const tiposStr = (studioTypes || []).join(' · ') || '—';
+
+            // ── CONTENIDO ──────────────────────────────────────────────────────
+            const children = [];
+
+            // Cabecera: empresa + fecha
+            children.push(new Table({
+                width: { size: 9026, type: WidthType.DXA }, columnWidths: [6026, 3000],
+                rows: [new TableRow({ children: [
+                    new TableCell({
+                        width: { size: 6026, type: WidthType.DXA },
+                        shading: { fill: TEAL1, type: ShadingType.CLEAR },
+                        margins: { top: 120, bottom: 120, left: 200, right: 160 },
+                        borders: noBorders,
+                        children: [
+                            new Paragraph({ children: [new TextRun({ text: studioName, bold: true, color: 'FFFFFF', size: 28, font: 'Arial' })] }),
+                            new Paragraph({ children: [new TextRun({ text: `${city || ''}  ·  ${tiposStr}`, color: 'CCFBF1', size: 18, font: 'Arial' })] }),
+                        ]
+                    }),
+                    new TableCell({
+                        width: { size: 3000, type: WidthType.DXA },
+                        shading: { fill: TEAL2, type: ShadingType.CLEAR },
+                        margins: { top: 120, bottom: 120, left: 160, right: 160 },
+                        borders: noBorders,
+                        verticalAlign: 'center',
+                        children: [
+                            new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '📋 BRIEFING', bold: true, color: 'FFFFFF', size: 22, font: 'Arial' })] }),
+                            new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'Visita: ' + fechaFormateada, color: 'CCFBF1', size: 18, font: 'Arial' })] }),
+                        ]
+                    }),
+                ]})]
+            }));
+            children.push(pv());
+
+            // Resumen del cliente
+            if (bj.resumen_cliente) {
+                children.push(secHdr('📌 PERFIL DEL CLIENTE'));
+                children.push(pv());
+                const parrafos = bj.resumen_cliente.split('\n').filter(p => p.trim());
+                parrafos.forEach(p => children.push(pTxt(p)));
+                children.push(pv());
+            }
+
+            // Scoring context
+            if (bj.scoring_contexto) {
+                children.push(caja(bj.scoring_contexto, TEAL1));
+                children.push(pv());
+            }
+
+            // Último contacto
+            if (bj.ultimo_contacto) {
+                children.push(secHdr('🗓️ ÚLTIMO CONTACTO', '1F4E79'));
+                children.push(pv());
+                const parrafos2 = bj.ultimo_contacto.split('\n').filter(p => p.trim());
+                parrafos2.forEach(p => children.push(pTxt(p)));
+                children.push(pv());
+            }
+
+            // Novedades recientes
+            if (bj.novedades_recientes && !bj.novedades_recientes.toLowerCase().includes('no hay novedades') && bj.novedades_recientes.length > 20) {
+                children.push(secHdr('📡 NOVEDADES RECIENTES'));
+                children.push(pv());
+                const parrafos3 = bj.novedades_recientes.split('\n').filter(p => p.trim());
+                parrafos3.forEach(p => children.push(pTxt(p)));
+                children.push(pv());
+            }
+
+            // Agenda
+            const agenda = arr(bj.agenda).filter(Boolean).slice(0, 5);
+            if (agenda.length > 0) {
+                children.push(secHdr('✅ AGENDA DE LA VISITA', '1F4E79'));
+                children.push(pv());
+                agenda.forEach((punto, i) => {
+                    children.push(new Paragraph({
+                        spacing: { before: 60, after: 60 },
+                        children: [
+                            new TextRun({ text: `${i+1}.  `, bold: true, size: 22, font: 'Arial', color: TEAL1 }),
+                            new TextRun({ text: String(punto||''), size: 20, font: 'Arial', color: '1E293B' }),
+                        ]
+                    }));
+                });
+                children.push(pv());
+            }
+
+            // Productos recomendados
+            const prods = arr(bj.productos_recomendados).filter(Boolean);
+            if (prods.length > 0) {
+                children.push(secHdr('🔧 PRODUCTOS A PRESENTAR'));
+                children.push(pv());
+                prods.forEach(p => children.push(bullet(p)));
+                children.push(pv());
+            }
+
+            // Avisos
+            const avisos = arr(bj.avisos).filter(Boolean);
+            if (avisos.length > 0) {
+                children.push(secHdr('⚠️ AVISOS', 'B45309'));
+                children.push(pv());
+                avisos.forEach(av => children.push(caja(av, 'B45309')));
+                children.push(pv());
+            }
+
+            // ── DOCUMENTO ─────────────────────────────────────────────────────
+            const doc = new Document({
+                sections: [{
+                    properties: {
+                        page: {
+                            size: { width: 11906, height: 16838 },
+                            margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 }
+                        }
+                    },
+                    headers: {
+                        default: new Header({ children: [
+                            new Paragraph({
+                                border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: TEAL2, space: 4 } },
+                                children: [
+                                    new TextRun({ text: 'Grupo GPF — Briefing pre-visita', size: 16, font: 'Arial', color: '64748B' }),
+                                    new TextRun({ text: `   |   ${studioName}`, size: 16, font: 'Arial', bold: true, color: TEAL1 }),
+                                ]
+                            })
+                        ]})
+                    },
+                    footers: {
+                        default: new Footer({ children: [
+                            new Paragraph({
+                                alignment: AlignmentType.CENTER,
+                                border: { top: { style: BorderStyle.SINGLE, size: 4, color: GRIS2, space: 4 } },
+                                children: [
+                                    new TextRun({ text: 'Página ', size: 16, font: 'Arial', color: '94A3B8' }),
+                                    new TextRun({ children: [PageNumber.CURRENT], size: 16, font: 'Arial', color: '94A3B8' }),
+                                    new TextRun({ text: ' — Generado con CRM GPF', size: 16, font: 'Arial', color: '94A3B8' }),
+                                ]
+                            })
+                        ]})
+                    },
+                    children
+                }]
+            });
+
+            return await Packer.toBlob(doc);
+        }
+
         async function editarProductosInforme(reportIdx) {
             const studio = await getStudioFresh(currentStudioId);
             if (!studio) return;
@@ -27249,7 +28511,7 @@ Notas:
                     const city    = s.data?.contact?.city    || s.province || '';
                     const web     = s.data?.contact?.web     || '';
                     const desc    = s.data?.studio?.description || '';
-                    const tipo    = s.type ? (typeof TIPOS_ESTUDIO !== 'undefined' && TIPOS_ESTUDIO?.[s.type] ? TIPOS_ESTUDIO[s.type] : s.type) : '';
+                    const tipo    = s.type ? (typeof TIPOS_ESTUDIO !== 'undefined' && TIPOS_ESTUDIO?.[getTipoPrincipal(s)] ? TIPOS_ESTUDIO[getTipoPrincipal(s)] : getTipoPrincipal(s)) : '';
                     const crmLink = `https://mafernandez-create.github.io/crm-prospector/?view=studio&id=${s.id}`;
                     const wazeQuery = address ? (address + ', ' + city) : (s.name + (city ? ', ' + city : ''));
                     const wazeLink = wazeQuery ? `https://waze.com/ul?q=${encodeURIComponent(wazeQuery)}&navigate=yes` : '';
@@ -27331,7 +28593,7 @@ Notas:
             const allTypes = {};
             sortedDates.forEach(d => {
                 (planificadorData.schedule[d] || []).filter(s => !s.reserva).forEach(s => {
-                    const t = TIPOS_ESTUDIO[s.type]?.label || s.type || 'otros';
+                    const t = TIPOS_ESTUDIO[getTipoPrincipal(s)]?.label || getTipoPrincipal(s) || 'otros';
                     allTypes[t] = (allTypes[t] || 0) + 1;
                 });
             });
@@ -27446,7 +28708,7 @@ Notas:
                         lunchInserted = true;
                     }
 
-                    const tipoLabel = TIPOS_ESTUDIO[s.type]?.label || s.type || '';
+                    const tipoLabel = TIPOS_ESTUDIO[getTipoPrincipal(s)]?.label || getTipoPrincipal(s) || '';
                     const prioridad = s.priority || 'Media';
                     const bgBadge = prioridad === 'Alta' ? '#fef2f2;color:#dc2626' :
                                     prioridad === 'Baja' ? '#f0fdf4;color:#16a34a' : '#fffbeb;color:#d97706';
