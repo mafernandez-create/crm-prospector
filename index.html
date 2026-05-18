@@ -4945,9 +4945,23 @@
         // ============================================
         // CLAUDE API VÍA PROXY (Apps Script)
         // ============================================
+        function sanitizeSurrogates(str) {
+            if (typeof str !== 'string') return str;
+            return str.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '');
+        }
+        function sanitizeMessages(messages) {
+            return messages.map(m => ({
+                ...m,
+                content: typeof m.content === 'string'
+                    ? sanitizeSurrogates(m.content)
+                    : Array.isArray(m.content)
+                        ? m.content.map(c => c.type === 'text' ? { ...c, text: sanitizeSurrogates(c.text) } : c)
+                        : m.content
+            }));
+        }
         async function callClaudeAPI(messages, maxTokens = 4000, model = 'claude-sonnet-4-20250514', system = null) {
-            const payload = { model, max_tokens: maxTokens, messages };
-            if (system) payload.system = system;
+            const payload = { model, max_tokens: maxTokens, messages: sanitizeMessages(messages) };
+            if (system) payload.system = sanitizeSurrogates(system);
             const result = await callAPI('claudeProxy', payload);
             if (result.error) {
                 const errMsg = typeof result.error === 'string' ? result.error : (result.error.message || JSON.stringify(result.error));
