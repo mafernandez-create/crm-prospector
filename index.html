@@ -12732,54 +12732,12 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 const capitalResults = await searchWeb(`mejores estudios ${typeLabel} ${capitalCity} listado`);
                 await processSearchResults(capitalResults, foundStudios, province, 'Capital provincia', 75);
                 
-                // 12. Enriquecimiento con IA — pedir a Claude que sugiera empresas adicionales
-                updateProgress('🤖 Enriqueciendo con IA...', 'Analizando resultados y buscando candidatos adicionales');
-                try {
-                    const existingNames = Array.from(foundStudios.values()).map(s => s.name).slice(0, 30).join(', ');
-                    const enrichPrompt = `Eres un experto en el sector de ${typeLabel} en España. Necesito una lista de empresas/estudios de ${typeLabel} en la provincia de ${province}.
+                // Paso 12 eliminado: motor "IA (Claude)" generador de nombres.
+                // Incompatible con spec v1.1 §10.1 (orígenes legítimos de candidatos),
+                // §4.2 (niveles de confianza), §7.4 (solo `verificado` entra al scoring)
+                // y §17 (no inventa partida). 0 leads aportados al CRM en histórico.
 
-Ya tengo estas empresas identificadas: ${existingNames || 'ninguna todavía'}.
-
-Dame hasta 15 empresas ADICIONALES de ${typeLabel} en ${province} que NO estén en mi lista. Para cada una indica:
-- Nombre exacto de la empresa
-- Ciudad dentro de ${province}
-- Breve descripción (1 línea)
-
-Responde SOLO en formato JSON array:
-[{"nombre":"...","ciudad":"...","descripcion":"..."}]
-
-IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inventes nombres.`;
-
-                    const aiResult = await callClaudeAPI([{ role: 'user', content: enrichPrompt }], 3000);
-                    if (aiResult?.content?.[0]?.text) {
-                        let aiText = aiResult.content[0].text.replace(/```json/gi, '').replace(/```/gi, '').trim();
-                        const arrStart = aiText.indexOf('[');
-                        const arrEnd = aiText.lastIndexOf(']');
-                        if (arrStart !== -1 && arrEnd !== -1) {
-                            const aiStudios = JSON.parse(aiText.substring(arrStart, arrEnd + 1));
-                            for (const ai of aiStudios) {
-                                if (!ai.nombre || ai.nombre.length < 3) continue;
-                                const key = normalizeStudioKey(ai.nombre);
-                                if (!foundStudios.has(key)) {
-                                    foundStudios.set(key, {
-                                        name: ai.nombre,
-                                        snippet: (ai.descripcion || '') + (ai.ciudad ? ' — ' + ai.ciudad : ''),
-                                        url: '',
-                                        urls: [],
-                                        relevance: 65,
-                                        sources: ['IA (Claude)'],
-                                        province: province
-                                    });
-                                }
-                            }
-                        }
-                    }
-                } catch (aiErr) {
-                    console.warn('Enriquecimiento IA no disponible:', aiErr.message);
-                    // No bloquear la búsqueda si la IA falla (ej: sin créditos)
-                }
-
-                // 14. Enriquecimiento web — visitar webs de las empresas encontrados
+                // 13. Enriquecimiento web — visitar webs de las empresas encontrados
                 updateProgress('🌐 Enriqueciendo datos visitando webs...', 'Extrayendo emails, teléfonos y equipo');
                 try {
                     // Filtrar estudios con URL válida (excluir LinkedIn, Instagram, PA)
