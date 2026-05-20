@@ -497,6 +497,22 @@
         .filter-group { display: flex; align-items: center; gap: 8px; }
         .filter-label { font-size: 0.8rem; color: var(--muted); }
         .filter-select { padding: 6px 10px; font-size: 0.8rem; border: 1px solid var(--border); border-radius: 6px; background: white; }
+        /* Chips multi-select (spec §18.5.6 — filtro fuente_descubrimiento) */
+        .filter-chips { display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+        .filter-chip {
+            display:inline-flex; align-items:center; gap:3px;
+            font-size:0.72rem; font-weight:600;
+            padding:3px 9px; border-radius:12px;
+            border:1px solid var(--border); background:white; color:var(--muted);
+            cursor:pointer; user-select:none;
+            transition:all 0.12s;
+        }
+        .filter-chip:hover { border-color:var(--primary); }
+        .filter-chip.active { background:var(--primary); color:white; border-color:var(--primary); }
+        .filter-chip[data-value="geografica"].active { background:#0ea5e9; border-color:#0ea5e9; }
+        .filter-chip[data-value="sectorial"].active  { background:#3b82f6; border-color:#3b82f6; }
+        .filter-chip[data-value="ambas"].active      { background:#10b981; border-color:#10b981; }
+        .filter-chip[data-value="academica"].active  { background:#8b5cf6; border-color:#8b5cf6; }
         
         /* Empty State */
         .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
@@ -3086,6 +3102,15 @@
                         </select>
                     </div>
                     <div class="filter-group">
+                        <span class="filter-label">Fuente:</span>
+                        <div class="filter-chips" id="filter-fuente-descubrimiento" title="Filtro multi-select de fuente_descubrimiento — §18.5.6">
+                            <span class="filter-chip" data-value="geografica" onclick="toggleFuenteChip(this)">🌍 geográfica</span>
+                            <span class="filter-chip" data-value="sectorial" onclick="toggleFuenteChip(this)">🌍 sectorial</span>
+                            <span class="filter-chip" data-value="ambas" onclick="toggleFuenteChip(this)">🌍 ambas</span>
+                            <span class="filter-chip" data-value="academica" onclick="toggleFuenteChip(this)">🎓 académica</span>
+                        </div>
+                    </div>
+                    <div class="filter-group">
                         <span class="filter-label">Provincia:</span>
                         <select class="filter-select" id="filter-province" onchange="onProvinceChange()">
                             <option value="">Todas</option>
@@ -3224,10 +3249,28 @@
                     <div id="bandeja-puente-list"></div>
                 </div>
 
+                <!-- Prescriptores con proyectos en zona (Capa Sectorial Geográfica §18.5) -->
+                <div class="bandeja-section" id="bandeja-sectorial-section">
+                    <div class="bandeja-section-title">🌍 Prescriptores con proyectos en zona <span id="bandeja-sectorial-count" style="font-size:0.75rem;font-weight:400;color:var(--muted);"></span></div>
+                    <div id="bandeja-sectorial-list"></div>
+                </div>
+
                 <!-- Cambios de cuadrante recientes -->
                 <div class="bandeja-section" id="bandeja-delta-section">
                     <div class="bandeja-section-title">📈 Cambios de cuadrante recientes <span id="bandeja-delta-count" style="font-size:0.75rem;font-weight:400;color:var(--muted);"></span></div>
                     <div id="bandeja-delta-list"></div>
+                </div>
+
+                <!-- Discrepancias detectadas (§4.3) — dos fuentes con valores distintos -->
+                <div class="bandeja-section" id="bandeja-discrepancias-section">
+                    <div class="bandeja-section-title">⚠️ Discrepancias detectadas <span id="bandeja-discrepancias-count" style="font-size:0.75rem;font-weight:400;color:var(--muted);"></span></div>
+                    <div id="bandeja-discrepancias-list"></div>
+                </div>
+
+                <!-- Datos obsoletos (§4.4) — sin reconfirmar >12 meses -->
+                <div class="bandeja-section" id="bandeja-obsoletos-section">
+                    <div class="bandeja-section-title">🕐 Datos obsoletos <span id="bandeja-obsoletos-count" style="font-size:0.75rem;font-weight:400;color:var(--muted);"></span></div>
+                    <div id="bandeja-obsoletos-list"></div>
                 </div>
             </div>
 
@@ -4841,6 +4884,44 @@
             almacen: 'almacen', colegio_profesional: 'colegio_profesional', otros: 'otros'
         };
 
+        // ── Capa Sectorial Geográfica (spec §18.5.2) ─────────────────────────
+        // Mapping `tipo → sectores` que define qué sectores se buscan en
+        // proyectos-por-zona cuando se ejecuta una búsqueda masiva.
+        const TIPO_SECTORES = {
+            ARQ:  ['edificación', 'rehabilitación', 'vivienda colectiva'],
+            ING:  ['agua', 'regadío', 'saneamiento', 'hidráulica', 'obra civil'],
+            OCV:  ['infraestructura', 'urbanización', 'abastecimiento urbano'],
+            AAPP: ['licitación', 'adjudicación', 'contrato menor'],
+            CCRR: ['regadío', 'modernización', 'gestión hídrica'],
+            CICA: ['gemelo digital', 'telecontrol', 'eficiencia hídrica'],
+        };
+
+        // Patrones de query para la Capa Sectorial Geográfica (spec §18.5.1).
+        // Cada `(provincia, sector)` produce 4 queries específicas → 12-30
+        // queries sectoriales adicionales por búsqueda según el tipo.
+        function buildSectorialQueries(provincia, sectores) {
+            const queries = [];
+            for (const sector of sectores) {
+                queries.push(`"proyecto ${sector}" "${provincia}"`);
+                queries.push(`"obras de ${sector}" "${provincia}"`);
+                queries.push(`"modernización ${sector}" "${provincia}"`);
+                queries.push(`"adjudicado" "${sector}" "${provincia}"`);
+            }
+            return queries;
+        }
+
+        // Patrones académicos: catedráticos, grupos UCO, ponencias.
+        // Se ejecutan en paralelo al bloque sectorial — fuente_descubrimiento='academica'.
+        function buildAcademicQueries(provincia, sectores) {
+            const queries = [];
+            const universidad = `universidad de ${provincia}`;
+            queries.push(`"ponente" "${universidad}" ${sectores[0]}`);
+            queries.push(`"congreso ${sectores[0]}" "${provincia}"`);
+            queries.push(`"grupo de investigación" "${universidad}" ${sectores.slice(0, 2).join(' OR ')}`);
+            queries.push(`"catedrático" "${universidad}" ${sectores[0]}`);
+            return queries;
+        }
+
         // ── Helpers de tipo (v1.1) ────────────────────────────────────────────
         /** Devuelve el array de códigos de tipo del estudio, normalizando strings legacy */
         function getTiposArray(studio) {
@@ -6210,11 +6291,63 @@
             return { from: prev, to: curr, trend: curr < prev ? 'up' : 'down' };
         }
 
+        // ── Detección discrepancias (§4.3) ────────────────────────────────────
+        // Devuelve array con los studios que tienen ≥1 campo en estado 'discrepancia'.
+        // Requiere que los campos estén envueltos en {valor, nivel_confianza}
+        // (Bloque 5 migración legacy). Hoy devuelve [] porque los campos son strings planos.
+        function getDiscrepancias(studios) {
+            const out = [];
+            const camposASupervisar = ['phone', 'email', 'address', 'web'];
+            for (const s of studios) {
+                const contact = s.data?.contact;
+                if (!contact || typeof contact !== 'object') continue;
+                const discrepantes = camposASupervisar.filter(k => {
+                    const v = contact[k];
+                    return v && typeof v === 'object' && v.nivel_confianza === 'discrepancia';
+                });
+                if (discrepantes.length > 0) {
+                    out.push({ studio: s, campos: discrepantes });
+                }
+            }
+            return out;
+        }
+
+        // ── Detección datos obsoletos (§4.4) ──────────────────────────────────
+        // Devuelve studios con campos sin reconfirmar >12 meses.
+        // Mismo requisito de metadatos por campo (Bloque 5).
+        function getDatosObsoletos(studios) {
+            const out = [];
+            const camposASupervisar = ['phone', 'email', 'address', 'web'];
+            const cutoff = new Date();
+            cutoff.setMonth(cutoff.getMonth() - 12);
+            const cutoffMs = cutoff.getTime();
+            for (const s of studios) {
+                const contact = s.data?.contact;
+                if (!contact || typeof contact !== 'object') continue;
+                const obsoletos = camposASupervisar.filter(k => {
+                    const v = contact[k];
+                    if (!v || typeof v !== 'object' || !v.fecha_captura) return false;
+                    if (v.nivel_confianza === 'verificado_humano') return false;
+                    const captureMs = new Date(v.fecha_captura).getTime();
+                    return !isNaN(captureMs) && captureMs < cutoffMs;
+                });
+                if (obsoletos.length > 0) {
+                    out.push({ studio: s, campos: obsoletos });
+                }
+            }
+            return out;
+        }
+
         function updateBandejaNavBadge() {
-            const puente  = allStudios.filter(s => s.es_candidato_puente && !s.es_cliente_puente).length;
-            const deltas  = allStudios.filter(s => getQuadrantDelta(s) !== null).length;
-            const total   = puente + deltas;
-            const badge   = document.getElementById('nav-bandeja-count');
+            const puente       = allStudios.filter(s => s.es_candidato_puente && !s.es_cliente_puente).length;
+            const sectoriales  = allStudios.filter(s =>
+                ['sectorial', 'academica', 'ambas'].includes(s.fuente_descubrimiento)
+            ).length;
+            const deltas       = allStudios.filter(s => getQuadrantDelta(s) !== null).length;
+            const discrepancs  = getDiscrepancias(allStudios).length;
+            const obsoletos    = getDatosObsoletos(allStudios).length;
+            const total        = puente + sectoriales + deltas + discrepancs + obsoletos;
+            const badge        = document.getElementById('nav-bandeja-count');
             if (!badge) return;
             badge.textContent = total;
             badge.style.display = total > 0 ? '' : 'none';
@@ -6271,6 +6404,38 @@
                     </div>`).join('');
             }
 
+            // ── Prescriptores con proyectos en zona (Capa Sectorial §18.5.6) ──
+            const sectoriales = allStudios.filter(s =>
+                s.fuente_descubrimiento === 'sectorial' ||
+                s.fuente_descubrimiento === 'academica' ||
+                s.fuente_descubrimiento === 'ambas'
+            );
+            const sectorialEl = document.getElementById('bandeja-sectorial-list');
+            const sectorialCount = document.getElementById('bandeja-sectorial-count');
+            if (sectorialEl && sectorialCount) {
+                sectorialCount.textContent = `(${sectoriales.length})`;
+                if (sectoriales.length === 0) {
+                    sectorialEl.innerHTML = '<p style="color:var(--muted);font-size:0.82rem;margin:0;">No hay prescriptores sectoriales detectados aún. La Capa Sectorial entra en acción en la próxima búsqueda masiva.</p>';
+                } else {
+                    sectorialEl.innerHTML = sectoriales.map(s => {
+                        const fuenteLabel = s.fuente_descubrimiento === 'academica' ? '🎓 académica'
+                            : s.fuente_descubrimiento === 'ambas' ? '🌍 ambas'
+                            : '🌍 sectorial';
+                        const fuenteBg = s.fuente_descubrimiento === 'academica' ? '#a78bfa'
+                            : s.fuente_descubrimiento === 'ambas' ? '#10b981'
+                            : '#60a5fa';
+                        return `
+                        <div class="bandeja-card" onclick="showStudioDetail('${s.id}')">
+                            <span class="q-chip" style="background:${fuenteBg};color:#fff;">${fuenteLabel}</span>
+                            <div>
+                                <div class="bandeja-card-name">${escapeHtml(s.name)}${s.es_cliente_puente ? ' <span style="font-size:0.7rem;color:#1e40af;">🌉</span>' : ''}</div>
+                                <div class="bandeja-card-meta">${escapeHtml(s.province||'')}${s.city ? ' · '+escapeHtml(s.city) : ''} · Q${s.priorityQuadrant || '?'}</div>
+                            </div>
+                        </div>`;
+                    }).join('');
+                }
+            }
+
             // ── Cambios de cuadrante ──
             const cambios = allStudios
                 .map(s => ({ s, d: getQuadrantDelta(s) }))
@@ -6290,6 +6455,46 @@
                             <div class="bandeja-card-meta">${escapeHtml(s.province||'')} · Q${d.from} → Q${d.to} ${d.trend==='up'?'↑ mejora':'↓ baja'} · ${escapeHtml(s.priorityQuadrantName||'')}</div>
                         </div>
                     </div>`).join('');
+            }
+
+            // ── Discrepancias detectadas (§4.3) ──
+            const discrepancs = getDiscrepancias(allStudios);
+            const discrepEl = document.getElementById('bandeja-discrepancias-list');
+            const discrepCount = document.getElementById('bandeja-discrepancias-count');
+            if (discrepEl && discrepCount) {
+                discrepCount.textContent = `(${discrepancs.length})`;
+                if (discrepancs.length === 0) {
+                    discrepEl.innerHTML = '<p style="color:var(--muted);font-size:0.82rem;margin:0;">Sin discrepancias detectadas. Aparecerán cuando los campos tengan metadatos verificados de ≥2 fuentes con valores distintos (requiere Bloque 5 migración legacy).</p>';
+                } else {
+                    discrepEl.innerHTML = discrepancs.map(({ studio, campos }) => `
+                        <div class="bandeja-card" onclick="showStudioDetail('${studio.id}')">
+                            <span class="q-chip" style="background:#f59e0b;color:#fff;">⚠️</span>
+                            <div>
+                                <div class="bandeja-card-name">${escapeHtml(studio.name)}</div>
+                                <div class="bandeja-card-meta">${escapeHtml(studio.province||'')} · Campos en conflicto: ${campos.join(', ')}</div>
+                            </div>
+                        </div>`).join('');
+                }
+            }
+
+            // ── Datos obsoletos (§4.4) ──
+            const obsoletos = getDatosObsoletos(allStudios);
+            const obsoEl = document.getElementById('bandeja-obsoletos-list');
+            const obsoCount = document.getElementById('bandeja-obsoletos-count');
+            if (obsoEl && obsoCount) {
+                obsoCount.textContent = `(${obsoletos.length})`;
+                if (obsoletos.length === 0) {
+                    obsoEl.innerHTML = '<p style="color:var(--muted);font-size:0.82rem;margin:0;">Sin datos obsoletos (>12 meses sin reconfirmar). Aparecerán cuando los campos tengan fecha_captura registrada (requiere Bloque 5 migración legacy).</p>';
+                } else {
+                    obsoEl.innerHTML = obsoletos.map(({ studio, campos }) => `
+                        <div class="bandeja-card" onclick="showStudioDetail('${studio.id}')">
+                            <span class="q-chip" style="background:#94a3b8;color:#fff;">🕐</span>
+                            <div>
+                                <div class="bandeja-card-name">${escapeHtml(studio.name)}</div>
+                                <div class="bandeja-card-meta">${escapeHtml(studio.province||'')} · Sin reconfirmar >12m: ${campos.join(', ')}</div>
+                            </div>
+                        </div>`).join('');
+                }
             }
 
             updateBandejaNavBadge();
@@ -6358,13 +6563,29 @@
                 byType[t] = (byType[t] || 0) + 1;
             });
 
+            // ── Alertas activas del agente (§16.2 — Bloque 6) ────────────────
+            const alertasPuente = allStudios.filter(s => s.es_candidato_puente && !s.es_cliente_puente);
+            const alertasDiscrep = (typeof getDiscrepancias === 'function') ? getDiscrepancias(allStudios) : [];
+            const alertasObso = (typeof getDatosObsoletos === 'function') ? getDatosObsoletos(allStudios) : [];
+            const alertasSectorial = allStudios.filter(s => {
+                const fdValor = typeof s.fuente_descubrimiento === 'object'
+                    ? s.fuente_descubrimiento?.valor
+                    : s.fuente_descubrimiento;
+                if (!['sectorial', 'academica', 'ambas'].includes(fdValor)) return false;
+                // Solo los descubiertos en la semana
+                const d = new Date(s.createdAt || 0);
+                return d >= startDate && d <= endDate;
+            });
+            const totalAlertas = alertasPuente.length + alertasDiscrep.length + alertasObso.length + alertasSectorial.length;
+
             // ── Render ────────────────────────────────────────────────────────
             const fmtDate = d => new Date(d).toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit'});
             const fmtRange = `${fmtDate(fechaIni)} – ${fmtDate(fechaFin)}`;
             const qNames = {1:'① Estratégico',2:'② Core',3:'③ Volumen',4:'④ Puerta entrada',5:'⑤ Estándar',6:'⑥ Mantenimiento',7:'⑦ Conector',8:'⑧ Seguimiento',9:'⑨ Congelar'};
 
             // Guardar para markdown
-            window._reporteData = { fechaIni, fechaFin, visits, calls, emails, comlls, qChanges, newStudios, byType };
+            window._reporteData = { fechaIni, fechaFin, visits, calls, emails, comlls, qChanges, newStudios, byType,
+                alertasPuente, alertasDiscrep, alertasObso, alertasSectorial };
 
             container.innerHTML = `
 <div class="reporte-grid">
@@ -6374,6 +6595,7 @@
   <div class="reporte-metric"><div class="reporte-metric-label">🔄 Cambios cuadrante</div><div class="reporte-metric-value">${qChanges.length}</div><div class="reporte-metric-sub">Subidas + bajadas</div></div>
   <div class="reporte-metric"><div class="reporte-metric-label">🆕 Nuevas empresas</div><div class="reporte-metric-value">${newStudios.length}</div><div class="reporte-metric-sub">Añadidas al CRM</div></div>
   <div class="reporte-metric"><div class="reporte-metric-label">🎯 Activos Q1-4</div><div class="reporte-metric-value">${activeQ14.length}</div><div class="reporte-metric-sub">En cuadrantes prioritarios</div></div>
+  <div class="reporte-metric" style="${totalAlertas > 0 ? 'border-left:3px solid #f59e0b;' : ''}"><div class="reporte-metric-label">🚨 Alertas activas</div><div class="reporte-metric-value">${totalAlertas}</div><div class="reporte-metric-sub">Puente: ${alertasPuente.length} · Discrep: ${alertasDiscrep.length} · Obso: ${alertasObso.length} · Sect: ${alertasSectorial.length}</div></div>
 </div>
 
 ${visits.length > 0 ? `
@@ -6409,6 +6631,42 @@ ${newStudios.length > 0 ? `
     <div class="reporte-row-name" onclick="showStudioDetail('${s.id}')" style="cursor:pointer;">${escapeHtml(s.name)} <span style="font-weight:400;color:var(--muted);font-size:0.76rem;">${escapeHtml(s.province||'')}</span></div>
     <div class="reporte-row-meta">${s.type||'—'}</div>
   </div>`).join('')}
+</div>` : ''}
+
+${totalAlertas > 0 ? `
+<div class="reporte-section">
+  <div class="reporte-section-title">🚨 Alertas activas del agente (§16.2)</div>
+  ${alertasPuente.length > 0 ? `
+    <div style="margin-bottom:8px;font-size:0.82rem;color:var(--muted);font-weight:600;">🌉 Candidatos a cliente puente sin confirmar (${alertasPuente.length}):</div>
+    ${alertasPuente.slice(0,8).map(s => `<div class="reporte-row">
+      <div class="reporte-row-name" onclick="showStudioDetail('${s.id}')" style="cursor:pointer;">${escapeHtml(s.name)}</div>
+      <div class="reporte-row-meta">${escapeHtml(s.province||'')} · D:${s.priorityDirectScoreNatural||0}/R:${s.priorityNetworkScore||0}</div>
+    </div>`).join('')}
+  ` : ''}
+  ${alertasDiscrep.length > 0 ? `
+    <div style="margin:10px 0 8px;font-size:0.82rem;color:var(--muted);font-weight:600;">⚠️ Discrepancias detectadas (${alertasDiscrep.length}):</div>
+    ${alertasDiscrep.slice(0,5).map(({studio,campos}) => `<div class="reporte-row">
+      <div class="reporte-row-name" onclick="showStudioDetail('${studio.id}')" style="cursor:pointer;">${escapeHtml(studio.name)}</div>
+      <div class="reporte-row-meta">${campos.join(', ')}</div>
+    </div>`).join('')}
+  ` : ''}
+  ${alertasObso.length > 0 ? `
+    <div style="margin:10px 0 8px;font-size:0.82rem;color:var(--muted);font-weight:600;">🕐 Datos obsoletos &gt;12 meses (${alertasObso.length}):</div>
+    ${alertasObso.slice(0,5).map(({studio,campos}) => `<div class="reporte-row">
+      <div class="reporte-row-name" onclick="showStudioDetail('${studio.id}')" style="cursor:pointer;">${escapeHtml(studio.name)}</div>
+      <div class="reporte-row-meta">Sin reconfirmar: ${campos.join(', ')}</div>
+    </div>`).join('')}
+  ` : ''}
+  ${alertasSectorial.length > 0 ? `
+    <div style="margin:10px 0 8px;font-size:0.82rem;color:var(--muted);font-weight:600;">🌍 Prescriptores sectoriales descubiertos (${alertasSectorial.length}):</div>
+    ${alertasSectorial.slice(0,8).map(s => {
+        const fd = typeof s.fuente_descubrimiento === 'object' ? s.fuente_descubrimiento.valor : s.fuente_descubrimiento;
+        return `<div class="reporte-row">
+          <div class="reporte-row-name" onclick="showStudioDetail('${s.id}')" style="cursor:pointer;">${escapeHtml(s.name)}</div>
+          <div class="reporte-row-meta">${escapeHtml(s.province||'')} · ${fd}</div>
+        </div>`;
+    }).join('')}
+  ` : ''}
 </div>` : ''}
 
 <div class="reporte-section">
@@ -6461,9 +6719,43 @@ ${newStudios.length > 0 ? `
                 md += '\n';
             }
 
+            // Alertas activas del agente (§16.2)
+            const ap = d.alertasPuente || [], adi = d.alertasDiscrep || [],
+                  ao = d.alertasObso || [], aSect = d.alertasSectorial || [];
+            const totalAlert = ap.length + adi.length + ao.length + aSect.length;
+            if (totalAlert > 0) {
+                md += `## Alertas activas del agente\n`;
+                if (ap.length > 0) {
+                    md += `\n**🌉 Candidatos a cliente puente sin confirmar (${ap.length}):**\n`;
+                    ap.slice(0,8).forEach(s => {
+                        md += `- ${s.name} (${s.province||''}) — D:${s.priorityDirectScoreNatural||0}/R:${s.priorityNetworkScore||0}\n`;
+                    });
+                }
+                if (adi.length > 0) {
+                    md += `\n**⚠️ Discrepancias detectadas (${adi.length}):**\n`;
+                    adi.slice(0,5).forEach(({studio,campos}) => {
+                        md += `- ${studio.name}: campos en conflicto → ${campos.join(', ')}\n`;
+                    });
+                }
+                if (ao.length > 0) {
+                    md += `\n**🕐 Datos obsoletos >12 meses (${ao.length}):**\n`;
+                    ao.slice(0,5).forEach(({studio,campos}) => {
+                        md += `- ${studio.name}: sin reconfirmar → ${campos.join(', ')}\n`;
+                    });
+                }
+                if (aSect.length > 0) {
+                    md += `\n**🌍 Prescriptores sectoriales descubiertos (${aSect.length}):**\n`;
+                    aSect.slice(0,8).forEach(s => {
+                        const fd = typeof s.fuente_descubrimiento === 'object' ? s.fuente_descubrimiento.valor : s.fuente_descubrimiento;
+                        md += `- ${s.name} (${s.province||''}) — fuente: ${fd}\n`;
+                    });
+                }
+                md += '\n';
+            }
+
             md += `## Próximos pasos\n`;
             md += `- \n\n`;
-            md += `## Alertas y decisiones que requieren equipo\n`;
+            md += `## Decisiones que requieren equipo\n`;
             md += `- \n`;
 
             navigator.clipboard.writeText(md)
@@ -6511,6 +6803,7 @@ ${newStudios.length > 0 ? `
             ['contact', 'email'],
             ['contact', 'address'],
             ['contact', 'web'],
+            ['contact', 'city'],         // ⬅ añadido en Bloque 5 (estaba pendiente, 1585 sin migrar)
             ['studio',  'employees'],
             ['studio',  'revenue'],
             ['studio',  'founded'],
@@ -6536,12 +6829,16 @@ ${newStudios.length > 0 ? `
             };
         }
 
-        // Devuelve el objeto `data` modificado, o null si no hubo cambios.
+        // Devuelve { data: <objeto data modificado o null>, topLevel: <updates top-level o {}> }
+        // donde topLevel puede incluir `fuente_descubrimiento` añadido (§18.5.3).
+        // Si nada cambió, devuelve { data: null, topLevel: {} }.
         function migrarEstudioLegacy(studio) {
             const d = JSON.parse(JSON.stringify(studio.data || {}));
             const createdAt = (typeof studio.createdAt === 'string' ? studio.createdAt : null);
-            let changed = false;
+            let dataChanged = false;
+            const topLevel = {};
 
+            // 1. Campos dentro de data
             for (const path of _LEGACY_PATHS) {
                 let node = d;
                 for (let i = 0; i < path.length - 1; i++) {
@@ -6554,10 +6851,70 @@ ${newStudios.length > 0 ? `
                 if (val === null || val === undefined) continue;
                 if (typeof val === 'object' && 'valor' in val) continue; // already migrated
                 node[key] = wrapLegacyField(val, createdAt);
-                changed = true;
+                dataChanged = true;
             }
 
-            return changed ? d : null;
+            // 2. fuente_descubrimiento top-level (§18.5.3 — añadir como 'geografica' legacy)
+            const fd = studio.fuente_descubrimiento;
+            if (fd === null || fd === undefined) {
+                topLevel.fuente_descubrimiento = {
+                    valor: 'geografica',
+                    fuente_url: null,
+                    fuente_tipo: 'legacy',
+                    fecha_captura: createdAt,
+                    nivel_confianza: 'legacy'
+                };
+            } else if (typeof fd === 'string') {
+                topLevel.fuente_descubrimiento = wrapLegacyField(fd, createdAt);
+            }
+            // Si fd ya está envuelto, no tocar
+
+            return {
+                data: dataChanged ? d : null,
+                topLevel
+            };
+        }
+
+        /**
+         * Dry-run de migración legacy. Muestra antes/después de N studios sin
+         * tocar Firestore. Uso desde consola: await migracionLegacyDryRun(5)
+         */
+        async function migracionLegacyDryRun(N = 5) {
+            const all = (typeof allStudios !== 'undefined' && allStudios.length > 0)
+                ? allStudios
+                : await getAllStudios();
+            const sample = all.slice().sort(() => Math.random() - 0.5).slice(0, N);
+            const report = sample.map(s => {
+                const r = migrarEstudioLegacy(s);
+                const diff = [];
+                if (r.data) {
+                    // Comparar los campos top de data
+                    const checkPaths = _LEGACY_PATHS.slice(0, 5).map(p => p.join('.'));
+                    for (const path of checkPaths) {
+                        const before = path.split('.').reduce((o,k) => o?.[k], s.data || {});
+                        const after  = path.split('.').reduce((o,k) => o?.[k], r.data  || {});
+                        if (before !== after) {
+                            diff.push({ campo: 'data.'+path, before, after });
+                        }
+                    }
+                }
+                for (const k of Object.keys(r.topLevel)) {
+                    diff.push({ campo: k, before: s[k] ?? null, after: r.topLevel[k] });
+                }
+                return {
+                    id: s.id,
+                    name: (s.name||'').slice(0, 30),
+                    changed: !!r.data || Object.keys(r.topLevel).length > 0,
+                    diff
+                };
+            });
+            console.log('🧪 Migración legacy dry-run sobre', N, 'studios:');
+            console.table(report.map(r => ({
+                id: r.id, name: r.name, changed: r.changed,
+                campos: r.diff.map(d => d.campo).join(', ') || '—'
+            })));
+            console.log('Detalle completo:', report);
+            return report;
         }
 
         async function ejecutarMigracionLegacy() {
@@ -6577,9 +6934,13 @@ ${newStudios.length > 0 ? `
 
             for (const studio of allStudios) {
                 try {
-                    const newData = migrarEstudioLegacy(studio);
-                    if (newData) {
-                        await updateStudio(studio.id, { data: newData });
+                    const r = migrarEstudioLegacy(studio);
+                    const updates = {};
+                    if (r.data) updates.data = r.data;
+                    Object.assign(updates, r.topLevel);
+                    if (Object.keys(updates).length > 0) {
+                        await updateStudio(studio.id, updates);
+                        Object.assign(studio, updates);  // refrescar caché local
                         changed++;
                     }
                 } catch (e) {
@@ -6684,6 +7045,22 @@ ${newStudios.length > 0 ? `
             studio.createdAt = new Date().toISOString();
             studio.updatedAt = new Date().toISOString();
             studio.status = studio.status || 'nuevo';
+
+            // Default de fuente_descubrimiento (spec §18.5.3): si no se especifica,
+            // el alta es geográfica (sede registrada en la zona). Los descubrimientos
+            // sectorial/academica vienen explícitamente desde la Capa Sectorial.
+            if (!studio.fuente_descubrimiento) {
+                studio.fuente_descubrimiento = 'geografica';
+            }
+
+            // Auto-marcado de cliente puente (spec §18.5.4):
+            // Todo studio con fuente_descubrimiento ∈ {sectorial, academica} se marca
+            // automáticamente como es_cliente_puente: true desde el alta — son
+            // prescriptores por construcción (Valor Directo bajo + Valor de Red alto).
+            if ((studio.fuente_descubrimiento === 'sectorial' || studio.fuente_descubrimiento === 'academica')
+                && studio.es_cliente_puente !== true) {
+                studio.es_cliente_puente = true;
+            }
 
             // Extraer ciudad automáticamente si no viene informada
             if (!studio.city && studio.name && studio.province) {
@@ -8825,6 +9202,13 @@ ${newStudios.length > 0 ? `
             return (text || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         }
         
+        // Toggle de chips multi-select del filtro fuente_descubrimiento (§18.5.6)
+        function toggleFuenteChip(el) {
+            if (!el) return;
+            el.classList.toggle('active');
+            applyFilters();
+        }
+
         function applyFilters() {
             const typeFilter           = document.getElementById('filter-type').value;
             const statusFilter         = document.getElementById('filter-status').value;
@@ -8839,6 +9223,10 @@ ${newStudios.length > 0 ? `
             const normaFilter          = document.getElementById('filter-norma')?.value || '';
             const origenFilter         = document.getElementById('filter-origen')?.value || '';
             const quadrantFilter       = parseInt(document.getElementById('filter-quadrant')?.value || '0') || 0;
+            // Filtro fuente_descubrimiento (chips multi-select, §18.5.6)
+            const fuenteChips = Array.from(document.querySelectorAll('#filter-fuente-descubrimiento .filter-chip.active'))
+                .map(el => el.dataset.value);
+            const fuenteFilterActive = fuenteChips.length > 0;
             const searchTerm           = normalizeText(document.getElementById('global-search').value);
 
             const now = new Date();
@@ -8861,6 +9249,12 @@ ${newStudios.length > 0 ? `
                 if (normaFilter && !(studio.normasExigidas || []).includes(normaFilter)) return false;
                 if (origenFilter && (studio.origenPrescriptor || studio.data?.origenPrescriptor || '') !== origenFilter) return false;
                 if (quadrantFilter && (studio.priorityQuadrant || 0) !== quadrantFilter) return false;
+
+                // Filtro fuente_descubrimiento (§18.5.6) — múltiples chips = OR
+                if (fuenteFilterActive) {
+                    const f = studio.fuente_descubrimiento || 'geografica';
+                    if (!fuenteChips.includes(f)) return false;
+                }
                 if (priorityFilter) {
                     // Map Alta/Media/Baja filter to both legacy and v2 values
                     const v2Map = { 'Alta': 'Alto', 'Media': 'Medio', 'Baja': 'Bajo' };
@@ -9087,6 +9481,17 @@ ${newStudios.length > 0 ? `
                         <span class="priority priority-${getDisplayPriorityClass(studio)}">${escapeHtml(getDisplayPriority(studio))}</span>
                         ${studio.priorityQuadrant ? `<br><span style="font-size:0.68rem;color:var(--primary);font-weight:600;" title="${escapeHtml(studio.priorityRecommendedAction||'')}">Q${studio.priorityQuadrant} ${escapeHtml(studio.priorityQuadrantName||'')}${(() => { const d = getQuadrantDelta(studio); if (!d) return ''; return d.trend === 'up' ? `<span class="q-delta q-delta-up" title="Antes Q${d.from}">↑Q${d.from}</span>` : d.trend === 'down' ? `<span class="q-delta q-delta-down" title="Antes Q${d.from}">↓Q${d.from}</span>` : ''; })()}</span>` : ''}
                         ${studio.es_cliente_puente ? '<br><span style="font-size:0.65rem;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:8px;font-weight:600;">🌉 puente</span>' : (studio.es_candidato_puente ? '<br><span style="font-size:0.65rem;background:#fef9c3;color:#854d0e;padding:1px 5px;border-radius:8px;font-weight:600;">🌉 candidato</span>' : '')}
+                        ${(() => {
+                            const f = studio.fuente_descubrimiento;
+                            if (!f || f === 'geografica') return '';
+                            const map = {
+                                sectorial:  { bg:'#dbeafe', fg:'#1d4ed8', label:'🌍 sectorial' },
+                                ambas:      { bg:'#d1fae5', fg:'#047857', label:'🌍 ambas' },
+                                academica:  { bg:'#ede9fe', fg:'#6d28d9', label:'🎓 académica' },
+                            };
+                            const m = map[f]; if (!m) return '';
+                            return `<br><span style="font-size:0.65rem;background:${m.bg};color:${m.fg};padding:1px 5px;border-radius:8px;font-weight:600;">${m.label}</span>`;
+                        })()}
                     </td>
                     <td data-label="Última Actividad">${formatDate(studio.updatedAt)}</td>
                     <td data-label="Creado">${formatDate(studio.createdAt)}</td>
@@ -11106,6 +11511,13 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             });
             if (result?.error) throw new Error('Brave GAS: ' + result.error);
             if (!result?.content) throw new Error('Brave GAS: respuesta vacía');
+            // Marcar HTTP 429 explícitamente para que el wrapper bloquee el motor
+            if (result.status === 429) {
+                const err = new Error('Brave HTTP 429: rate limited');
+                err.httpStatus = 429;
+                err.retryAfter = parseInt(result.headers?.['retry-after']) || 60;
+                throw err;
+            }
             if (result.status >= 400) throw new Error(`Brave HTTP ${result.status}`);
             const data = JSON.parse(result.content);
             return (data.web?.results || []).map(r => ({
@@ -11115,23 +11527,133 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             }));
         }
 
-        // Failover: Motor 1 → Motor 2 cuando DDG falla o devuelve ≤2 resultados
+        // ── Multi-motor con circuit breaker, métricas y orden configurable (B4) ──
+        // Decisión 4 spec v1.1 + §5 Capa 1: failover automático cuando el primario
+        // falla, supera cuota (429) o devuelve ≤2 resultados relevantes.
+
+        // Estado salud por motor — circuit breaker simple
+        const _searchEngineHealth = {
+            ddg:   { failures: 0, blockedUntil: 0 },
+            brave: { failures: 0, blockedUntil: 0 },
+        };
+        const _SEARCH_FAILURES_THRESHOLD = 3;        // 3 fallos seguidos → bloqueo
+        const _SEARCH_BLOCK_DURATION_MS  = 5 * 60 * 1000;  // 5 min de bloqueo
+
+        // Métricas globales — inspeccionables vía getSearchEngineStats()
+        const _searchEngineMetrics = {
+            ddg:   { calls: 0, successes: 0, failures: 0, blocked: 0, lastError: null },
+            brave: { calls: 0, successes: 0, failures: 0, blocked: 0, lastError: null },
+        };
+
+        function isEngineBlocked(name) {
+            return _searchEngineHealth[name]?.blockedUntil > Date.now();
+        }
+
+        function markEngineFailure(name, err) {
+            const h = _searchEngineHealth[name];
+            const m = _searchEngineMetrics[name];
+            if (!h || !m) return;
+            h.failures++;
+            m.failures++;
+            m.lastError = err?.message || String(err);
+            // Bloqueo explícito si cuota (429) con Retry-After
+            if (err?.httpStatus === 429 && err?.retryAfter) {
+                h.blockedUntil = Date.now() + (err.retryAfter * 1000);
+                debugLog(`${name}: bloqueado ${err.retryAfter}s por cuota (429)`);
+                return;
+            }
+            // Bloqueo por umbral de fallos consecutivos
+            if (h.failures >= _SEARCH_FAILURES_THRESHOLD) {
+                h.blockedUntil = Date.now() + _SEARCH_BLOCK_DURATION_MS;
+                debugLog(`${name}: bloqueado 5 min tras ${h.failures} fallos consecutivos`);
+            }
+        }
+
+        function markEngineSuccess(name) {
+            const h = _searchEngineHealth[name];
+            const m = _searchEngineMetrics[name];
+            if (!h || !m) return;
+            h.failures = 0;       // Reset al primer éxito
+            h.blockedUntil = 0;
+            m.successes++;
+        }
+
+        // Tabla de implementaciones — facilita reordenar
+        const _SEARCH_ENGINES = {
+            ddg:   { name: 'DuckDuckGo',  fn: searchDuckDuckGo },
+            brave: { name: 'Brave Search', fn: searchBrave },
+        };
+
+        // Orden configurable: localStorage.crm_search_engine_primary ∈ {'ddg','brave'}
+        // Default: DDG primario (más barato, sin clave requerida).
+        function getSearchEngineOrder() {
+            const primary = (localStorage.getItem('crm_search_engine_primary') || 'ddg').toLowerCase();
+            return primary === 'brave' ? ['brave', 'ddg'] : ['ddg', 'brave'];
+        }
+
+        // Helper para inspección desde consola: stats agregadas del multi-motor
+        function getSearchEngineStats() {
+            const now = Date.now();
+            const status = {};
+            for (const name in _searchEngineMetrics) {
+                const m = _searchEngineMetrics[name];
+                const h = _searchEngineHealth[name];
+                status[name] = {
+                    ...m,
+                    successRate: m.calls > 0 ? (m.successes / m.calls * 100).toFixed(1) + '%' : '—',
+                    currentlyBlocked: h.blockedUntil > now,
+                    blockedFor: h.blockedUntil > now ? Math.round((h.blockedUntil - now) / 1000) + 's' : null,
+                    consecutiveFailures: h.failures,
+                };
+            }
+            return { order: getSearchEngineOrder(), engines: status };
+        }
+
+        // Reset manual (útil tras detectar problema y solucionarlo)
+        function resetSearchEngineHealth() {
+            for (const name in _searchEngineHealth) {
+                _searchEngineHealth[name] = { failures: 0, blockedUntil: 0 };
+            }
+            debugLog('Search engine health reseteado');
+        }
+
+        // Failover principal: probar motores en orden, saltar bloqueados, marcar resultado.
         async function searchWeb(query) {
-            try {
-                const results = await searchDuckDuckGo(query);
-                if (results.length > 2) return results;
-                debugLog(`DDG: ${results.length} resultados — activando Brave Search`);
-            } catch (e) {
-                debugLog(`DDG falló (${e.message}) — activando Brave Search`);
+            const order = getSearchEngineOrder();
+            let lastError = null;
+
+            for (let i = 0; i < order.length; i++) {
+                const name = order[i];
+                const engine = _SEARCH_ENGINES[name];
+                if (!engine) continue;
+
+                if (isEngineBlocked(name)) {
+                    _searchEngineMetrics[name].blocked++;
+                    debugLog(`${name}: skipping (bloqueado)`);
+                    continue;
+                }
+
+                _searchEngineMetrics[name].calls++;
+                try {
+                    const results = await engine.fn(query);
+                    // Spec §5 Capa 1: ≤2 resultados → activar secundario (solo si hay siguiente)
+                    if (results.length > 2 || i === order.length - 1) {
+                        markEngineSuccess(name);
+                        if (results.length > 0) debugLog(`${name}: ${results.length} resultados`);
+                        return results;
+                    }
+                    debugLog(`${name}: ${results.length} resultados — activando siguiente motor`);
+                    // No marcar failure: el motor funcionó, solo es pobre la query. No bloquear.
+                } catch (e) {
+                    lastError = e;
+                    markEngineFailure(name, e);
+                    debugLog(`${name} falló (${e.message}) — activando siguiente motor`);
+                }
             }
-            try {
-                const results = await searchBrave(query);
-                debugLog(`Brave Search: ${results.length} resultados`);
-                return results;
-            } catch (e) {
-                debugLog(`Brave Search falló: ${e.message}`);
-                return [];
-            }
+
+            // Todos los motores fallaron o están bloqueados
+            if (lastError) debugLog(`Multi-motor agotado. Último error: ${lastError.message}`);
+            return [];
         }
 
         // ============================================
@@ -12725,61 +13247,50 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 updateProgress('🏢 Buscando adjudicaciones públicas...', 'Licitaciones y contratos');
                 const publicResults = await searchWeb(`adjudicación proyecto ${typeLabel} ${province} ayuntamiento diputación`);
                 await processSearchResults(publicResults, foundStudios, province, 'Proyecto público', 85);
-                
+
+                // 11-bis. Capa Sectorial Geográfica (spec §18.5)
+                // Busca empresas con proyectos en zona aunque tengan sede fuera.
+                // Detecta prescriptores tipo Agrimensur, RM Agro, UCO/Camacho — perfil de
+                // cliente puente por construcción (sectorial → es_cliente_puente: true).
+                const sectoresParaTipo = TIPO_SECTORES[studioType] || TIPO_SECTORES[TIPO_LEGACY_MAP[studioTypeLegacy]] || [];
+                if (sectoresParaTipo.length > 0) {
+                    updateProgress('🌍 Capa Sectorial Geográfica...', `Buscando proyectos de ${sectoresParaTipo.slice(0,3).join(', ')} en ${province}`);
+                    const sectorialQueries = buildSectorialQueries(province, sectoresParaTipo);
+                    for (const query of sectorialQueries) {
+                        const results = await searchWeb(query);
+                        await processSearchResults(results, foundStudios, province, `Sectorial: ${query.match(/"([^"]+)"/)?.[1] || 'sector'}`, 70, 'sectorial');
+                    }
+
+                    // 11-ter. Bloque académico (spec §18.5.4 — universidad/grupos/catedráticos)
+                    updateProgress('🎓 Capa académica...', `Universidad de ${province} y grupos de investigación`);
+                    const academicQueries = buildAcademicQueries(province, sectoresParaTipo);
+                    for (const query of academicQueries) {
+                        const results = await searchWeb(query);
+                        // Filtro académica §18.5.7: requerir evidencia <24 meses
+                        const filtered = results.filter(r => {
+                            const text = ((r.title || '') + ' ' + (r.snippet || '')).toLowerCase();
+                            // Requiere ponencia, publicación o proyecto verificable
+                            const evidenciaTipo = /(ponente|congreso|jornada|publicaci[óo]n|proyecto|investigaci[óo]n|tesis|cat[ée]dra)/i.test(text);
+                            // Requiere referencia temporal reciente (2024, 2025, 2026)
+                            const evidenciaReciente = /\b(202[456])\b/.test(text);
+                            return evidenciaTipo && evidenciaReciente;
+                        });
+                        await processSearchResults(filtered, foundStudios, province, 'Universidad/Académico', 75, 'academica');
+                    }
+                }
+
                 // 11. Búsqueda específica de la capital de provincia
                 updateProgress('🌆 Búsqueda en capital de provincia...', getCityForProvince(province));
                 const capitalCity = getCityForProvince(province);
                 const capitalResults = await searchWeb(`mejores estudios ${typeLabel} ${capitalCity} listado`);
                 await processSearchResults(capitalResults, foundStudios, province, 'Capital provincia', 75);
                 
-                // 12. Enriquecimiento con IA — pedir a Claude que sugiera empresas adicionales
-                updateProgress('🤖 Enriqueciendo con IA...', 'Analizando resultados y buscando candidatos adicionales');
-                try {
-                    const existingNames = Array.from(foundStudios.values()).map(s => s.name).slice(0, 30).join(', ');
-                    const enrichPrompt = `Eres un experto en el sector de ${typeLabel} en España. Necesito una lista de empresas/estudios de ${typeLabel} en la provincia de ${province}.
+                // Paso 12 eliminado: motor "IA (Claude)" generador de nombres.
+                // Incompatible con spec v1.1 §10.1 (orígenes legítimos de candidatos),
+                // §4.2 (niveles de confianza), §7.4 (solo `verificado` entra al scoring)
+                // y §17 (no inventa partida). 0 leads aportados al CRM en histórico.
 
-Ya tengo estas empresas identificadas: ${existingNames || 'ninguna todavía'}.
-
-Dame hasta 15 empresas ADICIONALES de ${typeLabel} en ${province} que NO estén en mi lista. Para cada una indica:
-- Nombre exacto de la empresa
-- Ciudad dentro de ${province}
-- Breve descripción (1 línea)
-
-Responde SOLO en formato JSON array:
-[{"nombre":"...","ciudad":"...","descripcion":"..."}]
-
-IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inventes nombres.`;
-
-                    const aiResult = await callClaudeAPI([{ role: 'user', content: enrichPrompt }], 3000);
-                    if (aiResult?.content?.[0]?.text) {
-                        let aiText = aiResult.content[0].text.replace(/```json/gi, '').replace(/```/gi, '').trim();
-                        const arrStart = aiText.indexOf('[');
-                        const arrEnd = aiText.lastIndexOf(']');
-                        if (arrStart !== -1 && arrEnd !== -1) {
-                            const aiStudios = JSON.parse(aiText.substring(arrStart, arrEnd + 1));
-                            for (const ai of aiStudios) {
-                                if (!ai.nombre || ai.nombre.length < 3) continue;
-                                const key = normalizeStudioKey(ai.nombre);
-                                if (!foundStudios.has(key)) {
-                                    foundStudios.set(key, {
-                                        name: ai.nombre,
-                                        snippet: (ai.descripcion || '') + (ai.ciudad ? ' — ' + ai.ciudad : ''),
-                                        url: '',
-                                        urls: [],
-                                        relevance: 65,
-                                        sources: ['IA (Claude)'],
-                                        province: province
-                                    });
-                                }
-                            }
-                        }
-                    }
-                } catch (aiErr) {
-                    console.warn('Enriquecimiento IA no disponible:', aiErr.message);
-                    // No bloquear la búsqueda si la IA falla (ej: sin créditos)
-                }
-
-                // 14. Enriquecimiento web — visitar webs de las empresas encontrados
+                // 13. Enriquecimiento web — visitar webs de las empresas encontrados
                 updateProgress('🌐 Enriqueciendo datos visitando webs...', 'Extrayendo emails, teléfonos y equipo');
                 try {
                     // Filtrar estudios con URL válida (excluir LinkedIn, Instagram, PA)
@@ -12851,15 +13362,19 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
             }
         }
 
-        async function processSearchResults(results, foundStudios, province, source, baseRelevance) {
+        async function processSearchResults(results, foundStudios, province, source, baseRelevance, fuenteDescubrimiento) {
+            // fuenteDescubrimiento (spec §18.5.3): 'geografica' (default), 'sectorial' o 'academica'.
+            // Si se omite, se asume 'geografica' (las capas 1-10 actuales).
+            const fuente = fuenteDescubrimiento || 'geografica';
+
             for (const result of results) {
                 // Extraer nombre dla empresa del título
                 const studioName = extractStudioName(result.title, result.snippet);
                 if (!studioName || studioName.length < 3) continue;
-                
+
                 // Crear clave única para evitar duplicados
                 const key = normalizeStudioKey(studioName);
-                
+
                 if (foundStudios.has(key)) {
                     // Ya existe, incrementar relevancia y añadir fuente
                     const existing = foundStudios.get(key);
@@ -12869,6 +13384,19 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                     }
                     if (result.url && !existing.urls.includes(result.url)) {
                         existing.urls.push(result.url);
+                    }
+                    // Promoción de fuente_descubrimiento (spec §18.5.3):
+                    // geografica + sectorial ⇒ ambas
+                    // sectorial + geografica ⇒ ambas
+                    // academica se mantiene si ya está (caso UCO local)
+                    if (existing.fuente_descubrimiento && existing.fuente_descubrimiento !== fuente) {
+                        const set = new Set([existing.fuente_descubrimiento, fuente]);
+                        if (set.has('geografica') && set.has('sectorial')) {
+                            existing.fuente_descubrimiento = 'ambas';
+                        } else if (set.has('academica')) {
+                            // academica gana sobre cualquier otra (subconjunto específico de sectorial)
+                            existing.fuente_descubrimiento = 'academica';
+                        }
                     }
                     // Mergear campos enriquecidos si el resultado los tiene
                     if (result.paPhone && !existing.paPhone) existing.paPhone = result.paPhone;
@@ -12888,7 +13416,8 @@ IMPORTANTE: Solo empresas REALES que existan actualmente en ${province}. No inve
                         urls: result.url ? [result.url] : [],
                         relevance: baseRelevance,
                         sources: [source],
-                        province: province
+                        province: province,
+                        fuente_descubrimiento: fuente,
                     };
                     // Copiar campos PA si existen
                     if (result.paPhone) entry.paPhone = result.paPhone;
@@ -16931,83 +17460,88 @@ ${comercialCalls.length > 0 ? `
         // Recalcular prioridades de todos las empresas
         async function recalculateAllPriorities() {
             const criteriosInfo = `
-📊 CRITERIOS DE PRIORIDAD AUTOMÁTICA
+📊 SCORING V2 — DOBLE EJE (Spec §7)
 
-0. TIPO DE EMPRESA (hasta 3 puntos)
-   • Arquitectura / Ingeniería (prescriptor): +3 puntos
-   • Promotora / Constructora (decisor): +2 puntos
-   • Aguas / AAPP / Regantes (usuario final): +1 punto
+EJE 1 · Valor Directo (D)
+   • D1 Tipo de empresa (+0 a +3)
+   • D2 Tamaño (empleados) (+0 a +3)
+   • D3 Facturación (+0 a +3, hoy sin_dato_fiable)
+   • D4 Actividad (nº de proyectos) (+0 a +3)
+   • D5 Fit GPF (catálogo aplicable) (+0 a +3)
+   • D6 Contacto verificable (+0 a +2)
+   Bonus +2 en D1 y +2 en D5 si es_cliente_puente=true
 
-1. TAMAÑO DEL ESTUDIO (hasta 3 puntos)
-   • ≥20 empleados: +3 puntos
-   • ≥10 empleados: +2 puntos
-   • ≥3 empleados: +1 punto
+EJE 2 · Valor de Red (R)
+   • R1 Tamaño cartera detectable (+0 a +2)
+   • R2 Densidad GPF cartera (+0 a +4)
+   • R3 Exclusividad / proveedor preferente (+0 a +3)
+   • R4 Posición referente (+0 a +4)
+   • R5 Diversidad geográfica (+0 a +2)
 
-2. NÚMERO DE PROYECTOS (hasta 3 puntos)
-   • ≥5 proyectos: +3 puntos
-   • ≥3 proyectos: +2 puntos
-   • ≥1 proyecto: +1 punto
+CUADRANTE 1-9 según bandas {Alto/Medio/Bajo} × {Alta/Media/Baja}
 
-3. TIPO DE PROYECTOS (hasta 2 puntos)
-   • Grandes obras (hoteles, hospitales, etc.): +2 puntos
-   • Residencial/Viviendas: +1 punto
-
-4. PRESENCIA EN REDES SOCIALES (hasta 2 puntos)
-   • ≥3 redes activas: +2 puntos
-   • ≥1 red activa: +1 punto
-
-5. INFORMACIÓN DE CONTACTO (hasta 2 puntos)
-   • ≥5 datos de contacto: +2 puntos
-   • ≥2 datos de contacto: +1 punto
-
-PUNTUACIÓN TOTAL: 15 puntos máximo
-• Alta: ≥9 puntos
-• Media: 5-8 puntos
-• Baja: <5 puntos
+🌉 CLIENTE PUENTE (§7.2.1)
+   Candidato auto si: D<6 (banda Baja) + R≥Media + ≥5 proyectos detectables.
+   Solo dimensiones con dato verificado entran al cálculo (§7.4).
 `;
-            
-            if (!confirm(criteriosInfo + '\n\n¿Recalcular la prioridad de todos las empresas?')) {
+
+            if (!confirm(criteriosInfo + '\n\n¿Recalcular el scoring v2 de toda la cartera?')) {
                 return;
             }
-            
+
             if (typeof closeMobileMenu === 'function' && isMobile) closeMobileMenu();
-            
+
             try {
-                showNotification('Recalculando prioridades...', 'info');
-                
+                showNotification('Recalculando scoring v2...', 'info');
+
                 const studios = allStudios.length > 0 ? allStudios : await getAllStudios();
                 let updated = 0;
-                let stats = { Alta: 0, Media: 0, Baja: 0 };
-                
+                let unchanged = 0;
+                let nuevosCandidatosPuente = 0;
+                let cambiosCuadrante = 0;
+                let stats = { Alto: 0, Medio: 0, Bajo: 0 };
+
                 for (const studio of studios) {
                     const v2updates = buildScoringV2Updates(studio, 'recalculo_masivo');
 
-                    if (!studio.priorityQuadrant) {
+                    const cambiaCuadrante = (studio.priorityQuadrant || null) !== (v2updates.priorityQuadrant || null);
+                    const nuevoCandidato = !studio.es_candidato_puente && v2updates.es_candidato_puente === true;
+
+                    // Escribir solo si hay cambios reales — evita 1500+ writes inútiles
+                    if (cambiaCuadrante || nuevoCandidato || !studio.priorityQuadrant) {
                         await updateStudio(studio.id, v2updates);
                         updated++;
-                        console.log(`📊 ${studio.name}: Q${v2updates.priorityQuadrant} ${v2updates.priorityQuadrantName} | D:${v2updates.priorityDirect} R:${v2updates.priorityNetwork}`);
+                        if (cambiaCuadrante) cambiosCuadrante++;
+                        if (nuevoCandidato) nuevosCandidatosPuente++;
+                        console.log(`📊 ${studio.name}: Q${v2updates.priorityQuadrant} | D:${v2updates.priorityDirect} R:${v2updates.priorityNetwork}${nuevoCandidato ? ' 🌉 candidato puente' : ''}`);
+                    } else {
+                        unchanged++;
                     }
 
                     const dKey = v2updates.priorityDirect || studio.priorityDirect || 'Bajo';
-                    if (dKey === 'Alto') stats.Alta++;
-                    else if (dKey === 'Medio') stats.Media++;
-                    else stats.Baja++;
+                    stats[dKey] = (stats[dKey] || 0) + 1;
                 }
-                
+
                 await loadStudios();
-                
-                const resumen = `✅ Prioridades recalculadas
 
-📊 Estudios actualizados: ${updated}
+                const resumen = `✅ Scoring v2 recalculado
 
-📈 Distribución:
-• 🔴 Alta: ${stats.Alta} estudios
-• 🟡 Media: ${stats.Media} estudios
-• ⚪ Baja: ${stats.Baja} estudios`;
-                
+📊 Procesados: ${studios.length}
+   • Actualizados: ${updated}
+   • Sin cambios: ${unchanged}
+
+📈 Cambios:
+   • Cuadrante distinto: ${cambiosCuadrante}
+   • 🌉 Nuevos candidatos puente: ${nuevosCandidatosPuente}
+
+📊 Distribución Eje Directo:
+   • 🔴 Alto: ${stats.Alto || 0}
+   • 🟡 Medio: ${stats.Medio || 0}
+   • ⚪ Bajo: ${stats.Bajo || 0}`;
+
                 showNotification(resumen, 'info');
-                showNotification(`${updated} estudios actualizados`, 'success');
-                
+                showNotification(`${updated} estudios actualizados${nuevosCandidatosPuente ? ` · 🌉 ${nuevosCandidatosPuente} candidatos a puente` : ''}`, 'success');
+
             } catch (error) {
                 console.error('Error recalculando prioridades:', error);
                 showNotification('Error al recalcular: ' + (error.message || 'Error desconocido'), 'error');
@@ -25828,16 +26362,26 @@ updateMap();
             const localIso = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
             const vozSection = mode === 'voz' ? `
+                <div style="margin-bottom:10px;padding:8px 10px;background:#fef3c7;border-left:3px solid #f59e0b;border-radius:6px;font-size:0.75rem;color:#78350f;">
+                    ⚠️ <strong>Aviso de privacidad</strong>: la transcripción usa la API del navegador
+                    (Google Chrome / Apple Safari) que envía el audio a sus servidores. Para visitas con
+                    información comercial sensible, usa la modalidad <strong>Escribir visita</strong>.
+                    <span style="display:block;margin-top:4px;color:#92400e;">Transcripción local con faster-whisper queda pendiente — spec §16.1 REQUISITO.</span>
+                </div>
                 <div class="visita-rec-row">
                     <button class="visita-rec-btn idle" id="visita-rec-btn" onclick="toggleGrabacion()">🎙️ Iniciar grabación</button>
                     <span class="visita-rec-status" id="visita-rec-status">Listo para grabar</span>
                     <span id="visita-rec-timer" style="font-size:0.75rem;color:var(--muted);white-space:nowrap;">0:00</span>
                 </div>
-                <div style="margin-bottom:4px;font-size:0.78rem;font-weight:700;color:var(--text-secondary);display:flex;align-items:center;justify-content:space-between;">
+                <div style="margin-bottom:4px;font-size:0.78rem;font-weight:700;color:var(--text-secondary);display:flex;align-items:center;justify-content:space-between;gap:6px;">
                     <span>🗒️ Transcripción</span>
-                    <button onclick="distribuirTranscripcion()" style="font-size:0.72rem;padding:2px 8px;background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;">→ Distribuir en bloques</button>
+                    <span style="display:flex;gap:4px;">
+                        <button onclick="extraerVisitaConIA()" style="font-size:0.72rem;padding:2px 8px;background:#8b5cf6;color:white;border:none;border-radius:6px;cursor:pointer;" title="Extrae los 5 bloques (interlocutor, temas, compromisos, próximo paso, señales) de la transcripción con LLM">🤖 Extraer con IA</button>
+                        <button onclick="distribuirTranscripcion()" style="font-size:0.72rem;padding:2px 8px;background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;">→ Distribuir bruto</button>
+                    </span>
                 </div>
                 <textarea class="visita-transcript" id="visita-transcript" placeholder="La transcripción aparecerá aquí mientras hablas. Si el navegador no soporta reconocimiento de voz, pega el texto manualmente."></textarea>
+                <div id="visita-extract-status" style="display:none;font-size:0.72rem;color:var(--muted);margin-top:-8px;margin-bottom:8px;"></div>
             ` : '';
 
             const overlay = document.createElement('div');
@@ -25985,6 +26529,140 @@ updateMap();
             showNotification('Transcripción copiada a "Temas tratados". Edita y completa los demás bloques.', 'info');
         }
 
+        // Extracción estructurada de los 5 bloques con LLM (spec §16.1)
+        // Llama a Claude con prompt diseñado para extraer interlocutor, temas,
+        // compromisos, próximo paso y señales desde la transcripción cruda.
+        async function extraerVisitaConIA() {
+            const transcriptEl = document.getElementById('visita-transcript');
+            const statusEl = document.getElementById('visita-extract-status');
+            if (!transcriptEl) return;
+            const text = (transcriptEl.value || '').trim();
+            if (!text) { showNotification('No hay transcripción para extraer', 'warning'); return; }
+            if (text.length < 50) {
+                showNotification('Transcripción demasiado corta para extraer estructura', 'warning');
+                return;
+            }
+
+            const studio = allStudios.find(s => String(s.id) === String(_visitaCurrentStudioId));
+            const studioName = studio?.name || 'el cliente';
+
+            if (statusEl) {
+                statusEl.style.display = 'block';
+                statusEl.textContent = '🤖 Extrayendo con Claude…';
+            }
+
+            const prompt = `Eres un analista de reuniones comerciales. Te paso la transcripción de una visita comercial a ${studioName}. Extrae la información en cinco bloques (spec §16.1 del CRM):
+
+TRANSCRIPCIÓN:
+"""
+${text}
+"""
+
+Devuelve SOLO un JSON con esta estructura exacta:
+{
+  "interlocutor": "<nombre, cargo, rol detectado en la reunión>",
+  "temas_tratados": "<3-5 puntos clave en líneas separadas con '- '. Síntesis, NO transcripción literal>",
+  "compromisos": "<lista de compromisos asumidos por AMBAS partes, con fecha si se mencionó. Línea por compromiso, '- ' prefijo>",
+  "proximo_paso": "<qué hay que hacer, cuándo, quién lo dispara — una sola línea concisa>",
+  "señales": "<proyectos mencionados, cambios estructurales, oportunidades, riesgos. Línea por señal, '- ' prefijo>"
+}
+
+Importante:
+- Si un campo no tiene información clara en la transcripción, devuelve cadena vacía "".
+- Síntesis, no transcripción. Usa lenguaje breve y profesional en castellano.
+- Nada de markdown fuera de los valores. Sin \`\`\` ni explicaciones.
+- Solo el JSON.`;
+
+            try {
+                const resp = await callClaudeAPI([{ role: 'user', content: prompt }], 1500);
+                if (!resp?.content?.[0]?.text) throw new Error('respuesta vacía');
+                let raw = resp.content[0].text.replace(/```json/gi, '').replace(/```/gi, '').trim();
+                const a = raw.indexOf('{');
+                const b = raw.lastIndexOf('}');
+                if (a === -1 || b === -1) throw new Error('JSON no detectado');
+                const parsed = JSON.parse(raw.substring(a, b + 1));
+
+                // Rellenar campos del modal
+                const setIfEmpty = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (!el || !value) return;
+                    if (el.value.trim() === '') el.value = value;
+                };
+                setIfEmpty('visita-interlocutor', parsed.interlocutor || '');
+                setIfEmpty('visita-temas',       parsed.temas_tratados || '');
+                setIfEmpty('visita-compromisos', parsed.compromisos || '');
+                setIfEmpty('visita-proximo-paso', parsed.proximo_paso || '');
+                setIfEmpty('visita-señales',     parsed.señales || '');
+
+                if (statusEl) {
+                    statusEl.textContent = '✅ Bloques extraídos. Revisa y ajusta antes de guardar.';
+                    statusEl.style.color = '#16a34a';
+                }
+                showNotification('✅ Extracción IA completada — revisa los bloques', 'success');
+            } catch (e) {
+                if (statusEl) {
+                    statusEl.textContent = '❌ Error extrayendo: ' + (e.message || e);
+                    statusEl.style.color = '#dc2626';
+                }
+                console.error('extraerVisitaConIA error:', e);
+                showNotification('Error en extracción IA. Pega manualmente los bloques.', 'warning');
+            }
+        }
+
+        // Detecta actualizaciones propuestas para el cliente (spec §16.1):
+        // nuevo interlocutor no presente en team, nuevos proyectos mencionados,
+        // cambio de tamaño. Heurística simple, devuelve array de sugerencias.
+        function detectarActualizacionesPropuestas(studio, registroVisita) {
+            const props = [];
+            if (!studio || !registroVisita) return props;
+
+            // 1. Nuevo interlocutor
+            const teamArr = studio.data?.team || [];
+            const interText = (registroVisita.interlocutor || '').trim();
+            if (interText) {
+                // Extraer primer nombre con apellido (heurística simple)
+                const m = interText.match(/^([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)+)/);
+                const candidato = m ? m[1] : null;
+                if (candidato) {
+                    const yaExiste = teamArr.some(t => {
+                        const nombre = (typeof t.name === 'object' ? t.name?.valor : t.name) || '';
+                        return nombre && nombre.toLowerCase().includes(candidato.toLowerCase().split(' ')[0]);
+                    });
+                    if (!yaExiste) {
+                        props.push({
+                            tipo: 'team_nuevo',
+                            campo: 'data.team',
+                            propuesta: `Añadir nuevo miembro: ${candidato}`,
+                            valor_sugerido: { name: candidato, role: '', source: 'visita_presencial' }
+                        });
+                    }
+                }
+            }
+
+            // 2. Proyectos detectados en señales
+            const señalesText = (registroVisita.señales || registroVisita['señales'] || '').toLowerCase();
+            const palabrasProyecto = ['proyecto', 'obra', 'concurso', 'licitación', 'redacción de'];
+            if (palabrasProyecto.some(p => señalesText.includes(p))) {
+                props.push({
+                    tipo: 'proyecto_mencionado',
+                    campo: 'data.projects',
+                    propuesta: 'Posible proyecto nuevo mencionado en señales — revisar para añadir a la cartera de proyectos del cliente.'
+                });
+            }
+
+            // 3. Cambio de tamaño
+            const todoText = ((registroVisita.temas_tratados || '') + ' ' + señalesText).toLowerCase();
+            if (/expan|crec(í|i)mient|contrat[aa]ndo|nuevas oficinas|filial|absor/.test(todoText)) {
+                props.push({
+                    tipo: 'tamaño',
+                    campo: 'data.studio.employees',
+                    propuesta: 'Posible cambio de tamaño detectado — verificar plantilla actual.'
+                });
+            }
+
+            return props;
+        }
+
         async function submitRegistroVisita() {
             const studioId = _visitaCurrentStudioId;
             const mode = _visitaCurrentMode;
@@ -26009,6 +26687,7 @@ updateMap();
             if (compromisos) lines.push(`🤝 ${compromisos.substring(0, 80)}${compromisos.length > 80 ? '…' : ''}`);
             if (proximoPaso) lines.push(`➡️ ${proximoPaso.substring(0, 80)}${proximoPaso.length > 80 ? '…' : ''}`);
 
+            const studioForProp = allStudios.find(s => String(s.id) === String(studioId));
             const registroVisita = {
                 modalidad: mode,
                 fecha_visita: fecha,
@@ -26024,6 +26703,8 @@ updateMap();
                     duracion_audio_seg: _visitaRecSeconds,
                 } : {}),
             };
+            // Spec §16.1: el sistema detecta cambios y los propone al usuario
+            registroVisita.actualizaciones_propuestas = detectarActualizacionesPropuestas(studioForProp, registroVisita);
 
             const activity = {
                 studioId: String(studioId),
