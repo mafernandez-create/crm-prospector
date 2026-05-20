@@ -251,6 +251,12 @@ function getFirestoreAccessToken() {
   var props = PropertiesService.getScriptProperties();
   var serviceAccountEmail = props.getProperty('SERVICE_ACCOUNT_EMAIL');
   var privateKey = props.getProperty('SERVICE_ACCOUNT_PRIVATE_KEY');
+  // Fix: si la private_key se pegó con \n literales (caso típico al copiar
+  // directo del JSON), convertirlos a saltos de línea reales que la library
+  // OAuth2 necesita para parsear el PEM. Idempotente.
+  if (privateKey && privateKey.indexOf('\\n') !== -1) {
+    privateKey = privateKey.replace(/\\n/g, '\n');
+  }
 
   if (!serviceAccountEmail || !privateKey) {
     throw new Error('SERVICE_ACCOUNT_EMAIL / SERVICE_ACCOUNT_PRIVATE_KEY no configurados en Script Properties.');
