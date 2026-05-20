@@ -3224,6 +3224,12 @@
                     <div id="bandeja-puente-list"></div>
                 </div>
 
+                <!-- Prescriptores con proyectos en zona (Capa Sectorial Geográfica §18.5) -->
+                <div class="bandeja-section" id="bandeja-sectorial-section">
+                    <div class="bandeja-section-title">🌍 Prescriptores con proyectos en zona <span id="bandeja-sectorial-count" style="font-size:0.75rem;font-weight:400;color:var(--muted);"></span></div>
+                    <div id="bandeja-sectorial-list"></div>
+                </div>
+
                 <!-- Cambios de cuadrante recientes -->
                 <div class="bandeja-section" id="bandeja-delta-section">
                     <div class="bandeja-section-title">📈 Cambios de cuadrante recientes <span id="bandeja-delta-count" style="font-size:0.75rem;font-weight:400;color:var(--muted);"></span></div>
@@ -4841,6 +4847,44 @@
             almacen: 'almacen', colegio_profesional: 'colegio_profesional', otros: 'otros'
         };
 
+        // ── Capa Sectorial Geográfica (spec §18.5.2) ─────────────────────────
+        // Mapping `tipo → sectores` que define qué sectores se buscan en
+        // proyectos-por-zona cuando se ejecuta una búsqueda masiva.
+        const TIPO_SECTORES = {
+            ARQ:  ['edificación', 'rehabilitación', 'vivienda colectiva'],
+            ING:  ['agua', 'regadío', 'saneamiento', 'hidráulica', 'obra civil'],
+            OCV:  ['infraestructura', 'urbanización', 'abastecimiento urbano'],
+            AAPP: ['licitación', 'adjudicación', 'contrato menor'],
+            CCRR: ['regadío', 'modernización', 'gestión hídrica'],
+            CICA: ['gemelo digital', 'telecontrol', 'eficiencia hídrica'],
+        };
+
+        // Patrones de query para la Capa Sectorial Geográfica (spec §18.5.1).
+        // Cada `(provincia, sector)` produce 4 queries específicas → 12-30
+        // queries sectoriales adicionales por búsqueda según el tipo.
+        function buildSectorialQueries(provincia, sectores) {
+            const queries = [];
+            for (const sector of sectores) {
+                queries.push(`"proyecto ${sector}" "${provincia}"`);
+                queries.push(`"obras de ${sector}" "${provincia}"`);
+                queries.push(`"modernización ${sector}" "${provincia}"`);
+                queries.push(`"adjudicado" "${sector}" "${provincia}"`);
+            }
+            return queries;
+        }
+
+        // Patrones académicos: catedráticos, grupos UCO, ponencias.
+        // Se ejecutan en paralelo al bloque sectorial — fuente_descubrimiento='academica'.
+        function buildAcademicQueries(provincia, sectores) {
+            const queries = [];
+            const universidad = `universidad de ${provincia}`;
+            queries.push(`"ponente" "${universidad}" ${sectores[0]}`);
+            queries.push(`"congreso ${sectores[0]}" "${provincia}"`);
+            queries.push(`"grupo de investigación" "${universidad}" ${sectores.slice(0, 2).join(' OR ')}`);
+            queries.push(`"catedrático" "${universidad}" ${sectores[0]}`);
+            return queries;
+        }
+
         // ── Helpers de tipo (v1.1) ────────────────────────────────────────────
         /** Devuelve el array de códigos de tipo del estudio, normalizando strings legacy */
         function getTiposArray(studio) {
@@ -6271,6 +6315,38 @@
                     </div>`).join('');
             }
 
+            // ── Prescriptores con proyectos en zona (Capa Sectorial §18.5.6) ──
+            const sectoriales = allStudios.filter(s =>
+                s.fuente_descubrimiento === 'sectorial' ||
+                s.fuente_descubrimiento === 'academica' ||
+                s.fuente_descubrimiento === 'ambas'
+            );
+            const sectorialEl = document.getElementById('bandeja-sectorial-list');
+            const sectorialCount = document.getElementById('bandeja-sectorial-count');
+            if (sectorialEl && sectorialCount) {
+                sectorialCount.textContent = `(${sectoriales.length})`;
+                if (sectoriales.length === 0) {
+                    sectorialEl.innerHTML = '<p style="color:var(--muted);font-size:0.82rem;margin:0;">No hay prescriptores sectoriales detectados aún. La Capa Sectorial entra en acción en la próxima búsqueda masiva.</p>';
+                } else {
+                    sectorialEl.innerHTML = sectoriales.map(s => {
+                        const fuenteLabel = s.fuente_descubrimiento === 'academica' ? '🎓 académica'
+                            : s.fuente_descubrimiento === 'ambas' ? '🌍 ambas'
+                            : '🌍 sectorial';
+                        const fuenteBg = s.fuente_descubrimiento === 'academica' ? '#a78bfa'
+                            : s.fuente_descubrimiento === 'ambas' ? '#10b981'
+                            : '#60a5fa';
+                        return `
+                        <div class="bandeja-card" onclick="showStudioDetail('${s.id}')">
+                            <span class="q-chip" style="background:${fuenteBg};color:#fff;">${fuenteLabel}</span>
+                            <div>
+                                <div class="bandeja-card-name">${escapeHtml(s.name)}${s.es_cliente_puente ? ' <span style="font-size:0.7rem;color:#1e40af;">🌉</span>' : ''}</div>
+                                <div class="bandeja-card-meta">${escapeHtml(s.province||'')}${s.city ? ' · '+escapeHtml(s.city) : ''} · Q${s.priorityQuadrant || '?'}</div>
+                            </div>
+                        </div>`;
+                    }).join('');
+                }
+            }
+
             // ── Cambios de cuadrante ──
             const cambios = allStudios
                 .map(s => ({ s, d: getQuadrantDelta(s) }))
@@ -6684,6 +6760,22 @@ ${newStudios.length > 0 ? `
             studio.createdAt = new Date().toISOString();
             studio.updatedAt = new Date().toISOString();
             studio.status = studio.status || 'nuevo';
+
+            // Default de fuente_descubrimiento (spec §18.5.3): si no se especifica,
+            // el alta es geográfica (sede registrada en la zona). Los descubrimientos
+            // sectorial/academica vienen explícitamente desde la Capa Sectorial.
+            if (!studio.fuente_descubrimiento) {
+                studio.fuente_descubrimiento = 'geografica';
+            }
+
+            // Auto-marcado de cliente puente (spec §18.5.4):
+            // Todo studio con fuente_descubrimiento ∈ {sectorial, academica} se marca
+            // automáticamente como es_cliente_puente: true desde el alta — son
+            // prescriptores por construcción (Valor Directo bajo + Valor de Red alto).
+            if ((studio.fuente_descubrimiento === 'sectorial' || studio.fuente_descubrimiento === 'academica')
+                && studio.es_cliente_puente !== true) {
+                studio.es_cliente_puente = true;
+            }
 
             // Extraer ciudad automáticamente si no viene informada
             if (!studio.city && studio.name && studio.province) {
@@ -9087,6 +9179,17 @@ ${newStudios.length > 0 ? `
                         <span class="priority priority-${getDisplayPriorityClass(studio)}">${escapeHtml(getDisplayPriority(studio))}</span>
                         ${studio.priorityQuadrant ? `<br><span style="font-size:0.68rem;color:var(--primary);font-weight:600;" title="${escapeHtml(studio.priorityRecommendedAction||'')}">Q${studio.priorityQuadrant} ${escapeHtml(studio.priorityQuadrantName||'')}${(() => { const d = getQuadrantDelta(studio); if (!d) return ''; return d.trend === 'up' ? `<span class="q-delta q-delta-up" title="Antes Q${d.from}">↑Q${d.from}</span>` : d.trend === 'down' ? `<span class="q-delta q-delta-down" title="Antes Q${d.from}">↓Q${d.from}</span>` : ''; })()}</span>` : ''}
                         ${studio.es_cliente_puente ? '<br><span style="font-size:0.65rem;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:8px;font-weight:600;">🌉 puente</span>' : (studio.es_candidato_puente ? '<br><span style="font-size:0.65rem;background:#fef9c3;color:#854d0e;padding:1px 5px;border-radius:8px;font-weight:600;">🌉 candidato</span>' : '')}
+                        ${(() => {
+                            const f = studio.fuente_descubrimiento;
+                            if (!f || f === 'geografica') return '';
+                            const map = {
+                                sectorial:  { bg:'#dbeafe', fg:'#1d4ed8', label:'🌍 sectorial' },
+                                ambas:      { bg:'#d1fae5', fg:'#047857', label:'🌍 ambas' },
+                                academica:  { bg:'#ede9fe', fg:'#6d28d9', label:'🎓 académica' },
+                            };
+                            const m = map[f]; if (!m) return '';
+                            return `<br><span style="font-size:0.65rem;background:${m.bg};color:${m.fg};padding:1px 5px;border-radius:8px;font-weight:600;">${m.label}</span>`;
+                        })()}
                     </td>
                     <td data-label="Última Actividad">${formatDate(studio.updatedAt)}</td>
                     <td data-label="Creado">${formatDate(studio.createdAt)}</td>
@@ -12725,7 +12828,38 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 updateProgress('🏢 Buscando adjudicaciones públicas...', 'Licitaciones y contratos');
                 const publicResults = await searchWeb(`adjudicación proyecto ${typeLabel} ${province} ayuntamiento diputación`);
                 await processSearchResults(publicResults, foundStudios, province, 'Proyecto público', 85);
-                
+
+                // 11-bis. Capa Sectorial Geográfica (spec §18.5)
+                // Busca empresas con proyectos en zona aunque tengan sede fuera.
+                // Detecta prescriptores tipo Agrimensur, RM Agro, UCO/Camacho — perfil de
+                // cliente puente por construcción (sectorial → es_cliente_puente: true).
+                const sectoresParaTipo = TIPO_SECTORES[studioType] || TIPO_SECTORES[TIPO_LEGACY_MAP[studioTypeLegacy]] || [];
+                if (sectoresParaTipo.length > 0) {
+                    updateProgress('🌍 Capa Sectorial Geográfica...', `Buscando proyectos de ${sectoresParaTipo.slice(0,3).join(', ')} en ${province}`);
+                    const sectorialQueries = buildSectorialQueries(province, sectoresParaTipo);
+                    for (const query of sectorialQueries) {
+                        const results = await searchWeb(query);
+                        await processSearchResults(results, foundStudios, province, `Sectorial: ${query.match(/"([^"]+)"/)?.[1] || 'sector'}`, 70, 'sectorial');
+                    }
+
+                    // 11-ter. Bloque académico (spec §18.5.4 — universidad/grupos/catedráticos)
+                    updateProgress('🎓 Capa académica...', `Universidad de ${province} y grupos de investigación`);
+                    const academicQueries = buildAcademicQueries(province, sectoresParaTipo);
+                    for (const query of academicQueries) {
+                        const results = await searchWeb(query);
+                        // Filtro académica §18.5.7: requerir evidencia <24 meses
+                        const filtered = results.filter(r => {
+                            const text = ((r.title || '') + ' ' + (r.snippet || '')).toLowerCase();
+                            // Requiere ponencia, publicación o proyecto verificable
+                            const evidenciaTipo = /(ponente|congreso|jornada|publicaci[óo]n|proyecto|investigaci[óo]n|tesis|cat[ée]dra)/i.test(text);
+                            // Requiere referencia temporal reciente (2024, 2025, 2026)
+                            const evidenciaReciente = /\b(202[456])\b/.test(text);
+                            return evidenciaTipo && evidenciaReciente;
+                        });
+                        await processSearchResults(filtered, foundStudios, province, 'Universidad/Académico', 75, 'academica');
+                    }
+                }
+
                 // 11. Búsqueda específica de la capital de provincia
                 updateProgress('🌆 Búsqueda en capital de provincia...', getCityForProvince(province));
                 const capitalCity = getCityForProvince(province);
@@ -12809,15 +12943,19 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             }
         }
 
-        async function processSearchResults(results, foundStudios, province, source, baseRelevance) {
+        async function processSearchResults(results, foundStudios, province, source, baseRelevance, fuenteDescubrimiento) {
+            // fuenteDescubrimiento (spec §18.5.3): 'geografica' (default), 'sectorial' o 'academica'.
+            // Si se omite, se asume 'geografica' (las capas 1-10 actuales).
+            const fuente = fuenteDescubrimiento || 'geografica';
+
             for (const result of results) {
                 // Extraer nombre dla empresa del título
                 const studioName = extractStudioName(result.title, result.snippet);
                 if (!studioName || studioName.length < 3) continue;
-                
+
                 // Crear clave única para evitar duplicados
                 const key = normalizeStudioKey(studioName);
-                
+
                 if (foundStudios.has(key)) {
                     // Ya existe, incrementar relevancia y añadir fuente
                     const existing = foundStudios.get(key);
@@ -12827,6 +12965,19 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                     }
                     if (result.url && !existing.urls.includes(result.url)) {
                         existing.urls.push(result.url);
+                    }
+                    // Promoción de fuente_descubrimiento (spec §18.5.3):
+                    // geografica + sectorial ⇒ ambas
+                    // sectorial + geografica ⇒ ambas
+                    // academica se mantiene si ya está (caso UCO local)
+                    if (existing.fuente_descubrimiento && existing.fuente_descubrimiento !== fuente) {
+                        const set = new Set([existing.fuente_descubrimiento, fuente]);
+                        if (set.has('geografica') && set.has('sectorial')) {
+                            existing.fuente_descubrimiento = 'ambas';
+                        } else if (set.has('academica')) {
+                            // academica gana sobre cualquier otra (subconjunto específico de sectorial)
+                            existing.fuente_descubrimiento = 'academica';
+                        }
                     }
                     // Mergear campos enriquecidos si el resultado los tiene
                     if (result.paPhone && !existing.paPhone) existing.paPhone = result.paPhone;
@@ -12846,7 +12997,8 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                         urls: result.url ? [result.url] : [],
                         relevance: baseRelevance,
                         sources: [source],
-                        province: province
+                        province: province,
+                        fuente_descubrimiento: fuente,
                     };
                     // Copiar campos PA si existen
                     if (result.paPhone) entry.paPhone = result.paPhone;
