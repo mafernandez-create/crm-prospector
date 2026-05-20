@@ -40,7 +40,7 @@ Tiempo estimado: **20-30 minutos**.
 
 2. **Añadir library OAuth2**:
    - Menú lateral izquierdo: **Bibliotecas** (icono `+`).
-   - **Añadir biblioteca con ID**: pegar `1B7FSrk5Zi6L1rSxxTgBdxxBycjK4Z8X1xkmnTpVz5pYTqVqRdaLBYV6n`.
+   - **Añadir biblioteca con ID**: pegar `1B7FSrk5Zi6L1rSxxTDgDEUsPzlukDsi4KGuTMorsTQHhGBzBkMun4iDF`.
    - Click **Buscar** → versión más reciente → **Identificador**: dejar `OAuth2` → **Añadir**.
 
 3. **Añadir el código del endpoint**:

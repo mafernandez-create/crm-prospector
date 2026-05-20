@@ -256,7 +256,7 @@ function getFirestoreAccessToken() {
     throw new Error('SERVICE_ACCOUNT_EMAIL / SERVICE_ACCOUNT_PRIVATE_KEY no configurados en Script Properties.');
   }
 
-  // OAuth2 library (script ID 1B7FSrk5Zi6L1rSxxTgBdxxBycjK4Z8X1xkmnTpVz5pYTqVqRdaLBYV6n)
+  // OAuth2 library (script ID 1B7FSrk5Zi6L1rSxxTDgDEUsPzlukDsi4KGuTMorsTQHhGBzBkMun4iDF)
   if (typeof OAuth2 === 'undefined') {
     throw new Error('OAuth2 library no instalada. Añadir desde Apps Script Editor → Bibliotecas.');
   }
