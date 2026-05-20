@@ -11355,6 +11355,13 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             });
             if (result?.error) throw new Error('Brave GAS: ' + result.error);
             if (!result?.content) throw new Error('Brave GAS: respuesta vacía');
+            // Marcar HTTP 429 explícitamente para que el wrapper bloquee el motor
+            if (result.status === 429) {
+                const err = new Error('Brave HTTP 429: rate limited');
+                err.httpStatus = 429;
+                err.retryAfter = parseInt(result.headers?.['retry-after']) || 60;
+                throw err;
+            }
             if (result.status >= 400) throw new Error(`Brave HTTP ${result.status}`);
             const data = JSON.parse(result.content);
             return (data.web?.results || []).map(r => ({
@@ -11364,23 +11371,133 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             }));
         }
 
-        // Failover: Motor 1 → Motor 2 cuando DDG falla o devuelve ≤2 resultados
+        // ── Multi-motor con circuit breaker, métricas y orden configurable (B4) ──
+        // Decisión 4 spec v1.1 + §5 Capa 1: failover automático cuando el primario
+        // falla, supera cuota (429) o devuelve ≤2 resultados relevantes.
+
+        // Estado salud por motor — circuit breaker simple
+        const _searchEngineHealth = {
+            ddg:   { failures: 0, blockedUntil: 0 },
+            brave: { failures: 0, blockedUntil: 0 },
+        };
+        const _SEARCH_FAILURES_THRESHOLD = 3;        // 3 fallos seguidos → bloqueo
+        const _SEARCH_BLOCK_DURATION_MS  = 5 * 60 * 1000;  // 5 min de bloqueo
+
+        // Métricas globales — inspeccionables vía getSearchEngineStats()
+        const _searchEngineMetrics = {
+            ddg:   { calls: 0, successes: 0, failures: 0, blocked: 0, lastError: null },
+            brave: { calls: 0, successes: 0, failures: 0, blocked: 0, lastError: null },
+        };
+
+        function isEngineBlocked(name) {
+            return _searchEngineHealth[name]?.blockedUntil > Date.now();
+        }
+
+        function markEngineFailure(name, err) {
+            const h = _searchEngineHealth[name];
+            const m = _searchEngineMetrics[name];
+            if (!h || !m) return;
+            h.failures++;
+            m.failures++;
+            m.lastError = err?.message || String(err);
+            // Bloqueo explícito si cuota (429) con Retry-After
+            if (err?.httpStatus === 429 && err?.retryAfter) {
+                h.blockedUntil = Date.now() + (err.retryAfter * 1000);
+                debugLog(`${name}: bloqueado ${err.retryAfter}s por cuota (429)`);
+                return;
+            }
+            // Bloqueo por umbral de fallos consecutivos
+            if (h.failures >= _SEARCH_FAILURES_THRESHOLD) {
+                h.blockedUntil = Date.now() + _SEARCH_BLOCK_DURATION_MS;
+                debugLog(`${name}: bloqueado 5 min tras ${h.failures} fallos consecutivos`);
+            }
+        }
+
+        function markEngineSuccess(name) {
+            const h = _searchEngineHealth[name];
+            const m = _searchEngineMetrics[name];
+            if (!h || !m) return;
+            h.failures = 0;       // Reset al primer éxito
+            h.blockedUntil = 0;
+            m.successes++;
+        }
+
+        // Tabla de implementaciones — facilita reordenar
+        const _SEARCH_ENGINES = {
+            ddg:   { name: 'DuckDuckGo',  fn: searchDuckDuckGo },
+            brave: { name: 'Brave Search', fn: searchBrave },
+        };
+
+        // Orden configurable: localStorage.crm_search_engine_primary ∈ {'ddg','brave'}
+        // Default: DDG primario (más barato, sin clave requerida).
+        function getSearchEngineOrder() {
+            const primary = (localStorage.getItem('crm_search_engine_primary') || 'ddg').toLowerCase();
+            return primary === 'brave' ? ['brave', 'ddg'] : ['ddg', 'brave'];
+        }
+
+        // Helper para inspección desde consola: stats agregadas del multi-motor
+        function getSearchEngineStats() {
+            const now = Date.now();
+            const status = {};
+            for (const name in _searchEngineMetrics) {
+                const m = _searchEngineMetrics[name];
+                const h = _searchEngineHealth[name];
+                status[name] = {
+                    ...m,
+                    successRate: m.calls > 0 ? (m.successes / m.calls * 100).toFixed(1) + '%' : '—',
+                    currentlyBlocked: h.blockedUntil > now,
+                    blockedFor: h.blockedUntil > now ? Math.round((h.blockedUntil - now) / 1000) + 's' : null,
+                    consecutiveFailures: h.failures,
+                };
+            }
+            return { order: getSearchEngineOrder(), engines: status };
+        }
+
+        // Reset manual (útil tras detectar problema y solucionarlo)
+        function resetSearchEngineHealth() {
+            for (const name in _searchEngineHealth) {
+                _searchEngineHealth[name] = { failures: 0, blockedUntil: 0 };
+            }
+            debugLog('Search engine health reseteado');
+        }
+
+        // Failover principal: probar motores en orden, saltar bloqueados, marcar resultado.
         async function searchWeb(query) {
-            try {
-                const results = await searchDuckDuckGo(query);
-                if (results.length > 2) return results;
-                debugLog(`DDG: ${results.length} resultados — activando Brave Search`);
-            } catch (e) {
-                debugLog(`DDG falló (${e.message}) — activando Brave Search`);
+            const order = getSearchEngineOrder();
+            let lastError = null;
+
+            for (let i = 0; i < order.length; i++) {
+                const name = order[i];
+                const engine = _SEARCH_ENGINES[name];
+                if (!engine) continue;
+
+                if (isEngineBlocked(name)) {
+                    _searchEngineMetrics[name].blocked++;
+                    debugLog(`${name}: skipping (bloqueado)`);
+                    continue;
+                }
+
+                _searchEngineMetrics[name].calls++;
+                try {
+                    const results = await engine.fn(query);
+                    // Spec §5 Capa 1: ≤2 resultados → activar secundario (solo si hay siguiente)
+                    if (results.length > 2 || i === order.length - 1) {
+                        markEngineSuccess(name);
+                        if (results.length > 0) debugLog(`${name}: ${results.length} resultados`);
+                        return results;
+                    }
+                    debugLog(`${name}: ${results.length} resultados — activando siguiente motor`);
+                    // No marcar failure: el motor funcionó, solo es pobre la query. No bloquear.
+                } catch (e) {
+                    lastError = e;
+                    markEngineFailure(name, e);
+                    debugLog(`${name} falló (${e.message}) — activando siguiente motor`);
+                }
             }
-            try {
-                const results = await searchBrave(query);
-                debugLog(`Brave Search: ${results.length} resultados`);
-                return results;
-            } catch (e) {
-                debugLog(`Brave Search falló: ${e.message}`);
-                return [];
-            }
+
+            // Todos los motores fallaron o están bloqueados
+            if (lastError) debugLog(`Multi-motor agotado. Último error: ${lastError.message}`);
+            return [];
         }
 
         // ============================================
