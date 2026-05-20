@@ -6563,13 +6563,29 @@
                 byType[t] = (byType[t] || 0) + 1;
             });
 
+            // ── Alertas activas del agente (§16.2 — Bloque 6) ────────────────
+            const alertasPuente = allStudios.filter(s => s.es_candidato_puente && !s.es_cliente_puente);
+            const alertasDiscrep = (typeof getDiscrepancias === 'function') ? getDiscrepancias(allStudios) : [];
+            const alertasObso = (typeof getDatosObsoletos === 'function') ? getDatosObsoletos(allStudios) : [];
+            const alertasSectorial = allStudios.filter(s => {
+                const fdValor = typeof s.fuente_descubrimiento === 'object'
+                    ? s.fuente_descubrimiento?.valor
+                    : s.fuente_descubrimiento;
+                if (!['sectorial', 'academica', 'ambas'].includes(fdValor)) return false;
+                // Solo los descubiertos en la semana
+                const d = new Date(s.createdAt || 0);
+                return d >= startDate && d <= endDate;
+            });
+            const totalAlertas = alertasPuente.length + alertasDiscrep.length + alertasObso.length + alertasSectorial.length;
+
             // ── Render ────────────────────────────────────────────────────────
             const fmtDate = d => new Date(d).toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit'});
             const fmtRange = `${fmtDate(fechaIni)} – ${fmtDate(fechaFin)}`;
             const qNames = {1:'① Estratégico',2:'② Core',3:'③ Volumen',4:'④ Puerta entrada',5:'⑤ Estándar',6:'⑥ Mantenimiento',7:'⑦ Conector',8:'⑧ Seguimiento',9:'⑨ Congelar'};
 
             // Guardar para markdown
-            window._reporteData = { fechaIni, fechaFin, visits, calls, emails, comlls, qChanges, newStudios, byType };
+            window._reporteData = { fechaIni, fechaFin, visits, calls, emails, comlls, qChanges, newStudios, byType,
+                alertasPuente, alertasDiscrep, alertasObso, alertasSectorial };
 
             container.innerHTML = `
 <div class="reporte-grid">
@@ -6579,6 +6595,7 @@
   <div class="reporte-metric"><div class="reporte-metric-label">🔄 Cambios cuadrante</div><div class="reporte-metric-value">${qChanges.length}</div><div class="reporte-metric-sub">Subidas + bajadas</div></div>
   <div class="reporte-metric"><div class="reporte-metric-label">🆕 Nuevas empresas</div><div class="reporte-metric-value">${newStudios.length}</div><div class="reporte-metric-sub">Añadidas al CRM</div></div>
   <div class="reporte-metric"><div class="reporte-metric-label">🎯 Activos Q1-4</div><div class="reporte-metric-value">${activeQ14.length}</div><div class="reporte-metric-sub">En cuadrantes prioritarios</div></div>
+  <div class="reporte-metric" style="${totalAlertas > 0 ? 'border-left:3px solid #f59e0b;' : ''}"><div class="reporte-metric-label">🚨 Alertas activas</div><div class="reporte-metric-value">${totalAlertas}</div><div class="reporte-metric-sub">Puente: ${alertasPuente.length} · Discrep: ${alertasDiscrep.length} · Obso: ${alertasObso.length} · Sect: ${alertasSectorial.length}</div></div>
 </div>
 
 ${visits.length > 0 ? `
@@ -6614,6 +6631,42 @@ ${newStudios.length > 0 ? `
     <div class="reporte-row-name" onclick="showStudioDetail('${s.id}')" style="cursor:pointer;">${escapeHtml(s.name)} <span style="font-weight:400;color:var(--muted);font-size:0.76rem;">${escapeHtml(s.province||'')}</span></div>
     <div class="reporte-row-meta">${s.type||'—'}</div>
   </div>`).join('')}
+</div>` : ''}
+
+${totalAlertas > 0 ? `
+<div class="reporte-section">
+  <div class="reporte-section-title">🚨 Alertas activas del agente (§16.2)</div>
+  ${alertasPuente.length > 0 ? `
+    <div style="margin-bottom:8px;font-size:0.82rem;color:var(--muted);font-weight:600;">🌉 Candidatos a cliente puente sin confirmar (${alertasPuente.length}):</div>
+    ${alertasPuente.slice(0,8).map(s => `<div class="reporte-row">
+      <div class="reporte-row-name" onclick="showStudioDetail('${s.id}')" style="cursor:pointer;">${escapeHtml(s.name)}</div>
+      <div class="reporte-row-meta">${escapeHtml(s.province||'')} · D:${s.priorityDirectScoreNatural||0}/R:${s.priorityNetworkScore||0}</div>
+    </div>`).join('')}
+  ` : ''}
+  ${alertasDiscrep.length > 0 ? `
+    <div style="margin:10px 0 8px;font-size:0.82rem;color:var(--muted);font-weight:600;">⚠️ Discrepancias detectadas (${alertasDiscrep.length}):</div>
+    ${alertasDiscrep.slice(0,5).map(({studio,campos}) => `<div class="reporte-row">
+      <div class="reporte-row-name" onclick="showStudioDetail('${studio.id}')" style="cursor:pointer;">${escapeHtml(studio.name)}</div>
+      <div class="reporte-row-meta">${campos.join(', ')}</div>
+    </div>`).join('')}
+  ` : ''}
+  ${alertasObso.length > 0 ? `
+    <div style="margin:10px 0 8px;font-size:0.82rem;color:var(--muted);font-weight:600;">🕐 Datos obsoletos &gt;12 meses (${alertasObso.length}):</div>
+    ${alertasObso.slice(0,5).map(({studio,campos}) => `<div class="reporte-row">
+      <div class="reporte-row-name" onclick="showStudioDetail('${studio.id}')" style="cursor:pointer;">${escapeHtml(studio.name)}</div>
+      <div class="reporte-row-meta">Sin reconfirmar: ${campos.join(', ')}</div>
+    </div>`).join('')}
+  ` : ''}
+  ${alertasSectorial.length > 0 ? `
+    <div style="margin:10px 0 8px;font-size:0.82rem;color:var(--muted);font-weight:600;">🌍 Prescriptores sectoriales descubiertos (${alertasSectorial.length}):</div>
+    ${alertasSectorial.slice(0,8).map(s => {
+        const fd = typeof s.fuente_descubrimiento === 'object' ? s.fuente_descubrimiento.valor : s.fuente_descubrimiento;
+        return `<div class="reporte-row">
+          <div class="reporte-row-name" onclick="showStudioDetail('${s.id}')" style="cursor:pointer;">${escapeHtml(s.name)}</div>
+          <div class="reporte-row-meta">${escapeHtml(s.province||'')} · ${fd}</div>
+        </div>`;
+    }).join('')}
+  ` : ''}
 </div>` : ''}
 
 <div class="reporte-section">
@@ -6666,9 +6719,43 @@ ${newStudios.length > 0 ? `
                 md += '\n';
             }
 
+            // Alertas activas del agente (§16.2)
+            const ap = d.alertasPuente || [], adi = d.alertasDiscrep || [],
+                  ao = d.alertasObso || [], aSect = d.alertasSectorial || [];
+            const totalAlert = ap.length + adi.length + ao.length + aSect.length;
+            if (totalAlert > 0) {
+                md += `## Alertas activas del agente\n`;
+                if (ap.length > 0) {
+                    md += `\n**🌉 Candidatos a cliente puente sin confirmar (${ap.length}):**\n`;
+                    ap.slice(0,8).forEach(s => {
+                        md += `- ${s.name} (${s.province||''}) — D:${s.priorityDirectScoreNatural||0}/R:${s.priorityNetworkScore||0}\n`;
+                    });
+                }
+                if (adi.length > 0) {
+                    md += `\n**⚠️ Discrepancias detectadas (${adi.length}):**\n`;
+                    adi.slice(0,5).forEach(({studio,campos}) => {
+                        md += `- ${studio.name}: campos en conflicto → ${campos.join(', ')}\n`;
+                    });
+                }
+                if (ao.length > 0) {
+                    md += `\n**🕐 Datos obsoletos >12 meses (${ao.length}):**\n`;
+                    ao.slice(0,5).forEach(({studio,campos}) => {
+                        md += `- ${studio.name}: sin reconfirmar → ${campos.join(', ')}\n`;
+                    });
+                }
+                if (aSect.length > 0) {
+                    md += `\n**🌍 Prescriptores sectoriales descubiertos (${aSect.length}):**\n`;
+                    aSect.slice(0,8).forEach(s => {
+                        const fd = typeof s.fuente_descubrimiento === 'object' ? s.fuente_descubrimiento.valor : s.fuente_descubrimiento;
+                        md += `- ${s.name} (${s.province||''}) — fuente: ${fd}\n`;
+                    });
+                }
+                md += '\n';
+            }
+
             md += `## Próximos pasos\n`;
             md += `- \n\n`;
-            md += `## Alertas y decisiones que requieren equipo\n`;
+            md += `## Decisiones que requieren equipo\n`;
             md += `- \n`;
 
             navigator.clipboard.writeText(md)
