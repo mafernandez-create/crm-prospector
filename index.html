@@ -497,6 +497,22 @@
         .filter-group { display: flex; align-items: center; gap: 8px; }
         .filter-label { font-size: 0.8rem; color: var(--muted); }
         .filter-select { padding: 6px 10px; font-size: 0.8rem; border: 1px solid var(--border); border-radius: 6px; background: white; }
+        /* Chips multi-select (spec §18.5.6 — filtro fuente_descubrimiento) */
+        .filter-chips { display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+        .filter-chip {
+            display:inline-flex; align-items:center; gap:3px;
+            font-size:0.72rem; font-weight:600;
+            padding:3px 9px; border-radius:12px;
+            border:1px solid var(--border); background:white; color:var(--muted);
+            cursor:pointer; user-select:none;
+            transition:all 0.12s;
+        }
+        .filter-chip:hover { border-color:var(--primary); }
+        .filter-chip.active { background:var(--primary); color:white; border-color:var(--primary); }
+        .filter-chip[data-value="geografica"].active { background:#0ea5e9; border-color:#0ea5e9; }
+        .filter-chip[data-value="sectorial"].active  { background:#3b82f6; border-color:#3b82f6; }
+        .filter-chip[data-value="ambas"].active      { background:#10b981; border-color:#10b981; }
+        .filter-chip[data-value="academica"].active  { background:#8b5cf6; border-color:#8b5cf6; }
         
         /* Empty State */
         .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
@@ -3086,6 +3102,15 @@
                         </select>
                     </div>
                     <div class="filter-group">
+                        <span class="filter-label">Fuente:</span>
+                        <div class="filter-chips" id="filter-fuente-descubrimiento" title="Filtro multi-select de fuente_descubrimiento — §18.5.6">
+                            <span class="filter-chip" data-value="geografica" onclick="toggleFuenteChip(this)">🌍 geográfica</span>
+                            <span class="filter-chip" data-value="sectorial" onclick="toggleFuenteChip(this)">🌍 sectorial</span>
+                            <span class="filter-chip" data-value="ambas" onclick="toggleFuenteChip(this)">🌍 ambas</span>
+                            <span class="filter-chip" data-value="academica" onclick="toggleFuenteChip(this)">🎓 académica</span>
+                        </div>
+                    </div>
+                    <div class="filter-group">
                         <span class="filter-label">Provincia:</span>
                         <select class="filter-select" id="filter-province" onchange="onProvinceChange()">
                             <option value="">Todas</option>
@@ -3234,6 +3259,18 @@
                 <div class="bandeja-section" id="bandeja-delta-section">
                     <div class="bandeja-section-title">📈 Cambios de cuadrante recientes <span id="bandeja-delta-count" style="font-size:0.75rem;font-weight:400;color:var(--muted);"></span></div>
                     <div id="bandeja-delta-list"></div>
+                </div>
+
+                <!-- Discrepancias detectadas (§4.3) — dos fuentes con valores distintos -->
+                <div class="bandeja-section" id="bandeja-discrepancias-section">
+                    <div class="bandeja-section-title">⚠️ Discrepancias detectadas <span id="bandeja-discrepancias-count" style="font-size:0.75rem;font-weight:400;color:var(--muted);"></span></div>
+                    <div id="bandeja-discrepancias-list"></div>
+                </div>
+
+                <!-- Datos obsoletos (§4.4) — sin reconfirmar >12 meses -->
+                <div class="bandeja-section" id="bandeja-obsoletos-section">
+                    <div class="bandeja-section-title">🕐 Datos obsoletos <span id="bandeja-obsoletos-count" style="font-size:0.75rem;font-weight:400;color:var(--muted);"></span></div>
+                    <div id="bandeja-obsoletos-list"></div>
                 </div>
             </div>
 
@@ -6254,11 +6291,63 @@
             return { from: prev, to: curr, trend: curr < prev ? 'up' : 'down' };
         }
 
+        // ── Detección discrepancias (§4.3) ────────────────────────────────────
+        // Devuelve array con los studios que tienen ≥1 campo en estado 'discrepancia'.
+        // Requiere que los campos estén envueltos en {valor, nivel_confianza}
+        // (Bloque 5 migración legacy). Hoy devuelve [] porque los campos son strings planos.
+        function getDiscrepancias(studios) {
+            const out = [];
+            const camposASupervisar = ['phone', 'email', 'address', 'web'];
+            for (const s of studios) {
+                const contact = s.data?.contact;
+                if (!contact || typeof contact !== 'object') continue;
+                const discrepantes = camposASupervisar.filter(k => {
+                    const v = contact[k];
+                    return v && typeof v === 'object' && v.nivel_confianza === 'discrepancia';
+                });
+                if (discrepantes.length > 0) {
+                    out.push({ studio: s, campos: discrepantes });
+                }
+            }
+            return out;
+        }
+
+        // ── Detección datos obsoletos (§4.4) ──────────────────────────────────
+        // Devuelve studios con campos sin reconfirmar >12 meses.
+        // Mismo requisito de metadatos por campo (Bloque 5).
+        function getDatosObsoletos(studios) {
+            const out = [];
+            const camposASupervisar = ['phone', 'email', 'address', 'web'];
+            const cutoff = new Date();
+            cutoff.setMonth(cutoff.getMonth() - 12);
+            const cutoffMs = cutoff.getTime();
+            for (const s of studios) {
+                const contact = s.data?.contact;
+                if (!contact || typeof contact !== 'object') continue;
+                const obsoletos = camposASupervisar.filter(k => {
+                    const v = contact[k];
+                    if (!v || typeof v !== 'object' || !v.fecha_captura) return false;
+                    if (v.nivel_confianza === 'verificado_humano') return false;
+                    const captureMs = new Date(v.fecha_captura).getTime();
+                    return !isNaN(captureMs) && captureMs < cutoffMs;
+                });
+                if (obsoletos.length > 0) {
+                    out.push({ studio: s, campos: obsoletos });
+                }
+            }
+            return out;
+        }
+
         function updateBandejaNavBadge() {
-            const puente  = allStudios.filter(s => s.es_candidato_puente && !s.es_cliente_puente).length;
-            const deltas  = allStudios.filter(s => getQuadrantDelta(s) !== null).length;
-            const total   = puente + deltas;
-            const badge   = document.getElementById('nav-bandeja-count');
+            const puente       = allStudios.filter(s => s.es_candidato_puente && !s.es_cliente_puente).length;
+            const sectoriales  = allStudios.filter(s =>
+                ['sectorial', 'academica', 'ambas'].includes(s.fuente_descubrimiento)
+            ).length;
+            const deltas       = allStudios.filter(s => getQuadrantDelta(s) !== null).length;
+            const discrepancs  = getDiscrepancias(allStudios).length;
+            const obsoletos    = getDatosObsoletos(allStudios).length;
+            const total        = puente + sectoriales + deltas + discrepancs + obsoletos;
+            const badge        = document.getElementById('nav-bandeja-count');
             if (!badge) return;
             badge.textContent = total;
             badge.style.display = total > 0 ? '' : 'none';
@@ -6366,6 +6455,46 @@
                             <div class="bandeja-card-meta">${escapeHtml(s.province||'')} · Q${d.from} → Q${d.to} ${d.trend==='up'?'↑ mejora':'↓ baja'} · ${escapeHtml(s.priorityQuadrantName||'')}</div>
                         </div>
                     </div>`).join('');
+            }
+
+            // ── Discrepancias detectadas (§4.3) ──
+            const discrepancs = getDiscrepancias(allStudios);
+            const discrepEl = document.getElementById('bandeja-discrepancias-list');
+            const discrepCount = document.getElementById('bandeja-discrepancias-count');
+            if (discrepEl && discrepCount) {
+                discrepCount.textContent = `(${discrepancs.length})`;
+                if (discrepancs.length === 0) {
+                    discrepEl.innerHTML = '<p style="color:var(--muted);font-size:0.82rem;margin:0;">Sin discrepancias detectadas. Aparecerán cuando los campos tengan metadatos verificados de ≥2 fuentes con valores distintos (requiere Bloque 5 migración legacy).</p>';
+                } else {
+                    discrepEl.innerHTML = discrepancs.map(({ studio, campos }) => `
+                        <div class="bandeja-card" onclick="showStudioDetail('${studio.id}')">
+                            <span class="q-chip" style="background:#f59e0b;color:#fff;">⚠️</span>
+                            <div>
+                                <div class="bandeja-card-name">${escapeHtml(studio.name)}</div>
+                                <div class="bandeja-card-meta">${escapeHtml(studio.province||'')} · Campos en conflicto: ${campos.join(', ')}</div>
+                            </div>
+                        </div>`).join('');
+                }
+            }
+
+            // ── Datos obsoletos (§4.4) ──
+            const obsoletos = getDatosObsoletos(allStudios);
+            const obsoEl = document.getElementById('bandeja-obsoletos-list');
+            const obsoCount = document.getElementById('bandeja-obsoletos-count');
+            if (obsoEl && obsoCount) {
+                obsoCount.textContent = `(${obsoletos.length})`;
+                if (obsoletos.length === 0) {
+                    obsoEl.innerHTML = '<p style="color:var(--muted);font-size:0.82rem;margin:0;">Sin datos obsoletos (>12 meses sin reconfirmar). Aparecerán cuando los campos tengan fecha_captura registrada (requiere Bloque 5 migración legacy).</p>';
+                } else {
+                    obsoEl.innerHTML = obsoletos.map(({ studio, campos }) => `
+                        <div class="bandeja-card" onclick="showStudioDetail('${studio.id}')">
+                            <span class="q-chip" style="background:#94a3b8;color:#fff;">🕐</span>
+                            <div>
+                                <div class="bandeja-card-name">${escapeHtml(studio.name)}</div>
+                                <div class="bandeja-card-meta">${escapeHtml(studio.province||'')} · Sin reconfirmar >12m: ${campos.join(', ')}</div>
+                            </div>
+                        </div>`).join('');
+                }
             }
 
             updateBandejaNavBadge();
@@ -8917,6 +9046,13 @@ ${newStudios.length > 0 ? `
             return (text || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         }
         
+        // Toggle de chips multi-select del filtro fuente_descubrimiento (§18.5.6)
+        function toggleFuenteChip(el) {
+            if (!el) return;
+            el.classList.toggle('active');
+            applyFilters();
+        }
+
         function applyFilters() {
             const typeFilter           = document.getElementById('filter-type').value;
             const statusFilter         = document.getElementById('filter-status').value;
@@ -8931,6 +9067,10 @@ ${newStudios.length > 0 ? `
             const normaFilter          = document.getElementById('filter-norma')?.value || '';
             const origenFilter         = document.getElementById('filter-origen')?.value || '';
             const quadrantFilter       = parseInt(document.getElementById('filter-quadrant')?.value || '0') || 0;
+            // Filtro fuente_descubrimiento (chips multi-select, §18.5.6)
+            const fuenteChips = Array.from(document.querySelectorAll('#filter-fuente-descubrimiento .filter-chip.active'))
+                .map(el => el.dataset.value);
+            const fuenteFilterActive = fuenteChips.length > 0;
             const searchTerm           = normalizeText(document.getElementById('global-search').value);
 
             const now = new Date();
@@ -8953,6 +9093,12 @@ ${newStudios.length > 0 ? `
                 if (normaFilter && !(studio.normasExigidas || []).includes(normaFilter)) return false;
                 if (origenFilter && (studio.origenPrescriptor || studio.data?.origenPrescriptor || '') !== origenFilter) return false;
                 if (quadrantFilter && (studio.priorityQuadrant || 0) !== quadrantFilter) return false;
+
+                // Filtro fuente_descubrimiento (§18.5.6) — múltiples chips = OR
+                if (fuenteFilterActive) {
+                    const f = studio.fuente_descubrimiento || 'geografica';
+                    if (!fuenteChips.includes(f)) return false;
+                }
                 if (priorityFilter) {
                     // Map Alta/Media/Baja filter to both legacy and v2 values
                     const v2Map = { 'Alta': 'Alto', 'Media': 'Medio', 'Baja': 'Bajo' };
