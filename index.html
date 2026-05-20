@@ -6178,8 +6178,59 @@
             const rawDirect = d1 + d2 + d3 + d4 + d5 + d6;
 
             // ── EJE 2: VALOR DE RED ───────────────────────────────────────────
-            // R1, R2, R3, R5 — requieren datos externos verificados (fase futura)
-            // R4: Posición referente — detectable desde datos existentes
+            // §7.4 nota: la spec dice que solo datos `verificado` entran al
+            // cálculo. La cartera actual es mayoritariamente legacy/single_source
+            // (sin verificación cruzada implementada). Aceptamos esos niveles
+            // para R1-R5; cuando se implemente verificación cruzada formal,
+            // endurecer este filtro.
+
+            // R1: Tamaño de cartera detectable
+            // Heurística: nº de proyectos en data.projects (proxy de cartera)
+            let r1 = 0;
+            if      (projects.length >= 10) r1 = 2;
+            else if (projects.length >=  5) r1 = 1.5;
+            else if (projects.length >=  2) r1 = 1;
+
+            // R2: Densidad GPF de la cartera
+            // % de proyectos cuyo texto contiene keywords de targets GPF
+            // (CCRR, CICA, AAPP, OCV — clientes finales target del catálogo GPF)
+            const _R2_TARGET_KWS = [
+                'regant','regadío','regadio','comunidad de riego',                       // CCRR
+                'edar','depuradora','abastecimiento','saneamiento','agua potable',
+                'red de aguas','red de saneamiento','red de abastecimiento','colector', // CICA
+                'ayuntamiento','diputación','diputacion','consorcio','mancomunidad',
+                'junta de','sector público','sector publico',                            // AAPP
+                'urbanización','urbanizacion','infraestructura','vial','autovía','autovia',
+                'pavimentación','pavimentacion',                                          // OCV
+            ];
+            let r2TargetCount = 0;
+            projects.forEach(p => {
+                const t = ((p.name||p.nombre||'') + ' ' + (p.type||p.tipo||'') + ' ' + (p.descripcion||p.description||'')).toLowerCase();
+                if (_R2_TARGET_KWS.some(kw => t.includes(kw))) r2TargetCount++;
+            });
+            const r2Pct = projects.length > 0 ? (r2TargetCount / projects.length) : 0;
+            let r2 = 0;
+            if      (r2Pct >= 0.75) r2 = 4;
+            else if (r2Pct >= 0.50) r2 = 3;
+            else if (r2Pct >= 0.25) r2 = 2;
+            else if (r2TargetCount >= 1) r2 = 1;
+
+            // R3: Exclusividad / proveedor preferente
+            // Heurística mínima — sin BORME ni contratos exportados, solo se
+            // detectan menciones explícitas en descripción o nombres de proyectos.
+            const _R3_KWS = [
+                'proveedor exclusivo','proveedor preferente','proveedor habitual',
+                'colaborador habitual','partner exclusivo','partner preferente',
+            ];
+            const _r3Text = ((data.description||'') + ' ' +
+                projects.map(p => (p.name||p.nombre||'') + ' ' + (p.descripcion||p.description||'')).join(' ')
+            ).toLowerCase();
+            const r3Hits = _R3_KWS.filter(kw => _r3Text.includes(kw)).length;
+            let r3 = 0;
+            if      (r3Hits >= 2) r3 = 2;
+            else if (r3Hits >= 1) r3 = 1;
+
+            // R4: Posición referente — detectable desde datos existentes (sin cambio)
             const liFollowers = parseInt((getValor(social.linkedin?.followers) || '').replace(/[^0-9]/g, '') || '0') || 0;
             const _awardKws   = ['premio','bienal','award','finalista','reconoci','distinción','medalla','ganador'];
             const _teachKws   = ['profesor','docente','universidad','cátedra','master','máster'];
@@ -6199,12 +6250,37 @@
             const r4Signals = Object.values(_r4Signals).filter(Boolean).length;
             const r4 = r4Signals >= 4 ? 4 : r4Signals >= 2 ? 2 : 0;
 
-            const rawNetwork = r4; // R1+R2+R3+R5 = 0 hasta fase futura
-            const priorityNetwork = r4 >= 4 ? 'Alta' : r4 >= 2 ? 'Media' : 'Baja';
+            // R5: Diversidad geográfica de la cartera
+            // Provincias zona GPF detectadas en data.projects[].location o nombre
+            const _R5_ZONA_PROVS = [
+                'málaga','malaga','sevilla','granada','almería','almeria','jaén','jaen','córdoba','cordoba','huelva','cádiz','cadiz', // Andalucía
+                'cáceres','caceres','badajoz',                                                    // Extremadura
+                'toledo','cuenca','ciudad real','albacete','guadalajara',                          // CLM
+                'madrid',                                                                          // Madrid
+                'alicante','valencia','castellón','castellon',                                    // CV
+                'murcia',                                                                          // Murcia
+                'islas baleares','baleares','palma',                                              // Baleares
+                'las palmas','tenerife','santa cruz de tenerife',                                 // Canarias
+                'ceuta','melilla',
+            ];
+            const _r5Provs = new Set();
+            projects.forEach(p => {
+                const t = ((p.location||'') + ' ' + (p.name||p.nombre||'') + ' ' + (p.descripcion||p.description||'')).toLowerCase();
+                _R5_ZONA_PROVS.forEach(prov => { if (t.includes(prov)) _r5Provs.add(prov); });
+            });
+            const r5ProvCount = _r5Provs.size;
+            let r5 = 0;
+            if      (r5ProvCount >= 3) r5 = 2;
+            else if (r5ProvCount >= 1) r5 = 1;
+
+            // Suma del Eje 2 — spec §7.3 bandas: ≥10 Alta, 6-9 Media, <6 Baja
+            const rawNetwork = r1 + r2 + r3 + r4 + r5;
+            const priorityNetwork = rawNetwork >= 10 ? 'Alta' : rawNetwork >= 6 ? 'Media' : 'Baja';
 
             // ── CLIENTE PUENTE (§7.2.1) ───────────────────────────────────────
-            // Candidato: Bajo en Directo + Media/Alta en Red + ≥5 proyectos detectables
-            const esCandidatoPuente = rawDirect < 6 && rawNetwork >= 2 && projects.length >= 5;
+            // Candidato: Bajo en Directo + banda Media/Alta en Red + ≥5 proyectos detectables
+            // Con R1-R5 implementados, ahora aplica el umbral literal del spec (≥6)
+            const esCandidatoPuente = rawDirect < 6 && rawNetwork >= 6 && projects.length >= 5;
             // Bonus D1+2 / D5+2 solo cuando el usuario confirma es_cliente_puente: true
             const puenteActivo = studio.es_cliente_puente === true;
             const rawDirectFinal = puenteActivo ? rawDirect + 4 : rawDirect;
@@ -6233,11 +6309,11 @@
                 priorityNetwork,
                 priorityNetworkScore: rawNetwork,
                 priorityNetworkDetails: [
-                    { dimension: 'R1_cartera',      pts: 0, estado: 'sin_dato_fiable' },
-                    { dimension: 'R2_densidad_gpf', pts: 0, estado: 'sin_dato_fiable' },
-                    { dimension: 'R3_exclusividad', pts: 0, estado: 'sin_dato_fiable' },
+                    { dimension: 'R1_cartera',      pts: r1, proyectos: projects.length },
+                    { dimension: 'R2_densidad_gpf', pts: r2, target_hits: r2TargetCount, total: projects.length, pct: Math.round(r2Pct * 100) },
+                    { dimension: 'R3_exclusividad', pts: r3, menciones: r3Hits, nota: r3Hits === 0 ? 'sin_menciones_explicitas' : 'heuristica_keywords' },
                     { dimension: 'R4_referente',    pts: r4, señales: r4Signals, detalle: _r4Signals },
-                    { dimension: 'R5_diversidad',   pts: 0, estado: 'sin_dato_fiable' },
+                    { dimension: 'R5_diversidad',   pts: r5, provincias_zona: r5ProvCount, lista: Array.from(_r5Provs) },
                 ],
                 // Cuadrante
                 priorityQuadrant,
