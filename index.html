@@ -6716,6 +6716,7 @@ ${newStudios.length > 0 ? `
             ['contact', 'email'],
             ['contact', 'address'],
             ['contact', 'web'],
+            ['contact', 'city'],         // ⬅ añadido en Bloque 5 (estaba pendiente, 1585 sin migrar)
             ['studio',  'employees'],
             ['studio',  'revenue'],
             ['studio',  'founded'],
@@ -6741,12 +6742,16 @@ ${newStudios.length > 0 ? `
             };
         }
 
-        // Devuelve el objeto `data` modificado, o null si no hubo cambios.
+        // Devuelve { data: <objeto data modificado o null>, topLevel: <updates top-level o {}> }
+        // donde topLevel puede incluir `fuente_descubrimiento` añadido (§18.5.3).
+        // Si nada cambió, devuelve { data: null, topLevel: {} }.
         function migrarEstudioLegacy(studio) {
             const d = JSON.parse(JSON.stringify(studio.data || {}));
             const createdAt = (typeof studio.createdAt === 'string' ? studio.createdAt : null);
-            let changed = false;
+            let dataChanged = false;
+            const topLevel = {};
 
+            // 1. Campos dentro de data
             for (const path of _LEGACY_PATHS) {
                 let node = d;
                 for (let i = 0; i < path.length - 1; i++) {
@@ -6759,10 +6764,70 @@ ${newStudios.length > 0 ? `
                 if (val === null || val === undefined) continue;
                 if (typeof val === 'object' && 'valor' in val) continue; // already migrated
                 node[key] = wrapLegacyField(val, createdAt);
-                changed = true;
+                dataChanged = true;
             }
 
-            return changed ? d : null;
+            // 2. fuente_descubrimiento top-level (§18.5.3 — añadir como 'geografica' legacy)
+            const fd = studio.fuente_descubrimiento;
+            if (fd === null || fd === undefined) {
+                topLevel.fuente_descubrimiento = {
+                    valor: 'geografica',
+                    fuente_url: null,
+                    fuente_tipo: 'legacy',
+                    fecha_captura: createdAt,
+                    nivel_confianza: 'legacy'
+                };
+            } else if (typeof fd === 'string') {
+                topLevel.fuente_descubrimiento = wrapLegacyField(fd, createdAt);
+            }
+            // Si fd ya está envuelto, no tocar
+
+            return {
+                data: dataChanged ? d : null,
+                topLevel
+            };
+        }
+
+        /**
+         * Dry-run de migración legacy. Muestra antes/después de N studios sin
+         * tocar Firestore. Uso desde consola: await migracionLegacyDryRun(5)
+         */
+        async function migracionLegacyDryRun(N = 5) {
+            const all = (typeof allStudios !== 'undefined' && allStudios.length > 0)
+                ? allStudios
+                : await getAllStudios();
+            const sample = all.slice().sort(() => Math.random() - 0.5).slice(0, N);
+            const report = sample.map(s => {
+                const r = migrarEstudioLegacy(s);
+                const diff = [];
+                if (r.data) {
+                    // Comparar los campos top de data
+                    const checkPaths = _LEGACY_PATHS.slice(0, 5).map(p => p.join('.'));
+                    for (const path of checkPaths) {
+                        const before = path.split('.').reduce((o,k) => o?.[k], s.data || {});
+                        const after  = path.split('.').reduce((o,k) => o?.[k], r.data  || {});
+                        if (before !== after) {
+                            diff.push({ campo: 'data.'+path, before, after });
+                        }
+                    }
+                }
+                for (const k of Object.keys(r.topLevel)) {
+                    diff.push({ campo: k, before: s[k] ?? null, after: r.topLevel[k] });
+                }
+                return {
+                    id: s.id,
+                    name: (s.name||'').slice(0, 30),
+                    changed: !!r.data || Object.keys(r.topLevel).length > 0,
+                    diff
+                };
+            });
+            console.log('🧪 Migración legacy dry-run sobre', N, 'studios:');
+            console.table(report.map(r => ({
+                id: r.id, name: r.name, changed: r.changed,
+                campos: r.diff.map(d => d.campo).join(', ') || '—'
+            })));
+            console.log('Detalle completo:', report);
+            return report;
         }
 
         async function ejecutarMigracionLegacy() {
@@ -6782,9 +6847,13 @@ ${newStudios.length > 0 ? `
 
             for (const studio of allStudios) {
                 try {
-                    const newData = migrarEstudioLegacy(studio);
-                    if (newData) {
-                        await updateStudio(studio.id, { data: newData });
+                    const r = migrarEstudioLegacy(studio);
+                    const updates = {};
+                    if (r.data) updates.data = r.data;
+                    Object.assign(updates, r.topLevel);
+                    if (Object.keys(updates).length > 0) {
+                        await updateStudio(studio.id, updates);
+                        Object.assign(studio, updates);  // refrescar caché local
                         changed++;
                     }
                 } catch (e) {
