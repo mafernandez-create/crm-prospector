@@ -16889,83 +16889,88 @@ ${comercialCalls.length > 0 ? `
         // Recalcular prioridades de todos las empresas
         async function recalculateAllPriorities() {
             const criteriosInfo = `
-📊 CRITERIOS DE PRIORIDAD AUTOMÁTICA
+📊 SCORING V2 — DOBLE EJE (Spec §7)
 
-0. TIPO DE EMPRESA (hasta 3 puntos)
-   • Arquitectura / Ingeniería (prescriptor): +3 puntos
-   • Promotora / Constructora (decisor): +2 puntos
-   • Aguas / AAPP / Regantes (usuario final): +1 punto
+EJE 1 · Valor Directo (D)
+   • D1 Tipo de empresa (+0 a +3)
+   • D2 Tamaño (empleados) (+0 a +3)
+   • D3 Facturación (+0 a +3, hoy sin_dato_fiable)
+   • D4 Actividad (nº de proyectos) (+0 a +3)
+   • D5 Fit GPF (catálogo aplicable) (+0 a +3)
+   • D6 Contacto verificable (+0 a +2)
+   Bonus +2 en D1 y +2 en D5 si es_cliente_puente=true
 
-1. TAMAÑO DEL ESTUDIO (hasta 3 puntos)
-   • ≥20 empleados: +3 puntos
-   • ≥10 empleados: +2 puntos
-   • ≥3 empleados: +1 punto
+EJE 2 · Valor de Red (R)
+   • R1 Tamaño cartera detectable (+0 a +2)
+   • R2 Densidad GPF cartera (+0 a +4)
+   • R3 Exclusividad / proveedor preferente (+0 a +3)
+   • R4 Posición referente (+0 a +4)
+   • R5 Diversidad geográfica (+0 a +2)
 
-2. NÚMERO DE PROYECTOS (hasta 3 puntos)
-   • ≥5 proyectos: +3 puntos
-   • ≥3 proyectos: +2 puntos
-   • ≥1 proyecto: +1 punto
+CUADRANTE 1-9 según bandas {Alto/Medio/Bajo} × {Alta/Media/Baja}
 
-3. TIPO DE PROYECTOS (hasta 2 puntos)
-   • Grandes obras (hoteles, hospitales, etc.): +2 puntos
-   • Residencial/Viviendas: +1 punto
-
-4. PRESENCIA EN REDES SOCIALES (hasta 2 puntos)
-   • ≥3 redes activas: +2 puntos
-   • ≥1 red activa: +1 punto
-
-5. INFORMACIÓN DE CONTACTO (hasta 2 puntos)
-   • ≥5 datos de contacto: +2 puntos
-   • ≥2 datos de contacto: +1 punto
-
-PUNTUACIÓN TOTAL: 15 puntos máximo
-• Alta: ≥9 puntos
-• Media: 5-8 puntos
-• Baja: <5 puntos
+🌉 CLIENTE PUENTE (§7.2.1)
+   Candidato auto si: D<6 (banda Baja) + R≥Media + ≥5 proyectos detectables.
+   Solo dimensiones con dato verificado entran al cálculo (§7.4).
 `;
-            
-            if (!confirm(criteriosInfo + '\n\n¿Recalcular la prioridad de todos las empresas?')) {
+
+            if (!confirm(criteriosInfo + '\n\n¿Recalcular el scoring v2 de toda la cartera?')) {
                 return;
             }
-            
+
             if (typeof closeMobileMenu === 'function' && isMobile) closeMobileMenu();
-            
+
             try {
-                showNotification('Recalculando prioridades...', 'info');
-                
+                showNotification('Recalculando scoring v2...', 'info');
+
                 const studios = allStudios.length > 0 ? allStudios : await getAllStudios();
                 let updated = 0;
-                let stats = { Alta: 0, Media: 0, Baja: 0 };
-                
+                let unchanged = 0;
+                let nuevosCandidatosPuente = 0;
+                let cambiosCuadrante = 0;
+                let stats = { Alto: 0, Medio: 0, Bajo: 0 };
+
                 for (const studio of studios) {
                     const v2updates = buildScoringV2Updates(studio, 'recalculo_masivo');
 
-                    if (!studio.priorityQuadrant) {
+                    const cambiaCuadrante = (studio.priorityQuadrant || null) !== (v2updates.priorityQuadrant || null);
+                    const nuevoCandidato = !studio.es_candidato_puente && v2updates.es_candidato_puente === true;
+
+                    // Escribir solo si hay cambios reales — evita 1500+ writes inútiles
+                    if (cambiaCuadrante || nuevoCandidato || !studio.priorityQuadrant) {
                         await updateStudio(studio.id, v2updates);
                         updated++;
-                        console.log(`📊 ${studio.name}: Q${v2updates.priorityQuadrant} ${v2updates.priorityQuadrantName} | D:${v2updates.priorityDirect} R:${v2updates.priorityNetwork}`);
+                        if (cambiaCuadrante) cambiosCuadrante++;
+                        if (nuevoCandidato) nuevosCandidatosPuente++;
+                        console.log(`📊 ${studio.name}: Q${v2updates.priorityQuadrant} | D:${v2updates.priorityDirect} R:${v2updates.priorityNetwork}${nuevoCandidato ? ' 🌉 candidato puente' : ''}`);
+                    } else {
+                        unchanged++;
                     }
 
                     const dKey = v2updates.priorityDirect || studio.priorityDirect || 'Bajo';
-                    if (dKey === 'Alto') stats.Alta++;
-                    else if (dKey === 'Medio') stats.Media++;
-                    else stats.Baja++;
+                    stats[dKey] = (stats[dKey] || 0) + 1;
                 }
-                
+
                 await loadStudios();
-                
-                const resumen = `✅ Prioridades recalculadas
 
-📊 Estudios actualizados: ${updated}
+                const resumen = `✅ Scoring v2 recalculado
 
-📈 Distribución:
-• 🔴 Alta: ${stats.Alta} estudios
-• 🟡 Media: ${stats.Media} estudios
-• ⚪ Baja: ${stats.Baja} estudios`;
-                
+📊 Procesados: ${studios.length}
+   • Actualizados: ${updated}
+   • Sin cambios: ${unchanged}
+
+📈 Cambios:
+   • Cuadrante distinto: ${cambiosCuadrante}
+   • 🌉 Nuevos candidatos puente: ${nuevosCandidatosPuente}
+
+📊 Distribución Eje Directo:
+   • 🔴 Alto: ${stats.Alto || 0}
+   • 🟡 Medio: ${stats.Medio || 0}
+   • ⚪ Bajo: ${stats.Bajo || 0}`;
+
                 showNotification(resumen, 'info');
-                showNotification(`${updated} estudios actualizados`, 'success');
-                
+                showNotification(`${updated} estudios actualizados${nuevosCandidatosPuente ? ` · 🌉 ${nuevosCandidatosPuente} candidatos a puente` : ''}`, 'success');
+
             } catch (error) {
                 console.error('Error recalculando prioridades:', error);
                 showNotification('Error al recalcular: ' + (error.message || 'Error desconocido'), 'error');
