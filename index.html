@@ -26362,16 +26362,26 @@ updateMap();
             const localIso = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
             const vozSection = mode === 'voz' ? `
+                <div style="margin-bottom:10px;padding:8px 10px;background:#fef3c7;border-left:3px solid #f59e0b;border-radius:6px;font-size:0.75rem;color:#78350f;">
+                    ⚠️ <strong>Aviso de privacidad</strong>: la transcripción usa la API del navegador
+                    (Google Chrome / Apple Safari) que envía el audio a sus servidores. Para visitas con
+                    información comercial sensible, usa la modalidad <strong>Escribir visita</strong>.
+                    <span style="display:block;margin-top:4px;color:#92400e;">Transcripción local con faster-whisper queda pendiente — spec §16.1 REQUISITO.</span>
+                </div>
                 <div class="visita-rec-row">
                     <button class="visita-rec-btn idle" id="visita-rec-btn" onclick="toggleGrabacion()">🎙️ Iniciar grabación</button>
                     <span class="visita-rec-status" id="visita-rec-status">Listo para grabar</span>
                     <span id="visita-rec-timer" style="font-size:0.75rem;color:var(--muted);white-space:nowrap;">0:00</span>
                 </div>
-                <div style="margin-bottom:4px;font-size:0.78rem;font-weight:700;color:var(--text-secondary);display:flex;align-items:center;justify-content:space-between;">
+                <div style="margin-bottom:4px;font-size:0.78rem;font-weight:700;color:var(--text-secondary);display:flex;align-items:center;justify-content:space-between;gap:6px;">
                     <span>🗒️ Transcripción</span>
-                    <button onclick="distribuirTranscripcion()" style="font-size:0.72rem;padding:2px 8px;background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;">→ Distribuir en bloques</button>
+                    <span style="display:flex;gap:4px;">
+                        <button onclick="extraerVisitaConIA()" style="font-size:0.72rem;padding:2px 8px;background:#8b5cf6;color:white;border:none;border-radius:6px;cursor:pointer;" title="Extrae los 5 bloques (interlocutor, temas, compromisos, próximo paso, señales) de la transcripción con LLM">🤖 Extraer con IA</button>
+                        <button onclick="distribuirTranscripcion()" style="font-size:0.72rem;padding:2px 8px;background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;">→ Distribuir bruto</button>
+                    </span>
                 </div>
                 <textarea class="visita-transcript" id="visita-transcript" placeholder="La transcripción aparecerá aquí mientras hablas. Si el navegador no soporta reconocimiento de voz, pega el texto manualmente."></textarea>
+                <div id="visita-extract-status" style="display:none;font-size:0.72rem;color:var(--muted);margin-top:-8px;margin-bottom:8px;"></div>
             ` : '';
 
             const overlay = document.createElement('div');
@@ -26519,6 +26529,140 @@ updateMap();
             showNotification('Transcripción copiada a "Temas tratados". Edita y completa los demás bloques.', 'info');
         }
 
+        // Extracción estructurada de los 5 bloques con LLM (spec §16.1)
+        // Llama a Claude con prompt diseñado para extraer interlocutor, temas,
+        // compromisos, próximo paso y señales desde la transcripción cruda.
+        async function extraerVisitaConIA() {
+            const transcriptEl = document.getElementById('visita-transcript');
+            const statusEl = document.getElementById('visita-extract-status');
+            if (!transcriptEl) return;
+            const text = (transcriptEl.value || '').trim();
+            if (!text) { showNotification('No hay transcripción para extraer', 'warning'); return; }
+            if (text.length < 50) {
+                showNotification('Transcripción demasiado corta para extraer estructura', 'warning');
+                return;
+            }
+
+            const studio = allStudios.find(s => String(s.id) === String(_visitaCurrentStudioId));
+            const studioName = studio?.name || 'el cliente';
+
+            if (statusEl) {
+                statusEl.style.display = 'block';
+                statusEl.textContent = '🤖 Extrayendo con Claude…';
+            }
+
+            const prompt = `Eres un analista de reuniones comerciales. Te paso la transcripción de una visita comercial a ${studioName}. Extrae la información en cinco bloques (spec §16.1 del CRM):
+
+TRANSCRIPCIÓN:
+"""
+${text}
+"""
+
+Devuelve SOLO un JSON con esta estructura exacta:
+{
+  "interlocutor": "<nombre, cargo, rol detectado en la reunión>",
+  "temas_tratados": "<3-5 puntos clave en líneas separadas con '- '. Síntesis, NO transcripción literal>",
+  "compromisos": "<lista de compromisos asumidos por AMBAS partes, con fecha si se mencionó. Línea por compromiso, '- ' prefijo>",
+  "proximo_paso": "<qué hay que hacer, cuándo, quién lo dispara — una sola línea concisa>",
+  "señales": "<proyectos mencionados, cambios estructurales, oportunidades, riesgos. Línea por señal, '- ' prefijo>"
+}
+
+Importante:
+- Si un campo no tiene información clara en la transcripción, devuelve cadena vacía "".
+- Síntesis, no transcripción. Usa lenguaje breve y profesional en castellano.
+- Nada de markdown fuera de los valores. Sin \`\`\` ni explicaciones.
+- Solo el JSON.`;
+
+            try {
+                const resp = await callClaudeAPI([{ role: 'user', content: prompt }], 1500);
+                if (!resp?.content?.[0]?.text) throw new Error('respuesta vacía');
+                let raw = resp.content[0].text.replace(/```json/gi, '').replace(/```/gi, '').trim();
+                const a = raw.indexOf('{');
+                const b = raw.lastIndexOf('}');
+                if (a === -1 || b === -1) throw new Error('JSON no detectado');
+                const parsed = JSON.parse(raw.substring(a, b + 1));
+
+                // Rellenar campos del modal
+                const setIfEmpty = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (!el || !value) return;
+                    if (el.value.trim() === '') el.value = value;
+                };
+                setIfEmpty('visita-interlocutor', parsed.interlocutor || '');
+                setIfEmpty('visita-temas',       parsed.temas_tratados || '');
+                setIfEmpty('visita-compromisos', parsed.compromisos || '');
+                setIfEmpty('visita-proximo-paso', parsed.proximo_paso || '');
+                setIfEmpty('visita-señales',     parsed.señales || '');
+
+                if (statusEl) {
+                    statusEl.textContent = '✅ Bloques extraídos. Revisa y ajusta antes de guardar.';
+                    statusEl.style.color = '#16a34a';
+                }
+                showNotification('✅ Extracción IA completada — revisa los bloques', 'success');
+            } catch (e) {
+                if (statusEl) {
+                    statusEl.textContent = '❌ Error extrayendo: ' + (e.message || e);
+                    statusEl.style.color = '#dc2626';
+                }
+                console.error('extraerVisitaConIA error:', e);
+                showNotification('Error en extracción IA. Pega manualmente los bloques.', 'warning');
+            }
+        }
+
+        // Detecta actualizaciones propuestas para el cliente (spec §16.1):
+        // nuevo interlocutor no presente en team, nuevos proyectos mencionados,
+        // cambio de tamaño. Heurística simple, devuelve array de sugerencias.
+        function detectarActualizacionesPropuestas(studio, registroVisita) {
+            const props = [];
+            if (!studio || !registroVisita) return props;
+
+            // 1. Nuevo interlocutor
+            const teamArr = studio.data?.team || [];
+            const interText = (registroVisita.interlocutor || '').trim();
+            if (interText) {
+                // Extraer primer nombre con apellido (heurística simple)
+                const m = interText.match(/^([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)+)/);
+                const candidato = m ? m[1] : null;
+                if (candidato) {
+                    const yaExiste = teamArr.some(t => {
+                        const nombre = (typeof t.name === 'object' ? t.name?.valor : t.name) || '';
+                        return nombre && nombre.toLowerCase().includes(candidato.toLowerCase().split(' ')[0]);
+                    });
+                    if (!yaExiste) {
+                        props.push({
+                            tipo: 'team_nuevo',
+                            campo: 'data.team',
+                            propuesta: `Añadir nuevo miembro: ${candidato}`,
+                            valor_sugerido: { name: candidato, role: '', source: 'visita_presencial' }
+                        });
+                    }
+                }
+            }
+
+            // 2. Proyectos detectados en señales
+            const señalesText = (registroVisita.señales || registroVisita['señales'] || '').toLowerCase();
+            const palabrasProyecto = ['proyecto', 'obra', 'concurso', 'licitación', 'redacción de'];
+            if (palabrasProyecto.some(p => señalesText.includes(p))) {
+                props.push({
+                    tipo: 'proyecto_mencionado',
+                    campo: 'data.projects',
+                    propuesta: 'Posible proyecto nuevo mencionado en señales — revisar para añadir a la cartera de proyectos del cliente.'
+                });
+            }
+
+            // 3. Cambio de tamaño
+            const todoText = ((registroVisita.temas_tratados || '') + ' ' + señalesText).toLowerCase();
+            if (/expan|crec(í|i)mient|contrat[aa]ndo|nuevas oficinas|filial|absor/.test(todoText)) {
+                props.push({
+                    tipo: 'tamaño',
+                    campo: 'data.studio.employees',
+                    propuesta: 'Posible cambio de tamaño detectado — verificar plantilla actual.'
+                });
+            }
+
+            return props;
+        }
+
         async function submitRegistroVisita() {
             const studioId = _visitaCurrentStudioId;
             const mode = _visitaCurrentMode;
@@ -26543,6 +26687,7 @@ updateMap();
             if (compromisos) lines.push(`🤝 ${compromisos.substring(0, 80)}${compromisos.length > 80 ? '…' : ''}`);
             if (proximoPaso) lines.push(`➡️ ${proximoPaso.substring(0, 80)}${proximoPaso.length > 80 ? '…' : ''}`);
 
+            const studioForProp = allStudios.find(s => String(s.id) === String(studioId));
             const registroVisita = {
                 modalidad: mode,
                 fecha_visita: fecha,
@@ -26558,6 +26703,8 @@ updateMap();
                     duracion_audio_seg: _visitaRecSeconds,
                 } : {}),
             };
+            // Spec §16.1: el sistema detecta cambios y los propone al usuario
+            registroVisita.actualizaciones_propuestas = detectarActualizacionesPropuestas(studioForProp, registroVisita);
 
             const activity = {
                 studioId: String(studioId),
