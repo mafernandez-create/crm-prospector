@@ -1091,7 +1091,7 @@ Las fases del §14 se reordenan según prioridad operativa derivada del diagnós
 |---|---|---|
 | **0. Quick wins** | Subir spec a `/docs/`, fix planificador N+1, cron diario, añadir `procesandose_por` al checkpoint | Medio día |
 | **1. Cliente puente (D1)** | Añadir atributo `es_cliente_puente`, detección automática, bonus en D1/D5, recálculo masivo del scoring v2 | 1 día |
-| **2. Endpoint nocturno (Fase E)** | Endpoint server-side, secrets, descomentar workflow, testing end-to-end | 1-3 días |
+| **2. Endpoint nocturno (Fase E) + Capa Sectorial Geográfica** | Endpoint server-side, secrets, descomentar workflow, testing end-to-end. Implementación de la Capa Sectorial Geográfica (§18.5) integrada en el endpoint desde el inicio: nuevo campo `fuente_descubrimiento`, queries por proyectos en zona, auto-marcado de cliente puente para descubrimientos sectoriales/académicos. | 2-4 días |
 | **3. UI Fase D consolidación** | Filtro de cuadrante en listado, chip ↑↓ delta, matriz 3×3 interactiva, bandeja del agente | 1-2 días |
 | **4. Multi-motor (D4)** | Segundo motor (Brave o equivalente), estrategia de failover, sin duplicar llamadas con éxito | 1 día |
 | **5. Migración legacy** | Script de envoltura de strings legacy en objetos con `nivel_confianza: legacy`, ejecución masiva | 2-4 h |
@@ -1100,5 +1100,87 @@ Las fases del §14 se reordenan según prioridad operativa derivada del diagnós
 
 ---
 
-*Adenda generada el 18 de mayo de 2026 tras diagnóstico de cobertura. Las decisiones aquí registradas tienen prioridad sobre cualquier interpretación previa de las secciones afectadas.*
+### Decisión 5 — Capa Sectorial Geográfica y unificación de métodos de búsqueda
+
+**Contexto**: una prueba comparativa ejecutada el 19 de mayo de 2026 sobre la misma consulta ("ingenierías en Córdoba") con dos métodos diferentes (búsqueda masiva del CRM vía `searchStudiosInProvince` y búsqueda dirigida sectorial desde chat) reveló **cero solapamiento** entre los resultados de ambos. El CRM detectó 18 ingenierías con sede registrada en Córdoba (Tecnova, Azabache, OFG, Ecointegral, etc.). La búsqueda dirigida detectó tres prospects de alto valor estratégico que el CRM no encontró: Agrimensur, RM Agroingeniería y UCO/Camacho. Ninguna empresa coincidió.
+
+**Causa**: el CRM busca empresas con sede/CIF en la zona; el chat busca entidades con proyectos en la zona, aunque tengan sede fuera. Son **dos dimensiones complementarias del mismo perímetro de cartera** y un sistema completo necesita cubrir ambas.
+
+**Resuelto**: añadir al flujo de `searchStudiosInProvince` una capa nueva (la 17ª) llamada **Capa Sectorial Geográfica** que busca prescriptores por sus proyectos en zona, no por su sede. Se integra dentro del Bloque 2 (endpoint nocturno) desde el inicio, no como bloque posterior.
+
+#### §18.5.1 — Definición de la Capa Sectorial Geográfica
+
+Paso nuevo en el flujo de sub-búsquedas, intercalado entre los pasos actuales 10 (adjudicaciones públicas) y 11 (capital de provincia):
+
+| # | Paso | Fuente principal | Patrón de búsqueda |
+|---|---|---|---|
+| 11-bis | 🌍 **Capa Sectorial Geográfica** | Webs corporativas con cartera + prensa sectorial + colegios + universidades | `"proyecto [sector]" + [provincia]` / `"obras de [sector]" + [provincia]` / `"modernización [sector]" + [provincia]` / `"ponente" + "[universidad de provincia]"` / `"congreso [sector]" + [provincia]` |
+
+#### §18.5.2 — Mapping `tipo → sectores`
+
+Cuando se ejecuta `searchStudiosInProvince(provincia, tipo)`, el sistema deriva los sectores a buscar a partir del tipo:
+
+| Tipo | Sectores derivados | Justificación |
+|---|---|---|
+| `ING` | agua, regadío, saneamiento, hidráulica, obra civil | Ingenierías relevantes para catálogo GPF: tubería hidráulica, MUTE, ECOSAN, CONDUSAN |
+| `ARQ` | edificación, rehabilitación, vivienda colectiva | EUME y aplicaciones de edificación |
+| `OCV` | infraestructura, urbanización, abastecimiento urbano | BIOPIPE, redes |
+| `CCRR` | regadío, modernización, gestión hídrica | Decisor directo de tubería de presión |
+| `AAPP` | licitación, adjudicación, contrato menor | Pipeline público |
+| `CICA` | gemelo digital, telecontrol, eficiencia hídrica | Académicos y centros de investigación |
+
+Cada combinación `(provincia, sector)` produce 4-6 queries específicas. Total por búsqueda: típicamente 15-30 queries sectoriales adicionales al flujo existente.
+
+#### §18.5.3 — Campo `fuente_descubrimiento`
+
+Toda ficha de cliente (existente o nueva) gana un campo nuevo con cuatro valores posibles:
+
+- **`geografica`** — empresa con sede/CIF en la zona, detectada por las capas 1-10 actuales del flujo.
+- **`sectorial`** — empresa con proyectos verificados en la zona pero sede fuera, detectada por la nueva capa 11-bis.
+- **`ambas`** — empresa con sede en zona Y proyectos verificados en zona. Mejor caso, máxima señal.
+- **`academica`** — universidad, centro de investigación, catedrático o grupo académico con actividad relevante en zona. Subconjunto de `sectorial` con tratamiento específico (ver §18.5.4).
+
+El campo persiste con sus metadatos como cualquier otro (`valor`, `fuente_url`, `fecha_captura`, `nivel_confianza`). La actualización al detectar nuevas evidencias sigue la regla: si una ficha tiene `geografica` y se detecta también proyecto en zona, pasa a `ambas`.
+
+#### §18.5.4 — Auto-marcado de cliente puente
+
+Toda ficha que se cree con `fuente_descubrimiento ∈ {sectorial, academica}` se marca automáticamente con `es_cliente_puente: true` desde el alta, sin esperar al recálculo de scoring v2.
+
+Justificación: las entidades descubiertas por proyectos o por presencia académica en zona son, por construcción, perfiles de Valor Directo bajo y Valor de Red alto. Encajan exactamente con la definición de cliente puente de §7.2.1. Marcar manualmente caso por caso sería tedioso y derrotaría el propósito de la capa.
+
+**Casos límite**:
+- Si una ingeniería con sede fuera de zona aparece en `geografica` por error (CIF en zona ≠ oficina principal en zona), permanece `geografica` salvo evidencia adicional. No se auto-marca.
+- Si una entidad académica entra por `geografica` (universidad de la provincia, p. ej. UCO), se reclasifica a `academica` y se aplica auto-marcado.
+
+#### §18.5.5 — Validación con caso real
+
+La adenda se considera correctamente implementada cuando, al ejecutar `searchStudiosInProvince('Córdoba', 'ING')`, el resultado incluye:
+
+- Las 18 ingenierías de sede en Córdoba que ya detecta hoy (Tecnova, Azabache, etc.) con `fuente_descubrimiento: 'geografica'`.
+- **Agrimensur** (Sevilla, proyectos en La Rinconada, Huerta de Doña Urraca, Fuente Tójar) con `fuente_descubrimiento: 'sectorial'` y `es_cliente_puente: true`.
+- **RM Agroingeniería** (Vega Baja Villa del Río) con `fuente_descubrimiento: 'sectorial'` y `es_cliente_puente: true`.
+- **UCO Grupo AGR-0228 / Emilio Camacho** con `fuente_descubrimiento: 'academica'` y `es_cliente_puente: true`.
+- **Jorge García Morillo (UCO)** con `fuente_descubrimiento: 'academica'` y `es_cliente_puente: true`.
+
+Si la búsqueda los detecta a los tres con sus marcas correctas, la capa está validada.
+
+#### §18.5.6 — Cambios UI necesarios
+
+- En el listado principal, añadir filtro por `fuente_descubrimiento` (chips multi-select).
+- En la ficha de cliente, mostrar el origen del descubrimiento como badge.
+- En la bandeja del agente, los descubrimientos `sectorial` y `academica` aparecen en una pila propia ("Prescriptores con proyectos en zona") separada de los descubrimientos `geografica`.
+- En la vista matriz 3×3, ningún cambio. Los cuadrantes siguen siendo los mismos; lo que cambia es la composición de ④ (Puerta de entrada), que se llena más con el auto-marcado.
+
+#### §18.5.7 — Riesgos y mitigaciones
+
+| Riesgo | Mitigación |
+|---|---|
+| Auto-marcado en exceso (todo lo sectorial cae en ④) | Cuadrante ④ tiene capacidad alta por diseño. Si la cartera se llena de ④, no es problema operativo: son prospects de visita oportunista. |
+| Falsos positivos académicos (universidades sin actividad real) | Reglas adicionales en `fuente_descubrimiento: 'academica'`: requerir evidencia de ponencia, publicación o proyecto verificable en últimos 24 meses. |
+| Confusión con duplicados sectoriales (misma empresa detectada por varios sectores) | Deduplicación por nombre normalizado funciona igual; lo que cambia es que el campo `fuente_descubrimiento` puede contener histórico (`sectorial[agua, regadío]`) para trazabilidad. |
+| Falsos positivos Argentina (Córdoba AR colando como ES) | Filtro de dominio `.ar` y presencia de "CUIT" en snippet. Ya identificado como problema en post-mortem del 19 de mayo, vale para todas las capas. |
+
+---
+
+*Adenda generada el 18 de mayo de 2026 tras diagnóstico de cobertura. Decisión 5 añadida el 19 de mayo tras prueba comparativa. Las decisiones aquí registradas tienen prioridad sobre cualquier interpretación previa de las secciones afectadas.*
 
