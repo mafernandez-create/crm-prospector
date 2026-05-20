@@ -49,13 +49,19 @@ Tiempo estimado: **20-30 minutos**.
 
 4. **Integrar con el `doPost(e)` existente**:
    - Abre el archivo principal (normalmente `Código.gs`).
-   - Busca tu función `doPost(e)` actual y añade dentro del switch/if de acciones, **antes** del return de error:
+   - Busca tu función `handleRequest(e)` (o `doPost(e)`) y localiza el `switch(action)`.
+   - Justo **antes** del `default:` añade el nuevo `case`:
      ```javascript
-     if (action === 'batchQualify') {
-       return respond(handleBatchQualify(params));
-     }
+     case 'batchQualify':
+       result = handleBatchQualify(e.parameter);
+       break;
      ```
-   - Si tu `doPost(e)` usa un patrón distinto (e.g. `e.parameter.action`), adapta la línea.
+   - **Importante**: pasa `e.parameter` (no `params`). El workflow envía los
+     parámetros como `application/x-www-form-urlencoded`, que Apps Script
+     expone directamente en `e.parameter.action`, `e.parameter.apiKey`,
+     `e.parameter.filtro`, `e.parameter.limite`.
+   - `handleBatchQualify()` está preparado para recibirlos así (hace
+     `parseInt(params.limite)` internamente para convertir el string).
 
 5. **Configurar Script Properties** (configuración interna del proyecto GAS):
    - Menú superior derecho → **Configuración del proyecto** (icono engranaje).
