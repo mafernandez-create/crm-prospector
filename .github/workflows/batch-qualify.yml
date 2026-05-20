@@ -69,23 +69,31 @@ jobs:
           echo "Ejecutado: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
           echo ""
 
-          PAYLOAD=$(jq -n \
-            --arg key  "${{ secrets.BATCH_API_KEY }}" \
-            --arg fil  "$FILTRO" \
-            --argjson lim $LIMITE \
-            '{action:"batchQualify", apiKey:$key, filtro:$fil, limite:$lim}')
+          # NOTA: El doPost del CRM lee e.parameter (no body JSON), así que
+          # enviamos form-urlencoded. Además los GAS Web Apps devuelven HTTP 302
+          # tras el POST y curl no mantiene el body en el redirect, por lo que
+          # hacemos el manejo manual: POST → capturar Location → GET.
 
-          # -L para seguir el HTTP 302 que devuelven los GAS Web Apps en el primer POST
-          # (Apps Script redirige a script.googleusercontent.com con el contenido real)
-          RESP=$(curl --silent --show-error --fail-with-body -L \
-            --max-time 360 \
+          POST_RAW=$(curl --silent --show-error --max-time 60 -i \
             -X POST "${{ secrets.BATCH_ENDPOINT }}" \
-            -H "Content-Type: application/json" \
-            -d "$PAYLOAD")
+            --data-urlencode "action=batchQualify" \
+            --data-urlencode "apiKey=${{ secrets.BATCH_API_KEY }}" \
+            --data-urlencode "filtro=$FILTRO" \
+            --data-urlencode "limite=$LIMITE")
+
+          LOCATION=$(echo "$POST_RAW" | grep -i '^location:' | head -1 | tr -d '\r' | sed 's/^[Ll]ocation: *//')
+
+          if [ -z "$LOCATION" ]; then
+            echo "❌ El POST inicial no devolvió Location header (estado distinto a 302)"
+            echo "$POST_RAW" | head -30
+            exit 1
+          fi
+
+          RESP=$(curl --silent --show-error --max-time 300 -X GET "$LOCATION")
           STATUS=$?
 
           echo "Respuesta del endpoint:"
-          echo "$RESP" | jq . || echo "$RESP"
+          echo "$RESP" | jq . 2>/dev/null || echo "$RESP"
           echo ""
 
           if [ $STATUS -ne 0 ]; then
