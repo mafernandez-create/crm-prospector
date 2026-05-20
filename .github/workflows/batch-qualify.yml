@@ -75,7 +75,9 @@ jobs:
             --argjson lim $LIMITE \
             '{action:"batchQualify", apiKey:$key, filtro:$fil, limite:$lim}')
 
-          RESP=$(curl --silent --show-error --fail-with-body \
+          # -L para seguir el HTTP 302 que devuelven los GAS Web Apps en el primer POST
+          # (Apps Script redirige a script.googleusercontent.com con el contenido real)
+          RESP=$(curl --silent --show-error --fail-with-body -L \
             --max-time 360 \
             -X POST "${{ secrets.BATCH_ENDPOINT }}" \
             -H "Content-Type: application/json" \
