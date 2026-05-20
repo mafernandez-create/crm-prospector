@@ -1,9 +1,9 @@
-# Estado de implementación spec v1.1 — 100 % completado
+# Estado de implementación spec v1.1 — 100 % completado + R1-R5 cerrado
 
-**Última actualización**: 2026-05-20 (sesión completa de implementación)
-**Rama de trabajo**: `claude/peaceful-saha-a79023` (en `origin` también)
-**Último commit**: `e156fb8` — *feat(bloque7): Fase I dual — extracción LLM + actualizaciones propuestas*
-**PR abierto**: [crm-prospector#6](https://github.com/mafernandez-create/crm-prospector/pull/6) — listo para mergear
+**Última actualización**: 2026-05-20 (sesión continuada — addendum scoring R1-R5)
+**Rama de trabajo**: `main` (PR #6 + PR #7 mergeados)
+**Último commit en main**: `b0a3e4a` — *Merge PR #7: R1-R5 completos del Eje 2*
+**PRs mergeados hoy**: #6 (plan v1.1 completo) + #7 (R1-R5 Eje 2)
 
 ---
 
@@ -74,7 +74,8 @@ Tras merge, recargar Chrome para coger la nueva versión.
 - **Re-calificar la cartera con metadatos**: ahora que todos tienen `fuente_descubrimiento: geografica/legacy`, lanzar `cualificarLote` sobre los 1585 para refrescar histórico y posibles candidatos a puente nuevos (aunque seguirá saliendo 0 hasta que R1-R5 se calculen — ver siguiente punto).
 
 ### Trabajo derivado del Bloque 1
-- **Calcular R1, R2, R3, R5** (hoy solo R4): la spec §7.3 define los cinco ejes de Valor de Red. Solo R4 está implementado. Cuando los demás se calculen, los candidatos a puente saldrán correctamente sobre la cartera real.
+- ~~**Calcular R1, R2, R3, R5** (hoy solo R4)~~ — ✅ **CERRADO** en PR #7 (commit `7e40d1c`). R1-R5 implementados en `calculateScoringV2` (index.html) y `gasCalculateScoringV2` (gas-batch-qualify.gs). Dry-run sobre 1585 studios: 18 cambian cuadrante (1.1%), 0 candidatos puente nuevos (78% de cartera sin proyectos detectables aún).
+  - **Pendiente trigger**: re-deploy manual del GAS Web App + ejecutar `gh workflow run batch-qualify.yml -f filtro=todos -f limite=1585` para persistir el nuevo cálculo en los 1585 docs.
 
 ### Trabajo derivado del Bloque 4
 - **Métricas persistentes** de uso de motores (hoy solo en memoria, se pierden al recargar). Persistir en `_meta/search_metrics` para tendencias largas.
@@ -102,14 +103,24 @@ Tras merge, recargar Chrome para coger la nueva versión.
 
 ---
 
-## 🎯 Estado del PR #6
+## 🎯 Estado de PRs
 
-- Rama: `claude/peaceful-saha-a79023` → `main`
-- 9 commits funcionales
-- `MERGEABLE` confirmado
-- Sin conflictos
-- Sin checks de CI configurados (no bloquea merge)
-- **Listo para merge cuando el usuario lo decida**
+- **PR #6** — `claude/peaceful-saha-a79023` → `main` — **MERGEADO** (`e1a815c`)
+- **PR #7** — `feat/scoring-r1-r5` → `main` — **MERGEADO** (`b0a3e4a`)
+  - Cierra última desviación de §7.3 (R1-R5 completos)
+  - Dry-run validado sobre 1585 studios
+  - Producción ya tiene el código tras GitHub Pages refresh
+
+### Pendiente operativo (no bloquea código)
+
+1. **Re-deploy GAS Web App** para activar R1-R5 en el cron nocturno.
+   Pasos: script.google.com → proyecto CRM → Implementar → Gestionar implementaciones → editar la activa → Versión: Nueva → Implementar. La URL del Web App se conserva.
+2. **Batch real sobre 1585** una vez re-desplegado el GAS:
+   ```bash
+   gh workflow run batch-qualify.yml -f filtro=todos -f limite=1585
+   ```
+   Esto persistirá los nuevos R1-R5 en todos los docs.
+3. **Rotar `ANTHROPIC_API_KEY`** (vista en plain text en Script Properties durante el setup) y borrar el JSON service account de `~/Downloads/`.
 
 ---
 
