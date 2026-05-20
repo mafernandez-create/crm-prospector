@@ -1,32 +1,35 @@
 # ============================================================
 # CRM GPF — Batch Qualify Scheduler
-# Fase E del Método Unificado v1.1
+# Fase E del Método Unificado v1.1 (§15.3)
 #
-# ESTADO: PLACEHOLDER — Pendiente de endpoint /api/batch-qualify
+# ESTADO: ACTIVO — endpoint GAS configurado en gas-batch-qualify.gs
 #
-# Este workflow está preparado para ejecutarse cada noche.
-# Cuando se implemente un endpoint server-side que dispare la
-# cualificación de lotes, descomentar la sección "steps" y
-# reemplazar BATCH_ENDPOINT por la URL real.
+# Llamado cada noche a las 02:00 UTC. Procesa hasta `limite` studios
+# de Firestore: recalcula scoring v2 y escribe los cambios. Idempotente
+# (no reescribe si no hay cambio de cuadrante o candidato nuevo).
 #
-# Alternativa actual: ejecutar manualmente desde el CRM con
-# el botón "🤖 Cualificar Lote" en el menú de herramientas.
+# Setup inicial (una sola vez):
+#   - Ver SETUP_BATCH_QUALIFY.md en raíz del repo
+#   - Secrets de repo necesarios: BATCH_ENDPOINT, BATCH_API_KEY
+#
+# Alternativa manual: ejecutar la cualificación desde el CRM con
+# el botón "🤖 Cualificar Lote" en el menú lateral.
 # ============================================================
 
 name: Batch Qualify Studios
 
 on:
   schedule:
-    # Ejecutar todos los días a las 02:00 (hora UTC)
+    # Todos los días a las 02:00 UTC (04:00 hora España verano, 03:00 invierno)
     - cron: '0 2 * * *'
-  workflow_dispatch:          # Permite lanzar manualmente desde GitHub Actions UI
+  workflow_dispatch:          # Lanzamiento manual desde GitHub Actions UI
     inputs:
       filtro:
         description: 'Filtro de estudios (sin_cuadrante | todos | ARQ | ING | OCV | AAPP | CCRR | CICA)'
         required: false
         default: 'sin_cuadrante'
       limite:
-        description: 'Número máximo de estudios a procesar (1-1535)'
+        description: 'Número máximo de estudios a procesar (1-1585)'
         required: false
         default: '200'
 
@@ -39,23 +42,70 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── Placeholder: llamar al endpoint cuando esté disponible ──────────
-      # - name: Trigger batch qualification
-      #   run: |
-      #     curl -X POST "${{ secrets.BATCH_ENDPOINT }}" \
-      #       -H "Authorization: Bearer ${{ secrets.BATCH_API_KEY }}" \
-      #       -H "Content-Type: application/json" \
-      #       -d '{"filtro":"${{ inputs.filtro || 'sin_cuadrante' }}","limite":${{ inputs.limite || 200 }}}'
+      - name: Verify secrets present
+        run: |
+          if [ -z "${{ secrets.BATCH_ENDPOINT }}" ]; then
+            echo "❌ BATCH_ENDPOINT secret no configurado. Ver SETUP_BATCH_QUALIFY.md"
+            exit 1
+          fi
+          if [ -z "${{ secrets.BATCH_API_KEY }}" ]; then
+            echo "❌ BATCH_API_KEY secret no configurado. Ver SETUP_BATCH_QUALIFY.md"
+            exit 1
+          fi
+          echo "✅ Secrets configurados"
 
-      - name: Status report (placeholder)
+      - name: Trigger batch qualification
+        id: trigger
+        env:
+          FILTRO: ${{ inputs.filtro || 'sin_cuadrante' }}
+          LIMITE: ${{ inputs.limite || '200' }}
         run: |
           echo "======================================"
-          echo "CRM GPF — Batch Qualify (placeholder)"
+          echo "CRM GPF — Batch Qualify"
           echo "======================================"
-          echo "Filtro:  ${{ inputs.filtro || 'sin_cuadrante' }}"
-          echo "Límite:  ${{ inputs.limite || 200 }}"
+          echo "Filtro:    $FILTRO"
+          echo "Límite:    $LIMITE"
+          echo "Endpoint:  ${BATCH_ENDPOINT:0:60}..."
+          echo "Ejecutado: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
           echo ""
-          echo "⚠️  Endpoint /api/batch-qualify aún no configurado."
-          echo "    Ejecuta la cualificación manualmente desde el CRM:"
-          echo "    → Menú lateral → '🤖 Cualificar Lote'"
+
+          PAYLOAD=$(jq -n \
+            --arg key  "${{ secrets.BATCH_API_KEY }}" \
+            --arg fil  "$FILTRO" \
+            --argjson lim $LIMITE \
+            '{action:"batchQualify", apiKey:$key, filtro:$fil, limite:$lim}')
+
+          RESP=$(curl --silent --show-error --fail-with-body \
+            --max-time 360 \
+            -X POST "${{ secrets.BATCH_ENDPOINT }}" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+          STATUS=$?
+
+          echo "Respuesta del endpoint:"
+          echo "$RESP" | jq . || echo "$RESP"
+          echo ""
+
+          if [ $STATUS -ne 0 ]; then
+            echo "❌ Llamada al endpoint falló (exit=$STATUS)"
+            exit $STATUS
+          fi
+
+          # Extraer métricas con jq (no falla si las claves no existen)
+          PROCESSED=$(echo "$RESP" | jq -r '.processed // 0')
+          UPDATED=$(echo "$RESP" | jq -r '.updated // 0')
+          PUENTE=$(echo "$RESP" | jq -r '.nuevosCandidatosPuente // 0')
+          ERR_COUNT=$(echo "$RESP" | jq -r '.errors | length // 0')
+
           echo "======================================"
+          echo "Resumen"
+          echo "======================================"
+          echo "Procesados:                $PROCESSED"
+          echo "Actualizados:              $UPDATED"
+          echo "Nuevos candidatos puente:  $PUENTE"
+          echo "Errores:                   $ERR_COUNT"
+          echo "======================================"
+
+          if [ "$ERR_COUNT" != "0" ] && [ "$ERR_COUNT" != "null" ]; then
+            echo "⚠️  Hubo errores parciales. Ver detalle arriba."
+          fi
