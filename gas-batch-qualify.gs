@@ -152,7 +152,58 @@ function gasCalculateScoringV2(studio) {
 
   var rawDirect = d1 + d2 + d3 + d4 + d5 + d6;
 
-  // ── EJE 2: VALOR DE RED — R4 solo (resto sin_dato_fiable) ──
+  // ── EJE 2: VALOR DE RED — R1+R2+R3+R4+R5 (spec §7.3) ──
+
+  // R1: Tamaño de cartera detectable
+  var r1 = 0;
+  if      (projects.length >= 10) r1 = 2;
+  else if (projects.length >=  5) r1 = 1.5;
+  else if (projects.length >=  2) r1 = 1;
+
+  // R2: Densidad GPF de la cartera
+  var R2_TARGET_KWS = [
+    'regant','regadío','regadio','comunidad de riego',
+    'edar','depuradora','abastecimiento','saneamiento','agua potable',
+    'red de aguas','red de saneamiento','red de abastecimiento','colector',
+    'ayuntamiento','diputación','diputacion','consorcio','mancomunidad',
+    'junta de','sector público','sector publico',
+    'urbanización','urbanizacion','infraestructura','vial','autovía','autovia',
+    'pavimentación','pavimentacion'
+  ];
+  var r2TargetCount = 0;
+  for (var pr2 = 0; pr2 < projects.length; pr2++) {
+    var pj = projects[pr2];
+    var pt2 = ((pj.name||pj.nombre||'') + ' ' + (pj.type||pj.tipo||'') + ' ' + (pj.descripcion||pj.description||'')).toLowerCase();
+    for (var kw2 = 0; kw2 < R2_TARGET_KWS.length; kw2++) {
+      if (pt2.indexOf(R2_TARGET_KWS[kw2]) !== -1) { r2TargetCount++; break; }
+    }
+  }
+  var r2Pct = projects.length > 0 ? (r2TargetCount / projects.length) : 0;
+  var r2 = 0;
+  if      (r2Pct >= 0.75)        r2 = 4;
+  else if (r2Pct >= 0.50)        r2 = 3;
+  else if (r2Pct >= 0.25)        r2 = 2;
+  else if (r2TargetCount >= 1)   r2 = 1;
+
+  // R3: Exclusividad / proveedor preferente (heurística mínima)
+  var R3_KWS = [
+    'proveedor exclusivo','proveedor preferente','proveedor habitual',
+    'colaborador habitual','partner exclusivo','partner preferente'
+  ];
+  var r3Text = (data.description || '').toLowerCase();
+  for (var pr3 = 0; pr3 < projects.length; pr3++) {
+    var pj3 = projects[pr3];
+    r3Text += ' ' + ((pj3.name||pj3.nombre||'') + ' ' + (pj3.descripcion||pj3.description||'')).toLowerCase();
+  }
+  var r3Hits = 0;
+  for (var kw3 = 0; kw3 < R3_KWS.length; kw3++) {
+    if (r3Text.indexOf(R3_KWS[kw3]) !== -1) r3Hits++;
+  }
+  var r3 = 0;
+  if      (r3Hits >= 2) r3 = 2;
+  else if (r3Hits >= 1) r3 = 1;
+
+  // R4: Posición referente
   var liFollowers = parseInt(String(gasGetValor((social.linkedin || {}).followers) || '').replace(/[^0-9]/g, '') || '0') || 0;
   var awardKws = ['premio','bienal','award','finalista','reconoci','distinción','medalla','ganador'];
   var teachKws = ['profesor','docente','universidad','cátedra','master','máster'];
@@ -195,11 +246,38 @@ function gasCalculateScoringV2(studio) {
 
   var r4 = r4Signals >= 4 ? 4 : r4Signals >= 2 ? 2 : 0;
 
-  var rawNetwork = r4;
-  var priorityNetwork = r4 >= 4 ? 'Alta' : r4 >= 2 ? 'Media' : 'Baja';
+  // R5: Diversidad geográfica de la cartera
+  var R5_ZONA_PROVS = [
+    'málaga','malaga','sevilla','granada','almería','almeria','jaén','jaen','córdoba','cordoba','huelva','cádiz','cadiz',
+    'cáceres','caceres','badajoz',
+    'toledo','cuenca','ciudad real','albacete','guadalajara',
+    'madrid',
+    'alicante','valencia','castellón','castellon',
+    'murcia',
+    'islas baleares','baleares','palma',
+    'las palmas','tenerife','santa cruz de tenerife',
+    'ceuta','melilla'
+  ];
+  var r5ProvsSet = {};
+  for (var pr5 = 0; pr5 < projects.length; pr5++) {
+    var pj5 = projects[pr5];
+    var pt5 = ((pj5.location||'') + ' ' + (pj5.name||pj5.nombre||'') + ' ' + (pj5.descripcion||pj5.description||'')).toLowerCase();
+    for (var pv = 0; pv < R5_ZONA_PROVS.length; pv++) {
+      if (pt5.indexOf(R5_ZONA_PROVS[pv]) !== -1) r5ProvsSet[R5_ZONA_PROVS[pv]] = true;
+    }
+  }
+  var r5ProvCount = Object.keys(r5ProvsSet).length;
+  var r5 = 0;
+  if      (r5ProvCount >= 3) r5 = 2;
+  else if (r5ProvCount >= 1) r5 = 1;
+
+  // Spec §7.3: ≥10 Alta, 6-9 Media, <6 Baja
+  var rawNetwork = r1 + r2 + r3 + r4 + r5;
+  var priorityNetwork = rawNetwork >= 10 ? 'Alta' : rawNetwork >= 6 ? 'Media' : 'Baja';
 
   // ── CLIENTE PUENTE §7.2.1 ──
-  var esCandidatoPuente = rawDirect < 6 && rawNetwork >= 2 && projects.length >= 5;
+  // Con R1-R5 ya implementados, umbral literal del spec: rawNetwork ≥ 6 (banda Media/Alta)
+  var esCandidatoPuente = rawDirect < 6 && rawNetwork >= 6 && projects.length >= 5;
   var puenteActivo = studio.es_cliente_puente === true;
   var rawDirectFinal = puenteActivo ? rawDirect + 4 : rawDirect;
   var priorityDirect = rawDirectFinal >= 10 ? 'Alto' : rawDirectFinal >= 6 ? 'Medio' : 'Bajo';
