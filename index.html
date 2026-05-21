@@ -9009,7 +9009,67 @@ ${totalAlertas > 0 ? `
                     💡 Lanzamiento manual desde la terminal:
                     <code style="background:var(--bg-secondary);padding:2px 6px;border-radius:4px;">gh workflow run batch-qualify.yml -f filtro=todos -f limite=1585</code>
                 </div>
+
+                <div id="batch-search-metrics" style="margin-top:24px;"></div>
             `;
+
+            // Cargar métricas de motores (asíncrono, no bloquea el render principal)
+            loadSearchMetricsCard();
+        }
+
+        async function loadSearchMetricsCard() {
+            const el = document.getElementById('batch-search-metrics');
+            if (!el || !firestoreDB) return;
+            try {
+                const doc = await firestoreDB.collection('_meta').doc('search_metrics').get();
+                if (!doc.exists) {
+                    el.innerHTML = `<div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+                        <div style="font-size:0.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;font-weight:600;margin-bottom:6px;">Motores de búsqueda</div>
+                        <div style="font-size:0.84rem;color:var(--muted);">Aún sin snapshots. Se registrará el primero tras la próxima búsqueda masiva.</div>
+                    </div>`;
+                    return;
+                }
+                const d = doc.data() || {};
+                const last = d.lastSnapshot || {};
+                const engines = last.engines || {};
+                const tsStr = last.ts ? new Date(last.ts).toLocaleString('es-ES', { dateStyle:'medium', timeStyle:'short' }) : '—';
+                const ctx = last.context || {};
+                const ctxStr = (ctx.province || ctx.type) ? `Última búsqueda: <strong>${escapeHtml(ctx.type||'?')} en ${escapeHtml(ctx.province||'?')}</strong> · ${ctx.found ?? '?'} empresas encontradas` : '';
+
+                const engineRows = Object.keys(engines).map(name => {
+                    const e = engines[name];
+                    const successColor = e.successRate >= 80 ? 'var(--success)' : e.successRate >= 50 ? '#f59e0b' : 'var(--danger)';
+                    return `<tr>
+                        <td style="padding:6px 12px;font-weight:600;">${escapeHtml(name)}</td>
+                        <td style="padding:6px 12px;text-align:right;">${e.calls}</td>
+                        <td style="padding:6px 12px;text-align:right;color:var(--success);">${e.successes}</td>
+                        <td style="padding:6px 12px;text-align:right;color:var(--danger);">${e.failures}</td>
+                        <td style="padding:6px 12px;text-align:right;color:#94a3b8;">${e.blocked}</td>
+                        <td style="padding:6px 12px;text-align:right;color:${successColor};font-weight:600;">${e.successRate != null ? e.successRate.toFixed(1) + '%' : '—'}</td>
+                    </tr>`;
+                }).join('');
+
+                el.innerHTML = `<div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+                    <div style="font-size:0.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;font-weight:600;margin-bottom:10px;">Motores de búsqueda (Bloque 4 / §5)</div>
+                    <div style="font-size:0.78rem;color:var(--muted);margin-bottom:10px;">Último snapshot: <strong>${tsStr}</strong> · Orden: ${(last.order||[]).join(' → ')} ${ctxStr ? '· '+ctxStr : ''}</div>
+                    <table style="width:100%;border-collapse:collapse;font-size:0.84rem;">
+                        <thead>
+                            <tr style="border-bottom:1px solid var(--border);">
+                                <th style="padding:6px 12px;text-align:left;font-weight:600;color:var(--muted);text-transform:uppercase;font-size:0.7rem;">Motor</th>
+                                <th style="padding:6px 12px;text-align:right;font-weight:600;color:var(--muted);text-transform:uppercase;font-size:0.7rem;">Llamadas</th>
+                                <th style="padding:6px 12px;text-align:right;font-weight:600;color:var(--muted);text-transform:uppercase;font-size:0.7rem;">Éxitos</th>
+                                <th style="padding:6px 12px;text-align:right;font-weight:600;color:var(--muted);text-transform:uppercase;font-size:0.7rem;">Fallos</th>
+                                <th style="padding:6px 12px;text-align:right;font-weight:600;color:var(--muted);text-transform:uppercase;font-size:0.7rem;">Bloqueado</th>
+                                <th style="padding:6px 12px;text-align:right;font-weight:600;color:var(--muted);text-transform:uppercase;font-size:0.7rem;">Tasa éxito</th>
+                            </tr>
+                        </thead>
+                        <tbody>${engineRows || '<tr><td colspan="6" style="padding:8px;text-align:center;color:var(--muted);">Sin datos</td></tr>'}</tbody>
+                    </table>
+                    <div style="font-size:0.74rem;color:var(--muted);margin-top:10px;">Histórico: ${Array.isArray(d.snapshots) ? d.snapshots.length : 0} snapshots almacenados.</div>
+                </div>`;
+            } catch (e) {
+                el.innerHTML = `<p style="color:var(--danger);font-size:0.8rem;">Error cargando métricas: ${escapeHtml(e.message||String(e))}</p>`;
+            }
         }
 
         function makeDraggable(overlay) {
@@ -11867,6 +11927,46 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             return { order: getSearchEngineOrder(), engines: status };
         }
 
+        // Persiste un snapshot de las métricas en Firestore _meta/search_metrics.
+        // Bloque 4 follow-up — antes solo se mantenían en memoria.
+        async function persistSearchMetrics(context = {}) {
+            if (!useFirebase || !firestoreDB) return;
+            const snapshot = {
+                ts: new Date().toISOString(),
+                order: getSearchEngineOrder(),
+                context,  // { province, type, found } de la búsqueda que disparó la persistencia
+                engines: {},
+            };
+            for (const name in _searchEngineMetrics) {
+                const m = _searchEngineMetrics[name];
+                snapshot.engines[name] = {
+                    calls: m.calls,
+                    successes: m.successes,
+                    failures: m.failures,
+                    blocked: m.blocked,
+                    successRate: m.calls > 0 ? Math.round(m.successes / m.calls * 1000) / 10 : null,
+                    lastError: m.lastError || null,
+                };
+            }
+            try {
+                const ref = firestoreDB.collection('_meta').doc('search_metrics');
+                const doc = await ref.get();
+                const prev = doc.exists ? (doc.data() || {}) : {};
+                const snapshots = Array.isArray(prev.snapshots) ? prev.snapshots : [];
+                snapshots.push(snapshot);
+                // Mantener solo últimos 50
+                if (snapshots.length > 50) snapshots.splice(0, snapshots.length - 50);
+                await ref.set({
+                    lastUpdated: snapshot.ts,
+                    lastSnapshot: snapshot,
+                    snapshots,
+                });
+                debugLog(`search_metrics persistido (${snapshots.length} snapshots históricos)`);
+            } catch (e) {
+                console.warn('No se pudo persistir search_metrics:', e?.message);
+            }
+        }
+
         // Reset manual (útil tras detectar problema y solucionarlo)
         function resetSearchEngineHealth() {
             for (const name in _searchEngineHealth) {
@@ -13607,6 +13707,11 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 // Convertir Map a array y ordenar por relevancia
                 bulkSearchResults = Array.from(foundStudios.values())
                     .sort((a, b) => b.relevance - a.relevance);
+
+                // Persistir métricas multi-motor del Bloque 4 (§5)
+                persistSearchMetrics({ province, type: studioType, found: foundStudios.size }).catch(e => {
+                    console.warn('persistSearchMetrics fallo:', e?.message);
+                });
 
                 closeModal('modal-bulk-progress');
 
