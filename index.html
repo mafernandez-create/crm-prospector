@@ -3282,6 +3282,12 @@
                     <div class="bandeja-section-title">🕐 Datos obsoletos <span id="bandeja-obsoletos-count" style="font-size:0.75rem;font-weight:400;color:var(--muted);"></span></div>
                     <div id="bandeja-obsoletos-list"></div>
                 </div>
+
+                <!-- Propuestas tras visita §16.1 — detectadas por LLM en Fase I -->
+                <div class="bandeja-section" id="bandeja-propuestas-section">
+                    <div class="bandeja-section-title">💡 Propuestas tras visita <span id="bandeja-propuestas-count" style="font-size:0.75rem;font-weight:400;color:var(--muted);"></span></div>
+                    <div id="bandeja-propuestas-list"></div>
+                </div>
             </div>
 
             <!-- Reporte Semanal — §16.2 -->
@@ -6591,6 +6597,48 @@
                         </div>`).join('');
                 }
             }
+
+            // ── Propuestas tras visita §16.1 ──
+            // Recorre activities de tipo registro_visita con actualizaciones_propuestas sin decision.
+            (async () => {
+                const acts = await getAllActivities().catch(() => []);
+                const studiosById = new Map(studios.map(s => [String(s.id), s]));
+                const items = [];
+                for (const a of acts) {
+                    if (a.type !== 'registro_visita') continue;
+                    const studio = studiosById.get(String(a.studioId));
+                    if (!studio) continue;  // respeta filtro provincia
+                    const props = a.registroVisita?.actualizaciones_propuestas || [];
+                    props.forEach((p, idx) => {
+                        if (p.decision && p.decision !== 'pending') return;
+                        items.push({ activityId: a.id, propIdx: idx, prop: p, studio, fecha: a.createdAt });
+                    });
+                }
+                items.sort((a, b) => (b.fecha||'').localeCompare(a.fecha||''));
+                const el = document.getElementById('bandeja-propuestas-list');
+                const countEl = document.getElementById('bandeja-propuestas-count');
+                if (!el || !countEl) return;
+                countEl.textContent = `(${items.length})`;
+                if (items.length === 0) {
+                    el.innerHTML = '<p style="color:var(--muted);font-size:0.82rem;margin:0;">Sin propuestas pendientes. Aparecerán tras registrar visitas con cambios detectados.</p>';
+                    return;
+                }
+                el.innerHTML = items.map(it => {
+                    const iconTipo = it.prop.tipo === 'team_nuevo' ? '👤' : it.prop.tipo === 'proyecto_mencionado' ? '🏗️' : it.prop.tipo === 'tamaño' ? '📈' : '💡';
+                    return `
+                    <div class="bandeja-card" style="grid-template-columns:auto 1fr auto;">
+                        <span class="q-chip" style="background:#fbbf24;color:#fff;">${iconTipo}</span>
+                        <div onclick="showStudioDetail('${it.studio.id}')" style="cursor:pointer;">
+                            <div class="bandeja-card-name">${escapeHtml(it.studio.name)}</div>
+                            <div class="bandeja-card-meta">${escapeHtml(it.studio.province||'')} · ${escapeHtml(it.prop.propuesta || it.prop.tipo)}</div>
+                        </div>
+                        <div class="bandeja-actions" onclick="event.stopPropagation()">
+                            <button class="btn-confirmar" onclick="aplicarPropuesta('${it.activityId}', ${it.propIdx})">✓ Aplicar</button>
+                            <button class="btn-descartar" onclick="descartarPropuesta('${it.activityId}', ${it.propIdx})">✕ Descartar</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            })();
 
             // ── Datos obsoletos (§4.4) ──
             const obsoletos = getDatosObsoletos(studios);
@@ -26822,6 +26870,64 @@ Importante:
         // Detecta actualizaciones propuestas para el cliente (spec §16.1):
         // nuevo interlocutor no presente en team, nuevos proyectos mencionados,
         // cambio de tamaño. Heurística simple, devuelve array de sugerencias.
+        // ── Decidir sobre actualizaciones_propuestas (§16.1) ─────────────────
+        // Sin aplicar cambios automáticos al studio (eso requiere validación
+        // manual del usuario). Solo registra la decisión y añade nota al studio.
+        async function aplicarPropuesta(activityId, propIdx) {
+            const acts = await getAllActivities();
+            const act = acts.find(a => String(a.id) === String(activityId));
+            if (!act?.registroVisita?.actualizaciones_propuestas?.[propIdx]) {
+                showNotification('Propuesta no encontrada', 'warning'); return;
+            }
+            const prop = act.registroVisita.actualizaciones_propuestas[propIdx];
+            const studio = allStudios.find(s => String(s.id) === String(act.studioId));
+            if (!studio) { showNotification('Studio no encontrado', 'warning'); return; }
+
+            // Marcar decisión en la actividad
+            const newProps = JSON.parse(JSON.stringify(act.registroVisita.actualizaciones_propuestas));
+            newProps[propIdx].decision = 'aplicada';
+            newProps[propIdx].fecha_decision = new Date().toISOString();
+
+            // Añadir nota al studio (versión minimalista — no toca campos críticos)
+            const notaActual = getValor(studio.data?.notes) || '';
+            const fechaNota = new Date().toLocaleDateString('es-ES');
+            const notaNueva = `[${fechaNota} · propuesta tras visita aplicada] ${prop.propuesta || prop.tipo}\n${notaActual}`.trim();
+
+            try {
+                await updateActivity(activityId, {
+                    registroVisita: { ...act.registroVisita, actualizaciones_propuestas: newProps }
+                });
+                // Actualizar nota local
+                if (!studio.data) studio.data = {};
+                studio.data.notes = notaNueva;
+                await updateStudio(studio.id, { data: studio.data });
+                showNotification('✓ Propuesta aplicada — añadida a notas del studio', 'success');
+                loadBandeja();
+            } catch (e) {
+                showNotification('Error al aplicar propuesta: ' + e.message, 'danger');
+            }
+        }
+
+        async function descartarPropuesta(activityId, propIdx) {
+            const acts = await getAllActivities();
+            const act = acts.find(a => String(a.id) === String(activityId));
+            if (!act?.registroVisita?.actualizaciones_propuestas?.[propIdx]) {
+                showNotification('Propuesta no encontrada', 'warning'); return;
+            }
+            const newProps = JSON.parse(JSON.stringify(act.registroVisita.actualizaciones_propuestas));
+            newProps[propIdx].decision = 'rechazada';
+            newProps[propIdx].fecha_decision = new Date().toISOString();
+            try {
+                await updateActivity(activityId, {
+                    registroVisita: { ...act.registroVisita, actualizaciones_propuestas: newProps }
+                });
+                showNotification('✕ Propuesta descartada', 'info');
+                loadBandeja();
+            } catch (e) {
+                showNotification('Error al descartar: ' + e.message, 'danger');
+            }
+        }
+
         function detectarActualizacionesPropuestas(studio, registroVisita) {
             const props = [];
             if (!studio || !registroVisita) return props;
