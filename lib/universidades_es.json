@@ -1,0 +1,122 @@
+{
+  "_descripcion": "Lista de dominios institucionales universitarios españoles relevantes para detección de cliente puente académico (§19.1 heurística 1). Cualquier email o web bajo estos dominios se considera evidencia fuerte de afiliación universitaria.",
+  "_actualizable": true,
+  "_fuente_ultimo_repaso": "https://www.universidades.gob.es/ (registro oficial de universidades) — 2026-05-21",
+  "dominios_genericos": [
+    ".edu",
+    "ac.es"
+  ],
+  "andalucia": [
+    "uco.es",
+    "ual.es",
+    "ujaen.es",
+    "ugr.es",
+    "us.es",
+    "upo.es",
+    "uca.es",
+    "uma.es",
+    "uhu.es",
+    "unia.es"
+  ],
+  "madrid": [
+    "ucm.es",
+    "upm.es",
+    "uam.es",
+    "uc3m.es",
+    "urjc.es",
+    "uah.es",
+    "uned.es",
+    "ufv.es",
+    "comillas.edu",
+    "ie.edu",
+    "ceu.es",
+    "uax.es",
+    "uem.es",
+    "unav.edu",
+    "nebrija.es"
+  ],
+  "cataluna": [
+    "ub.edu",
+    "uab.cat",
+    "upc.edu",
+    "upf.edu",
+    "udg.edu",
+    "udl.cat",
+    "urv.cat",
+    "uoc.edu",
+    "uic.es",
+    "url.edu",
+    "uvic.cat"
+  ],
+  "valencia": [
+    "uv.es",
+    "upv.es",
+    "ua.es",
+    "umh.es",
+    "uji.es",
+    "ucv.es",
+    "universidadeuropea.com"
+  ],
+  "galicia": [
+    "usc.es",
+    "udc.es",
+    "uvigo.es"
+  ],
+  "pais_vasco": [
+    "ehu.eus",
+    "ehu.es",
+    "deusto.es",
+    "mondragon.edu"
+  ],
+  "castilla_y_leon": [
+    "usal.es",
+    "uva.es",
+    "uvalladolid.es",
+    "ubu.es",
+    "uemc.es",
+    "unileon.es",
+    "ie.edu"
+  ],
+  "castilla_la_mancha": [
+    "uclm.es"
+  ],
+  "extremadura": [
+    "unex.es"
+  ],
+  "asturias": [
+    "uniovi.es"
+  ],
+  "cantabria": [
+    "unican.es"
+  ],
+  "navarra": [
+    "unavarra.es",
+    "unav.edu"
+  ],
+  "la_rioja": [
+    "unirioja.es",
+    "unir.net"
+  ],
+  "aragon": [
+    "unizar.es"
+  ],
+  "murcia": [
+    "um.es",
+    "upct.es",
+    "ucam.edu"
+  ],
+  "baleares": [
+    "uib.es",
+    "uib.cat"
+  ],
+  "canarias": [
+    "ulpgc.es",
+    "ull.es"
+  ],
+  "instituciones_investigacion_anexas": [
+    "csic.es",
+    "ciemat.es",
+    "ieo.es",
+    "inia.es"
+  ]
+}
