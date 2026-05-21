@@ -111,16 +111,18 @@ Tras merge, recargar Chrome para coger la nueva versión.
   - Dry-run validado sobre 1585 studios
   - Producción ya tiene el código tras GitHub Pages refresh
 
-### Pendiente operativo (no bloquea código)
+### Operativa completada en sesión 2026-05-21
 
-1. **Re-deploy GAS Web App** para activar R1-R5 en el cron nocturno.
-   Pasos: script.google.com → proyecto CRM → Implementar → Gestionar implementaciones → editar la activa → Versión: Nueva → Implementar. La URL del Web App se conserva.
-2. **Batch real sobre 1585** una vez re-desplegado el GAS:
-   ```bash
-   gh workflow run batch-qualify.yml -f filtro=todos -f limite=1585
-   ```
-   Esto persistirá los nuevos R1-R5 en todos los docs.
-3. **Rotar `ANTHROPIC_API_KEY`** (vista en plain text en Script Properties durante el setup) y borrar el JSON service account de `~/Downloads/`.
+1. ✅ **Re-deploy GAS Web App v60** (R1-R5 completos Eje 2)
+2. ✅ **Batch real sobre 1585** ([run 26208375383](https://github.com/mafernandez-create/crm-prospector/actions/runs/26208375383)) — 16 actualizados, 0 errores
+3. ✅ **Cron automático 02:00 UTC verificado en producción** — run schedule 26208391010 procesó 200 docs OK
+4. ✅ **Hotfix bug `c.trim()` en updateCityFilter** (PR #9) — usar `getValor()` para unwrap campos legacy
+5. ✅ **Capa Sectorial §18.5 validada end-to-end** — búsqueda Sevilla/ING aportó **22 estudios sectoriales + 2 académicos** (24 nuevos prescriptores no detectables vía búsqueda geográfica)
+
+### Pendiente operativo (higiene)
+
+1. **Rotar `ANTHROPIC_API_KEY`** (vista en plain text en Script Properties durante el setup)
+2. **Borrar JSON service account** de `~/Downloads/ferroplast-crm-XXXX.json`
 
 ---
 
