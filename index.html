@@ -21086,8 +21086,20 @@ CUADRANTE 1-9 según bandas {Alto/Medio/Bajo} × {Alta/Media/Baja}
                     loadPlanificadorFromFirebase().catch(e => console.warn('Sync planificador:', e));
                 }
 
-                // Activar interfaz simplificada en iPhone
-                if (specificDevice === 'iphone' || (isMobile && deviceType === 'mobile')) {
+                // DESACTIVADO 2026-05-21: la UI móvil simplificada (#mobile-app
+                // con tabs Hoy/Buscar/Registrar/Agenda) ocultaba el CRM completo
+                // en iPhone, lo que impedía ver bandeja del agente con referencias
+                // cruzadas, acciones pendientes, visitas fallidas, planificador
+                // con tabs, etc. Ahora forzamos el CRM completo en iPhone con
+                // los fixes mobile aplicados (planificador hamburger + tabs,
+                // detail-content responsive, banner pull-refresh, topbar
+                // compacto, etc.).
+                //
+                // Para reactivar la UI simplificada en el futuro: setear
+                //   localStorage.setItem('crm_use_simple_ui', '1')
+                // y descomentar el bloque siguiente.
+                if (localStorage.getItem('crm_use_simple_ui') === '1' &&
+                    (specificDevice === 'iphone' || (isMobile && deviceType === 'mobile'))) {
                     initMobileApp();
                 }
             } catch (error) {
