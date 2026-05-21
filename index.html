@@ -30411,18 +30411,315 @@ ${jsonTemplate}`;
                             style="width:100%;background:#0f172a;border:1px solid #334155;color:#f1f5f9;border-radius:8px;padding:9px 12px;font-size:0.85rem;resize:vertical;box-sizing:border-box;"></textarea>
                     </div>
                     <div id="briefing-status" style="display:none;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:0.85rem;"></div>
-                    <div style="display:flex;gap:10px;justify-content:flex-end;">
+                    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
                         <button onclick="document.getElementById('briefing-modal').remove()"
                             style="background:#334155;color:#cbd5e1;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:0.875rem;">
                             Cancelar
                         </button>
                         <button id="btn-generar-briefing" onclick="generarBriefing(currentStudioId)"
-                            style="background:linear-gradient(135deg,#0f766e,#0d9488);color:white;border:none;padding:9px 22px;border-radius:8px;cursor:pointer;font-size:0.875rem;font-weight:600;">
+                            style="background:#475569;color:white;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:0.85rem;font-weight:500;" title="Versión clásica DOCX">
+                            📄 DOCX clásico
+                        </button>
+                        <button id="btn-generar-briefing-narrativo" onclick="generarBriefingNarrativo(currentStudioId)"
+                            style="background:linear-gradient(135deg,#0f766e,#0d9488);color:white;border:none;padding:9px 22px;border-radius:8px;cursor:pointer;font-size:0.875rem;font-weight:600;" title="Versión §19.2 con 8 secciones + persistencia + descarga .md">
                             📋 Generar Briefing
                         </button>
                     </div>
                 </div>`;
             document.body.appendChild(modal);
+        }
+
+        // ── Bloque 9 §19.2: Briefing narrativo (8 secciones + persistencia + .md) ──
+        async function generarBriefingNarrativo(studioId) {
+            const fecha = document.getElementById('briefing-fecha')?.value || new Date().toISOString().split('T')[0];
+            const contextoExtra = document.getElementById('briefing-contexto')?.value?.trim() || '';
+            const statusDiv = document.getElementById('briefing-status');
+            const btnGen = document.getElementById('btn-generar-briefing-narrativo');
+
+            const setStatus = (msg, color='rgba(13,148,136,0.15)', textColor='#5eead4') => {
+                if (!statusDiv) return;
+                statusDiv.style.display = 'block';
+                statusDiv.style.background = color;
+                statusDiv.style.color = textColor;
+                statusDiv.textContent = msg;
+            };
+
+            if (btnGen) { btnGen.disabled = true; btnGen.textContent = '⏳ Generando...'; }
+            setStatus('📂 Cargando datos del estudio...');
+
+            try {
+                // 1. Cargar estudio
+                let studio;
+                try {
+                    if (typeof firestoreDB !== 'undefined') {
+                        const snap = await firestoreDB.collection('studios').doc(String(studioId)).get();
+                        studio = snap.exists ? snap.data() : null;
+                    }
+                } catch(_) {}
+                if (!studio) studio = await getStudio(studioId);
+                if (!studio) throw new Error('No se encontró el estudio en la base de datos.');
+
+                const studioName = studio.name || 'Empresa';
+                const province = getValor(studio.province) || getValor(studio.city) || '';
+                const city = getValor(studio.city) || province;
+                const studioTypes = Array.isArray(studio.type) ? studio.type : [studio.type || 'ARQ'];
+
+                // 2. Histórico de visitas (RegistroVisita y/o reports)
+                setStatus('📅 Cargando histórico de visitas...');
+                const allActivities = await getAllActivities().catch(() => []);
+                const studioActivities = allActivities
+                    .filter(a => String(a.studioId) === String(studioId))
+                    .sort((a, b) => new Date(b.createdAt||0) - new Date(a.createdAt||0));
+                const visitas = studioActivities.filter(a => a.type === 'registro_visita' || a.type === 'meeting');
+                const lastVisits = visitas.slice(0, 5);
+                const allReports = Array.isArray(studio.data?.reports) ? studio.data.reports : [];
+
+                // 3. Compromisos abiertos (propuestas pendientes + reports compromisos)
+                const propuestasPendientes = [];
+                visitas.forEach(v => {
+                    (v.registroVisita?.actualizaciones_propuestas || []).forEach(p => {
+                        if (!p.decision || p.decision === 'pending') propuestasPendientes.push(p);
+                    });
+                });
+
+                // 4. Señales de mercado + 5. Red y conexiones
+                setStatus('🌐 Detectando red de conexiones...');
+                const allStudiosCached = (typeof allStudios !== 'undefined') ? allStudios : (await getAllStudios().catch(()=>[]));
+                const isPuente = studio.es_cliente_puente === true;
+                const sameProvince = allStudiosCached.filter(s => getValor(s.province) === province && String(s.id) !== String(studioId));
+                const puentesProvincia = sameProvince.filter(s => s.es_cliente_puente === true).slice(0, 5);
+                const mismoCuadrante = sameProvince.filter(s => s.priorityQuadrant === studio.priorityQuadrant).slice(0, 5);
+
+                // 6. Búsqueda web fresca para novedades
+                setStatus('🔍 Búsqueda web fresca...');
+                let webData = '';
+                try {
+                    const metodoResult = await ejecutarMetodoUnificado(studioName, province, {
+                        studioType: studioTypes[0],
+                        studioTypes,
+                        studioId: studioId,
+                        onProgress: (msg) => setStatus('🔍 ' + msg)
+                    });
+                    webData = (metodoResult.webData || '').slice(0, 3500);
+                } catch(_) {}
+
+                // 7. Contexto CRM completo
+                const crmContext = [
+                    `NOMBRE: ${studioName}`,
+                    `CIUDAD: ${city || '—'} · PROVINCIA: ${province || '—'}`,
+                    `TIPOS: ${studioTypes.join(', ')}`,
+                    studio.es_cliente_puente ? `⚠️ ES CLIENTE PUENTE (fuente: ${getValor(studio.fuente_descubrimiento)||'?'})` : null,
+                    studio.priorityQuadrant ? `CUADRANTE: Q${studio.priorityQuadrant} ${studio.priorityQuadrantName || ''}` : null,
+                    studio.priorityDirect ? `Eje Directo: ${studio.priorityDirect} (${studio.priorityDirectScore||0}pts)` : null,
+                    studio.priorityNetwork ? `Eje Red: ${studio.priorityNetwork} (${studio.priorityNetworkScore||0}pts)` : null,
+                    getValor(studio.data?.contact?.phone) ? `TEL: ${getValor(studio.data.contact.phone)}` : null,
+                    getValor(studio.data?.contact?.email) ? `EMAIL: ${getValor(studio.data.contact.email)}` : null,
+                    getValor(studio.data?.contact?.web) ? `WEB: ${getValor(studio.data.contact.web)}` : null,
+                    studio.data?.studio?.employees ? `EMPLEADOS: ${getValor(studio.data.studio.employees)}` : null,
+                    studio.data?.description ? `DESCRIPCIÓN: ${studio.data.description.slice(0, 400)}` : null,
+                ].filter(Boolean).join('\n');
+
+                const visitasCtx = lastVisits.length === 0 ? 'Sin visitas registradas (primera visita).' :
+                    lastVisits.map((v, i) => {
+                        const f = (v.createdAt||'').substring(0, 10);
+                        const rv = v.registroVisita || {};
+                        return `--- VISITA ${i+1} (${f}) ---\nInterlocutor: ${rv.interlocutor||'—'}\nTemas: ${(rv.temas_tratados||v.text||'').slice(0, 250)}\nCompromisos: ${(rv.compromisos||'').slice(0, 200)}\nPróximo paso: ${(rv.proximo_paso||'').slice(0, 150)}\nSeñales: ${(rv.senales||'').slice(0, 200)}`;
+                    }).join('\n\n');
+
+                const propuestasCtx = propuestasPendientes.length === 0 ? 'Sin propuestas pendientes.' :
+                    propuestasPendientes.map(p => `- ${p.tipo}: ${p.propuesta}`).join('\n');
+
+                const redCtx = [];
+                if (puentesProvincia.length > 0) {
+                    redCtx.push(`Otros prescriptores puente en ${province}: ${puentesProvincia.map(s => s.name).join(', ')}`);
+                }
+                if (mismoCuadrante.length > 0) {
+                    redCtx.push(`Mismo cuadrante Q${studio.priorityQuadrant} en provincia: ${mismoCuadrante.slice(0, 3).map(s => s.name).join(', ')}`);
+                }
+
+                // 8. Prompt a Claude con las 8 secciones de §19.2
+                setStatus('🤖 Generando briefing narrativo con IA...');
+
+                const systemPrompt = `Eres el asistente comercial de Manolo Fernández, prescriptor de Grupo GPF (Ferroplast, Tuyper, Ecosan, Biopipe, PVC-O, MUTE) en Andalucía/Extremadura/Levante.
+
+Misión: generar un briefing pre-visita ACCIONABLE de 1 página A4 con 8 secciones exactas.
+
+REGLAS:
+- Concreto, NO genérico. Si no hay datos suficientes para una sección, dilo explícito.
+- Sección 5 "Red y conexiones": si el cliente es puente académico, identifica el hilo (catedrático, grupo investigación, cátedra del agua) y por qué eso lo conecta con otros prescriptores en la zona.
+- Sección 6 "SPIN": pregunta concreta de Situación, de Problema, de Implicación y de Necesidad-pago — específicas a este cliente.
+- Sección 8 "Cosas a evitar": origen del descubrimiento (sectorial/académica), scoring interno, datos mercantiles.
+- Productos GPF: MUTE (saneamiento insonorizado PVC), Ecosan (saneamiento ecológico), Biopipe (bioplástico), PVC-O (presión), Tuyper.
+- Devuelve ÚNICAMENTE el JSON con las 8 claves exactas, sin texto extra.`;
+
+                const userMsg = `Genera briefing pre-visita para esta empresa.
+
+DATOS CRM:
+${crmContext}
+${contextoExtra ? `\nCONTEXTO ADICIONAL:\n${contextoExtra}` : ''}
+
+HISTÓRICO VISITAS:
+${visitasCtx}
+
+COMPROMISOS ABIERTOS:
+${propuestasCtx}
+
+RED DE CONEXIONES DETECTADA:
+${redCtx.join('\n') || 'Sin conexiones destacables.'}
+
+${webData ? `INFORMACIÓN WEB ACTUALIZADA:\n${webData}` : ''}
+
+FECHA VISITA: ${fecha}
+
+Devuelve ÚNICAMENTE este JSON (8 claves exactas):
+{
+  "resumen_ejecutivo": "3-4 líneas: quién es, dónde está en la cartera (cuadrante), por qué se le visita ahora",
+  "historico_reciente": "Lo último que se habló, fecha, interlocutor. Si primera visita, di 'Primera visita — sin historial'",
+  "compromisos_abiertos": "Lo prometido y no cerrado. Si no hay, di '—'",
+  "senales_mercado": "Adjudicaciones públicas recientes, cambios sector, noticias 2024-2026 relevantes",
+  "red_conexiones": "Otros prospects/clientes relacionados, especialmente cliente puente si aplica. Hilo académico si relevante",
+  "spin_visita": {"situacion":"Pregunta concreta", "problema":"Pregunta concreta", "implicacion":"Pregunta concreta", "necesidad_pago":"Pregunta concreta"},
+  "catalogo_prioritario": ["Producto GPF 1 — razón específica para este cliente", "Producto 2 — razón", "Producto 3 — razón (opcional)"],
+  "evitar_mencionar": ["Aspecto 1 a no revelar", "Aspecto 2"]
+}`;
+
+                const response = await callClaudeAPI(
+                    [{ role: 'user', content: userMsg }],
+                    4096,
+                    'claude-sonnet-4-20250514',
+                    systemPrompt
+                );
+
+                let rawText = response?.content?.[0]?.text || response?.content?.[0]?.value || response?.text || '';
+                if (!rawText) throw new Error('La IA no devolvió contenido.');
+
+                let briefing;
+                try {
+                    const cleaned = rawText.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
+                    try { briefing = JSON.parse(cleaned); } catch(_) {
+                        const s2 = rawText.indexOf('{'), e2 = rawText.lastIndexOf('}');
+                        if (s2 === -1 || e2 === -1) throw new Error('sin JSON en respuesta');
+                        briefing = JSON.parse(rawText.slice(s2, e2+1));
+                    }
+                } catch(pe) {
+                    throw new Error('No se pudo parsear respuesta IA: ' + pe.message);
+                }
+
+                // 9. Construir Markdown
+                const mdContent = _buildBriefingMarkdown(briefing, studio, fecha, studioName, city, province);
+
+                // 10. Persistir en Firestore briefings/{clientId}/items/{fechaISO}
+                if (typeof firestoreDB !== 'undefined') {
+                    try {
+                        const isoDate = new Date().toISOString().replace(/[:.]/g, '-');
+                        await firestoreDB.collection('briefings').doc(String(studioId)).collection('items').doc(isoDate).set({
+                            fecha_visita: fecha,
+                            generated_at: new Date().toISOString(),
+                            contexto_extra: contextoExtra || null,
+                            briefing,
+                            markdown: mdContent,
+                            studio_snapshot: {
+                                name: studioName,
+                                province,
+                                cuadrante: studio.priorityQuadrant || null,
+                                es_cliente_puente: studio.es_cliente_puente === true,
+                            },
+                        });
+                    } catch (e) {
+                        console.warn('Persistencia briefing falló:', e?.message);
+                    }
+                }
+
+                // 11. Mostrar en modal expandible + ofrecer descarga MD
+                _mostrarBriefingEnModal(mdContent, studioName, fecha);
+
+                setStatus('✅ Briefing generado y persistido', 'rgba(16,185,129,0.15)', '#34d399');
+                if (btnGen) { btnGen.disabled = false; btnGen.textContent = '📋 Generar Briefing'; }
+                showNotification('✅ Briefing pre-visita generado', 'success');
+
+            } catch(e) {
+                console.error('Error generarBriefingNarrativo:', e);
+                setStatus('❌ Error: ' + (e.message||e), 'rgba(239,68,68,0.15)', '#fca5a5');
+                if (btnGen) { btnGen.disabled = false; btnGen.textContent = '📋 Generar Briefing'; }
+            }
+        }
+
+        function _buildBriefingMarkdown(b, studio, fecha, studioName, city, province) {
+            const lines = [];
+            lines.push(`# Briefing pre-visita — ${studioName}`);
+            lines.push('');
+            lines.push(`**Fecha visita**: ${fecha} · **Ubicación**: ${city || '—'} (${province || '—'})`);
+            if (studio.priorityQuadrant) {
+                lines.push(`**Cuadrante CRM**: Q${studio.priorityQuadrant} ${studio.priorityQuadrantName || ''}`);
+            }
+            if (studio.es_cliente_puente) {
+                lines.push(`**Tipo**: 🌉 Cliente puente`);
+            }
+            lines.push('');
+            lines.push(`## 1. Resumen ejecutivo`);
+            lines.push(b.resumen_ejecutivo || '—');
+            lines.push('');
+            lines.push(`## 2. Histórico reciente`);
+            lines.push(b.historico_reciente || '—');
+            lines.push('');
+            lines.push(`## 3. Compromisos abiertos`);
+            lines.push(b.compromisos_abiertos || '—');
+            lines.push('');
+            lines.push(`## 4. Señales de mercado`);
+            lines.push(b.senales_mercado || '—');
+            lines.push('');
+            lines.push(`## 5. Red y conexiones`);
+            lines.push(b.red_conexiones || '—');
+            lines.push('');
+            lines.push(`## 6. SPIN para esta visita`);
+            const s = b.spin_visita || {};
+            lines.push(`- **Situación**: ${s.situacion || '—'}`);
+            lines.push(`- **Problema**: ${s.problema || '—'}`);
+            lines.push(`- **Implicación**: ${s.implicacion || '—'}`);
+            lines.push(`- **Necesidad-pago**: ${s.necesidad_pago || '—'}`);
+            lines.push('');
+            lines.push(`## 7. Catálogo GPF prioritario`);
+            (Array.isArray(b.catalogo_prioritario) ? b.catalogo_prioritario : []).forEach(p => lines.push(`- ${p}`));
+            lines.push('');
+            lines.push(`## 8. Cosas a evitar mencionar`);
+            (Array.isArray(b.evitar_mencionar) ? b.evitar_mencionar : []).forEach(p => lines.push(`- ${p}`));
+            lines.push('');
+            lines.push(`---`);
+            lines.push(`*Generado por CRM Prospector · §19.2 · ${new Date().toISOString().slice(0, 19).replace('T', ' ')}*`);
+            return lines.join('\n');
+        }
+
+        function _mostrarBriefingEnModal(mdContent, studioName, fecha) {
+            const prev = document.getElementById('briefing-result-modal');
+            if (prev) prev.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'briefing-result-modal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+            modal.innerHTML = `
+                <div style="background:#0f172a;border-radius:14px;padding:24px;width:780px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,0.6);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                        <h3 style="color:#f1f5f9;margin:0;font-size:1.1rem;">📋 Briefing — ${studioName} (${fecha})</h3>
+                        <button onclick="document.getElementById('briefing-result-modal').remove()" style="background:none;border:none;color:#64748b;font-size:1.4rem;cursor:pointer;">✕</button>
+                    </div>
+                    <div style="flex:1;overflow-y:auto;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:18px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.84rem;color:#e2e8f0;white-space:pre-wrap;line-height:1.5;">${escapeHtml(mdContent)}</div>
+                    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;">
+                        <button onclick="navigator.clipboard.writeText(${JSON.stringify(mdContent).replace(/'/g,"\\'")}); showNotification('Copiado al portapapeles', 'success');" style="background:#475569;color:white;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:0.85rem;">📋 Copiar</button>
+                        <button onclick="_descargarBriefingMD(${JSON.stringify(mdContent).replace(/'/g,"\\'")}, '${studioName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase()}_${fecha.replace(/-/g,'')}.md');" style="background:linear-gradient(135deg,#0f766e,#0d9488);color:white;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:0.875rem;font-weight:600;">📥 Descargar .md</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+        }
+
+        function _descargarBriefingMD(content, filename) {
+            const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename;
+            a.style.display = 'none';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 3000);
+            showNotification('✅ Briefing descargado: ' + filename, 'success');
         }
 
         async function generarBriefing(studioId) {
