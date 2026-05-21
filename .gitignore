@@ -9,6 +9,7 @@ google_credentials.json
 !index.js
 !cors-proxy.js
 !scripts/*.js
+!scripts/**/*.js
 gen_*.js
 insertar_*.js
 import_*.js
