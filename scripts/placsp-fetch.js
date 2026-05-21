@@ -128,17 +128,17 @@ function extractFromAtomEntry(entryXml) {
     }
   }
 
-  // Patrón 5 fallback: cualquier OfficialName/PartyName/Name dentro del entry
-  // (no ideal, pero asegura que si hay nombre de organización lo capturamos)
-  if (adjudicatarios.length === 0) {
-    wRegex = /<[a-z-]+:(?:OfficialName|PartyName)[^>]*>([\s\S]*?)<\/[a-z-]+:(?:OfficialName|PartyName)>/gi;
-    while ((wMatch = wRegex.exec(entryXml)) !== null && adjudicatarios.length < 3) {
-      const name = decodeHtmlEntities(wMatch[1].trim()).replace(/<[^>]+>/g, '').trim();
-      if (name && name.length > 3 && name.length < 200 && !adjudicatarios.includes(name)) {
-        adjudicatarios.push(name);
-      }
-    }
-  }
+  // Patrón 5 ELIMINADO §19.3 iter — el fallback laxo capturaba ContractingParty
+  // (organismo adjudicador) como si fuera WinningParty (empresa ganadora),
+  // creando ruido en cartera (12 fichas creadas, solo 1 era empresa real).
+  //
+  // Si los patrones 1-4 no encuentran adjudicatario en el feed ATOM, devolvemos
+  // adjudicatarios=[] y el endpoint GAS NO creará ficha. Esto es mejor que
+  // contaminar cartera con organismos públicos.
+  //
+  // ITERACIÓN FUTURA: descargar XML detallado por link (cada entry tiene href)
+  // donde el WinningParty/Adjudicatario sí está bien marcado. Hoy el feed ATOM
+  // solo trae el resumen, no el detalle de adjudicación.
 
   // Organismo adjudicador
   const organismo = decodeHtmlEntities(extractField(entryXml, /<cac:ContractingParty\b[\s\S]*?<cbc:Name[^>]*>([\s\S]*?)<\/cbc:Name>/i));
