@@ -27610,14 +27610,14 @@ Importante:
         const _ACCIONES_DESCARTADAS_KEY = 'crm_acciones_descartadas';
         const _ACCIONES_TTL_MS = 24 * 60 * 60 * 1000;
 
+        // Patrones de detección directa (no requieren secciones — el texto extraído de docx via JSZip viene plano sin \n)
+        // Cada patrón captura el verbo+complemento. El contexto ±150 chars se usa para mostrar, clasificar tipo y plazo.
         const _ACCION_TIPOS = {
-            llamada:  { icon: '📱', re: /\b(llamar|tel[ée]fono|llamada|contactar telef[óo]nicamente|seguimiento telef[óo]nico)/i },
-            email:    { icon: '📧', re: /\b(enviar|env[íi]o|mandar|remitir|hacer llegar|adjuntar)\s+(?:el\s+|la\s+|los\s+|las\s+)?(?:cat[áa]logo|documentaci[óo]n|presupuesto|info|propuesta|email|correo|mail|fichas?|certificad|archivo|presto|familias?\s+BIM|caso\s+de\s+[ée]xito|DAP|estudio\s+comparativo)/i },
-            material: { icon: '📦', re: /\b(entregar|llevar|dejar)\s+(?:la\s+|el\s+)?(?:muestra|prototipo|material)/i },
-            reunion:  { icon: '📅', re: /\b(concertar|agendar|cerrar|programar|fijar)\s+(?:una\s+|la\s+|otra\s+)?(?:reuni[óo]n|visita|cita|llamada t[ée]cnica|prueba)/i },
+            llamada:  { icon: '📱', detectRe: /\b(?:llamar(?:\s+(?:en|a|al))?|hacer\s+(?:una\s+)?llamada|contactar\s+(?:telef[óo]nicamente|por\s+tel[ée]fono)|seguimiento\s+telef[óo]nico)\b[\s\S]{0,100}/gi },
+            email:    { icon: '📧', detectRe: /\b(?:enviar|env[íi]o\s+de|mandar|remitir|hacer\s+llegar|adjuntar)\s+(?:el\s+|la\s+|los\s+|las\s+|un\s+|una\s+)?(?:cat[áa]logo|documentaci[óo]n(?:\s+t[ée]cnica)?|presupuesto|info(?:rmaci[óo]n)?|propuesta(?:\s+t[ée]cnica)?|email|correo|mail|fichas?(?:\s+t[ée]cnicas?)?|certificad[oa]s?|archivo|presto|familias?\s+BIM|caso\s+de\s+[ée]xito|DAP|estudio\s+comparativo|memoria\s+t[ée]cnica)\b[\s\S]{0,150}/gi },
+            material: { icon: '📦', detectRe: /\b(?:entregar|llevar|dejar|hacer\s+llegar)\s+(?:la\s+|el\s+|las\s+|los\s+|una\s+|un\s+)?(?:muestra|prototipo|material|piezas?\s+f[íi]sicas?|tubo|muestrario)\b[\s\S]{0,150}/gi },
+            reunion:  { icon: '📅', detectRe: /\b(?:concertar|agendar|cerrar|programar|fijar|organizar)\s+(?:una\s+|la\s+|otra\s+|nueva\s+)?(?:reuni[óo]n|visita|cita|llamada\s+t[ée]cnica|prueba|encuentro|sesi[óo]n)\b[\s\S]{0,150}/gi },
         };
-        // Encabezados de sección comunes en los informes (case-insensitive, multilínea)
-        const _ACCIONES_SECCION_RE = /\b(Acciones?\s+internas?(?:\s+recomendadas?)?|Plan\s+de\s+(?:seguimiento|acci[óo]n)|Compromisos?\s+GPF|Compromisos?\s+adquiridos?|Siguiente\s+paso|Pr[óo]ximos?\s+pasos?|Lo\s+que\s+tenemos\s+que\s+hacer|Pr[óo]xim[oa]\s+visita|Por\s+parte\s+de\s+GPF)\b[\s\:\.]*([\s\S]{20,1200}?)(?=\n\s*(?:\d+\.|[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]{4,}|═══|---|——|$))/gi;
 
         // Detecta plazo en texto + devuelve fecha límite estimada (Date)
         function _accionDetectarPlazo(textoItem, baseDate) {
@@ -27671,22 +27671,6 @@ Importante:
             return { plazoTexto: null, fechaLimite: null };
         }
 
-        function _accionClasificarTipo(textoItem) {
-            for (const [tipo, def] of Object.entries(_ACCION_TIPOS)) {
-                if (def.re.test(textoItem)) return tipo;
-            }
-            return 'otros';
-        }
-
-        function _accionExtractItems(seccionText) {
-            // Dividir por bullets (·, •, -, números, saltos)
-            const lineas = seccionText
-                .split(/(?:\r?\n|•|·|^[\s\-\*]+|^\d+[\.\)]\s+)+/gm)
-                .map(s => s.trim())
-                .filter(s => s.length > 15 && s.length < 400);
-            return lineas;
-        }
-
         function _accionHash(s) {
             let h = 0;
             for (let i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
@@ -27714,18 +27698,27 @@ Importante:
                     const text = await _extractDocxText(bin);
                     if (!text || text.length < 100) continue;
                     const fechaReport = (rep.date || '').substring(0,10);
-                    // Buscar secciones con encabezado
-                    const re = new RegExp(_ACCIONES_SECCION_RE.source, _ACCIONES_SECCION_RE.flags);
-                    let mSec;
-                    while ((mSec = re.exec(text)) !== null) {
-                        const cuerpo = (mSec[2]||'').trim();
-                        if (!cuerpo) continue;
-                        const lineas = _accionExtractItems(cuerpo);
-                        for (const linea of lineas) {
-                            const tipo = _accionClasificarTipo(linea);
-                            if (tipo === 'otros') continue;  // solo acciones claras
-                            const { plazoTexto, fechaLimite } = _accionDetectarPlazo(linea, fechaReport);
-                            const id = _accionHash(studio.id + '|' + fechaReport + '|' + linea.slice(0, 100));
+
+                    // Detección directa de patrones acción en el texto plano completo.
+                    // Cada match captura el verbo + complemento + 100-150 chars de cola → suficiente
+                    // para clasificar, ver plazo y mostrar al usuario.
+                    for (const [tipo, def] of Object.entries(_ACCION_TIPOS)) {
+                        const re = new RegExp(def.detectRe.source, def.detectRe.flags);
+                        let m;
+                        const vistos = new Set();
+                        while ((m = re.exec(text)) !== null) {
+                            const matchText = m[0].trim();
+                            if (matchText.length < 20 || matchText.length > 400) continue;
+                            // Anti-duplicado por inicio del match dentro del mismo report
+                            const key = matchText.slice(0, 60).toLowerCase();
+                            if (vistos.has(key)) continue;
+                            vistos.add(key);
+                            // Contexto ampliado para mejor lectura (50 chars antes + el match)
+                            const start = Math.max(0, m.index - 30);
+                            const end = Math.min(text.length, m.index + matchText.length);
+                            const contexto = text.slice(start, end).replace(/\s+/g, ' ').trim();
+                            const { plazoTexto, fechaLimite } = _accionDetectarPlazo(contexto, fechaReport);
+                            const id = _accionHash(studio.id + '|' + fechaReport + '|' + tipo + '|' + key);
                             items.push({
                                 id,
                                 studioId: String(studio.id),
@@ -27733,11 +27726,11 @@ Importante:
                                 studioProvince: (typeof studio.province==='object'?(studio.province?.valor||''):studio.province)||'',
                                 tipo,
                                 tipoIcon: _ACCION_TIPOS[tipo].icon,
-                                descripcion: linea.length > 280 ? linea.slice(0, 280) + '…' : linea,
+                                descripcion: contexto.length > 280 ? contexto.slice(0, 280) + '…' : contexto,
                                 plazoTexto,
                                 fechaLimite,
                                 fechaInforme: fechaReport,
-                                seccionOrigen: (mSec[1]||'').trim(),
+                                seccionOrigen: '(detectado en informe)',
                             });
                         }
                     }
