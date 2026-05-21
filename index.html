@@ -4942,11 +4942,158 @@
         function buildAcademicQueries(provincia, sectores) {
             const queries = [];
             const universidad = `universidad de ${provincia}`;
+            // Queries originales (v1.1 §18.5.4)
             queries.push(`"ponente" "${universidad}" ${sectores[0]}`);
             queries.push(`"congreso ${sectores[0]}" "${provincia}"`);
             queries.push(`"grupo de investigación" "${universidad}" ${sectores.slice(0, 2).join(' OR ')}`);
             queries.push(`"catedrático" "${universidad}" ${sectores[0]}`);
+            // Queries ampliadas Bloque 8 (§19.1) — capturan tribunal, cátedra y grupos AGR/TEP
+            queries.push(`"cátedra" "${universidad}" ${sectores[0]}`);
+            queries.push(`"tribunal" "oposición" "${universidad}" ${sectores[0]}`);
+            queries.push(`"grupo AGR" OR "grupo TEP" "${universidad}"`);
+            queries.push(`"catedrático" "${sectores[0]}" "${provincia}"`);
+            queries.push(`"profesor titular" "${universidad}" ${sectores[0]}`);
             return queries;
+        }
+
+        // ── Bloque 8 §19.1: Detección de cliente puente académico ────────────
+        // 4 heurísticas que evalúan si un resultado de búsqueda indica una entidad
+        // académica relevante (universitario, tribunal, ponente, grupo investigación).
+
+        // Lista flat de dominios universitarios (espejo de lib/universidades_es.json
+        // — fuente única de verdad documentada; aquí inline para evaluación sync).
+        const _UNIV_DOMAINS_ES = [
+            // Genéricos
+            '.edu','ac.es',
+            // Andalucía
+            'uco.es','ual.es','ujaen.es','ugr.es','us.es','upo.es','uca.es','uma.es','uhu.es','unia.es',
+            // Madrid
+            'ucm.es','upm.es','uam.es','uc3m.es','urjc.es','uah.es','uned.es','ufv.es','comillas.edu','ie.edu','ceu.es','uax.es','uem.es','unav.edu','nebrija.es',
+            // Cataluña
+            'ub.edu','uab.cat','upc.edu','upf.edu','udg.edu','udl.cat','urv.cat','uoc.edu','uic.es','url.edu','uvic.cat',
+            // Valencia
+            'uv.es','upv.es','ua.es','umh.es','uji.es','ucv.es',
+            // Galicia
+            'usc.es','udc.es','uvigo.es',
+            // País Vasco
+            'ehu.eus','ehu.es','deusto.es','mondragon.edu',
+            // Castilla y León
+            'usal.es','uva.es','uvalladolid.es','ubu.es','uemc.es','unileon.es',
+            // Castilla La Mancha
+            'uclm.es',
+            // Extremadura
+            'unex.es',
+            // Asturias
+            'uniovi.es',
+            // Cantabria
+            'unican.es',
+            // Navarra
+            'unavarra.es',
+            // La Rioja
+            'unirioja.es','unir.net',
+            // Aragón
+            'unizar.es',
+            // Murcia
+            'um.es','upct.es','ucam.edu',
+            // Baleares
+            'uib.es','uib.cat',
+            // Canarias
+            'ulpgc.es','ull.es',
+            // Investigación
+            'csic.es','ciemat.es','ieo.es','inia.es',
+        ];
+
+        // Keywords de eventos sectoriales (espejo de lib/eventos_sector.json)
+        const _EVENTOS_SECTOR_KW = [
+            'serea','seminario iberoamericano','feragua','federación comunidades regantes',
+            'congreso nacional de comunidades de regantes','congreso nacional ccrr','fenacore',
+            'aedyr','asociación española de desalación','congreso aedyr',
+            'congreso nacional del agua','congreso del agua','world water',
+            'iagua','cumbre inteligencia hídrica','foro agua','smagua','salón internacional del agua',
+            'anci','asociación nacional constructores','ache','congreso hormigón estructural',
+            'congreso iccp','congreso ciccp','congreso ingeniería civil',
+            'aeryd','asociación española riegos y drenajes','tecnoambiente','siga','salón ciclo integral agua',
+        ];
+
+        // Heurística 1: dominio universitario en URL o emails enriquecidos
+        function _h1_dominioUniversitario(url, webEmails) {
+            const fuentes = [];
+            if (typeof url === 'string') fuentes.push(url.toLowerCase());
+            if (Array.isArray(webEmails)) webEmails.forEach(e => typeof e === 'string' && fuentes.push(e.toLowerCase()));
+            for (const f of fuentes) {
+                for (const d of _UNIV_DOMAINS_ES) {
+                    if (f.includes(d)) return { hit: true, evidencia: `dominio:${d}` };
+                }
+            }
+            return { hit: false };
+        }
+
+        // Heurística 2: presencia en tribunal de oposición universitaria
+        function _h2_tribunalAcademico(text) {
+            if (!text || typeof text !== 'string') return { hit: false };
+            const t = text.toLowerCase();
+            const tribunalKW = /(presidente|vocal|secretari[oa]|miembro)\s+(del?\s+)?(tribunal|comisi[óo]n\s+evaluadora|comisi[óo]n\s+de\s+selecci[óo]n)/i;
+            const oposicionKW = /(oposici[óo]n|plaza|concurso\s+(p[úu]blico|de\s+m[ée]ritos))/i;
+            const ingenieriaKW = /(ingenier[íi]a\s+(hidr[áa]ulica|civil|agron[óo]mica|forestal|de\s+caminos|agroforestal)|cated[rí]a|universidad)/i;
+            if (tribunalKW.test(text) && (oposicionKW.test(text) || ingenieriaKW.test(text))) {
+                return { hit: true, evidencia: 'tribunal_academico' };
+            }
+            return { hit: false };
+        }
+
+        // Heurística 3: ponencia identificada en congreso sectorial <24 meses
+        function _h3_ponenciaCongreso(text) {
+            if (!text || typeof text !== 'string') return { hit: false };
+            const t = text.toLowerCase();
+            const yearOk = /\b(2024|2025|2026)\b/.test(t);
+            if (!yearOk) return { hit: false };
+            const ponenteKW = /(ponente|ponencia|conferenciante|moderador|keynote|panelista)/i;
+            const eventoMatch = _EVENTOS_SECTOR_KW.find(kw => t.includes(kw));
+            if (eventoMatch && ponenteKW.test(text)) {
+                return { hit: true, evidencia: `ponente_en_${eventoMatch}` };
+            }
+            // Variante: congreso reciente sin mencionar "ponente" explícitamente pero con keyword del evento
+            if (eventoMatch && /(participaci[óo]n|intervenci[óo]n|presentaci[óo]n|exposici[óo]n)/i.test(text)) {
+                return { hit: true, evidencia: `presentacion_en_${eventoMatch}` };
+            }
+            return { hit: false };
+        }
+
+        // Heurística 4: grupo de investigación con publicación reciente
+        function _h4_grupoInvestigacion(text) {
+            if (!text || typeof text !== 'string') return { hit: false };
+            // Patrón explícito de grupo (AGR, TEP, RNM son códigos Andalucía; HUM, FQM, BIO, etc.)
+            const grupoCodigo = /grupo\s+(AGR|TEP|RNM|HUM|FQM|BIO|TIC|SEJ|CTS)[-\s]?\d{3,4}/i;
+            // Patrón genérico "grupo de investigación en X"
+            const grupoTematico = /grupo\s+de\s+investigaci[óo]n\s+(en|del?|sobre)?\s*(hidr[áa]ulica|riego|regad[íi]o|agua|sostenibilidad\s+h[íi]drica|recursos\s+h[íi]dricos|saneamiento|depuraci[óo]n|edar)/i;
+            // Patrón cátedra de agua
+            const catedraAgua = /c[áa]tedra\s+(universitaria|de|del|del?)?\s*(agua|riego|hidr[áa]ulica|recursos\s+h[íi]dricos)/i;
+            const yearRecent = /\b(2024|2025|2026)\b/.test(text);
+            const publicacionKW = /(publicaci[óo]n|art[íi]culo|paper|investigaci[óo]n|tesis|doi|doi\.org|elsevier|scopus|wos|cited|citation)/i;
+            if (grupoCodigo.test(text)) return { hit: true, evidencia: 'grupo_codigo' };
+            if (catedraAgua.test(text)) return { hit: true, evidencia: 'catedra_agua' };
+            if (grupoTematico.test(text) && (yearRecent || publicacionKW.test(text))) {
+                return { hit: true, evidencia: 'grupo_tematico_publicacion' };
+            }
+            return { hit: false };
+        }
+
+        /**
+         * Evalúa si un resultado de búsqueda indica entidad académica relevante.
+         * Aplica las 4 heurísticas de §19.1. Devuelve {hit, evidencias[]}.
+         */
+        function evaluarPuenteAcademico(result, webEmails) {
+            const text = ((result.title || '') + ' ' + (result.snippet || '')).trim();
+            const evidencias = [];
+            const h1 = _h1_dominioUniversitario(result.url, webEmails);
+            if (h1.hit) evidencias.push('h1:' + h1.evidencia);
+            const h2 = _h2_tribunalAcademico(text);
+            if (h2.hit) evidencias.push('h2:' + h2.evidencia);
+            const h3 = _h3_ponenciaCongreso(text);
+            if (h3.hit) evidencias.push('h3:' + h3.evidencia);
+            const h4 = _h4_grupoInvestigacion(text);
+            if (h4.hit) evidencias.push('h4:' + h4.evidencia);
+            return { hit: evidencias.length > 0, evidencias };
         }
 
         // ── Helpers de tipo (v1.1) ────────────────────────────────────────────
@@ -13740,6 +13887,12 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 // Crear clave única para evitar duplicados
                 const key = normalizeStudioKey(studioName);
 
+                // ── Bloque 8 §19.1: Detección de cliente puente académico ──
+                // Evaluamos las 4 heurísticas en cualquier resultado (no solo los de
+                // capa académica), porque señales como "tribunal", "cátedra" o
+                // dominios .uco.es pueden aparecer en directorios o noticias.
+                const puenteEval = evaluarPuenteAcademico(result, result.webEmails);
+
                 if (foundStudios.has(key)) {
                     // Ya existe, incrementar relevancia y añadir fuente
                     const existing = foundStudios.get(key);
@@ -13750,11 +13903,20 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                     if (result.url && !existing.urls.includes(result.url)) {
                         existing.urls.push(result.url);
                     }
+                    // §19.1 Bloque 8: si esta pasada activa heurística académica, promueve a 'academica'
+                    if (puenteEval.hit) {
+                        existing.es_cliente_puente = true;
+                        existing.fuente_descubrimiento = 'academica';
+                        if (!existing.puenteEvidencias) existing.puenteEvidencias = [];
+                        puenteEval.evidencias.forEach(e => {
+                            if (!existing.puenteEvidencias.includes(e)) existing.puenteEvidencias.push(e);
+                        });
+                    }
                     // Promoción de fuente_descubrimiento (spec §18.5.3):
                     // geografica + sectorial ⇒ ambas
                     // sectorial + geografica ⇒ ambas
                     // academica se mantiene si ya está (caso UCO local)
-                    if (existing.fuente_descubrimiento && existing.fuente_descubrimiento !== fuente) {
+                    else if (existing.fuente_descubrimiento && existing.fuente_descubrimiento !== fuente) {
                         const set = new Set([existing.fuente_descubrimiento, fuente]);
                         if (set.has('geografica') && set.has('sectorial')) {
                             existing.fuente_descubrimiento = 'ambas';
@@ -13774,6 +13936,9 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                     if (result.webLogo && !existing.webLogo) existing.webLogo = result.webLogo;
                 } else {
                     // Nuevo estudio — incluir campos enriquecidos si existen
+                    // §19.1 Bloque 8: si las heurísticas dan hit, forzar fuente=academica
+                    // y marcar es_cliente_puente directamente desde el alta.
+                    const fuenteFinal = puenteEval.hit ? 'academica' : fuente;
                     const entry = {
                         name: studioName,
                         snippet: result.snippet || '',
@@ -13782,8 +13947,12 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                         relevance: baseRelevance,
                         sources: [source],
                         province: province,
-                        fuente_descubrimiento: fuente,
+                        fuente_descubrimiento: fuenteFinal,
                     };
+                    if (puenteEval.hit) {
+                        entry.es_cliente_puente = true;
+                        entry.puenteEvidencias = puenteEval.evidencias;
+                    }
                     // Copiar campos PA si existen
                     if (result.paPhone) entry.paPhone = result.paPhone;
                     if (result.paAddress) entry.paAddress = result.paAddress;

@@ -1,0 +1,96 @@
+{
+  "_descripcion": "Lista de eventos sectoriales relevantes para detección de ponentes/participantes como cliente puente académico (§19.1 heurística 3). Ponencia identificada en cualquiera de estos eventos en los últimos 24 meses auto-marca es_cliente_puente: true.",
+  "_actualizable": true,
+  "_ultima_revision": "2026-05-21",
+  "agua_y_riego": [
+    {
+      "nombre": "SEREA",
+      "nombre_completo": "Seminario Iberoamericano sobre Sistemas de Abastecimiento Urbano de Agua",
+      "keywords": ["SEREA", "Seminario Iberoamericano Abastecimiento", "Seminario Iberoamericano Agua"],
+      "frecuencia": "anual"
+    },
+    {
+      "nombre": "FERAGUA",
+      "nombre_completo": "Federación de Comunidades de Regantes de Andalucía",
+      "keywords": ["FERAGUA", "Federación Comunidades Regantes Andalucía"],
+      "frecuencia": "anual"
+    },
+    {
+      "nombre": "Congreso Nacional CCRR",
+      "nombre_completo": "Congreso Nacional de Comunidades de Regantes",
+      "keywords": ["Congreso Nacional Comunidades de Regantes", "Congreso Nacional CCRR", "Congreso Nacional Comunidades Regantes", "FENACORE"],
+      "frecuencia": "trienal"
+    },
+    {
+      "nombre": "AEDyR",
+      "nombre_completo": "Asociación Española de Desalación y Reutilización",
+      "keywords": ["AEDyR", "Asociación Española de Desalación", "Congreso AEDyR"],
+      "frecuencia": "anual"
+    },
+    {
+      "nombre": "Congreso Nacional del Agua",
+      "keywords": ["Congreso Nacional del Agua", "Congreso del Agua", "World Water Congress"],
+      "frecuencia": "anual"
+    },
+    {
+      "nombre": "iAgua",
+      "keywords": ["iAgua", "Cumbre Inteligencia Hídrica", "World Water Day", "Foro Agua"],
+      "frecuencia": "varios"
+    },
+    {
+      "nombre": "Smagua",
+      "nombre_completo": "Salón Internacional del Agua",
+      "keywords": ["Smagua", "Salón Internacional del Agua"],
+      "frecuencia": "bienal"
+    }
+  ],
+  "obra_civil_y_construccion": [
+    {
+      "nombre": "ANCI",
+      "nombre_completo": "Asociación Nacional de Constructores Independientes",
+      "keywords": ["ANCI", "Asociación Nacional Constructores"],
+      "frecuencia": "anual"
+    },
+    {
+      "nombre": "Congreso ACHE",
+      "nombre_completo": "Congreso de la Asociación Científico-técnica del Hormigón Estructural",
+      "keywords": ["ACHE", "Congreso Hormigón Estructural"],
+      "frecuencia": "trienal"
+    },
+    {
+      "nombre": "Congreso ICCP",
+      "nombre_completo": "Congreso de Ingeniería Civil del CICCP",
+      "keywords": ["Congreso ICCP", "Congreso CICCP", "Congreso Ingeniería Civil"],
+      "frecuencia": "anual"
+    }
+  ],
+  "saneamiento_y_depuracion": [
+    {
+      "nombre": "AERYD",
+      "nombre_completo": "Asociación Española de Riegos y Drenajes",
+      "keywords": ["AERYD", "Asociación Española Riegos y Drenajes", "Congreso AERYD"],
+      "frecuencia": "bienal"
+    },
+    {
+      "nombre": "Tecnoambiente",
+      "keywords": ["Tecnoambiente", "Salón Tecnología Medioambiental"],
+      "frecuencia": "anual"
+    },
+    {
+      "nombre": "SIGA",
+      "nombre_completo": "Salón Internacional del Ciclo Integral del Agua",
+      "keywords": ["SIGA", "Salón Ciclo Integral Agua"],
+      "frecuencia": "bienal"
+    }
+  ],
+  "patrones_genericos": [
+    "ponente",
+    "ponencia",
+    "presentación científica",
+    "conferenciante",
+    "moderador",
+    "mesa redonda",
+    "panel de expertos",
+    "keynote"
+  ]
+}
