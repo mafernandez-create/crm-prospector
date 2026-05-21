@@ -1,0 +1,35 @@
+{
+  "id": "9001",
+  "name": "Estudio de Ingeniería Hidráulica Demo S.L.",
+  "type": "ING",
+  "city": "Córdoba",
+  "province": "Córdoba",
+  "data": {
+    "studio": {
+      "employees": "15"
+    },
+    "contact": {
+      "phone": "+34 957 123 456",
+      "email": "info@ing-demo.es",
+      "address": "Calle Ejemplo 12, 14001 Córdoba",
+      "web": "https://ing-demo.es"
+    },
+    "team": [
+      { "name": "Ana Director", "role": "Directora Técnica", "email": "ana@ing-demo.es", "linkedin": "https://linkedin.com/in/ana", "isDecisionMaker": true },
+      { "name": "Luis Pérez",   "role": "Profesor titular UCO. Cátedra de hidráulica.", "email": "luis@ing-demo.es" }
+    ],
+    "projects": [
+      { "name": "Modernización regadío Genil-Cabra", "type": "regadío",     "location": "Córdoba",  "year": 2025 },
+      { "name": "EDAR de Lucena",                    "type": "saneamiento", "location": "Córdoba",  "year": 2025 },
+      { "name": "Red abastecimiento Pozoblanco",     "type": "abastecimiento","location":"Córdoba", "year": 2024 },
+      { "name": "Red colector Bujalance",            "type": "saneamiento", "location": "Córdoba",  "year": 2024 },
+      { "name": "Urbanización Polígono Industrial",  "type": "infraestructura","location": "Sevilla", "year": 2023 },
+      { "name": "Adjudicación Diputación de Jaén",   "type": "obra civil",  "location": "Jaén",     "year": 2025 }
+    ],
+    "description": "Estudio de ingeniería con proveedor preferente en obras hidráulicas. Reconocimientos: premio bienal de ingeniería.",
+    "social": {
+      "linkedin":  { "url": "https://linkedin.com/company/ing-demo", "followers": "1200" },
+      "instagram": { "url": "https://instagram.com/ingdemo" }
+    }
+  }
+}

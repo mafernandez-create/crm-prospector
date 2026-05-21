@@ -27633,40 +27633,35 @@ Importante:
 
         // Detecta plazo en texto + devuelve fecha límite estimada (Date)
         function _accionDetectarPlazo(textoItem, baseDate) {
-            const base = baseDate ? new Date(baseDate) : new Date();
+            // Trabajamos en UTC para evitar off-by-one por timezone local (España CET/CEST).
+            const base = baseDate ? new Date(baseDate + (baseDate.length === 10 ? 'T00:00:00Z' : '')) : new Date();
             if (isNaN(base.getTime())) return { plazoTexto: null, fechaLimite: null };
             const t = textoItem.toLowerCase();
+            const toISO = (d) => d.toISOString().slice(0,10);
+            const addDaysUTC = (d, n) => { const x = new Date(d); x.setUTCDate(x.getUTCDate()+n); return x; };
+            const addHoursUTC = (d, n) => { const x = new Date(d); x.setUTCHours(x.getUTCHours()+n); return x; };
 
             // Inmediato/urgente
             if (/\b(inmediato|urgente|cuanto antes|asap)\b/i.test(t)) {
-                const d = new Date(base); d.setDate(d.getDate() + 1);
-                return { plazoTexto: 'urgente (24h)', fechaLimite: d.toISOString().slice(0,10) };
+                return { plazoTexto: 'urgente (24h)', fechaLimite: toISO(addDaysUTC(base, 1)) };
             }
-            // X horas
-            const horasM = t.match(/(\d{1,3})(?:\s*-\s*\d{1,3})?\s*horas?\b/);
+            // Horas: "48 horas", "48h", "48-72h", "48-72 horas"
+            const horasM = t.match(/(\d{1,3})(?:\s*-\s*\d{1,3})?\s*h(?:oras?)?\b/);
             if (horasM) {
-                const h = parseInt(horasM[1]);
-                const d = new Date(base); d.setHours(d.getHours() + h);
-                return { plazoTexto: `${horasM[0]}`, fechaLimite: d.toISOString().slice(0,10) };
+                return { plazoTexto: `${horasM[0].trim()} (horas)`, fechaLimite: toISO(addHoursUTC(base, parseInt(horasM[1]))) };
             }
-            // X días
-            const diasM = t.match(/(\d{1,2})(?:\s*-\s*\d{1,2})?\s*d[íi]as?\b/);
+            // Días: "5 días", "10d", "5-10 días"
+            const diasM = t.match(/(\d{1,2})(?:\s*-\s*\d{1,2})?\s*d(?:[íi]as?)?\b/);
             if (diasM) {
-                const dd = parseInt(diasM[1]);
-                const d = new Date(base); d.setDate(d.getDate() + dd);
-                return { plazoTexto: `${diasM[0]}`, fechaLimite: d.toISOString().slice(0,10) };
+                return { plazoTexto: `${diasM[0].trim()}`, fechaLimite: toISO(addDaysUTC(base, parseInt(diasM[1]))) };
             }
-            // X semanas
+            // Semanas
             const semM = t.match(/(\d{1,2})\s*semanas?\b/);
             if (semM) {
-                const sd = parseInt(semM[1]) * 7;
-                const d = new Date(base); d.setDate(d.getDate() + sd);
-                return { plazoTexto: `${semM[0]}`, fechaLimite: d.toISOString().slice(0,10) };
+                return { plazoTexto: `${semM[0]}`, fechaLimite: toISO(addDaysUTC(base, parseInt(semM[1]) * 7)) };
             }
-            // "1 semana"
             if (/\b(una|1)\s+semana\b/i.test(t)) {
-                const d = new Date(base); d.setDate(d.getDate() + 7);
-                return { plazoTexto: '1 semana', fechaLimite: d.toISOString().slice(0,10) };
+                return { plazoTexto: '1 semana', fechaLimite: toISO(addDaysUTC(base, 7)) };
             }
             // Fecha explícita "16 de diciembre [de 2026]"
             const meses = { enero:0,febrero:1,marzo:2,abril:3,mayo:4,junio:5,julio:6,agosto:7,septiembre:8,octubre:9,noviembre:10,diciembre:11 };
@@ -27674,11 +27669,10 @@ Importante:
             if (fechaM) {
                 const d = parseInt(fechaM[1]);
                 const mes = meses[fechaM[2].toLowerCase()];
-                let year = fechaM[3] ? parseInt(fechaM[3]) : base.getFullYear();
-                const fechaObj = new Date(year, mes, d);
-                // Si la fecha cae antes de la base sin año explícito, asumir año siguiente
-                if (!fechaM[3] && fechaObj < base) fechaObj.setFullYear(year + 1);
-                return { plazoTexto: fechaM[0], fechaLimite: fechaObj.toISOString().slice(0,10) };
+                let year = fechaM[3] ? parseInt(fechaM[3]) : base.getUTCFullYear();
+                let fechaObj = new Date(Date.UTC(year, mes, d));
+                if (!fechaM[3] && fechaObj < base) fechaObj = new Date(Date.UTC(year + 1, mes, d));
+                return { plazoTexto: fechaM[0], fechaLimite: toISO(fechaObj) };
             }
             return { plazoTexto: null, fechaLimite: null };
         }
