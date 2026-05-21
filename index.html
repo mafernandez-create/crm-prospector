@@ -2973,6 +2973,13 @@
                 </div>
 
                 <div id="inactivity-alerts"></div>
+
+<!-- Acciones pendientes detectadas en informes -->
+<div class="card" id="dashboard-acciones-card" style="margin-bottom:20px;display:none;">
+    <div class="card-header"><h3 class="card-title">📞 Acciones pendientes detectadas en informes</h3></div>
+    <div class="card-body" id="dashboard-acciones-body" style="min-height:80px;"></div>
+</div>
+
 <!-- Dashboard Charts Row -->
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;" id="dashboard-charts-row">
     <div class="card">
@@ -3296,6 +3303,15 @@
                         <button onclick="refrescarReferenciasCruzadas()" style="background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.3);border-radius:6px;color:#60a5fa;font-size:0.7rem;cursor:pointer;padding:3px 9px;" title="Re-procesar informes para detectar referencias">🔄 Refrescar</button>
                     </div>
                     <div id="bandeja-refcruz-list"></div>
+                </div>
+
+                <!-- Acciones pendientes detectadas en informes -->
+                <div class="bandeja-section" id="bandeja-acciones-section">
+                    <div class="bandeja-section-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                        <span>📞 Acciones pendientes detectadas <span id="bandeja-acciones-count" style="font-size:0.75rem;font-weight:400;color:var(--muted);"></span></span>
+                        <button onclick="refrescarAccionesPendientes()" style="background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.3);border-radius:6px;color:#60a5fa;font-size:0.7rem;cursor:pointer;padding:3px 9px;" title="Re-procesar informes para detectar acciones">🔄 Refrescar</button>
+                    </div>
+                    <div id="bandeja-acciones-list"></div>
                 </div>
             </div>
 
@@ -6757,6 +6773,9 @@
             // ── Referencias cruzadas en informes de visita ──
             loadReferenciasCruzadas(provFiltro, studios).catch(e => console.error('refcruz:', e));
 
+            // ── Acciones pendientes detectadas en informes ──
+            loadAccionesPendientes(provFiltro, studios).catch(e => console.error('acciones:', e));
+
             // ── Propuestas tras visita §16.1 ──
             // Recorre activities de tipo registro_visita con actualizaciones_propuestas sin decision.
             (async () => {
@@ -9302,7 +9321,53 @@ ${totalAlertas > 0 ? `
         async function loadDashboard() {
             const studios = await getAllStudios();
             const activities = await getAllActivities();
-            
+
+            // ── Tarjeta: Acciones pendientes detectadas en informes ──
+            try {
+                const hoy = new Date().toISOString().slice(0,10);
+                const en7d = new Date(); en7d.setDate(en7d.getDate() + 7);
+                const en7dStr = en7d.toISOString().slice(0,10);
+                const tareas = activities.filter(a =>
+                    a.type === 'tarea_pendiente' && a.estado === 'pending' && a.fechaLimite
+                ).sort((a,b) => a.fechaLimite.localeCompare(b.fechaLimite));
+                const vencidas = tareas.filter(t => t.fechaLimite < hoy);
+                const hoyMismo = tareas.filter(t => t.fechaLimite === hoy);
+                const proximas7d = tareas.filter(t => t.fechaLimite > hoy && t.fechaLimite <= en7dStr);
+                const card = document.getElementById('dashboard-acciones-card');
+                const body = document.getElementById('dashboard-acciones-body');
+                if (card && body) {
+                    if (tareas.length === 0) {
+                        card.style.display = 'none';
+                    } else {
+                        card.style.display = 'block';
+                        const studiosById = new Map(studios.map(s => [String(s.id), s]));
+                        body.innerHTML = `
+                            <div style="display:flex;gap:12px;margin-bottom:12px;">
+                                ${vencidas.length>0?`<div style="flex:1;background:rgba(220,38,38,0.08);padding:10px;border-radius:8px;text-align:center;"><div style="font-size:1.5rem;font-weight:700;color:var(--danger);">${vencidas.length}</div><div style="font-size:0.78rem;color:var(--danger);">🔴 Vencidas</div></div>`:''}
+                                ${hoyMismo.length>0?`<div style="flex:1;background:rgba(245,158,11,0.08);padding:10px;border-radius:8px;text-align:center;"><div style="font-size:1.5rem;font-weight:700;color:var(--warning);">${hoyMismo.length}</div><div style="font-size:0.78rem;color:var(--warning);">📅 Para hoy</div></div>`:''}
+                                ${proximas7d.length>0?`<div style="flex:1;background:rgba(37,99,235,0.08);padding:10px;border-radius:8px;text-align:center;"><div style="font-size:1.5rem;font-weight:700;color:var(--primary);">${proximas7d.length}</div><div style="font-size:0.78rem;color:var(--primary);">📍 Próximos 7 días</div></div>`:''}
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;">
+                                ${[...vencidas, ...hoyMismo, ...proximas7d].slice(0, 8).map(t => {
+                                    const s = studiosById.get(String(t.studioId));
+                                    const sName = s?.name || 'Studio ' + t.studioId;
+                                    const v = t.fechaLimite < hoy;
+                                    const h = t.fechaLimite === hoy;
+                                    const colorBg = v ? 'rgba(220,38,38,0.05)' : h ? 'rgba(245,158,11,0.05)' : 'rgba(37,99,235,0.04)';
+                                    return `<div style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;background:${colorBg};display:flex;align-items:center;gap:10px;font-size:0.83rem;">
+                                        <span style="font-weight:600;cursor:pointer;color:var(--primary);" onclick="showStudioDetail('${escapeHtml(t.studioId)}')">${escapeHtml(sName)}</span>
+                                        <span style="flex:1;color:var(--text-secondary);">${escapeHtml((t.text||t.tareaDescripcion||'').slice(0,110))}</span>
+                                        <span style="font-size:0.72rem;color:${v?'var(--danger)':h?'var(--warning)':'var(--primary)'};font-weight:600;white-space:nowrap;">${escapeHtml(t.fechaLimite)}</span>
+                                        <button onclick="completarTareaPendiente('${escapeHtml(t.id)}')" style="background:#10b981;color:#fff;border:none;border-radius:6px;padding:3px 9px;font-size:0.72rem;cursor:pointer;white-space:nowrap;">✓</button>
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                            ${tareas.length > 8 ? `<div style="text-align:center;margin-top:8px;font-size:0.78rem;color:var(--muted);">… y ${tareas.length - 8} más</div>` : ''}
+                        `;
+                    }
+                }
+            } catch(e) { console.error('dashboard acciones:', e); }
+
             // Stats
             document.getElementById('stat-total').textContent = studios.length;
             document.getElementById('stat-ganados').textContent = studios.filter(s => s.status === 'ganado').length;
@@ -24763,8 +24828,58 @@ CUADRANTE 1-9 según bandas {Alto/Medio/Bajo} × {Alta/Media/Baja}
                 
                 container.innerHTML = summaryHtml + tasksHtml;
             }
-            
+
+            // ── Acciones detectadas en informes (tareas_pendiente vencidas o de hoy) ──
+            try {
+                const acts = await getAllActivities();
+                const hoy = new Date().toISOString().slice(0,10);
+                const tareasInformes = acts.filter(a =>
+                    a.type === 'tarea_pendiente' &&
+                    a.estado === 'pending' &&
+                    a.fechaLimite && a.fechaLimite <= hoy
+                ).sort((a,b) => (a.fechaLimite||'').localeCompare(b.fechaLimite||''));
+                if (tareasInformes.length > 0) {
+                    const studiosById = new Map(allStudios.map(s => [String(s.id), s]));
+                    let bloque = `
+                        <div style="margin-top:18px;padding-top:16px;border-top:2px dashed var(--border);">
+                            <h4 style="font-size:0.95rem;margin:0 0 12px 0;display:flex;align-items:center;gap:8px;">
+                                📞 <span>Acciones detectadas en informes</span>
+                                <span style="background:var(--warning);color:#fff;font-size:0.7rem;padding:2px 8px;border-radius:6px;font-weight:700;">${tareasInformes.length}</span>
+                            </h4>
+                            <div style="display:flex;flex-direction:column;gap:8px;">
+                                ${tareasInformes.map(t => {
+                                    const studio = studiosById.get(String(t.studioId));
+                                    const sName = studio?.name || 'Studio ' + t.studioId;
+                                    const vencida = t.fechaLimite < hoy;
+                                    return `<div style="display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:${vencida?'rgba(220,38,38,0.05)':'rgba(245,158,11,0.05)'};">
+                                        <div style="flex:1;">
+                                            <div style="font-weight:600;font-size:0.88rem;">${escapeHtml(sName)}</div>
+                                            <div style="font-size:0.78rem;color:var(--text-secondary);margin:2px 0;">${escapeHtml(t.text||t.tareaDescripcion||'')}</div>
+                                            <div style="font-size:0.7rem;color:${vencida?'var(--danger)':'var(--warning)'};font-weight:600;">${vencida?'🔴 Vencida':'📅 Para hoy'}: ${escapeHtml(t.fechaLimite)}</div>
+                                        </div>
+                                        <div style="display:flex;flex-direction:column;gap:4px;">
+                                            <button class="btn-complete-task" onclick="completarTareaPendiente('${t.id}')" style="font-size:0.75rem;padding:4px 10px;">✓ Hecho</button>
+                                            <button class="btn-view-studio" onclick="closeModal('modal-pending-tasks');showStudioDetail('${escapeHtml(t.studioId)}')" style="font-size:0.75rem;padding:4px 10px;">👁️ Ficha</button>
+                                        </div>
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                        </div>`;
+                    container.innerHTML += bloque;
+                }
+            } catch(e) { console.error('tareas_pendiente modal:', e); }
+
             openModal('modal-pending-tasks');
+        }
+
+        async function completarTareaPendiente(activityId) {
+            try {
+                await updateActivity(activityId, { estado: 'done', fechaCompletada: new Date().toISOString() });
+                showNotification('✅ Tarea marcada como hecha', 'success');
+                await showPendingTasksModal();
+            } catch (e) {
+                showNotification('Error al completar tarea: ' + e.message, 'danger');
+            }
         }
 
         // Completar tarea desde el modal
@@ -27486,6 +27601,279 @@ Importante:
                 }
             }
             return arr;
+        }
+
+        // ── Acciones pendientes detectadas en informes ──────────────────────
+        // Parser de secciones tipo "Plan de seguimiento", "Acciones internas",
+        // "Compromisos GPF", "Siguiente paso" + clasificación tipo + cálculo plazo.
+        const _ACCIONES_CACHE_KEY = 'crm_acciones_pendientes_v1';
+        const _ACCIONES_DESCARTADAS_KEY = 'crm_acciones_descartadas';
+        const _ACCIONES_TTL_MS = 24 * 60 * 60 * 1000;
+
+        const _ACCION_TIPOS = {
+            llamada:  { icon: '📱', re: /\b(llamar|tel[ée]fono|llamada|contactar telef[óo]nicamente|seguimiento telef[óo]nico)/i },
+            email:    { icon: '📧', re: /\b(enviar|env[íi]o|mandar|remitir|hacer llegar|adjuntar)\s+(?:el\s+|la\s+|los\s+|las\s+)?(?:cat[áa]logo|documentaci[óo]n|presupuesto|info|propuesta|email|correo|mail|fichas?|certificad|archivo|presto|familias?\s+BIM|caso\s+de\s+[ée]xito|DAP|estudio\s+comparativo)/i },
+            material: { icon: '📦', re: /\b(entregar|llevar|dejar)\s+(?:la\s+|el\s+)?(?:muestra|prototipo|material)/i },
+            reunion:  { icon: '📅', re: /\b(concertar|agendar|cerrar|programar|fijar)\s+(?:una\s+|la\s+|otra\s+)?(?:reuni[óo]n|visita|cita|llamada t[ée]cnica|prueba)/i },
+        };
+        // Encabezados de sección comunes en los informes (case-insensitive, multilínea)
+        const _ACCIONES_SECCION_RE = /\b(Acciones?\s+internas?(?:\s+recomendadas?)?|Plan\s+de\s+(?:seguimiento|acci[óo]n)|Compromisos?\s+GPF|Compromisos?\s+adquiridos?|Siguiente\s+paso|Pr[óo]ximos?\s+pasos?|Lo\s+que\s+tenemos\s+que\s+hacer|Pr[óo]xim[oa]\s+visita|Por\s+parte\s+de\s+GPF)\b[\s\:\.]*([\s\S]{20,1200}?)(?=\n\s*(?:\d+\.|[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]{4,}|═══|---|——|$))/gi;
+
+        // Detecta plazo en texto + devuelve fecha límite estimada (Date)
+        function _accionDetectarPlazo(textoItem, baseDate) {
+            const base = baseDate ? new Date(baseDate) : new Date();
+            if (isNaN(base.getTime())) return { plazoTexto: null, fechaLimite: null };
+            const t = textoItem.toLowerCase();
+
+            // Inmediato/urgente
+            if (/\b(inmediato|urgente|cuanto antes|asap)\b/i.test(t)) {
+                const d = new Date(base); d.setDate(d.getDate() + 1);
+                return { plazoTexto: 'urgente (24h)', fechaLimite: d.toISOString().slice(0,10) };
+            }
+            // X horas
+            const horasM = t.match(/(\d{1,3})(?:\s*-\s*\d{1,3})?\s*horas?\b/);
+            if (horasM) {
+                const h = parseInt(horasM[1]);
+                const d = new Date(base); d.setHours(d.getHours() + h);
+                return { plazoTexto: `${horasM[0]}`, fechaLimite: d.toISOString().slice(0,10) };
+            }
+            // X días
+            const diasM = t.match(/(\d{1,2})(?:\s*-\s*\d{1,2})?\s*d[íi]as?\b/);
+            if (diasM) {
+                const dd = parseInt(diasM[1]);
+                const d = new Date(base); d.setDate(d.getDate() + dd);
+                return { plazoTexto: `${diasM[0]}`, fechaLimite: d.toISOString().slice(0,10) };
+            }
+            // X semanas
+            const semM = t.match(/(\d{1,2})\s*semanas?\b/);
+            if (semM) {
+                const sd = parseInt(semM[1]) * 7;
+                const d = new Date(base); d.setDate(d.getDate() + sd);
+                return { plazoTexto: `${semM[0]}`, fechaLimite: d.toISOString().slice(0,10) };
+            }
+            // "1 semana"
+            if (/\b(una|1)\s+semana\b/i.test(t)) {
+                const d = new Date(base); d.setDate(d.getDate() + 7);
+                return { plazoTexto: '1 semana', fechaLimite: d.toISOString().slice(0,10) };
+            }
+            // Fecha explícita "16 de diciembre [de 2026]"
+            const meses = { enero:0,febrero:1,marzo:2,abril:3,mayo:4,junio:5,julio:6,agosto:7,septiembre:8,octubre:9,noviembre:10,diciembre:11 };
+            const fechaM = textoItem.match(/(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)(?:\s+de\s+(\d{4}))?/i);
+            if (fechaM) {
+                const d = parseInt(fechaM[1]);
+                const mes = meses[fechaM[2].toLowerCase()];
+                let year = fechaM[3] ? parseInt(fechaM[3]) : base.getFullYear();
+                const fechaObj = new Date(year, mes, d);
+                // Si la fecha cae antes de la base sin año explícito, asumir año siguiente
+                if (!fechaM[3] && fechaObj < base) fechaObj.setFullYear(year + 1);
+                return { plazoTexto: fechaM[0], fechaLimite: fechaObj.toISOString().slice(0,10) };
+            }
+            return { plazoTexto: null, fechaLimite: null };
+        }
+
+        function _accionClasificarTipo(textoItem) {
+            for (const [tipo, def] of Object.entries(_ACCION_TIPOS)) {
+                if (def.re.test(textoItem)) return tipo;
+            }
+            return 'otros';
+        }
+
+        function _accionExtractItems(seccionText) {
+            // Dividir por bullets (·, •, -, números, saltos)
+            const lineas = seccionText
+                .split(/(?:\r?\n|•|·|^[\s\-\*]+|^\d+[\.\)]\s+)+/gm)
+                .map(s => s.trim())
+                .filter(s => s.length > 15 && s.length < 400);
+            return lineas;
+        }
+
+        function _accionHash(s) {
+            let h = 0;
+            for (let i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
+            return Math.abs(h).toString(36);
+        }
+
+        function _accionGetDescartadas() {
+            try { return JSON.parse(localStorage.getItem(_ACCIONES_DESCARTADAS_KEY) || '{}'); }
+            catch(e) { return {}; }
+        }
+        function _accionDescartar(id) {
+            const m = _accionGetDescartadas();
+            m[id] = { ts: Date.now() };
+            localStorage.setItem(_ACCIONES_DESCARTADAS_KEY, JSON.stringify(m));
+        }
+
+        async function _accionesProcesarTodos(studios) {
+            const items = [];
+            for (const studio of studios) {
+                const reports = studio.data?.reports;
+                if (!Array.isArray(reports) || reports.length === 0) continue;
+                for (const rep of reports) {
+                    const bin = rep.fileData || rep.data;
+                    if (!bin || bin.length < 1000) continue;
+                    const text = await _extractDocxText(bin);
+                    if (!text || text.length < 100) continue;
+                    const fechaReport = (rep.date || '').substring(0,10);
+                    // Buscar secciones con encabezado
+                    const re = new RegExp(_ACCIONES_SECCION_RE.source, _ACCIONES_SECCION_RE.flags);
+                    let mSec;
+                    while ((mSec = re.exec(text)) !== null) {
+                        const cuerpo = (mSec[2]||'').trim();
+                        if (!cuerpo) continue;
+                        const lineas = _accionExtractItems(cuerpo);
+                        for (const linea of lineas) {
+                            const tipo = _accionClasificarTipo(linea);
+                            if (tipo === 'otros') continue;  // solo acciones claras
+                            const { plazoTexto, fechaLimite } = _accionDetectarPlazo(linea, fechaReport);
+                            const id = _accionHash(studio.id + '|' + fechaReport + '|' + linea.slice(0, 100));
+                            items.push({
+                                id,
+                                studioId: String(studio.id),
+                                studioName: studio.name || '',
+                                studioProvince: (typeof studio.province==='object'?(studio.province?.valor||''):studio.province)||'',
+                                tipo,
+                                tipoIcon: _ACCION_TIPOS[tipo].icon,
+                                descripcion: linea.length > 280 ? linea.slice(0, 280) + '…' : linea,
+                                plazoTexto,
+                                fechaLimite,
+                                fechaInforme: fechaReport,
+                                seccionOrigen: (mSec[1]||'').trim(),
+                            });
+                        }
+                    }
+                }
+            }
+            // Deduplicar por id
+            const seen = new Set();
+            const dedup = items.filter(it => seen.has(it.id) ? false : (seen.add(it.id), true));
+            // Ordenar por fechaLimite (más próximas arriba), fallback fechaInforme desc
+            dedup.sort((a, b) => {
+                if (a.fechaLimite && b.fechaLimite) return a.fechaLimite.localeCompare(b.fechaLimite);
+                if (a.fechaLimite) return -1;
+                if (b.fechaLimite) return 1;
+                return (b.fechaInforme||'').localeCompare(a.fechaInforme||'');
+            });
+            return dedup;
+        }
+
+        async function refrescarAccionesPendientes() {
+            try { localStorage.removeItem(_ACCIONES_CACHE_KEY); } catch(e) {}
+            const provSelect = document.getElementById('bandeja-filter-province');
+            const provFiltro = provSelect ? provSelect.value : '';
+            showNotification('🔄 Re-procesando informes para detectar acciones…', 'info');
+            await loadAccionesPendientes(provFiltro, allStudios, true);
+        }
+
+        async function loadAccionesPendientes(provFiltro, studios, force=false) {
+            const listEl = document.getElementById('bandeja-acciones-list');
+            const countEl = document.getElementById('bandeja-acciones-count');
+            if (!listEl || !countEl) return;
+
+            let cached = null;
+            if (!force) {
+                try {
+                    const raw = localStorage.getItem(_ACCIONES_CACHE_KEY);
+                    if (raw) {
+                        const j = JSON.parse(raw);
+                        if (j.ts && (Date.now() - j.ts) < _ACCIONES_TTL_MS) cached = j.items;
+                    }
+                } catch(e) {}
+            }
+            let items;
+            if (cached) {
+                items = cached;
+            } else {
+                listEl.innerHTML = '<p style="color:var(--muted);font-size:0.82rem;margin:0;">⏳ Detectando acciones en los informes…</p>';
+                items = await _accionesProcesarTodos(studios);
+                try { localStorage.setItem(_ACCIONES_CACHE_KEY, JSON.stringify({ ts: Date.now(), items })); } catch(e) {}
+            }
+
+            // Excluir descartadas
+            const descartadas = _accionGetDescartadas();
+            items = items.filter(it => !descartadas[it.id]);
+
+            // Excluir ya aceptadas (existe activity con accionDetectadaId === it.id)
+            const acts = await getAllActivities().catch(() => []);
+            const aceptadasIds = new Set(acts.filter(a => a.accionDetectadaId).map(a => a.accionDetectadaId));
+            items = items.filter(it => !aceptadasIds.has(it.id));
+
+            // Filtrar provincia
+            const provNorm = _refcruzNorm(provFiltro);
+            const filtered = provFiltro
+                ? items.filter(it => _refcruzNorm(it.studioProvince) === provNorm)
+                : items;
+
+            countEl.textContent = `(${filtered.length}${provFiltro?` · ${provFiltro}`:''})`;
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<p style="color:var(--muted);font-size:0.82rem;margin:0;">${items.length===0?'Sin acciones nuevas detectadas. Pulsa 🔄 Refrescar para re-procesar.':`Sin acciones pendientes para ${provFiltro || 'esta selección'}.`}</p>`;
+                return;
+            }
+
+            const tipoBg = { llamada:'#3b82f6', email:'#8b5cf6', material:'#f59e0b', reunion:'#10b981' };
+            const hoy = new Date().toISOString().slice(0,10);
+            listEl.innerHTML = filtered.slice(0, 50).map(it => {
+                const bg = tipoBg[it.tipo] || '#64748b';
+                const urgente = it.fechaLimite && it.fechaLimite <= hoy;
+                const plazoLabel = it.fechaLimite
+                    ? `<span style="background:${urgente?'#fef2f2':'#eff6ff'};color:${urgente?'#991b1b':'#1e40af'};padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:600;" title="${escapeHtml(it.plazoTexto||'')}">${urgente?'🔴':'📅'} ${escapeHtml(it.fechaLimite)}</span>`
+                    : '';
+                return `
+                <div class="bandeja-card" style="display:block;padding:10px 12px;">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+                        <span style="background:${bg};color:#fff;font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:6px;">${it.tipoIcon} ${it.tipo}</span>
+                        <strong onclick="showStudioDetail('${escapeHtml(it.studioId)}')" style="font-size:0.88rem;cursor:pointer;color:var(--primary);">${escapeHtml(it.studioName)}</strong>
+                        <span style="color:var(--muted);font-size:0.72rem;">(${escapeHtml(it.studioProvince||'?')})</span>
+                        ${plazoLabel}
+                    </div>
+                    <div style="font-size:0.8rem;color:var(--text-secondary);margin:4px 0 6px 0;">"${escapeHtml(it.descripcion)}"</div>
+                    <div style="font-size:0.68rem;color:var(--muted);margin-bottom:6px;">📄 ${escapeHtml(it.seccionOrigen)} · informe ${escapeHtml(it.fechaInforme||'?')}</div>
+                    <div class="bandeja-actions" onclick="event.stopPropagation()">
+                        <button class="btn-confirmar" onclick="aceptarAccionDetectada('${it.id}')">✓ Aceptar como tarea</button>
+                        <button class="btn-descartar" onclick="descartarAccionDetectada('${it.id}')">✕ Descartar</button>
+                    </div>
+                </div>`;
+            }).join('');
+            if (filtered.length > 50) {
+                listEl.innerHTML += `<p style="color:var(--muted);font-size:0.78rem;text-align:center;margin-top:8px;">… y ${filtered.length - 50} más. Filtra por provincia para acotar.</p>`;
+            }
+        }
+
+        async function aceptarAccionDetectada(id) {
+            // Recupera el item desde caché
+            const raw = localStorage.getItem(_ACCIONES_CACHE_KEY);
+            if (!raw) { showNotification('Caché vacía, refresca primero', 'warning'); return; }
+            let items;
+            try { items = JSON.parse(raw).items || []; } catch(e) { return; }
+            const it = items.find(x => x.id === id);
+            if (!it) { showNotification('Acción no encontrada', 'warning'); return; }
+
+            const activity = {
+                studioId: it.studioId,
+                type: 'tarea_pendiente',
+                text: `${it.tipoIcon} ${it.tipo.toUpperCase()} · ${it.descripcion}`,
+                accionDetectadaId: it.id,
+                tareaTipo: it.tipo,
+                tareaDescripcion: it.descripcion,
+                fechaLimite: it.fechaLimite || null,
+                plazoTexto: it.plazoTexto || null,
+                origenInformeFecha: it.fechaInforme,
+                origenSeccion: it.seccionOrigen,
+                estado: 'pending',
+                createdAt: new Date().toISOString(),
+            };
+            try {
+                await addActivity(activity);
+                showNotification(`✓ Tarea creada para ${it.studioName}${it.fechaLimite?` (vence ${it.fechaLimite})`:''}`, 'success');
+                loadBandeja();
+            } catch (e) {
+                showNotification('Error al crear tarea: ' + e.message, 'danger');
+            }
+        }
+
+        function descartarAccionDetectada(id) {
+            _accionDescartar(id);
+            showNotification('✕ Acción descartada (no volverá a sugerirse)', 'info');
+            loadBandeja();
         }
 
         // ── Decidir sobre actualizaciones_propuestas (§16.1) ─────────────────
