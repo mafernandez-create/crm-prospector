@@ -3288,6 +3288,15 @@
                     <div class="bandeja-section-title">💡 Propuestas tras visita <span id="bandeja-propuestas-count" style="font-size:0.75rem;font-weight:400;color:var(--muted);"></span></div>
                     <div id="bandeja-propuestas-list"></div>
                 </div>
+
+                <!-- Referencias cruzadas en informes de visita -->
+                <div class="bandeja-section" id="bandeja-refcruz-section">
+                    <div class="bandeja-section-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                        <span>🔗 Referencias cruzadas detectadas <span id="bandeja-refcruz-count" style="font-size:0.75rem;font-weight:400;color:var(--muted);"></span></span>
+                        <button onclick="refrescarReferenciasCruzadas()" style="background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.3);border-radius:6px;color:#60a5fa;font-size:0.7rem;cursor:pointer;padding:3px 9px;" title="Re-procesar informes para detectar referencias">🔄 Refrescar</button>
+                    </div>
+                    <div id="bandeja-refcruz-list"></div>
+                </div>
             </div>
 
             <!-- Reporte Semanal — §16.2 -->
@@ -6744,6 +6753,9 @@
                         </div>`).join('');
                 }
             }
+
+            // ── Referencias cruzadas en informes de visita ──
+            loadReferenciasCruzadas(provFiltro, studios).catch(e => console.error('refcruz:', e));
 
             // ── Propuestas tras visita §16.1 ──
             // Recorre activities de tipo registro_visita con actualizaciones_propuestas sin decision.
@@ -27271,6 +27283,211 @@ Importante:
         // Detecta actualizaciones propuestas para el cliente (spec §16.1):
         // nuevo interlocutor no presente en team, nuevos proyectos mencionados,
         // cambio de tamaño. Heurística simple, devuelve array de sugerencias.
+        // ── Referencias cruzadas en informes de visita ──────────────────────
+        // Parser docx + regex de detección + caché localStorage.
+        // Procesa data.reports[] de cada studio extrayendo menciones a terceros.
+        const _REFCRUZ_CACHE_KEY = 'crm_referencias_cruzadas_v1';
+        const _REFCRUZ_TTL_MS = 24 * 60 * 60 * 1000;  // 24h
+
+        async function _extractDocxText(b64orData) {
+            if (!b64orData || typeof b64orData !== 'string') return '';
+            let b64 = b64orData;
+            const c = b64.indexOf(',');
+            if (b64.startsWith('data:') && c > 0) b64 = b64.slice(c + 1);
+            b64 = b64.replace(/\s/g, '');
+            if (b64.length < 1000) return '';
+            try {
+                const binStr = atob(b64);
+                const bytes = new Uint8Array(binStr.length);
+                for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+                if (typeof JSZip === 'undefined') return '';
+                const zip = await JSZip.loadAsync(bytes);
+                const file = zip.file('word/document.xml');
+                if (!file) return '';
+                const xml = await file.async('string');
+                return xml.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
+            } catch (e) {
+                return '';
+            }
+        }
+
+        const _REFCRUZ_PROVINCIAS_ES = ['Almería','Cádiz','Córdoba','Granada','Huelva','Jaén','Málaga','Sevilla','Cáceres','Badajoz','Toledo','Cuenca','Ciudad Real','Albacete','Guadalajara','Madrid','Alicante','Valencia','Castellón','Murcia'];
+        function _inferirProvinciaCtx(ctx) {
+            for (const p of _REFCRUZ_PROVINCIAS_ES) {
+                const re = new RegExp(`\\b${p.replace('í','[ií]').replace('á','[áa]').replace('ó','[óo]').replace('é','[ée]')}\\b`, 'i');
+                if (re.test(ctx)) return p;
+            }
+            return null;
+        }
+
+        const _REFCRUZ_PATRONES = [
+            { tipo: 'CCRR', re: /\b(Comunidad de Regantes (?:de |del? )?[A-ZÁÉÍÓÚÑ][a-záéíóúñ\-]+(?:[\s\-][A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){0,4})\b/g },
+            { tipo: 'CCRR', re: /\b(Valle Inferior del Guadalquivir|Piedras-Guadiana|Margen Derecha del Bembézar|Genil-Cabra|Bajo Guadalquivir|Genil[\-\s]Cabra)\b/g },
+            { tipo: 'INFRA', re: /\b(EDAR (?:de |del? )?[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:[\s\-][A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)?)\b/g },
+            { tipo: 'INFRA', re: /\b(ETAP (?:de |del? )?[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:[\s\-][A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)?)\b/g },
+            { tipo: 'INFRA', re: /\b(Desaladora (?:de |del? )?[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)\b/g },
+            { tipo: 'AAPP', re: /\b(Ayuntamiento (?:de |del? )?[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:[\s\-][A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){0,3})\b/g },
+            { tipo: 'AAPP', re: /\b(Diputación (?:de |Provincial de )?[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)\b/g },
+            { tipo: 'AAPP', re: /\b(Junta de (?:Andalucía|Extremadura|Castilla[\s\-][a-záéíóúñ\sLa]+))\b/g },
+            { tipo: 'AAPP', re: /\b(Confederación Hidrográfica del [A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)\b/g },
+            { tipo: 'CICA', re: /\b(Aqualia|EMASESA|EMACSA|FCC Aqualia|Hidralia|Hidragua|Canal de Isabel II|EMASA|EMUASA|EMASAGRA|Acciona Agua|Veolia|GIAHSA)\b/g },
+            { tipo: 'CICA', re: /\b(Aguas (?:de |del? )?[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)\b/g },
+        ];
+        const _REFCRUZ_STOP = /^(Junta de Comunidades|Diputación Provincial|Comunidad de Regantes|CR de|Aguas de|Ayuntamiento de|EDAR de|ETAP de|Desaladora de|Confederación Hidrográfica del|Aguas Residuales|Diseño)$/i;
+        // Filtros adicionales: descartar capturas absurdas
+        function _refcruzEsRuido(nombre) {
+            if (/^Empresa$/i.test(nombre.split(/\s+/)[0]) && nombre.split(/\s+/).length <= 3) return true;
+            // Truncados con preposición final
+            if (/(?:de|del?|en|por|para)$/i.test(nombre)) return true;
+            // Provincia sola
+            if (_REFCRUZ_PROVINCIAS_ES.includes(nombre)) return true;
+            return false;
+        }
+
+        function _refcruzNorm(s) { return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim(); }
+
+        async function refrescarReferenciasCruzadas() {
+            try { localStorage.removeItem(_REFCRUZ_CACHE_KEY); } catch(e) {}
+            const provSelect = document.getElementById('bandeja-filter-province');
+            const provFiltro = provSelect ? provSelect.value : '';
+            showNotification('🔄 Procesando informes (puede tardar 10-30s la primera vez)...', 'info');
+            await loadReferenciasCruzadas(provFiltro, allStudios, true);
+        }
+
+        async function loadReferenciasCruzadas(provFiltro, studios, force=false) {
+            const listEl = document.getElementById('bandeja-refcruz-list');
+            const countEl = document.getElementById('bandeja-refcruz-count');
+            if (!listEl || !countEl) return;
+
+            // Caché
+            let cached = null;
+            if (!force) {
+                try {
+                    const raw = localStorage.getItem(_REFCRUZ_CACHE_KEY);
+                    if (raw) {
+                        const j = JSON.parse(raw);
+                        if (j.ts && (Date.now() - j.ts) < _REFCRUZ_TTL_MS) cached = j.refs;
+                    }
+                } catch(e) {}
+            }
+
+            let refs;
+            if (cached) {
+                refs = cached;
+            } else {
+                listEl.innerHTML = '<p style="color:var(--muted);font-size:0.82rem;margin:0;">⏳ Procesando informes de visita…</p>';
+                refs = await _refcruzProcesarTodos(allStudios);
+                try { localStorage.setItem(_REFCRUZ_CACHE_KEY, JSON.stringify({ ts: Date.now(), refs })); } catch(e) {}
+            }
+
+            // Filtrar por provincia (origen del informe O zona inferida del tercero)
+            const provNorm = _refcruzNorm(provFiltro);
+            const filtered = provFiltro
+                ? refs.filter(r => {
+                    if (r.provinciaInferida && _refcruzNorm(r.provinciaInferida) === provNorm) return true;
+                    return (r.origenes||[]).some(o => _refcruzNorm(o.origenProvincia) === provNorm);
+                })
+                : refs;
+
+            countEl.textContent = `(${filtered.length}${provFiltro?` · ${provFiltro}`:''})`;
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<p style="color:var(--muted);font-size:0.82rem;margin:0;">${refs.length===0?'Sin referencias detectadas en los informes. Pulsa "🔄 Refrescar" para re-procesar.':`Sin referencias cruzadas para ${provFiltro || 'esta selección'}.`}</p>`;
+                return;
+            }
+
+            // Render: agrupar por tercero
+            const studiosById = new Map(studios.map(s => [String(s.id), s]));
+            const tipoBg = { CCRR:'#10b981', INFRA:'#06b6d4', AAPP:'#f59e0b', CICA:'#8b5cf6', EMPRESA:'#3b82f6', COOP:'#ec4899' };
+            listEl.innerHTML = filtered.map(ref => {
+                const bg = tipoBg[ref.tipo] || '#64748b';
+                const inCarteraLabel = ref.matchStudioId
+                    ? `<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:600;cursor:pointer;" onclick="showStudioDetail('${ref.matchStudioId}')">✅ #${ref.matchStudioId} en cartera</span>`
+                    : `<span style="background:#fef3c7;color:#78350f;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:600;">⚠️ sin ficha en cartera</span>`;
+                const provLabel = ref.provinciaInferida ? `<span style="color:var(--muted);font-size:0.72rem;"> · zona ${escapeHtml(ref.provinciaInferida)}</span>` : '';
+                const origenesHtml = (ref.origenes||[]).map(o => `
+                    <div style="font-size:0.74rem;color:var(--text-secondary);margin-top:4px;padding-left:8px;border-left:2px solid #e5e7eb;">
+                        ← <strong onclick="showStudioDetail('${escapeHtml(o.origenStudioId||'')}')" style="cursor:pointer;color:var(--primary);">${escapeHtml(o.origenStudio||'')}</strong>
+                        <span style="color:var(--muted);">(${escapeHtml(o.origenProvincia||'')}, ${escapeHtml((o.origenFecha||'').slice(0,10))})</span>
+                        <div style="color:var(--muted);font-style:italic;font-size:0.7rem;margin-top:2px;">"${escapeHtml((o.contexto||'').slice(0,180))}…"</div>
+                    </div>`).join('');
+                return `
+                <div class="bandeja-card" style="display:block;padding:10px 12px;">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span style="background:${bg};color:#fff;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:6px;letter-spacing:0.4px;">${ref.tipo}</span>
+                        <strong style="font-size:0.88rem;">${escapeHtml(ref.nombre)}</strong>
+                        ${provLabel}
+                        ${inCarteraLabel}
+                    </div>
+                    ${origenesHtml}
+                </div>`;
+            }).join('');
+        }
+
+        async function _refcruzProcesarTodos(studios) {
+            const referencias = new Map();
+            const studiosById = new Map(studios.map(s => [String(s.id), s]));
+            for (const studio of studios) {
+                const reports = studio.data?.reports;
+                if (!Array.isArray(reports) || reports.length === 0) continue;
+                for (const rep of reports) {
+                    const bin = rep.fileData || rep.data;
+                    if (!bin || bin.length < 1000) continue;
+                    const text = await _extractDocxText(bin);
+                    if (!text || text.length < 100) continue;
+                    const selfN = _refcruzNorm(studio.name||'');
+                    for (const pat of _REFCRUZ_PATRONES) {
+                        const re = new RegExp(pat.re.source, pat.re.flags);
+                        let m;
+                        while ((m = re.exec(text)) !== null) {
+                            const nombre = (m[1] || m[0]).trim();
+                            if (nombre.length < 6) continue;
+                            if (_REFCRUZ_STOP.test(nombre)) continue;
+                            if (_refcruzEsRuido(nombre)) continue;
+                            const nN = _refcruzNorm(nombre);
+                            if (nN === selfN || nN.includes(selfN) || selfN.includes(nN)) continue;
+                            const start = Math.max(0, m.index - 100);
+                            const end = Math.min(text.length, m.index + m[0].length + 100);
+                            const ctx = text.slice(start, end).replace(/\s+/g,' ').trim();
+                            const provInf = _inferirProvinciaCtx(ctx);
+                            const key = pat.tipo + '|' + nN;
+                            if (!referencias.has(key)) {
+                                referencias.set(key, { tipo: pat.tipo, nombre, provinciaInferida: provInf, origenes: [] });
+                            } else if (!referencias.get(key).provinciaInferida && provInf) {
+                                referencias.get(key).provinciaInferida = provInf;
+                            }
+                            const ref = referencias.get(key);
+                            if (!ref.origenes.some(o => o.origenStudioId === studio.id && o.origenFecha === (rep.date||''))) {
+                                ref.origenes.push({
+                                    origenStudioId: String(studio.id),
+                                    origenStudio: studio.name||'',
+                                    origenProvincia: (typeof studio.province==='object'?(studio.province?.valor||''):studio.province)||'',
+                                    origenFecha: (rep.date||'').substring(0,10),
+                                    contexto: ctx,
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            const arr = Array.from(referencias.values()).sort((a,b) => b.origenes.length - a.origenes.length);
+            // Cross-check con cartera
+            for (const ref of arr) {
+                const nR = _refcruzNorm(ref.nombre);
+                const match = studios.find(s => {
+                    const nS = _refcruzNorm(s.name||'');
+                    if (!nS) return false;
+                    if (nS === nR) return true;
+                    if (nR.length > 8 && nS.length > 8 && (nS.includes(nR) || nR.includes(nS))) return true;
+                    return false;
+                });
+                if (match) {
+                    ref.matchStudioId = String(match.id);
+                    ref.matchStudioName = match.name;
+                }
+            }
+            return arr;
+        }
+
         // ── Decidir sobre actualizaciones_propuestas (§16.1) ─────────────────
         // Sin aplicar cambios automáticos al studio (eso requiere validación
         // manual del usuario). Solo registra la decisión y añade nota al studio.
