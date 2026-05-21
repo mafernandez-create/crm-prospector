@@ -3313,6 +3313,15 @@
                     </div>
                     <div id="bandeja-acciones-list"></div>
                 </div>
+
+                <!-- Visitas no realizadas / pendientes de repetir -->
+                <div class="bandeja-section" id="bandeja-novisita-section">
+                    <div class="bandeja-section-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                        <span>🚧 Visitas pendientes de repetir <span id="bandeja-novisita-count" style="font-size:0.75rem;font-weight:400;color:var(--muted);"></span></span>
+                        <button onclick="refrescarVisitasFallidas()" style="background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.3);border-radius:6px;color:#60a5fa;font-size:0.7rem;cursor:pointer;padding:3px 9px;" title="Re-procesar informes para detectar visitas no realizadas">🔄 Refrescar</button>
+                    </div>
+                    <div id="bandeja-novisita-list"></div>
+                </div>
             </div>
 
             <!-- Reporte Semanal — §16.2 -->
@@ -6775,6 +6784,9 @@
 
             // ── Acciones pendientes detectadas en informes ──
             loadAccionesPendientes(provFiltro, studios).catch(e => console.error('acciones:', e));
+
+            // ── Visitas no realizadas / pendientes de repetir ──
+            loadVisitasFallidas(provFiltro, studios).catch(e => console.error('visitas_fallidas:', e));
 
             // ── Propuestas tras visita §16.1 ──
             // Recorre activities de tipo registro_visita con actualizaciones_propuestas sin decision.
@@ -27866,6 +27878,161 @@ Importante:
         function descartarAccionDetectada(id) {
             _accionDescartar(id);
             showNotification('✕ Acción descartada (no volverá a sugerirse)', 'info');
+            loadBandeja();
+        }
+
+        // ── Visitas no realizadas / pendientes de repetir ────────────────────
+        // Detecta en los informes patrones de visita fallida: cliente ausente,
+        // reunido, olvido, persona adecuada no presente, etc.
+        const _NOVISITA_CACHE_KEY = 'crm_visitas_fallidas_v1';
+        const _NOVISITA_RESUELTAS_KEY = 'crm_visitas_fallidas_resueltas';
+        const _NOVISITA_TTL_MS = 24 * 60 * 60 * 1000;
+
+        const _NOVISITA_PATRONES = [
+            { motivo: 'ausente', icon: '🚪', re: /\b(?:cliente|interlocutor|responsable)?\s*(?:no\s+(?:estaba|se\s+encontraba|estuvo)\s+(?:en\s+la\s+oficina|presente|disponible|en\s+su\s+puesto)|no\s+hab[íi]a\s+nadie|nadie\s+(?:nos\s+)?(?:atendi[óo]|recibi[óo])|estaba\s+fuera|fuera\s+de\s+(?:la\s+)?oficina|de\s+vacaciones|de\s+viaje|ausente)\b[\s\S]{0,150}/gi },
+            { motivo: 'reunido',  icon: '👥', re: /\b(?:estaba|se\s+encontraba)\s+reunid[oa]\b[\s\S]{0,150}|\bocupad[oa]\s+con\s+otro\s+cliente\b[\s\S]{0,150}|\bno\s+pudo\s+atendernos\b[\s\S]{0,150}/gi },
+            { motivo: 'olvido',   icon: '🤔', re: /\b(?:se\s+(?:le\s+)?(?:hab[íi]a\s+)?olvidad[oa]|se\s+olvid[óo]|no\s+(?:se\s+)?acord(?:[óo]|aba)|hab[íi]a\s+olvidado)\b[\s\S]{0,150}|\bno\s+(?:ten[íi]a|recordaba)\s+(?:la\s+)?(?:cita|reuni[óo]n|visita)\b[\s\S]{0,150}/gi },
+            { motivo: 'persona_inadecuada', icon: '⚠️', re: /\b(?:la\s+persona\s+adecuada|el\s+responsable|el\s+decision\s+maker|la\s+persona\s+de\s+contacto|el\s+t[ée]cnico|el\s+arquitecto|el\s+ingeniero|el\s+director|el\s+gerente)\s+(?:no\s+(?:estaba|se\s+encontraba|estuvo))\b[\s\S]{0,150}|\batendi[óo]\s+(?:un\s+)?(?:becari[oa]|auxiliar|asistente|recepcionista|administrativ[oa])\b[\s\S]{0,150}/gi },
+            { motivo: 'no_realizada', icon: '❌', re: /\b(?:no\s+(?:se\s+)?(?:pudo|pudimos|hemos\s+podido|consegu[íi])?\s*(?:realizar|completar|hacer|llevar\s+a\s+cabo)\s+(?:la\s+)?(?:visita|reuni[óo]n))\b[\s\S]{0,150}|\bvisita\s+(?:fallida|cancelada|reagendada|frustrada|aplazada)\b[\s\S]{0,150}|\b(?:tuvimos|hubo)\s+que\s+(?:reagendar|aplazar|cancelar|posponer)\b[\s\S]{0,150}/gi },
+            { motivo: 'volver',   icon: '🔁', re: /\b(?:quedamos\s+en|qued[óo]\s+en|acordamos)\s+(?:volver|pasar(?:nos)?|venir|repetir)\b[\s\S]{0,150}|\bvolver(?:emos)?\s+(?:a\s+pasar|otro\s+d[íi]a|cuando|en\s+pr[óo]xima\s+ruta)\b[\s\S]{0,150}|\bpr[óo]xima\s+vez\s+que\s+pase\s+por\b[\s\S]{0,150}/gi },
+        ];
+
+        function _novisitaGetResueltas() {
+            try { return JSON.parse(localStorage.getItem(_NOVISITA_RESUELTAS_KEY) || '{}'); }
+            catch(e) { return {}; }
+        }
+        function _novisitaMarcarResuelta(id) {
+            const m = _novisitaGetResueltas();
+            m[id] = { ts: Date.now() };
+            localStorage.setItem(_NOVISITA_RESUELTAS_KEY, JSON.stringify(m));
+        }
+
+        async function _novisitaProcesarTodos(studios) {
+            const items = [];
+            for (const studio of studios) {
+                const reports = studio.data?.reports;
+                if (!Array.isArray(reports) || reports.length === 0) continue;
+                for (const rep of reports) {
+                    const bin = rep.fileData || rep.data;
+                    if (!bin || bin.length < 1000) continue;
+                    const text = await _extractDocxText(bin);
+                    if (!text || text.length < 100) continue;
+                    const fechaReport = (rep.date || '').substring(0,10);
+                    for (const pat of _NOVISITA_PATRONES) {
+                        const re = new RegExp(pat.re.source, pat.re.flags);
+                        let m;
+                        const vistos = new Set();
+                        while ((m = re.exec(text)) !== null) {
+                            const matchText = m[0].trim();
+                            if (matchText.length < 15 || matchText.length > 400) continue;
+                            const key = matchText.slice(0, 60).toLowerCase();
+                            if (vistos.has(key)) continue;
+                            vistos.add(key);
+                            const start = Math.max(0, m.index - 40);
+                            const end = Math.min(text.length, m.index + matchText.length);
+                            const ctx = text.slice(start, end).replace(/\s+/g, ' ').trim();
+                            const id = _accionHash(studio.id + '|' + fechaReport + '|nv|' + pat.motivo + '|' + key);
+                            items.push({
+                                id,
+                                studioId: String(studio.id),
+                                studioName: studio.name || '',
+                                studioProvince: (typeof studio.province==='object'?(studio.province?.valor||''):studio.province)||'',
+                                motivo: pat.motivo,
+                                motivoIcon: pat.icon,
+                                descripcion: ctx.length > 280 ? ctx.slice(0, 280) + '…' : ctx,
+                                fechaInforme: fechaReport,
+                            });
+                        }
+                    }
+                }
+            }
+            // Deduplicar
+            const seen = new Set();
+            const dedup = items.filter(it => seen.has(it.id) ? false : (seen.add(it.id), true));
+            // Ordenar por fechaInforme desc (más recientes arriba)
+            dedup.sort((a, b) => (b.fechaInforme||'').localeCompare(a.fechaInforme||''));
+            return dedup;
+        }
+
+        async function refrescarVisitasFallidas() {
+            try { localStorage.removeItem(_NOVISITA_CACHE_KEY); } catch(e) {}
+            const provSelect = document.getElementById('bandeja-filter-province');
+            const provFiltro = provSelect ? provSelect.value : '';
+            showNotification('🔄 Re-procesando informes para detectar visitas fallidas…', 'info');
+            await loadVisitasFallidas(provFiltro, allStudios, true);
+        }
+
+        async function loadVisitasFallidas(provFiltro, studios, force=false) {
+            const listEl = document.getElementById('bandeja-novisita-list');
+            const countEl = document.getElementById('bandeja-novisita-count');
+            if (!listEl || !countEl) return;
+
+            let cached = null;
+            if (!force) {
+                try {
+                    const raw = localStorage.getItem(_NOVISITA_CACHE_KEY);
+                    if (raw) {
+                        const j = JSON.parse(raw);
+                        if (j.ts && (Date.now() - j.ts) < _NOVISITA_TTL_MS) cached = j.items;
+                    }
+                } catch(e) {}
+            }
+            let items;
+            if (cached) {
+                items = cached;
+            } else {
+                listEl.innerHTML = '<p style="color:var(--muted);font-size:0.82rem;margin:0;">⏳ Detectando visitas no realizadas en informes…</p>';
+                items = await _novisitaProcesarTodos(studios);
+                try { localStorage.setItem(_NOVISITA_CACHE_KEY, JSON.stringify({ ts: Date.now(), items })); } catch(e) {}
+            }
+
+            // Excluir resueltas
+            const resueltas = _novisitaGetResueltas();
+            items = items.filter(it => !resueltas[it.id]);
+
+            // Filtrar por provincia
+            const provNorm = _refcruzNorm(provFiltro);
+            const filtered = provFiltro
+                ? items.filter(it => _refcruzNorm(it.studioProvince) === provNorm)
+                : items;
+
+            countEl.textContent = `(${filtered.length}${provFiltro?` · ${provFiltro}`:''})`;
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<p style="color:var(--muted);font-size:0.82rem;margin:0;">${items.length===0?'Sin visitas fallidas detectadas. Pulsa 🔄 Refrescar para re-procesar.':`Sin visitas fallidas para ${provFiltro || 'esta selección'}.`}</p>`;
+                return;
+            }
+
+            const motivoBg = { ausente:'#94a3b8', reunido:'#f59e0b', olvido:'#a78bfa', persona_inadecuada:'#ec4899', no_realizada:'#dc2626', volver:'#3b82f6' };
+            const motivoLabel = { ausente:'ausente', reunido:'reunido', olvido:'olvido', persona_inadecuada:'persona inadecuada', no_realizada:'no realizada', volver:'volver a pasar' };
+            listEl.innerHTML = filtered.slice(0, 50).map(it => {
+                const bg = motivoBg[it.motivo] || '#64748b';
+                return `
+                <div class="bandeja-card" style="display:block;padding:10px 12px;">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+                        <span style="background:${bg};color:#fff;font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:6px;">${it.motivoIcon} ${motivoLabel[it.motivo]||it.motivo}</span>
+                        <strong onclick="showStudioDetail('${escapeHtml(it.studioId)}')" style="font-size:0.88rem;cursor:pointer;color:var(--primary);">${escapeHtml(it.studioName)}</strong>
+                        <span style="color:var(--muted);font-size:0.72rem;">(${escapeHtml(it.studioProvince||'?')} · ${escapeHtml(it.fechaInforme||'?')})</span>
+                    </div>
+                    <div style="font-size:0.8rem;color:var(--text-secondary);margin:4px 0 6px 0;font-style:italic;">"${escapeHtml(it.descripcion)}"</div>
+                    <div class="bandeja-actions" onclick="event.stopPropagation()">
+                        <button class="btn-confirmar" onclick="marcarVisitaResuelta('${it.id}')">✓ Repetida</button>
+                        <button class="btn-descartar" onclick="descartarVisitaFallida('${it.id}')">✕ Descartar</button>
+                    </div>
+                </div>`;
+            }).join('');
+            if (filtered.length > 50) {
+                listEl.innerHTML += `<p style="color:var(--muted);font-size:0.78rem;text-align:center;margin-top:8px;">… y ${filtered.length - 50} más. Filtra por provincia para acotar.</p>`;
+            }
+        }
+
+        function marcarVisitaResuelta(id) {
+            _novisitaMarcarResuelta(id);
+            showNotification('✓ Marcada como repetida', 'success');
+            loadBandeja();
+        }
+        function descartarVisitaFallida(id) {
+            _novisitaMarcarResuelta(id);
+            showNotification('✕ Descartada (no volverá a sugerirse)', 'info');
             loadBandeja();
         }
 
