@@ -9182,20 +9182,22 @@ ${totalAlertas > 0 ? `
             const citySelect = document.getElementById('filter-city');
             const currentCityValue = citySelect.value;
             const provinceFilter = document.getElementById('filter-province').value;
-            
+
             // Filtrar estudios por provincia si hay una seleccionada
+            // NOTA: tras migración legacy v1.1, city/province pueden ser objetos {valor, fuente_*}.
+            // Usar getValor() para unwrap seguro antes de comparar strings.
             let studiosToFilter = allStudios;
             if (provinceFilter) {
                 studiosToFilter = allStudios.filter(s => {
-                    const studioProvince = s.province || s.data?.contact?.province || '';
+                    const studioProvince = getValor(s.province) || getValor(s.data?.contact?.province) || '';
                     return studioProvince === provinceFilter;
                 });
             }
-            
+
             // Obtener ciudades únicas - buscar en studio.city O en data.contact.city
             const cities = [...new Set(studiosToFilter.map(s => {
-                return s.city || s.data?.contact?.city || '';
-            }).filter(c => c && c.trim()))].sort();
+                return getValor(s.city) || getValor(s.data?.contact?.city) || '';
+            }).filter(c => typeof c === 'string' && c.trim()))].sort();
             
             // Reconstruir opciones de ciudad
             citySelect.innerHTML = '<option value="">Todas</option>' + 
