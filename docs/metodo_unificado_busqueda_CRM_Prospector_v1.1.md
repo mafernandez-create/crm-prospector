@@ -1184,3 +1184,115 @@ Si la búsqueda los detecta a los tres con sus marcas correctas, la capa está v
 
 *Adenda generada el 18 de mayo de 2026 tras diagnóstico de cobertura. Decisión 5 añadida el 19 de mayo tras prueba comparativa. Las decisiones aquí registradas tienen prioridad sobre cualquier interpretación previa de las secciones afectadas.*
 
+---
+
+## 19. Continuación del plan — Bloques 8, 9 y 10
+
+**Contexto**: completados los 8 bloques originales (0-7) el 21 de mayo de 2026, un análisis comparativo entre la búsqueda automatizada del CRM y una búsqueda manual paralela sobre la misma consulta ("ingenierías en Almería") reveló dos brechas funcionales que no se resuelven solo con el plan original:
+
+1. **§18.5.4 detecta 0 casos donde la inspección humana detecta 1**: en Almería, 12 nuevos vía sectorial pero solo 1 vía académica, y Juan Reca (UAL, catedrático de Ingeniería Hidráulica) no quedó auto-marcado como cliente puente. En Córdoba ocurre lo mismo con Emilio Camacho (UCO). Las heurísticas son demasiado conservadoras.
+
+2. **Falta materializar §6 (Modo Briefing)**: el CRM produce búsqueda masiva y reporte semanal, pero no genera dossiers pre-visita con síntesis cualitativa por cliente. Esto fuerza al usuario a producirlos manualmente vía chat externo.
+
+Adicionalmente, §11 (integración con PLACSP) está definida pero no implementada operativamente: hoy el agente nocturno busca en web genérica, sin cruzar con la fuente oficial de adjudicaciones públicas.
+
+Este apartado define los tres bloques nuevos que cierran estas brechas, con disciplina de ejecución delegada a Claude Code (sin pausas obligatorias entre bloques, salvo errores).
+
+### §19.1 — Bloque 8: Mejora de detección de cliente puente académico
+
+**Objetivo**: ampliar las heurísticas de §18.5.4 para que entidades académicas relevantes se auto-marquen como `es_cliente_puente: true` desde el alta, sin requerir validación manual posterior.
+
+**Criterios nuevos de auto-marcado**:
+
+1. **Dominio institucional universitario**. Cualquier entidad con email o web bajo dominios `.edu`, `.uco.es`, `.ual.es`, `.ujaen.es`, `.ugr.es`, `.us.es`, `.upo.es`, `.uca.es`, `.uma.es`, `.unia.es`, `.unirioja.es`, o cualquier subdominio de universidad española activa. Lista completa mantenida en `lib/universidades_es.json` (creación dentro del bloque).
+
+2. **Presencia en tribunal académico de oposición del sector**. Detección por pattern matching en resultados de búsqueda: ocurrencias del nombre de la entidad junto a "presidente del tribunal", "vocal de tribunal", "secretario de tribunal", "comisión evaluadora" en contexto de oposición a plaza universitaria de ingeniería hidráulica, civil, agronómica o forestal.
+
+3. **Ponencia identificada en congreso sectorial relevante últimos 24 meses**. Eventos relevantes (lista actualizable en `lib/eventos_sector.json`):
+   - SEREA (Seminario Iberoamericano sobre Sistemas de Abastecimiento Urbano de Agua)
+   - ANCI (Asociación Nacional de Constructores Independientes)
+   - FERAGUA (Federación de Comunidades de Regantes de Andalucía)
+   - Congreso Nacional de Comunidades de Regantes
+   - AEDyR (Asociación Española de Desalación y Reutilización)
+   - Congreso Nacional del Agua
+
+4. **Grupo de investigación con publicación reciente**. Detección de patrones tipo "Grupo AGR-XXXX", "Grupo de investigación en [hidráulica|riego|agua]" + universidad española + publicación con DOI o citación últimos 24 meses.
+
+**Validación obligatoria de §19.1**:
+
+- `searchStudiosInProvince('Córdoba', 'ING')` debe detectar a **Emilio Camacho Poyato** (UCO, Grupo AGR-0228) y auto-marcarlo con `es_cliente_puente: true`.
+- `searchStudiosInProvince('Almería', 'ING')` debe detectar a **Juan Reca Cardeña** (UAL, Cátedra Universitaria del Agua) y auto-marcarlo con `es_cliente_puente: true`.
+- Si tras la implementación uno de los dos no queda auto-marcado, el bloque no está validado y requiere iteración de las heurísticas.
+
+**Esfuerzo estimado**: 1-2 días.
+
+### §19.2 — Bloque 9: Modo Briefing narrativo (materialización de §6)
+
+**Objetivo**: implementar el botón "Generar briefing" en la ficha de cliente, que produce un documento de 1 página con síntesis cualitativa accionable, llamando a un LLM con todo el contexto disponible.
+
+**Contexto a inyectar en el prompt al LLM**:
+
+- Datos de la ficha del cliente: nombre, tipo, cuadrante actual, score doble eje, fuente_descubrimiento, es_cliente_puente.
+- Histórico de visitas anteriores desde Visitas GPF (extractos de los 5 bloques estructurados).
+- Compromisos abiertos sin cerrar.
+- Adjudicaciones recientes del cliente (cuando esté implementado §19.3, Bloque 10) o señales de mercado relacionadas.
+- Red de conexiones detectadas (otros clientes del mismo grupo, mismo prescriptor, mismas CCRR, etc.).
+- Catálogo GPF relevante para el tipo de cliente (MUTE, EUME, ECOSAN, CONDUSAN, BIOPIPE).
+
+**Output esperado** (Markdown estructurado, máximo 1 página A4):
+
+1. **Resumen ejecutivo** (3-4 líneas): quién es, dónde está en la cartera (cuadrante), por qué se le visita ahora.
+2. **Histórico reciente**: lo último que se habló, fecha, interlocutor.
+3. **Compromisos abiertos**: lo que se prometió y no se ha cerrado.
+4. **Señales de mercado relevantes**: adjudicaciones públicas, cambios en su sector, noticias recientes.
+5. **Red y conexiones**: otros prospects o clientes relacionados, especialmente cliente puente si aplica.
+6. **Sugerencia SPIN para esta visita**: pregunta de Situación, de Problema, de Implicación y de Necesidad-pago concretas, no genéricas.
+7. **Catálogo GPF prioritario**: 1-3 productos del catálogo que encajan con el perfil técnico.
+8. **Cosas a evitar mencionar**: datos sensibles que el cliente no debería saber que conocemos (origen del descubrimiento, scoring interno, datos mercantiles privados).
+
+**Modalidad de entrega**:
+
+- Visualización en pantalla (modal expandible).
+- Descarga como `.md` para enviar al móvil o adjuntar a la agenda.
+- Persistencia en Firestore en `briefings/{clientId}/{fecha}` para auditoría y reutilización.
+
+**Esfuerzo estimado**: 3-5 días.
+
+### §19.3 — Bloque 10: Integración real con PLACSP (materialización de §11)
+
+**Objetivo**: cruzar automáticamente la cartera del CRM con la Plataforma de Contratación del Sector Público, detectando adjudicaciones recientes que afecten a clientes en cartera o que revelen prospects no detectados por las otras capas.
+
+**Funcionalidad**:
+
+1. **Cron diario PLACSP** dentro del agente nocturno: descarga incremental de adjudicaciones publicadas en las últimas 24h con CPV relevantes (71300000 servicios de ingeniería, 71310000 consultoría ingeniería, 45232000 obras hidráulicas, 45231100 conducciones de agua, etc.).
+
+2. **Cruce con cartera existente**: para cada adjudicación nueva, buscar coincidencia por nombre/CIF en `studios`. Si encuentra:
+   - Actualiza el campo `ultima_adjudicacion_placsp` con fecha, importe, organismo adjudicador, descripción.
+   - Genera alerta en bandeja del agente: "🏛️ Adjudicación PLACSP detectada".
+
+3. **Descubrimiento desde PLACSP**: para cada adjudicatario no presente en cartera, crear ficha nueva con `fuente_descubrimiento: 'placsp'` y nivel de confianza `double_source` (PLACSP es fuente oficial).
+
+4. **Persistencia histórica**: registro completo de adjudicaciones detectadas en `placsp_adjudicaciones/{year-month}/{adjudicacion_id}` para auditoría.
+
+**API a usar**: PLACSP ofrece feeds ATOM diarios públicos en `https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom` (y endpoints derivados). No requiere autenticación.
+
+**Validación obligatoria de §19.3**:
+
+- La adjudicación de la ampliación de la Desaladora de Almería (UTE Aima Ingeniería + Ecoagua Ingenieros, octubre 2024, 495.302€) debe quedar detectada automáticamente si se ejecuta una pasada histórica de prueba sobre los últimos 12 meses.
+- Si Aima Ingeniería no está en cartera, debe crearse como ficha nueva con `fuente_descubrimiento: 'placsp'`.
+
+**Esfuerzo estimado**: 2-3 días.
+
+### §19.4 — Disciplina de ejecución para los Bloques 8-10
+
+A diferencia de los Bloques 0-7 originales, estos tres se ejecutan con disciplina relajada por decisión del usuario:
+
+- Claude Code puede encadenar bloques sin pausa obligatoria de confirmación.
+- Solo pausa obligatoria ante: errores de validación que rompan los criterios de §19.1, §19.2 o §19.3, decisiones de diseño no previstas en este documento, o coste/recurso externo no estimado.
+- Resumen al final de cada bloque sigue siendo obligatorio (qué se cambió, qué se validó, commits hechos).
+- Al final del Bloque 10, resumen consolidado de los tres bloques.
+
+---
+
+*Adenda §19 añadida el 21 de mayo de 2026 tras diagnóstico post-plan original. Las decisiones aquí registradas tienen prioridad sobre cualquier interpretación previa de §6, §11 y §18.5.4.*
+
