@@ -2638,6 +2638,11 @@
                     <span class="nav-item-icon">📊</span>
                     <span>Reporte Semanal</span>
                 </div>
+                <div class="nav-item" onclick="showView('batch')">
+                    <span class="nav-item-icon">🤖</span>
+                    <span>Cron Batch</span>
+                    <span class="nav-item-badge" id="nav-batch-status" style="background:var(--muted);display:none;">·</span>
+                </div>
             </div>
             <div class="nav-section">
                 <div class="nav-section-title">Por Estado</div>
@@ -3275,6 +3280,17 @@
             </div>
 
             <!-- Reporte Semanal — §16.2 -->
+            <!-- Cron Batch — vista del checkpoint nocturno -->
+            <div class="view" id="view-batch">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+                    <h2 style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin:0;">🤖 Cron Batch nocturno</h2>
+                    <button class="btn btn-secondary" onclick="loadBatchView()" style="font-size:0.82rem;">🔄 Actualizar</button>
+                </div>
+                <div id="batch-content">
+                    <p style="color:var(--muted);font-style:italic;font-size:0.85rem;">Cargando datos del último batch…</p>
+                </div>
+            </div>
+
             <div class="view" id="view-reporte">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
                     <h2 style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin:0;">📊 Reporte Semanal</h2>
@@ -8811,6 +8827,7 @@ ${totalAlertas > 0 ? `
                 'kanban': 'Kanban — Pipeline',
                 'bandeja': 'Bandeja del Agente',
                 'reporte': 'Reporte Semanal',
+                'batch': 'Cron Batch nocturno',
                 'detail': 'Detalle de Empresa'
             };
             document.getElementById('topbar-title').textContent = titles[view] || view;
@@ -8829,7 +8846,99 @@ ${totalAlertas > 0 ? `
             } else if (view === 'reporte') {
                 initReporteDates();
                 loadReporte();
+            } else if (view === 'batch') {
+                loadBatchView();
             }
+        }
+
+        // ── Cron Batch nocturno — dashboard de _meta/batch_checkpoint ──
+        async function loadBatchView() {
+            const container = document.getElementById('batch-content');
+            if (!container) return;
+            container.innerHTML = '<p style="color:var(--muted);font-style:italic;font-size:0.85rem;">Cargando datos del último batch…</p>';
+
+            let doc;
+            try {
+                doc = await firestoreDB.collection('_meta').doc('batch_checkpoint').get();
+            } catch (e) {
+                container.innerHTML = `<p style="color:var(--danger);">❌ Error al leer batch_checkpoint: ${escapeHtml(e.message||String(e))}</p>`;
+                return;
+            }
+            if (!doc.exists) {
+                container.innerHTML = '<p style="color:var(--muted);">No hay datos de batch todavía. El cron nocturno escribirá aquí tras la primera ejecución.</p>';
+                return;
+            }
+            const d = doc.data() || {};
+
+            // Cálculo de próxima ejecución (02:00 UTC siguiente)
+            const now = new Date();
+            const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 2, 0, 0));
+            if (next <= now) next.setUTCDate(next.getUTCDate() + 1);
+            const minsToNext = Math.round((next - now) / 60000);
+            const nextStr = next.toLocaleString('es-ES', { dateStyle:'short', timeStyle:'short' });
+
+            // Estado actual
+            const corriendo = d.procesandose_por != null;
+            const statusBadge = corriendo
+                ? `<span style="background:var(--warning);color:#fff;padding:3px 10px;border-radius:6px;font-size:0.72rem;font-weight:600;">⚙️ corriendo (${escapeHtml(d.procesandose_por)})</span>`
+                : `<span style="background:var(--success);color:#fff;padding:3px 10px;border-radius:6px;font-size:0.72rem;font-weight:600;">✅ idle</span>`;
+
+            // Última ejecución
+            const started  = d.startedAt  ? new Date(d.startedAt).toLocaleString('es-ES', { dateStyle:'medium', timeStyle:'medium' }) : '—';
+            const finished = d.finishedAt ? new Date(d.finishedAt).toLocaleString('es-ES', { dateStyle:'medium', timeStyle:'medium' }) : '—';
+            const dur      = d.durationSec != null ? `${d.durationSec}s` : '—';
+
+            const errBadge = (d.errorsCount && d.errorsCount > 0)
+                ? `<span style="background:var(--danger);color:#fff;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:600;">${d.errorsCount}</span>`
+                : `<span style="color:var(--success);font-weight:600;">0</span>`;
+
+            const card = (title, value, sub) => `
+                <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+                    <div style="font-size:0.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;font-weight:600;margin-bottom:6px;">${title}</div>
+                    <div style="font-size:1.5rem;font-weight:700;color:var(--text-primary);line-height:1;">${value}</div>
+                    ${sub ? `<div style="font-size:0.78rem;color:var(--muted);margin-top:4px;">${sub}</div>` : ''}
+                </div>`;
+
+            container.innerHTML = `
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+                    ${statusBadge}
+                    <span style="font-size:0.82rem;color:var(--muted);">Trigger: <strong>${escapeHtml(d.trigger||'—')}</strong></span>
+                    <span style="font-size:0.82rem;color:var(--muted);">Filtro: <strong>${escapeHtml(d.filtro||'—')}</strong></span>
+                    <span style="font-size:0.82rem;color:var(--muted);">Status: <strong>${escapeHtml(d.status||'—')}</strong></span>
+                </div>
+
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:18px;">
+                    ${card('Procesados', d.processed ?? '—', `Límite: ${d.limite ?? '—'}`)}
+                    ${card('Actualizados', d.updated ?? '—', '')}
+                    ${card('Cambios cuadrante', d.cambiosCuadrante ?? '—', '')}
+                    ${card('Nuevos puente', d.nuevosCandidatosPuente ?? '—', '§7.2.1')}
+                    ${card('Duración', dur, '')}
+                    ${card('Errores', errBadge, '')}
+                </div>
+
+                <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+                    <div style="font-size:0.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;font-weight:600;margin-bottom:10px;">Última ejecución</div>
+                    <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:0.84rem;">
+                        <span style="color:var(--muted);">Inicio:</span><strong>${started}</strong>
+                        <span style="color:var(--muted);">Fin:</span><strong>${finished}</strong>
+                        <span style="color:var(--muted);">Last ID procesado:</span><strong>${escapeHtml(d.lastId||'—')}</strong>
+                        <span style="color:var(--muted);">Total disponible:</span><strong>${d.total ?? '—'}</strong>
+                    </div>
+                </div>
+
+                <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+                    <div style="font-size:0.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;font-weight:600;margin-bottom:10px;">Próxima ejecución programada</div>
+                    <div style="font-size:0.92rem;color:var(--text-primary);">
+                        <strong>${nextStr}</strong>
+                        <span style="color:var(--muted);">(en ~${minsToNext} min, cron <code>0 2 * * *</code> UTC)</span>
+                    </div>
+                </div>
+
+                <div style="font-size:0.78rem;color:var(--muted);line-height:1.5;">
+                    💡 Lanzamiento manual desde la terminal:
+                    <code style="background:var(--bg-secondary);padding:2px 6px;border-radius:4px;">gh workflow run batch-qualify.yml -f filtro=todos -f limite=1585</code>
+                </div>
+            `;
         }
 
         function makeDraggable(overlay) {
