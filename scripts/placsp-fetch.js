@@ -88,19 +88,55 @@ function extractFromAtomEntry(entryXml) {
   const importeRaw = extractField(entryXml, /<cbc:PayableAmount[^>]*>([^<]+)<\/cbc:PayableAmount>|<cbc:TaxInclusiveAmount[^>]*>([^<]+)<\/cbc:TaxInclusiveAmount>/i);
   const importe = importeRaw ? parseFloat(importeRaw.replace(',', '.')) : null;
 
-  // Adjudicatario(s) — nombre de la empresa que ganó
+  // Adjudicatario(s) — nombre de la empresa que ganó.
+  // PLACSP usa namespaces variables: cac, cac-place-ext, cbc, cbc-place-ext,
+  // y la estructura típica anida WinningParty/Party/PartyName/Name.
   const adjudicatarios = [];
-  const winnerRegex = /<cac:WinningParty\b[\s\S]*?<cbc:PartyName>([\s\S]*?)<\/cbc:PartyName>/gi;
+
+  // Patrón 1: WinningParty con PartyName anidado (cualquier prefijo cac*)
+  let wRegex = /<[a-z-]+:WinningParty\b[\s\S]*?<[a-z-]+:PartyName>\s*<[a-z-]+:Name[^>]*>([\s\S]*?)<\/[a-z-]+:Name>/gi;
   let wMatch;
-  while ((wMatch = winnerRegex.exec(entryXml)) !== null) {
-    adjudicatarios.push(decodeHtmlEntities(wMatch[1].trim()));
+  while ((wMatch = wRegex.exec(entryXml)) !== null && adjudicatarios.length < 5) {
+    const name = decodeHtmlEntities(wMatch[1].trim());
+    if (name && !adjudicatarios.includes(name)) adjudicatarios.push(name);
   }
-  // Variante: cac:Party / cbc:Name
+
+  // Patrón 2: WinningParty directo con cbc:Name sin PartyName intermedio
   if (adjudicatarios.length === 0) {
-    const altRegex = /<cac:TenderingParty\b[\s\S]*?<cbc:Name[^>]*>([\s\S]*?)<\/cbc:Name>/gi;
-    let aMatch;
-    while ((aMatch = altRegex.exec(entryXml)) !== null && adjudicatarios.length < 3) {
-      adjudicatarios.push(decodeHtmlEntities(aMatch[1].trim()));
+    wRegex = /<[a-z-]+:WinningParty\b[\s\S]*?<[a-z-]+:Name[^>]*>([\s\S]*?)<\/[a-z-]+:Name>/gi;
+    while ((wMatch = wRegex.exec(entryXml)) !== null && adjudicatarios.length < 5) {
+      const name = decodeHtmlEntities(wMatch[1].trim());
+      if (name && !adjudicatarios.includes(name)) adjudicatarios.push(name);
+    }
+  }
+
+  // Patrón 3: TenderResult con AwardedTenderedProject anidado (formato ESPD/PLACSP nuevo)
+  if (adjudicatarios.length === 0) {
+    wRegex = /<[a-z-]+:TenderResult\b[\s\S]*?<[a-z-]+:WinningParty\b[\s\S]*?<[a-z-]+:Name[^>]*>([\s\S]*?)<\/[a-z-]+:Name>/gi;
+    while ((wMatch = wRegex.exec(entryXml)) !== null && adjudicatarios.length < 5) {
+      const name = decodeHtmlEntities(wMatch[1].trim());
+      if (name && !adjudicatarios.includes(name)) adjudicatarios.push(name);
+    }
+  }
+
+  // Patrón 4: extensión cac-place-ext:Adjudicatario / OfficialName
+  if (adjudicatarios.length === 0) {
+    wRegex = /<[a-z-]+:Adjudicatario\b[\s\S]*?<[a-z-]+:OfficialName[^>]*>([\s\S]*?)<\/[a-z-]+:OfficialName>|<[a-z-]+:Adjudicatario\b[\s\S]*?<[a-z-]+:Name[^>]*>([\s\S]*?)<\/[a-z-]+:Name>/gi;
+    while ((wMatch = wRegex.exec(entryXml)) !== null && adjudicatarios.length < 5) {
+      const name = decodeHtmlEntities((wMatch[1] || wMatch[2] || '').trim());
+      if (name && !adjudicatarios.includes(name)) adjudicatarios.push(name);
+    }
+  }
+
+  // Patrón 5 fallback: cualquier OfficialName/PartyName/Name dentro del entry
+  // (no ideal, pero asegura que si hay nombre de organización lo capturamos)
+  if (adjudicatarios.length === 0) {
+    wRegex = /<[a-z-]+:(?:OfficialName|PartyName)[^>]*>([\s\S]*?)<\/[a-z-]+:(?:OfficialName|PartyName)>/gi;
+    while ((wMatch = wRegex.exec(entryXml)) !== null && adjudicatarios.length < 3) {
+      const name = decodeHtmlEntities(wMatch[1].trim()).replace(/<[^>]+>/g, '').trim();
+      if (name && name.length > 3 && name.length < 200 && !adjudicatarios.includes(name)) {
+        adjudicatarios.push(name);
+      }
     }
   }
 
@@ -158,6 +194,20 @@ async function main() {
 
   const parsed = entries.map(extractFromAtomEntry);
   log(`Adjudicaciones parseadas: ${parsed.length}`);
+
+  // Debug: log estructura de los primeros 2 entries para diagnosticar parser
+  if (parsed.length > 0) {
+    const withAdj = parsed.filter(p => p.adjudicatarios.length > 0);
+    log(`  Con adjudicatarios parseados: ${withAdj.length}/${parsed.length}`);
+    if (withAdj.length === 0 && entries.length > 0) {
+      // Mostrar tags relevantes del primer entry para ajustar regex
+      const sample = entries[0].slice(0, 3000);
+      const tags = [...new Set((sample.match(/<[a-z-]+:[A-Z][a-zA-Z]+/g) || []))].slice(0, 30);
+      log('  Sample namespaces del primer entry:', tags.join(', '));
+    } else if (withAdj.length > 0) {
+      log(`  Sample adjudicatario: "${withAdj[0].adjudicatarios[0]}"`);
+    }
+  }
 
   // Filtro fecha si DESDE/HASTA presentes
   let filtered = parsed;
