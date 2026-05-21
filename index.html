@@ -1951,7 +1951,73 @@
             padding: 16px 20px;
             padding-bottom: calc(16px + var(--safe-area-bottom));
         }
-        
+
+        /* ============================================
+           FIXES AUDITORIA iPhone (2026-05-21)
+           ============================================ */
+
+        /* FIX #1: detail-content y descendientes desbordaban a 1182px en
+           viewport mobile. Algunos hijos tenían anchos calculados con flex
+           sin min-width:0, lo que les impedía contraerse. Force shrink. */
+        @media (max-width: 768px) {
+            main, .main, #detail-content, .detail-grid,
+            .detail-header, .detail-info, .detail-name, .detail-meta,
+            .tabs, .tab-content, .card, .card-body {
+                min-width: 0 !important;
+                max-width: 100% !important;
+            }
+            .detail-header { flex-wrap: wrap !important; }
+            .detail-meta { font-size: 0.78rem; }
+            .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .tabs::-webkit-scrollbar { display: none; }
+            /* Matriz 3x3 cuadrante: forzar 3 columnas que SÍ caben (en lugar de columnas amplias) */
+            .matriz-3x3 {
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 3px !important;
+            }
+            .matriz-3x3 .m-cell { font-size: 0.62rem; padding: 6px 4px; }
+            .matriz-3x3 .m-cell-name { font-size: 0.62rem; }
+            .matriz-3x3 .m-cell-count { font-size: 0.58rem; }
+            .m-axis-label, .m-row-label { font-size: 0.6rem; }
+        }
+
+        /* FIX #2: modal "Tareas Pendientes" no llenaba ancho en mobile */
+        @media (max-width: 768px) {
+            #modal-pending-tasks .modal {
+                width: 95vw !important;
+                max-width: 95vw !important;
+                margin: 0 auto;
+            }
+        }
+
+        /* FIX #3: Pull-to-refresh banner se quedaba visible permanentemente
+           porque transform: translateY(-100%) no lo ocultaba lo suficiente
+           (top:70px + translateY(-100%) ≈ 30px = visible). */
+        .pull-refresh-indicator {
+            top: -60px;  /* parking position completamente fuera */
+        }
+        .pull-refresh-indicator.active {
+            top: calc(70px + var(--safe-area-top));
+            transform: translateX(-50%) !important;
+        }
+
+        /* FIX #4: Título de vista duplicado en Bandeja del Agente (h2 interno
+           + topbar-title). En mobile ocultamos el h2 interno para ahorrar
+           espacio vertical. */
+        @media (max-width: 768px) {
+            #view-bandeja > div:first-of-type h2 { display: none; }
+        }
+
+        /* FIX #5: Topbar mobile más compacto.
+           Reduce padding del topbar y compacta botones del topbar-actions. */
+        @media (max-width: 768px) {
+            .topbar { padding: 10px 16px 10px 60px !important; gap: 8px !important; }
+            .topbar-title { font-size: 0.95rem !important; margin-bottom: 4px; }
+            .topbar-actions { gap: 6px !important; }
+            .topbar-actions .btn { padding: 6px 10px !important; font-size: 0.78rem !important; }
+            .topbar-actions input { font-size: 0.85rem !important; padding: 6px 10px 6px 28px !important; }
+        }
+
         /* Timeline B2B mejorado para iPhone */
         body.device-iphone .b2b-step {
             padding: 20px;
