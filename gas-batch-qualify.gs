@@ -686,3 +686,203 @@ function testBatchQualifyEndpoint() {
   });
   Logger.log('Resultado: ' + JSON.stringify(result));
 }
+
+
+// ────────────────────────────────────────────────────────────────────────
+// Bloque 10 §19.3: Endpoint PLACSP Crosscheck
+// ────────────────────────────────────────────────────────────────────────
+//
+// Recibe del workflow GitHub Actions un payload con adjudicaciones nuevas:
+//   { adjudicaciones: [{id, title, adjudicatarios:[], cpvCodes:[], importe, lugar, ...}] }
+//
+// Para cada adjudicación:
+//   1. Cruza con cartera por nombre del adjudicatario (normalización)
+//   2. Si match: actualiza studio con ultima_adjudicacion_placsp + alerta
+//   3. Si no match: crea ficha nueva con fuente_descubrimiento='placsp'
+//   4. Persiste registro completo en placsp_adjudicaciones/{year-month}/{id}
+
+function handlePlacspCrosscheck(params) {
+  var props = PropertiesService.getScriptProperties();
+  var expectedKey = props.getProperty('BATCH_API_KEY');
+  if (!expectedKey) return { error: 'BATCH_API_KEY no configurado.' };
+  if (!params || params.apiKey !== expectedKey) return { error: 'Unauthorized', status: 401 };
+
+  var payload;
+  try { payload = JSON.parse(params.payload || '{}'); } catch(e) { return { error: 'JSON payload inválido' }; }
+  var adjudicaciones = Array.isArray(payload.adjudicaciones) ? payload.adjudicaciones : [];
+  if (adjudicaciones.length === 0) return { success: true, processed: 0, matched: 0, created: 0 };
+
+  var token = getFirestoreAccessToken();
+  var projectId = props.getProperty('FIRESTORE_PROJECT_ID');
+  var firestoreBase = 'https://firestore.googleapis.com/v1/projects/' + projectId + '/databases/(default)/documents';
+
+  // Pre-cargar cartera para cruce (sólo nombres normalizados)
+  var allStudios = fetchAllStudiosForCrosscheck(token, firestoreBase);
+  var byName = {};
+  allStudios.forEach(function(s) {
+    var k = normalizeNameForMatch(s.name || '');
+    if (k && !byName[k]) byName[k] = s;
+  });
+
+  var matched = 0, created = 0, errors = [];
+
+  adjudicaciones.forEach(function(adj) {
+    try {
+      (adj.adjudicatarios || []).forEach(function(adjName) {
+        var key = normalizeNameForMatch(adjName);
+        if (!key) return;
+        var hit = byName[key];
+
+        var adjudicacionMeta = {
+          adjudicacion_id: adj.id || '',
+          fecha: (adj.updated || '').slice(0, 10),
+          titulo: (adj.title || '').slice(0, 250),
+          organismo: adj.organismo || '',
+          importe: adj.importe || null,
+          lugar: adj.lugar || '',
+          cpv: (adj.cpvCodes || []).slice(0, 3),
+          url: adj.link || '',
+        };
+
+        if (hit) {
+          // Cruce con cartera: actualiza ultima_adjudicacion_placsp
+          try {
+            patchStudio(token, firestoreBase, hit.id, {
+              ultima_adjudicacion_placsp: adjudicacionMeta,
+              tieneAlertaPlacsp: true,
+            });
+            matched++;
+          } catch(e) { errors.push('match ' + hit.id + ': ' + e.message); }
+        } else {
+          // Descubrimiento: crear ficha nueva con fuente_descubrimiento='placsp'
+          try {
+            var newId = String(Date.now()) + '_' + Math.floor(Math.random()*9999);
+            var newStudio = {
+              name: adjName,
+              type: ['ING'], // CPVs filtrados son ingeniería/obra civil
+              fuente_descubrimiento: 'placsp',
+              nivel_confianza_descubrimiento: 'double_source',
+              status: 'nuevo',
+              ultima_adjudicacion_placsp: adjudicacionMeta,
+              tieneAlertaPlacsp: true,
+              data: {
+                description: 'Detectado automáticamente desde PLACSP: ' + adjudicacionMeta.titulo,
+              },
+              createdAt: new Date().toISOString(),
+            };
+            createStudio(token, firestoreBase, newId, newStudio);
+            byName[key] = { id: newId, name: adjName };
+            created++;
+          } catch(e) { errors.push('create ' + adjName + ': ' + e.message); }
+        }
+
+        // Persistencia histórica
+        try {
+          var yearMonth = adjudicacionMeta.fecha.slice(0, 7) || 'unknown';
+          var safeId = (adj.id || '').replace(/[^a-zA-Z0-9_-]/g, '_').slice(-100) || ('adj_' + Date.now());
+          var path = firestoreBase + '/placsp_adjudicaciones/' + yearMonth + '/items/' + safeId;
+          UrlFetchApp.fetch(path, {
+            method: 'patch',
+            contentType: 'application/json',
+            headers: { Authorization: 'Bearer ' + token },
+            payload: JSON.stringify({ fields: gasJsonToFirestore({
+              ...adjudicacionMeta,
+              adjudicatario: adjName,
+              cruzado: !!hit,
+            })}),
+            muteHttpExceptions: true,
+          });
+        } catch(e) { errors.push('persist ' + adj.id + ': ' + e.message); }
+      });
+    } catch(e) { errors.push('adj ' + (adj.id||'?') + ': ' + e.message); }
+  });
+
+  return {
+    success: true,
+    processed: adjudicaciones.length,
+    matched: matched,
+    created: created,
+    errorsCount: errors.length,
+    errors: errors.slice(0, 10),
+  };
+}
+
+function normalizeNameForMatch(name) {
+  if (!name) return '';
+  return String(name).toLowerCase()
+    .replace(/\b(s\.?l\.?|s\.?a\.?|s\.?l\.?u\.?|s\.?c\.?p\.?|sociedad limitada|sociedad an[óo]nima|sociedad cooperativa|ute|s\.?c\.?|c\.?b\.?)\b/g, '')
+    .replace(/[.,&\-_'" ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function fetchAllStudiosForCrosscheck(token, base) {
+  // Trae solo id+name de todos los studios para cruce (proyección via fieldMask)
+  var out = [];
+  var pageToken = null;
+  do {
+    var url = base + '/studios?pageSize=300&mask.fieldPaths=name';
+    if (pageToken) url += '&pageToken=' + encodeURIComponent(pageToken);
+    var resp = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+    var json = JSON.parse(resp.getContentText());
+    (json.documents || []).forEach(function(d) {
+      out.push({ id: d.name.split('/').pop(), name: (d.fields && d.fields.name && d.fields.name.stringValue) || '' });
+    });
+    pageToken = json.nextPageToken || null;
+  } while (pageToken);
+  return out;
+}
+
+function patchStudio(token, base, studioId, updates) {
+  var fieldPaths = Object.keys(updates).map(function(k) { return 'updateMask.fieldPaths=' + encodeURIComponent(k); }).join('&');
+  var url = base + '/studios/' + encodeURIComponent(studioId) + '?' + fieldPaths;
+  var resp = UrlFetchApp.fetch(url, {
+    method: 'patch',
+    contentType: 'application/json',
+    headers: { Authorization: 'Bearer ' + token },
+    payload: JSON.stringify({ fields: gasJsonToFirestore(updates) }),
+    muteHttpExceptions: true,
+  });
+  if (resp.getResponseCode() >= 400) throw new Error('patch ' + resp.getResponseCode() + ': ' + resp.getContentText().slice(0, 200));
+}
+
+function createStudio(token, base, id, studio) {
+  var url = base + '/studios/' + encodeURIComponent(id);
+  var resp = UrlFetchApp.fetch(url, {
+    method: 'patch',
+    contentType: 'application/json',
+    headers: { Authorization: 'Bearer ' + token },
+    payload: JSON.stringify({ fields: gasJsonToFirestore(studio) }),
+    muteHttpExceptions: true,
+  });
+  if (resp.getResponseCode() >= 400) throw new Error('create ' + resp.getResponseCode() + ': ' + resp.getContentText().slice(0, 200));
+}
+
+// gasJsonToFirestore reutiliza el helper existente del fichero (jsToFirestoreValue)
+// Si no existe, define un wrapper mínimo.
+function gasJsonToFirestore(obj) {
+  if (typeof jsToFirestoreValue === 'function') {
+    var fields = {};
+    for (var k in obj) if (obj.hasOwnProperty(k)) {
+      fields[k] = jsToFirestoreValue(obj[k]);
+    }
+    return fields;
+  }
+  // Wrapper minimal si helper no existe
+  function w(v) {
+    if (v === null || v === undefined) return { nullValue: null };
+    if (typeof v === 'boolean') return { booleanValue: v };
+    if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+    if (typeof v === 'string') return { stringValue: v };
+    if (Array.isArray(v)) return { arrayValue: { values: v.map(w) } };
+    if (typeof v === 'object') {
+      var ff = {};
+      for (var k in v) if (v.hasOwnProperty(k)) ff[k] = w(v[k]);
+      return { mapValue: { fields: ff } };
+    }
+    return { stringValue: String(v) };
+  }
+  var fields2 = {};
+  for (var k2 in obj) if (obj.hasOwnProperty(k2)) fields2[k2] = w(obj[k2]);
+  return fields2;
+}

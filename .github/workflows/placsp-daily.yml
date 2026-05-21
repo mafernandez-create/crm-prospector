@@ -1,0 +1,62 @@
+# ============================================================
+# CRM GPF — PLACSP Daily Crosscheck (Bloque 10 / §19.3)
+#
+# Descarga incremental del feed ATOM de la Plataforma de Contratación
+# del Sector Público, filtra por CPV relevantes (ingeniería, obra
+# hidráulica, conducciones) y POSTea las adjudicaciones a un endpoint
+# nuevo del GAS para cruzar con la cartera del CRM.
+#
+# Programado: 03:00 UTC todos los días (1h después del batch-qualify).
+# ============================================================
+
+name: PLACSP Daily Crosscheck
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # 03:00 UTC diario
+  workflow_dispatch:
+    inputs:
+      desde:
+        description: 'Fecha desde (YYYY-MM-DD) para pasada histórica'
+        required: false
+        default: ''
+      hasta:
+        description: 'Fecha hasta (YYYY-MM-DD) para pasada histórica'
+        required: false
+        default: ''
+      limite_adjudicaciones:
+        description: 'Máximo de adjudicaciones a procesar por pasada'
+        required: false
+        default: '500'
+
+jobs:
+  placsp-crosscheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify secrets present
+        run: |
+          if [ -z "${{ secrets.BATCH_ENDPOINT }}" ]; then
+            echo "❌ BATCH_ENDPOINT secret no configurado"; exit 1
+          fi
+          if [ -z "${{ secrets.BATCH_API_KEY }}" ]; then
+            echo "❌ BATCH_API_KEY secret no configurado"; exit 1
+          fi
+          echo "✅ Secrets configurados"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run PLACSP fetch + filter + POST
+        env:
+          BATCH_ENDPOINT: ${{ secrets.BATCH_ENDPOINT }}
+          BATCH_API_KEY: ${{ secrets.BATCH_API_KEY }}
+          DESDE: ${{ inputs.desde }}
+          HASTA: ${{ inputs.hasta }}
+          LIMITE: ${{ inputs.limite_adjudicaciones || '500' }}
+        run: |
+          node scripts/placsp-fetch.js
