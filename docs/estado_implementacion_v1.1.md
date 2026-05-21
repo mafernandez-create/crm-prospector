@@ -111,6 +111,25 @@ Tras merge, recargar Chrome para coger la nueva versión.
   - Dry-run validado sobre 1585 studios
   - Producción ya tiene el código tras GitHub Pages refresh
 
+
+### Operativa completada en sesión 2026-05-21 (Bloques 8-10, §19)
+
+**Bloque 8 — Puente académico (§19.1)** ✅
+- PR #20 (commit `49cad29`): 4 heurísticas + `lib/universidades_es.json` + `lib/eventos_sector.json` + 7/7 tests unitarios.
+- PR #21 (commit `c5e05b7`): iteración tras fallo validación end-to-end — `extractStudioName(.., allowPersona)` ahora captura personas físicas académicas (catedráticos). 5/5 tests adicionales.
+- Validación E2E sintética: Camacho Poyato (UCO `h1:dominio:uco.es`) y Reca Cardeña (UAL `h1:dominio:ual.es`) auto-marcados puente. ✅
+
+**Bloque 9 — Briefing narrativo (§19.2)** ✅
+- PR #23: materialización de §6 con dossier 1pA4 generado por LLM.
+- 8 secciones literales: Resumen ejecutivo, Histórico, Compromisos abiertos, Señales mercado, Red conexiones, SPIN, Catálogo prioritario, Evitar mencionar.
+- Modal expandible + descarga `.md` + persistencia `briefings/{clientId}/items/{fechaISO}`.
+- Coexiste con DOCX clásico (botón previo) — nuevo botón "📋 Generar Briefing" lanza versión narrativa.
+
+**Bloque 10 — Integración PLACSP (§19.3)** ✅ código (validación real pendiente de re-deploy GAS)
+- PR #24: `.github/workflows/placsp-daily.yml` cron 03:00 UTC + `scripts/placsp-fetch.js` (Node 20, parser XML Atom, filtro CPV 71300000/71310000/45232000/45231100/...) + endpoint GAS `handlePlacspCrosscheck`.
+- Cruce con cartera por normalización nombre (quita S.L./S.A./UTE), si match actualiza `ultima_adjudicacion_placsp` + `tieneAlertaPlacsp`; si no match crea ficha nueva `fuente_descubrimiento: 'placsp'` `nivel_confianza: 'double_source'`.
+- Persistencia histórica `placsp_adjudicaciones/{year-month}/items/{id}`.
+- **Operativo pendiente**: integrar case 'placspCrosscheck' en doPost del GAS y re-deploy. Después: pasada histórica 12m para validar UTE Aima+Ecoagua Desaladora Almería oct 2024.
 ### Operativa completada en sesión 2026-05-21
 
 **Bloque A — Activación R1-R5 + Capa Sectorial**:
