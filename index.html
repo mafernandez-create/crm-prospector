@@ -3226,7 +3226,12 @@
             <div class="view" id="view-bandeja">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
                     <h2 style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin:0;">📬 Bandeja del Agente</h2>
-                    <button class="btn btn-secondary" onclick="loadBandeja()" style="font-size:0.8rem;">🔄 Actualizar</button>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <select id="bandeja-filter-province" class="filter-select" onchange="loadBandeja()" style="font-size:0.8rem;padding:4px 8px;" title="Filtra todas las secciones por provincia">
+                            <option value="">🗺️ Todas las provincias</option>
+                        </select>
+                        <button class="btn btn-secondary" onclick="loadBandeja()" style="font-size:0.8rem;">🔄 Actualizar</button>
+                    </div>
                 </div>
 
                 <!-- Matriz 3×3 -->
@@ -6454,11 +6459,29 @@
         const _M_NUMS = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨'];
 
         function loadBandeja() {
+            // ── Filtro de provincia (§ follow-up) ──
+            // Pobla el select una sola vez con las provincias disponibles, luego filtra todas las secciones.
+            const provSelect = document.getElementById('bandeja-filter-province');
+            if (provSelect && provSelect.options.length <= 1) {
+                const provs = [...new Set(
+                    allStudios.map(s => getValor(s.province) || getValor(s.data?.contact?.province) || '')
+                              .filter(p => typeof p === 'string' && p.trim())
+                )].sort();
+                const current = provSelect.value;
+                provSelect.innerHTML = '<option value="">🗺️ Todas las provincias</option>' +
+                    provs.map(p => `<option value="${escapeHtml(p)}"${p===current?' selected':''}>${escapeHtml(p)}</option>`).join('');
+            }
+            const provFiltro = provSelect ? provSelect.value : '';
+            const studios = provFiltro
+                ? allStudios.filter(s => (getValor(s.province) || getValor(s.data?.contact?.province) || '') === provFiltro)
+                : allStudios;
+            const filterSuffix = provFiltro ? ` · ${provFiltro}` : '';
+
             // ── Matriz 3×3 ──
             const counts = {};
-            allStudios.forEach(s => { const q = s.priorityQuadrant; if (q) counts[q] = (counts[q]||0)+1; });
-            const total = allStudios.filter(s => s.priorityQuadrant).length;
-            document.getElementById('bandeja-matriz-total').textContent = total ? `(${total} empresas con cuadrante)` : '';
+            studios.forEach(s => { const q = s.priorityQuadrant; if (q) counts[q] = (counts[q]||0)+1; });
+            const total = studios.filter(s => s.priorityQuadrant).length;
+            document.getElementById('bandeja-matriz-total').textContent = total ? `(${total} empresas con cuadrante${filterSuffix})` : '';
 
             const matrizEl = document.getElementById('bandeja-matriz');
             matrizEl.innerHTML = [1,2,3,4,5,6,7,8,9].map(q => {
@@ -6475,7 +6498,7 @@
             }).join('');
 
             // ── Candidatos puente ──
-            const candidatos = allStudios.filter(s => s.es_candidato_puente && !s.es_cliente_puente);
+            const candidatos = studios.filter(s => s.es_candidato_puente && !s.es_cliente_puente);
             const puenteEl = document.getElementById('bandeja-puente-list');
             const puenteCount = document.getElementById('bandeja-puente-count');
             puenteCount.textContent = `(${candidatos.length})`;
@@ -6497,7 +6520,7 @@
             }
 
             // ── Prescriptores con proyectos en zona (Capa Sectorial §18.5.6) ──
-            const sectoriales = allStudios.filter(s =>
+            const sectoriales = studios.filter(s =>
                 s.fuente_descubrimiento === 'sectorial' ||
                 s.fuente_descubrimiento === 'academica' ||
                 s.fuente_descubrimiento === 'ambas'
@@ -6529,7 +6552,7 @@
             }
 
             // ── Cambios de cuadrante ──
-            const cambios = allStudios
+            const cambios = studios
                 .map(s => ({ s, d: getQuadrantDelta(s) }))
                 .filter(({ d }) => d !== null)
                 .sort((a, b) => (a.d.trend === 'up' ? -1 : 1));
@@ -6550,7 +6573,7 @@
             }
 
             // ── Discrepancias detectadas (§4.3) ──
-            const discrepancs = getDiscrepancias(allStudios);
+            const discrepancs = getDiscrepancias(studios);
             const discrepEl = document.getElementById('bandeja-discrepancias-list');
             const discrepCount = document.getElementById('bandeja-discrepancias-count');
             if (discrepEl && discrepCount) {
@@ -6570,7 +6593,7 @@
             }
 
             // ── Datos obsoletos (§4.4) ──
-            const obsoletos = getDatosObsoletos(allStudios);
+            const obsoletos = getDatosObsoletos(studios);
             const obsoEl = document.getElementById('bandeja-obsoletos-list');
             const obsoCount = document.getElementById('bandeja-obsoletos-count');
             if (obsoEl && obsoCount) {
