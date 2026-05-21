@@ -113,11 +113,26 @@ Tras merge, recargar Chrome para coger la nueva versión.
 
 ### Operativa completada en sesión 2026-05-21
 
-1. ✅ **Re-deploy GAS Web App v60** (R1-R5 completos Eje 2)
-2. ✅ **Batch real sobre 1585** ([run 26208375383](https://github.com/mafernandez-create/crm-prospector/actions/runs/26208375383)) — 16 actualizados, 0 errores
-3. ✅ **Cron automático 02:00 UTC verificado en producción** — run schedule 26208391010 procesó 200 docs OK
-4. ✅ **Hotfix bug `c.trim()` en updateCityFilter** (PR #9) — usar `getValor()` para unwrap campos legacy
-5. ✅ **Capa Sectorial §18.5 validada end-to-end** — búsqueda Sevilla/ING aportó **22 estudios sectoriales + 2 académicos** (24 nuevos prescriptores no detectables vía búsqueda geográfica)
+**Bloque A — Activación R1-R5 + Capa Sectorial**:
+1. ✅ Re-deploy GAS Web App v60 (R1-R5 completos Eje 2)
+2. ✅ Batch real sobre 1585 ([run 26208375383](https://github.com/mafernandez-create/crm-prospector/actions/runs/26208375383)) — 16 actualizados, 0 errores
+3. ✅ Cron automático 02:00 UTC verificado en producción — run schedule procesó 200 docs OK
+4. ✅ Hotfix bug `c.trim()` en updateCityFilter (PR #9) — `getValor()` para unwrap legacy
+5. ✅ Capa Sectorial §18.5 validada end-to-end — Sevilla/ING aportó **22 sectoriales + 2 académicos** (24 prescriptores no detectables por búsqueda geográfica)
+
+**Bloque B — Validación de piezas existentes**:
+6. ✅ Bandeja del agente validada (5 secciones renderizan OK)
+7. ✅ Reporte Semanal validado (con bloque "🚨 ALERTAS ACTIVAS" integrado)
+8. ✅ Migración legacy contactos confirmada hecha (auditoría: 1492/1492 phone, 1458 email, 1494 address, 1472 web migrados — la entrada "obsoleta" del doc era errónea)
+
+**Bloque C — Mejoras nuevas**:
+9. ✅ Dashboard Cron Batch nocturno (PR #11) — vista lee `_meta/batch_checkpoint`
+10. ✅ Filtro provincia en bandeja del agente (PR #12) — filtra las 6 secciones
+11. ✅ UI confirmar/descartar `actualizaciones_propuestas` (PR #14) — cierra bucle Fase I
+12. ✅ Métricas multi-motor persistidas (PR #15) — `_meta/search_metrics` con últimos 50 snapshots
+13. ✅ **Transcripción local Whisper (PR #16)** — cierra última desviación spec §16.1. Toggle "🔒 Modo privado" carga `@xenova/transformers` con Whisper-tiny multilingüe (~75MB cacheado en IndexedDB). Audio nunca sale del navegador.
+
+**Resultado**: spec v1.1 al 100% sin desviaciones documentadas activas.
 
 ### Pendiente operativo (higiene)
 
