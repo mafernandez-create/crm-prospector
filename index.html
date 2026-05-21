@@ -13880,18 +13880,17 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             const fuente = fuenteDescubrimiento || 'geografica';
 
             for (const result of results) {
-                // Extraer nombre dla empresa del título
-                const studioName = extractStudioName(result.title, result.snippet);
+                // ── Bloque 8 §19.1 iter: pre-evaluamos heurísticas ANTES de extraer nombre.
+                // Si hay señales académicas, permitimos extracción de personas físicas.
+                const puenteEval = evaluarPuenteAcademico(result, result.webEmails);
+                const allowPersona = puenteEval.hit || fuente === 'academica';
+
+                // Extraer nombre (empresa o persona física académica)
+                const studioName = extractStudioName(result.title, result.snippet, allowPersona);
                 if (!studioName || studioName.length < 3) continue;
 
                 // Crear clave única para evitar duplicados
                 const key = normalizeStudioKey(studioName);
-
-                // ── Bloque 8 §19.1: Detección de cliente puente académico ──
-                // Evaluamos las 4 heurísticas en cualquier resultado (no solo los de
-                // capa académica), porque señales como "tribunal", "cátedra" o
-                // dominios .uco.es pueden aparecer en directorios o noticias.
-                const puenteEval = evaluarPuenteAcademico(result, result.webEmails);
 
                 if (foundStudios.has(key)) {
                     // Ya existe, incrementar relevancia y añadir fuente
@@ -13968,9 +13967,9 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
             }
         }
         
-        function extractStudioName(title, snippet) {
+        function extractStudioName(title, snippet, allowPersona) {
             if (!title) return null;
-            
+
             // Limpiar el título
             let name = title
                 .replace(/\|\s*LinkedIn$/i, '')
@@ -13984,26 +13983,51 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON, sin texto adicional ni explicacion
                 .replace(/^Fotos y.*de\s*/i, '')
                 .replace(/\(@[^)]+\)/g, '')
                 .trim();
-            
+
             // Buscar patrones comunes de nombres de empresas
             const patterns = [
                 /^([A-ZÁÉÍÓÚÑ][a-záéíóúñA-ZÁÉÍÓÚÑ\s&.]+(?:Arquitectos?|Arquitectura|Ingenieros?|Ingeniería|Studio|Estudio|SLP|SL|SA|SC))/i,
                 /^(Estudio\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñA-ZÁÉÍÓÚÑ\s&.]+)/i,
                 /^([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s*[&+y]\s*[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)/i
             ];
-            
+
             for (const pattern of patterns) {
                 const match = name.match(pattern);
                 if (match) {
                     return match[1].trim();
                 }
             }
-            
+
+            // ── Bloque 8 §19.1 iter: persona física académica ──
+            // Si el contexto activa heurística académica, intentar capturar
+            // nombre completo de persona (Nombre Apellido1 Apellido2).
+            if (allowPersona) {
+                const personaPattern = /\b([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){1,3})\b/g;
+                // Lista de palabras prohibidas que no son nombres de persona
+                const stopwords = /^(Universidad|Cátedra|Catedra|Grupo|Departamento|Escuela|Facultad|Comisión|Ministerio|Junta|Consejería|Diputación|Excelentísimo|Real|Sociedad|Asociación|Federación|Confederación|Colegio|Investigación|Investigaciones|Hidráulica|Agronómica|Civil|Ingeniería|Agraria|Reseña|Listado|Noticias|Información|Página|Inicio)\b/i;
+                let m;
+                while ((m = personaPattern.exec(name)) !== null) {
+                    const candidate = m[1].trim();
+                    if (stopwords.test(candidate)) continue;
+                    // Validación adicional: nombre no debe contener mayúsculas sólo (siglas), y debe tener 2-4 palabras
+                    const words = candidate.split(/\s+/);
+                    if (words.length >= 2 && words.length <= 4) {
+                        // Comprobar que no es un evento o entidad (Congreso, Sociedad, etc.)
+                        if (!/(Congreso|Sociedad|Asociación|Federación|Universidad|Cátedra|Grupo)/i.test(candidate)) {
+                            return candidate;
+                        }
+                    }
+                }
+                // Si snippet contiene catedrático/profesor/grupo + nombre, intentar extraer
+                const snippetMatch = (snippet||'').match(/(?:catedr[áa]tico|profesor|investigador|director del grupo|coordinador)[\s\.,]+(?:de|del?|en)?[\s\.,]*([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){1,3})/i);
+                if (snippetMatch) return snippetMatch[1].trim();
+            }
+
             // Si no coincide con ningún patrón, usar el título limpio si parece un nombre de empresa
             if (name.length > 3 && name.length < 80 && !name.includes('Resultado') && !name.includes('Buscar')) {
                 return name.split(/\s*[-|]\s*/)[0].trim();
             }
-            
+
             return null;
         }
         
