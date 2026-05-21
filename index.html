@@ -8875,6 +8875,8 @@ ${totalAlertas > 0 ? `
         let _visitaRecSeconds = 0;
         let _visitaCurrentStudioId = null;
         let _visitaCurrentMode = null;
+        let _visitaAudioChunks = [];        // §16.1: chunks acumulados para Whisper local
+        let _visitaUseWhisper = false;      // flag: modo privado activo en grabación actual
 
         function showView(view, filter = null) {
             // Cerrar menú móvil si está abierto
@@ -26724,18 +26726,30 @@ updateMap();
             const now = new Date();
             const localIso = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
-            const vozSection = mode === 'voz' ? `
+            const isPrivacyMode = localStorage.getItem('crm_voice_privacy') === 'whisper';
+            const privacyBanner = isPrivacyMode ? `
+                <div style="margin-bottom:10px;padding:8px 10px;background:#d1fae5;border-left:3px solid #10b981;border-radius:6px;font-size:0.75rem;color:#064e3b;">
+                    🔒 <strong>Modo privado activo</strong>: la transcripción se hará <strong>local en tu navegador</strong> con Whisper. El audio NO sale de este dispositivo. Cumple spec §16.1.
+                    <span style="display:block;margin-top:4px;color:#065f46;">Primera vez: ~75MB de descarga (modelo Whisper-tiny multilingüe). Después se cachea localmente.</span>
+                </div>
+            ` : `
                 <div style="margin-bottom:10px;padding:8px 10px;background:#fef3c7;border-left:3px solid #f59e0b;border-radius:6px;font-size:0.75rem;color:#78350f;">
                     ⚠️ <strong>Aviso de privacidad</strong>: la transcripción usa la API del navegador
                     (Google Chrome / Apple Safari) que envía el audio a sus servidores. Para visitas con
-                    información comercial sensible, usa la modalidad <strong>Escribir visita</strong>.
-                    <span style="display:block;margin-top:4px;color:#92400e;">Transcripción local con faster-whisper queda pendiente — spec §16.1 REQUISITO.</span>
+                    información comercial sensible, activa <strong>🔒 Modo privado (Whisper local)</strong> abajo.
                 </div>
+            `;
+            const vozSection = mode === 'voz' ? `
+                ${privacyBanner}
                 <div class="visita-rec-row">
                     <button class="visita-rec-btn idle" id="visita-rec-btn" onclick="toggleGrabacion()">🎙️ Iniciar grabación</button>
                     <span class="visita-rec-status" id="visita-rec-status">Listo para grabar</span>
                     <span id="visita-rec-timer" style="font-size:0.75rem;color:var(--muted);white-space:nowrap;">0:00</span>
                 </div>
+                <label style="display:flex;align-items:center;gap:6px;font-size:0.74rem;color:var(--muted);margin-bottom:8px;cursor:pointer;user-select:none;">
+                    <input type="checkbox" id="visita-toggle-whisper" ${isPrivacyMode?'checked':''} onchange="toggleWhisperMode(this.checked)" style="margin:0;">
+                    🔒 Modo privado — Whisper local (audio nunca sale del navegador)
+                </label>
                 <div style="margin-bottom:4px;font-size:0.78rem;font-weight:700;color:var(--text-secondary);display:flex;align-items:center;justify-content:space-between;gap:6px;">
                     <span>🗒️ Transcripción</span>
                     <span style="display:flex;gap:4px;">
@@ -26813,11 +26827,72 @@ updateMap();
             }
         }
 
+        // ── Whisper local §16.1 ──────────────────────────────────────────────
+        // Carga lazy de transformers.js + modelo Whisper. Solo se invoca si el
+        // usuario activa modo privado. Caché en IndexedDB tras primera descarga.
+        let _whisperPipeline = null;
+        let _whisperLoading = null;
+        async function loadWhisperPipeline(progressCb) {
+            if (_whisperPipeline) return _whisperPipeline;
+            if (_whisperLoading) return _whisperLoading;
+            _whisperLoading = (async () => {
+                const mod = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js');
+                if (mod.env) {
+                    mod.env.allowLocalModels = false;
+                    mod.env.useBrowserCache = true;  // IndexedDB
+                }
+                _whisperPipeline = await mod.pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
+                    progress_callback: progressCb || (() => {}),
+                });
+                return _whisperPipeline;
+            })();
+            try { return await _whisperLoading; } finally { _whisperLoading = null; }
+        }
+
+        async function transcribeAudioWithWhisper(audioBlob, statusEl) {
+            const setStatus = (txt) => { if (statusEl) statusEl.textContent = txt; };
+            setStatus('🔄 Cargando modelo Whisper local…');
+            const pipeline = await loadWhisperPipeline((p) => {
+                if (p.status === 'progress' && p.progress) {
+                    setStatus(`📥 Descargando modelo: ${Math.round(p.progress)}% (${p.file||'…'})`);
+                } else if (p.status === 'done') {
+                    setStatus('✅ Modelo cargado, transcribiendo…');
+                }
+            });
+            setStatus('🎯 Transcribiendo audio (local, sin internet)…');
+
+            // Convertir Blob → AudioBuffer 16kHz mono Float32
+            const arrayBuffer = await audioBlob.arrayBuffer();
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+            const decoded = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
+            let pcm;
+            if (decoded.numberOfChannels === 1) {
+                pcm = decoded.getChannelData(0);
+            } else {
+                const l = decoded.getChannelData(0), r = decoded.getChannelData(1);
+                pcm = new Float32Array(l.length);
+                for (let i = 0; i < l.length; i++) pcm[i] = (l[i] + r[i]) / 2;
+            }
+
+            const out = await pipeline(pcm, { language: 'es', task: 'transcribe', chunk_length_s: 30, stride_length_s: 5 });
+            return (out?.text || '').trim();
+        }
+
+        function toggleWhisperMode(enabled) {
+            localStorage.setItem('crm_voice_privacy', enabled ? 'whisper' : 'speech');
+            // Si hay grabación en curso, no aplicar hasta la próxima. Sólo refrescar avisos.
+            showNotification(enabled
+                ? '🔒 Modo privado Whisper activado. Se aplicará en la próxima grabación.'
+                : '⚠️ Modo Web Speech (audio enviado a Google/Apple) — recarga el modal para aplicar.',
+                enabled ? 'success' : 'info');
+        }
+
         async function iniciarGrabacion() {
             const btn = document.getElementById('visita-rec-btn');
             const status = document.getElementById('visita-rec-status');
             const timerEl = document.getElementById('visita-rec-timer');
             const transcriptEl = document.getElementById('visita-transcript');
+            const isWhisper = localStorage.getItem('crm_voice_privacy') === 'whisper';
 
             try {
                 _visitaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -26827,9 +26902,31 @@ updateMap();
             }
 
             _visitaRecorder = new MediaRecorder(_visitaStream);
+            _visitaAudioChunks = [];
+            _visitaRecorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) _visitaAudioChunks.push(e.data);
+            };
+            _visitaRecorder.onstop = async () => {
+                if (!_visitaUseWhisper) return; // modo speech: no hace nada (la transcripción ya está en _visitaTranscriptText)
+                if (_visitaAudioChunks.length === 0) return;
+                const blob = new Blob(_visitaAudioChunks, { type: _visitaRecorder?.mimeType || 'audio/webm' });
+                if (transcriptEl) transcriptEl.placeholder = 'Procesando con Whisper local…';
+                if (status) status.textContent = '⏳ Transcribiendo con Whisper local…';
+                try {
+                    const txt = await transcribeAudioWithWhisper(blob, status);
+                    _visitaTranscriptText = txt;
+                    if (transcriptEl) transcriptEl.value = txt;
+                    if (status) status.textContent = `✅ Transcripción local completada (${txt.length} caracteres)`;
+                } catch (err) {
+                    console.error('Whisper falló:', err);
+                    if (status) status.textContent = '❌ Whisper falló: ' + (err.message||err);
+                    showNotification('Whisper local falló. Puedes pegar la transcripción manualmente.', 'warning');
+                }
+            };
             _visitaRecorder.start();
+            _visitaUseWhisper = isWhisper;
 
-            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const SpeechRec = !isWhisper && (window.SpeechRecognition || window.webkitSpeechRecognition);
             if (SpeechRec) {
                 _visitaRecognition = new SpeechRec();
                 _visitaRecognition.lang = 'es-ES';
@@ -26854,6 +26951,12 @@ updateMap();
                 };
                 _visitaRecognition.start();
                 if (status) status.textContent = 'Grabando — transcripción en tiempo real';
+            } else if (isWhisper) {
+                if (status) status.textContent = '🔒 Grabando — la transcripción se procesará local al terminar';
+                if (transcriptEl) {
+                    transcriptEl.placeholder = '🔒 Modo privado activo. La transcripción aparecerá al detener la grabación.';
+                    transcriptEl.removeAttribute('readonly');
+                }
             } else {
                 if (status) status.textContent = 'Grabando — pega la transcripción manualmente';
                 if (transcriptEl) transcriptEl.removeAttribute('readonly');
