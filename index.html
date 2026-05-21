@@ -1990,16 +1990,11 @@
             }
         }
 
-        /* FIX #3: Pull-to-refresh banner se quedaba visible permanentemente
-           porque transform: translateY(-100%) no lo ocultaba lo suficiente
-           (top:70px + translateY(-100%) ≈ 30px = visible). */
-        .pull-refresh-indicator {
-            top: -60px;  /* parking position completamente fuera */
-        }
-        .pull-refresh-indicator.active {
-            top: calc(70px + var(--safe-area-top));
-            transform: translateX(-50%) !important;
-        }
+        /* FIX #3: Pull-to-refresh banner se quedaba visible permanentemente.
+           Causa raíz: body.device-iphone aplicaba display:block sin condición.
+           Solución: solo mostrar cuando .active está presente. */
+        body.device-iphone .pull-refresh-indicator { display: none !important; }
+        body.device-iphone .pull-refresh-indicator.active { display: block !important; }
 
         /* FIX #4: Título de vista duplicado en Bandeja del Agente (h2 interno
            + topbar-title). En mobile ocultamos el h2 interno para ahorrar
