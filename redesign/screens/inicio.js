@@ -22,8 +22,91 @@
   const escape = U.escapeHtml;
 
   /* ============================================================
-     DATOS — Fase C usa mock. Fase G los sustituirá por lecturas reales.
+     DATOS — Fase G: lee de State.{studios, planificador} si están cargados.
+              Fallback a mock cuando no hay datos (offline o pre-carga).
      ============================================================ */
+  function getData() {
+    const hasReal = State.studios && State.studios.length > 0;
+    if (!hasReal) return mockData();
+
+    return {
+      proximaVisita: computeProximaVisita(),
+      tareas: computeTareas(),
+      objetivos: computeObjetivos(),
+    };
+  }
+
+  function computeProximaVisita() {
+    if (!State.planificador || !State.planificador.schedule) return null;
+    const sched = State.planificador.schedule || {};
+    const hoyISO = State.today.toISOString().slice(0, 10);
+    const fechas = Object.keys(sched).filter(function (f) { return f >= hoyISO; }).sort();
+    for (const f of fechas) {
+      const arr = sched[f] || [];
+      if (arr.length) {
+        const v = arr[0];
+        const studio = State.studiosById[v.id];
+        const contact = (studio && studio.data && studio.data.contact) || {};
+        const addr = U.readField(contact.address) || '';
+        return {
+          studioId: v.id,
+          name: v.name || (studio && studio.name) || ('Estudio ' + v.id),
+          hora: (v.data && v.data.hora) || '',
+          tipo: 'Reunión',
+          location: [addr || (v.city || (studio && studio.city) || ''),
+                     v.province || (studio && studio.province) || ''].filter(Boolean).join(' · '),
+          fecha: f,
+          enMinutos: null,  // sin estimación de ETA todavía
+        };
+      }
+    }
+    return null;
+  }
+
+  function computeTareas() {
+    // Heurística: studios con priority alta o score ≥8 cuya última actividad
+    // sea hace >7 días (pero <30, para no abrumar)
+    const hace7 = new Date(State.today.getTime() - 7 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    const hace30 = new Date(State.today.getTime() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    const out = [];
+    for (const s of State.studios) {
+      if (out.length >= 5) break;
+      const last = U.lastInteraction(s);
+      if (!last) continue;
+      const esPrio = s.priority === 'alta' || (s.score || 0) >= 8;
+      if (!esPrio) continue;
+      if (last >= hace7) continue;       // todavía caliente
+      if (last < hace30) continue;       // ya muy frío, va a "enfriándose" (bandeja)
+      out.push({
+        studioId: s.id,
+        empresa: s.name || s.id,
+        tarea: 'Reactivar contacto',
+        atrasada: last < new Date(State.today.getTime() - 14 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+        hora: U.formatDateES(last),
+      });
+    }
+    return out;
+  }
+
+  function computeObjetivos() {
+    const yyyy = State.today.getFullYear();
+    let visitas = 0, mute = 0;
+    for (const s of State.studios) {
+      const reps = U.reports(s);
+      for (const r of reps) {
+        if (r && r.date && r.date.indexOf(String(yyyy)) === 0) {
+          visitas++;
+          const txt = ((r.notes || '') + ' ' + (r.title || '') + ' ' + (r.fileName || '')).toUpperCase();
+          if (txt.indexOf('MUTE') >= 0) mute++;
+        }
+      }
+    }
+    return [
+      { label: 'Visitas presenciales', actual: visitas, objetivo: 140, color: 'azul' },
+      { label: 'Visitas MUTE',         actual: mute,    objetivo: 30,  color: 'rojo' },
+    ];
+  }
+
   function mockData() {
     return {
       proximaVisita: {
@@ -54,7 +137,7 @@
     if (!v) return;
     document.getElementById('topbar-current').textContent = 'Hoy';
 
-    const data = mockData();
+    const data = getData();
     const isMobile = window.innerWidth < 768;
 
     v.innerHTML = isMobile

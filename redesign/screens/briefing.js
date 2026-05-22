@@ -90,22 +90,57 @@
     },
   };
 
-  function getBriefing(id, studioName) {
-    // Fase G: aquí leeremos briefings/{id}/items/ y devolveremos el más reciente
+  function getBriefingSync(id, studioName) {
+    // Mock o fallback sin tener que esperar al fetch
     if (MOCK[id]) return MOCK[id];
-    // Fallback genérico si llega un id sin mock
     return {
       studio: studioName || ('Estudio ' + id),
       fecha: U.formatDateES(new Date()),
-      keyFacts: [
-        { label: 'Ubicación', value: '—' },
-        { label: 'Cuadrante', value: '—' },
-        { label: 'Influencia', value: '—' },
-      ],
+      keyFacts: keyFactsFromStudio(id),
       secciones: {
-        'Resumen ejecutivo': '<em>Sin briefing generado todavía. Genera uno con IA desde la ficha.</em>',
+        'Resumen ejecutivo': '<em>Cargando briefing del servidor… si no hay ninguno, genera uno con IA desde la ficha.</em>',
       },
     };
+  }
+
+  async function fetchBriefingReal(id) {
+    // Fase G: lee briefings/{id}/items/ y devuelve el más reciente normalizado
+    if (!window.Data || !window.Data.getBriefingItems) return null;
+    const items = await window.Data.getBriefingItems(id, 10);
+    if (!items.length) return null;
+    // Más reciente: ordena por id (suelen ser ISO date) descendente
+    items.sort(function (a, b) { return String(b.id || '').localeCompare(String(a.id || '')); });
+    const latest = items[0];
+    const b = (latest.briefing && typeof latest.briefing === 'object') ? latest.briefing : {};
+    return {
+      studio: (State.studiosById[id] && State.studiosById[id].name) || ('Estudio ' + id),
+      fecha: U.formatDateES(latest.id) || U.formatDateES(latest.updatedAt) || U.formatDateES(new Date()),
+      keyFacts: keyFactsFromStudio(id),
+      secciones: {
+        'Resumen ejecutivo':   b.resumen_ejecutivo  || b.resumen   || b.summary || '<em>Sin contenido en esta sección.</em>',
+        'Histórico reciente':  b.historico_reciente || b.historico || '<em>Sin contenido en esta sección.</em>',
+        'Compromisos abiertos': b.compromisos_abiertos || b.compromisos || '<em>Sin contenido en esta sección.</em>',
+        'Señales de mercado':  b['señales_mercado']  || b.senales_mercado || b['señales'] || '<em>Sin contenido en esta sección.</em>',
+        'Perfil decisor':      b.perfil_decisor || b.decisor || '<em>Sin contenido en esta sección.</em>',
+        'Capa sectorial':      b.sectorial || b.capa_sectorial || '<em>Sin contenido en esta sección.</em>',
+        'Próximos pasos':      b.proximos_pasos || b.next_steps || '<em>Sin contenido en esta sección.</em>',
+        'Riesgos':             b.riesgos || b.risks || '<em>Sin contenido en esta sección.</em>',
+      },
+    };
+  }
+
+  function keyFactsFromStudio(id) {
+    const s = State.studiosById[id];
+    if (!s) return [
+      { label: 'Ubicación',  value: '—' },
+      { label: 'Cuadrante',  value: '—' },
+      { label: 'Influencia', value: '—' },
+    ];
+    return [
+      { label: 'Ubicación',  value: s.city || s.province || '—' },
+      { label: 'Cuadrante',  value: s.cuadrante || s.quadrant || '—' },
+      { label: 'Score',      value: String(s.score || '—') },
+    ];
   }
 
   /* ============================================================
@@ -117,15 +152,27 @@
     const id = (params && params.studioId) || State.currentStudioId || '3012';
     const studioName =
       (State.studiosById && State.studiosById[id] && State.studiosById[id].name) || null;
-    const b = getBriefing(id, studioName);
-
-    document.getElementById('topbar-current').textContent = 'Briefing · ' + b.studio;
     State.currentStudioId = id;
 
+    // 1. Pintar inmediatamente con mock o "Cargando…"
+    const b0 = getBriefingSync(id, studioName);
+    document.getElementById('topbar-current').textContent = 'Briefing · ' + b0.studio;
     const isMobile = window.innerWidth < 768;
-    v.innerHTML = isMobile ? renderMobile(id, b) : renderDesktopColumn(id, b);
-
+    v.innerHTML = isMobile ? renderMobile(id, b0) : renderDesktopColumn(id, b0);
     wireCTAs(id);
+
+    // 2. Intentar fetch real en background (Fase G)
+    if (window.Data && window.Data.getBriefingItems) {
+      fetchBriefingReal(id).then(function (real) {
+        if (real) {
+          v.innerHTML = isMobile ? renderMobile(id, real) : renderDesktopColumn(id, real);
+          wireCTAs(id);
+          console.info('[redesign/briefing] cargado desde Firestore para ' + id);
+        }
+      }).catch(function (e) {
+        console.warn('[redesign/briefing] fetch fallido:', e.message);
+      });
+    }
   }
 
   /* ============================================================

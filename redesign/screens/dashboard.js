@@ -24,9 +24,106 @@
   const escape = U.escapeHtml;
 
   /* ============================================================
-     MOCK DATA (Fase D)
+     DATOS — Fase G: computa de State.studios si está cargado.
+              Fallback a mock cuando no hay datos.
      ============================================================ */
   function getMetrics() {
+    const hasReal = State.studios && State.studios.length > 0;
+    if (!hasReal) return mockMetrics();
+
+    const totalEmpresas = State.studios.length;
+    const ganados      = State.studios.filter(function (s) { return s.status === 'ganado'; }).length;
+    const enReunion    = State.studios.filter(function (s) { return s.status === 'reunion'; }).length;
+    const nuevos       = State.studios.filter(function (s) { return s.status === 'nuevo'; }).length;
+    const prioridadAlta = State.studios.filter(function (s) { return s.priority === 'alta'; }).length;
+
+    // Atrasos: alta priority o score≥8 con últ. activ. >14 días
+    const hace14 = new Date(State.today.getTime() - 14 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    const hace45 = new Date(State.today.getTime() - 45 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    const sinContacto14 = State.studios.filter(function (s) {
+      const last = U.lastInteraction(s);
+      return last && last < hace14 && (s.priority === 'alta' || (s.score || 0) >= 8);
+    }).length;
+
+    // Objetivos del año actual
+    const yyyy = State.today.getFullYear();
+    let visitas = 0, mute = 0;
+    for (const s of State.studios) {
+      for (const r of U.reports(s)) {
+        if (r && r.date && r.date.indexOf(String(yyyy)) === 0) {
+          visitas++;
+          const txt = ((r.notes || '') + ' ' + (r.title || '') + ' ' + (r.fileName || '')).toUpperCase();
+          if (txt.indexOf('MUTE') >= 0) mute++;
+        }
+      }
+    }
+
+    const proxima = pickProximaVisita();
+    const atrasados = pickAtrasos();
+
+    return {
+      totalEmpresas: totalEmpresas,
+      ganados: ganados,
+      enReunion: enReunion,
+      nuevos1349: nuevos,
+      prioridadAlta: prioridadAlta,
+      sinContacto14: sinContacto14,
+      objetivos2026Pct: Math.round(((visitas / 140) + (mute / 30)) / 2 * 100),
+      objetivos: [
+        { l: 'Visitas presenciales',  current: visitas, target: 140, peso: '10%', tag: Math.round(visitas / 140 * 100) + '%', color: 'azul' },
+        { l: 'Visitas MUTE',          current: mute,    target: 30,  peso: '10%', tag: Math.round(mute / 30 * 100) + '%',     color: 'rojo' },
+        { l: 'Ponencias en colegios', current: 0,       target: 2,   peso: '5%',  tag: '0%',                                    color: 'gris' },
+        { l: 'Catálogo MUTE',         current: '—',     target: '1 entregable', peso: '30%', tag: 'Pendiente',                  color: 'rojo-dark' },
+        { l: 'Soporte técnico',       current: 0,       target: 'registros',    peso: '30%', tag: '0',                          color: 'gris' },
+      ],
+      proximaVisita: proxima,
+      atrasados: atrasados,
+    };
+  }
+
+  function pickProximaVisita() {
+    if (!State.planificador || !State.planificador.schedule) return null;
+    const sched = State.planificador.schedule || {};
+    const hoyISO = State.today.toISOString().slice(0, 10);
+    const fechas = Object.keys(sched).filter(function (f) { return f >= hoyISO; }).sort();
+    for (const f of fechas) {
+      const arr = sched[f] || [];
+      if (arr.length) {
+        const v = arr[0];
+        const studio = State.studiosById[v.id];
+        return {
+          studioId: v.id,
+          name: v.name || (studio && studio.name) || ('Estudio ' + v.id),
+          hora: (v.data && v.data.hora) || '',
+          location: [v.city || (studio && studio.city) || '',
+                     v.province || (studio && studio.province) || ''].filter(Boolean).join(' · ') || 'Sin ubicación',
+        };
+      }
+    }
+    return null;
+  }
+
+  function pickAtrasos() {
+    const hace14 = new Date(State.today.getTime() - 14 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    const out = [];
+    for (const s of State.studios) {
+      if (out.length >= 3) break;
+      const last = U.lastInteraction(s);
+      if (!last) continue;
+      if (last >= hace14) continue;
+      if (!(s.priority === 'alta' || (s.score || 0) >= 8)) continue;
+      const dias = U.diasDesde(last);
+      out.push({
+        studioId: s.id,
+        empresa: s.name || s.id,
+        tarea: 'Sin contacto',
+        diasLabel: dias + ' día' + (dias === 1 ? '' : 's'),
+      });
+    }
+    return out;
+  }
+
+  function mockMetrics() {
     return {
       totalEmpresas: 1597,
       ganados: 0,
