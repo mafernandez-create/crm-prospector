@@ -337,18 +337,85 @@
     });
 
     const btnGen = document.getElementById('btn-generar');
-    if (btnGen) btnGen.addEventListener('click', function () {
-      // Fase G: aquí se llamará al endpoint GAS para generar el informe IA
-      autosave(id, draft);
-      alert(
-        '🔧 Generación con IA pendiente (Fase G).\n\n' +
-        'El borrador se ha guardado localmente.\n' +
-        'Empresa: ' + getName(id) + '\n' +
-        'Modalidad: ' + draft.modalidad + '\n' +
-        'Notas: ' + draft.notes.length + ' caracteres'
-      );
-    });
+    if (btnGen) btnGen.addEventListener('click', function () { generarInforme(id, draft); });
   }
+
+  /* ============================================================
+     GENERACIÓN INFORME IA (vía endpoint GAS)
+     ============================================================ */
+  async function generarInforme(id, draft) {
+    if (!draft.notes || draft.notes.length < 20) {
+      alert('Escribe primero unas notas (mínimo 20 caracteres) para que la IA pueda estructurar el informe.');
+      return;
+    }
+    autosave(id, draft);
+
+    if (!window.Data || !window.Data.generateReport) {
+      alert('Capa de datos no disponible. Revisa la conexión.');
+      return;
+    }
+
+    // Mostrar estado loading sobre la vista
+    if (window.States && window.States.showLoading) {
+      window.States.showLoading('view-informe', {
+        title: 'Generando informe con IA',
+        sub: 'Enviando notas al servidor… puede tardar 10-30 s',
+      });
+    }
+
+    try {
+      const payload = {
+        modalidad: draft.modalidad || 'real',
+        fecha: draft.fecha,
+        comercial: draft.comercial,
+        prescripcion: !!draft.prescripcion,
+        notes: draft.notes,
+      };
+      const res = await window.Data.generateReport(id, payload);
+
+      // Éxito: limpiar borrador local y mostrar éxito
+      if (res && (res.success || res.ok || res.url || res.fileUrl)) {
+        clearDraft(id);
+        if (window.States && window.States.showSuccess) {
+          window.States.showSuccess('view-informe', {
+            title: 'Informe enviado',
+            body: getName(id) + ' registrado. Has subido a <strong style="color:var(--fg-1)">visitas+1</strong> este año.',
+            stats: [
+              { label: 'Caracteres enviados', value: String(draft.notes.length) },
+              { label: 'Modalidad',           value: draft.modalidad },
+            ],
+            ctas: [
+              { label: 'Ver ficha', onclick: 'showView(\'detail\', { studioId: \'' + escapeJs(id) + '\' })' },
+              { label: 'Hoy',       onclick: 'showView(\'inicio\')' },
+            ],
+          });
+        }
+      } else {
+        // Respuesta inesperada del GAS
+        throw new Error((res && (res.error || res.message)) || 'Respuesta no reconocida del servidor');
+      }
+    } catch (e) {
+      console.error('[redesign/informe] error generando informe:', e);
+      if (window.States && window.States.showError) {
+        window.States.showError('view-informe', {
+          title: 'No se pudo generar el informe',
+          body: 'El servidor no respondió correctamente. Tu borrador queda guardado localmente y puedes reintentar.',
+          draft: {
+            empresa: getName(id),
+            meta: (draft.modalidad || 'real') + ' · ' + (draft.fecha || '—') + ' · ' + (draft.notes ? draft.notes.length : 0) + ' caracteres',
+            tiempo: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+          },
+          detail: (e.message || String(e)).slice(0, 200),
+          ctas: [
+            { label: 'Reintentar envío', onclick: 'window.Screens.informe.render({ studioId: \'' + escapeJs(id) + '\' }); setTimeout(function(){ document.getElementById(\'btn-generar\') && document.getElementById(\'btn-generar\').click(); }, 200);' },
+            { label: 'Seguir editando',  onclick: 'window.Screens.informe.render({ studioId: \'' + escapeJs(id) + '\' })' },
+          ],
+        });
+      }
+    }
+  }
+
+  function escapeJs(s) { return String(s || '').replace(/'/g, "\\'"); }
 
   function bindInput(id, evt, handler) {
     const el = document.getElementById(id);

@@ -317,9 +317,14 @@
               : '<span style="color:var(--fg-3);">Sin briefing previo. Genera uno con IA cuando vayas a visitar este cliente.</span>'
             ) +
           '</div>' +
-          '<button class="btn btn-primary" style="width:100%;" data-action="open-briefing">' +
-            I.FileText() + ' Leer briefing completo' +
-          '</button>' +
+          '<div style="display:grid; grid-template-columns:1fr auto; gap:8px;">' +
+            '<button class="btn btn-primary" data-action="open-briefing">' +
+              I.FileText() + ' Leer briefing' +
+            '</button>' +
+            '<button class="btn btn-ghost" data-action="regenerar-briefing" title="Generar nuevo con IA">' +
+              I.Plus() + ' Regenerar' +
+            '</button>' +
+          '</div>' +
         '</div>' +
       '</section>'
     );
@@ -382,10 +387,65 @@
           window.showView('briefing', { studioId: studio.id });
         } else if (action === 'open-informe') {
           window.showView('informe', { studioId: studio.id });
+        } else if (action === 'regenerar-briefing') {
+          regenerarBriefingIA(studio);
         }
       });
     });
   }
+
+  /* ============================================================
+     GENERACIÓN BRIEFING IA (vía endpoint GAS)
+     ============================================================ */
+  async function regenerarBriefingIA(studio) {
+    if (!window.Data || !window.Data.generateBriefing) {
+      alert('Capa de datos no disponible. Revisa la conexión.');
+      return;
+    }
+    const fecha = prompt('Fecha de la visita (YYYY-MM-DD):',
+      new Date().toISOString().slice(0, 10));
+    if (!fecha) return;
+    const contexto = prompt(
+      'Contexto extra (opcional):\nEj. "Quieren saber sobre BIOPIPE, ' +
+      'tienen proyecto de depuradora en fase básica…"', '');
+
+    // Mostrar estado loading sobre la vista
+    if (window.States && window.States.showLoading) {
+      window.States.showLoading('view-detail', {
+        title: 'Generando briefing con IA',
+        sub: 'Analizando licitaciones, red profesional y compromisos…',
+      });
+    }
+
+    try {
+      const res = await window.Data.generateBriefing(studio.id, fecha, contexto || '');
+      if (res && (res.success || res.ok || res.briefing)) {
+        // Re-render la ficha; el preview se cargará async desde Firestore
+        // (el GAS ya habrá persistido en briefings/{id}/items/{fecha})
+        render({ studioId: studio.id });
+        // Y abrimos directamente el briefing nuevo
+        setTimeout(function () {
+          window.showView('briefing', { studioId: studio.id });
+        }, 300);
+      } else {
+        throw new Error((res && (res.error || res.message)) || 'Respuesta no reconocida');
+      }
+    } catch (e) {
+      console.error('[redesign/detail] error briefing:', e);
+      if (window.States && window.States.showError) {
+        window.States.showError('view-detail', {
+          title: 'No se pudo generar el briefing',
+          body: 'El servidor no respondió. Inténtalo de nuevo o usa el CRM legacy.',
+          detail: (e.message || String(e)).slice(0, 200),
+          ctas: [
+            { label: 'Reintentar', onclick: 'window.Screens.detail.render({ studioId: \'' + escapeJsLocal(studio.id) + '\' })' },
+            { label: 'Volver',     onclick: 'window.Screens.detail.render({ studioId: \'' + escapeJsLocal(studio.id) + '\' })' },
+          ],
+        });
+      }
+    }
+  }
+  function escapeJsLocal(s) { return String(s || '').replace(/'/g, "\\'"); }
 
   /* ============================================================
      EXPORT
