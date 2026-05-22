@@ -436,35 +436,465 @@
   }
 
   /* ============================================================
-     PLACEHOLDERS (Fase 1+)
+     CUADRANTE → label legible
      ============================================================ */
-  function detail() {
+  function cuadranteLabel(s) {
+    const c = s && (s.cuadrante || s.quadrant);
+    const labels = {
+      Q1: 'Q1 · Estratégico', Q2: 'Q2 · Cliente core', Q3: 'Q3 · Cliente volumen',
+      Q4: 'Q4 · Puerta de entrada', Q5: 'Q5 · Cartera estándar', Q6: 'Q6 · Mantenimiento',
+      Q7: 'Q7 · Conector', Q8: 'Q8 · Seguimiento ligero', Q9: 'Q9 · Congelar',
+    };
+    return labels[c] || (c || '—');
+  }
+  function tipoLabel(t) {
+    const m = { ARQ: 'Arquitectura', ING: 'Ingeniería', CCRR: 'C. R. Regantes',
+      OCV: 'Promotora · Constructora', CICA: 'Ciclo del agua', AAPP: 'Admin. Pública' };
+    return m[t] || (t || '—');
+  }
+
+  /* ============================================================
+     FICHA (detail) — diseño iPhone-first, responsive a desktop
+     ============================================================ */
+  function detail(params) {
     const v = document.getElementById('view-detail');
-    const id = S.currentStudioId;
+    const id = (params && params.studioId) || S.currentStudioId;
     const s = id && S.studiosById[id];
     if (!v) return;
-    document.getElementById('topbar-current').textContent = s ? s.name : 'Ficha';
+    if (!s) {
+      v.innerHTML = `<div style="padding:40px; text-align:center;">
+        <h2 style="font-family:var(--font-display); margin:0 0 8px;">Ficha no encontrada</h2>
+        <p style="color:var(--fg-3);">El estudio con id <code>${escape(id)}</code> no existe en la cartera.</p>
+      </div>`;
+      return;
+    }
+    S.currentStudioId = s.id;
+    document.getElementById('topbar-current').textContent = s.name || 'Ficha';
+
+    const c = (s.data && s.data.contact) || {};
+    const team = (s.data && s.data.team) || [];
+    const reps = U.reports(s);
+    const acts = U.activities(s);
+    const last = U.lastInteraction(s);
+    const initials = U.studioInitials(s.name);
+    const addr = c.address && c.address.valor || c.address || '';
+    const phone = (c.phone && c.phone.valor) || c.phone || '';
+    const email = (c.email && c.email.valor) || c.email || '';
+    const web = (c.web && c.web.valor) || c.web || '';
+    const fullAddr = [addr, s.city, s.province].filter(Boolean).join(', ');
+
     v.innerHTML = `
-      <div style="max-width:720px; margin:0 auto;">
-        <h1 style="font-family:var(--font-display); font-weight:600; font-size:28px; margin:0 0 12px;">${escape(s ? s.name : 'Ficha no encontrada')}</h1>
-        <p style="color:var(--fg-3);">Pantalla pendiente en Fase 1.</p>
+      <div style="max-width:560px; margin:0 auto; display:flex; flex-direction:column; gap:18px;">
+
+        <!-- Identidad -->
+        <div>
+          <div style="display:flex; gap:14px; align-items:flex-start; margin-bottom:14px;">
+            <div style="width:56px; height:56px; border-radius:10px; background:var(--gpf-blue-900); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-weight:700; font-size:20px; letter-spacing:.02em; flex:0 0 auto;">${escape(initials)}</div>
+            <div style="flex:1; min-width:0;">
+              <h2 style="font-family:var(--font-display); font-weight:600; font-size:24px; line-height:1.1; color:var(--fg-1); letter-spacing:-0.01em; margin:0;">${escape(s.name)}</h2>
+              <div style="display:flex; gap:6px; margin-top:6px; flex-wrap:wrap;">
+                <span class="chip chip-accent">${escape(tipoLabel(s.type))}</span>
+                <span class="chip">${escape(cuadranteLabel(s))}</span>
+                ${s.priority === 'alta' ? '<span class="chip chip-red">Alta prioridad</span>' : ''}
+              </div>
+            </div>
+          </div>
+
+          <!-- Dirección + CTA destacado -->
+          ${fullAddr ? `
+            <div style="background:var(--gpf-blue-100); border-radius:12px; padding:14px; margin-bottom:10px; border:1px solid #c7dcef;">
+              <div style="display:flex; gap:10px; align-items:flex-start; margin-bottom:12px;">
+                <span style="color:var(--gpf-blue-700); margin-top:2px;">${I.MapPin()}</span>
+                <div style="flex:1;">
+                  <div style="font-size:15px; font-weight:600; color:var(--gpf-blue-900); line-height:1.3;">${escape(addr || '—')}</div>
+                  <div style="font-size:14px; color:var(--gpf-blue-700);">${escape([s.city, s.province].filter(Boolean).join(' · '))}</div>
+                </div>
+              </div>
+              <button class="btn btn-strong btn-block btn-lg" style="box-shadow:0 4px 14px rgba(200,16,46,.30);" onclick="abrirComoLlegar('${escape(s.id)}')">
+                ${I.Navigation()} Cómo llegar
+              </button>
+            </div>
+          ` : ''}
+
+          <!-- Contacto rápido -->
+          ${(phone || email) ? `
+            <div style="display:grid; grid-template-columns:${phone && email ? '1fr 1fr' : '1fr'}; gap:8px;">
+              ${phone ? `<a class="btn btn-ghost" style="height:52px; text-decoration:none;" href="tel:${escape(phone.replace(/[^\d+]/g, ''))}">${I.Phone()} Llamar</a>` : ''}
+              ${email ? `<a class="btn btn-ghost" style="height:52px; text-decoration:none;" href="mailto:${escape(email)}">${I.Mail()} Email</a>` : ''}
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Briefing preview -->
+        <section>
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px;">
+            <span class="eyebrow">Briefing pre-visita</span>
+            <span style="font-size:12px; color:var(--fg-3); font-family:var(--font-mono);" id="briefing-status-${escape(s.id)}">—</span>
+          </div>
+          <div class="card" style="padding:16px;">
+            <div id="briefing-preview-${escape(s.id)}" style="font-size:15px; line-height:1.5; color:var(--fg-2); margin-bottom:12px;">
+              <span style="color:var(--fg-3);">Cargando…</span>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <button class="btn btn-primary" onclick="showView('briefing', { studioId: '${escape(s.id)}' })">
+                ${I.FileText()} Leer briefing
+              </button>
+              <button class="btn btn-ghost" onclick="generarBriefingPlaceholder('${escape(s.id)}')">
+                ${I.Plus()} Regenerar
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Datos clave -->
+        <section>
+          <span class="eyebrow" style="display:block; margin-bottom:8px;">Información</span>
+          <div class="card" style="padding:4px 0;">
+            ${row('Tipo', escape(tipoLabel(s.type)))}
+            ${row('Estado', `<span class="chip">${escape(s.status || '—')}</span>`)}
+            ${row('Prioridad', escape(s.priority || '—'))}
+            ${row('Cuadrante', escape(cuadranteLabel(s)))}
+            ${web ? row('Web', `<a href="${escape(web.startsWith('http') ? web : 'https://' + web)}" target="_blank" rel="noopener" style="color:var(--gpf-blue-700); text-decoration:none;">${escape(web)}</a>`) : ''}
+            ${row('Última actividad', last ? U.formatDateES(last) : 'Sin contacto registrado')}
+            ${row('Creado', s.createdAt ? U.formatDateES(s.createdAt) : '—', true)}
+          </div>
+        </section>
+
+        <!-- Equipo -->
+        ${team.length ? `
+          <section>
+            <span class="eyebrow" style="display:block; margin-bottom:8px;">Equipo · ${team.length} persona${team.length === 1 ? '' : 's'}</span>
+            <div class="card" style="padding:4px 0;">
+              ${team.slice(0, 5).map((m, i) => `
+                <div class="row" ${i === team.length - 1 ? 'style="border-bottom:0;"' : ''}>
+                  <div style="display:flex; gap:10px; align-items:center; min-width:0; flex:1;">
+                    <div style="width:32px; height:32px; border-radius:50%; background:var(--ink-100); color:var(--gpf-blue-900); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px; flex:0 0 auto;">${U.studioInitials(m.name || '')}</div>
+                    <div style="min-width:0; flex:1;">
+                      <div style="font-size:14px; font-weight:600; color:var(--fg-1);">${escape(m.name || 'Sin nombre')}</div>
+                      <div style="font-size:12px; color:var(--fg-3);">${escape(m.role || '—')}</div>
+                    </div>
+                  </div>
+                  ${m.phone ? `<a href="tel:${escape(String(m.phone).replace(/[^\d+]/g, ''))}" style="color:var(--gpf-blue-700); padding:4px;">${I.Phone()}</a>` : ''}
+                  ${m.email ? `<a href="mailto:${escape(m.email)}" style="color:var(--gpf-blue-700); padding:4px;">${I.Mail()}</a>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </section>
+        ` : ''}
+
+        <!-- Informes recientes -->
+        ${reps.length ? `
+          <section>
+            <span class="eyebrow" style="display:block; margin-bottom:8px;">Informes · ${reps.length} archivo${reps.length === 1 ? '' : 's'}</span>
+            <div class="card" style="padding:4px 0;">
+              ${reps.slice(0, 3).map((r, i) => `
+                <div class="row" ${i === Math.min(reps.length, 3) - 1 ? 'style="border-bottom:0;"' : ''}>
+                  <div style="min-width:0; flex:1;">
+                    <div style="font-size:14px; font-weight:600; color:var(--fg-1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escape(r.fileName || r.title || 'Informe sin nombre')}</div>
+                    <div style="font-size:12px; color:var(--fg-3);">${escape(U.formatDateES(r.date))}</div>
+                  </div>
+                  <span style="color:var(--fg-3);">${I.FileText()}</span>
+                </div>
+              `).join('')}
+            </div>
+          </section>
+        ` : ''}
+
+        <!-- CTA principal: Redactar informe -->
+        <button class="btn btn-primary btn-block" style="height:54px;" onclick="showView('informe', { studioId: '${escape(s.id)}' })">
+          ${I.Edit()} Redactar informe de visita
+        </button>
       </div>
     `;
+
+    // Cargar preview de briefing en async
+    loadBriefingPreview(s.id);
   }
-  function briefing() {
-    document.getElementById('topbar-current').textContent = 'Briefing';
+
+  function row(label, value, last) {
+    return `<div class="row" ${last ? 'style="border-bottom:0;"' : ''}>
+      <span class="label">${label}</span>
+      <span class="value">${value}</span>
+    </div>`;
+  }
+
+  async function loadBriefingPreview(studioId) {
+    try {
+      const items = await window.Data.listCollection(`briefings/${studioId}/items`, { limit: 5 });
+      const previewEl = document.getElementById(`briefing-preview-${studioId}`);
+      const statusEl = document.getElementById(`briefing-status-${studioId}`);
+      if (!previewEl) return;
+      if (!items.length) {
+        previewEl.innerHTML = '<span style="color:var(--fg-3);">No hay briefing generado todavía. Pulsa "Regenerar" para crear uno con IA.</span>';
+        if (statusEl) statusEl.textContent = '';
+        return;
+      }
+      // Más reciente
+      const latest = items.sort((a, b) => (b.id || '').localeCompare(a.id || ''))[0];
+      const resumen = (latest.briefing && (latest.briefing.resumen_ejecutivo || latest.briefing.resumen || latest.briefing.summary)) || latest.summary || '';
+      previewEl.innerHTML = resumen
+        ? escape(resumen.slice(0, 200) + (resumen.length > 200 ? '…' : ''))
+        : '<span style="color:var(--fg-3);">Briefing generado, sin resumen extraíble.</span>';
+      if (statusEl) statusEl.textContent = 'Generado ' + (latest.id || '');
+    } catch (e) {
+      const previewEl = document.getElementById(`briefing-preview-${studioId}`);
+      if (previewEl) previewEl.innerHTML = '<span style="color:var(--fg-3);">Sin briefing previo.</span>';
+    }
+  }
+  window.generarBriefingPlaceholder = function () {
+    alert('Generación de briefing con IA: pendiente de wirear al endpoint GAS. Por ahora, abre el CRM v1 (index.html) y úsalo desde ahí.');
+  };
+
+  /* ============================================================
+     BRIEFING — lectura del briefing más reciente
+     ============================================================ */
+  async function briefing(params) {
     const v = document.getElementById('view-briefing');
-    v.innerHTML = `<div style="padding:40px; color:var(--fg-3);">Pantalla de briefing pendiente en Fase 1.</div>`;
+    if (!v) return;
+    const id = (params && params.studioId) || S.currentStudioId;
+    const s = id && S.studiosById[id];
+    document.getElementById('topbar-current').textContent = `Briefing · ${s ? s.name : id}`;
+    if (!s) { v.innerHTML = `<div style="padding:40px;">Estudio no encontrado.</div>`; return; }
+
+    v.innerHTML = `
+      <div style="max-width:640px; margin:0 auto;">
+        <!-- Header sticky -->
+        <div style="background:var(--paper-warm); border-bottom:1px solid var(--line); padding:14px 0 18px; margin-bottom:24px; display:flex; align-items:flex-start; justify-content:space-between;">
+          <div>
+            <div class="eyebrow" style="margin-bottom:2px;">Briefing · ${escape(U.formatDateES(new Date()))}</div>
+            <h2 style="font-family:var(--font-display); font-weight:600; font-size:22px; color:var(--fg-1); letter-spacing:-0.01em; margin:0; line-height:1.15;">${escape(s.name)}</h2>
+          </div>
+          <div style="display:flex; gap:4px;">
+            <button aria-label="Modo lectura" style="width:36px; height:36px; background:transparent; border:0; color:var(--fg-2); border-radius:8px; cursor:pointer;">${I.Sun()}</button>
+            <button aria-label="Guardar" style="width:36px; height:36px; background:transparent; border:0; color:var(--fg-2); border-radius:8px; cursor:pointer;">${I.Save()}</button>
+          </div>
+        </div>
+
+        <div id="briefing-body" style="font-size:17px; line-height:1.6; color:var(--fg-1);">
+          <div style="text-align:center; padding:40px 0;">
+            <div class="spinner" style="display:inline-block; width:32px; height:32px; border:3px solid var(--ink-100); border-top-color:var(--gpf-blue-700); border-radius:50%; animation:spin 0.9s linear infinite;"></div>
+            <p style="color:var(--fg-3); margin-top:14px; font-size:14px;">Cargando briefing más reciente…</p>
+          </div>
+        </div>
+
+        <!-- CTA flotante -->
+        <div style="position:sticky; bottom:0; padding:16px 0 24px; background:linear-gradient(to bottom, transparent, var(--bg-app) 30%);">
+          <button class="btn btn-primary btn-block btn-lg" style="box-shadow:0 8px 24px rgba(10,45,82,.25);" onclick="showView('informe', { studioId: '${escape(s.id)}' })">
+            ${I.Edit()} Empezar informe de la visita
+          </button>
+        </div>
+      </div>
+      <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+    `;
+
+    // Cargar briefing
+    try {
+      const items = await window.Data.listCollection(`briefings/${s.id}/items`, { limit: 10 });
+      const body = document.getElementById('briefing-body');
+      if (!items.length) {
+        body.innerHTML = `
+          <div class="card" style="padding:32px; text-align:center;">
+            <div style="font-family:var(--font-display); font-weight:600; font-size:18px; margin-bottom:8px;">No hay briefing generado</div>
+            <p style="color:var(--fg-3); font-size:14px;">Para generar un briefing con IA, usa por ahora el CRM v1 (index.html) — la integración con el GAS endpoint queda pendiente para Fase 2.</p>
+          </div>
+        `;
+        return;
+      }
+      const latest = items.sort((a, b) => (b.id || '').localeCompare(a.id || ''))[0];
+      const b = latest.briefing || {};
+
+      const keyFacts = `
+        <div style="display:flex; gap:18px; margin-bottom:24px; padding-bottom:18px; border-bottom:1px solid var(--line);">
+          ${keyFact('Ubicación', s.city || s.province || '—')}
+          ${keyFact('Cuadrante', cuadranteLabel(s))}
+          ${keyFact('Score', s.score || '—')}
+        </div>
+      `;
+
+      // Secciones esperadas: resumen_ejecutivo, historico_reciente, compromisos_abiertos,
+      // señales_mercado, perfil_decisor, sectorial, próximos_pasos, riesgos
+      const secciones = [
+        ['01 · Resumen ejecutivo', b.resumen_ejecutivo || b.resumen || b.summary],
+        ['02 · Histórico reciente', b.historico_reciente || b.historico],
+        ['03 · Compromisos abiertos', b.compromisos_abiertos || b.compromisos],
+        ['04 · Señales de mercado', b.señales_mercado || b.senales_mercado || b.señales],
+        ['05 · Perfil decisor', b.perfil_decisor || b.decisor],
+        ['06 · Capa sectorial', b.sectorial || b.capa_sectorial],
+        ['07 · Próximos pasos', b.proximos_pasos || b.next_steps],
+        ['08 · Riesgos', b.riesgos || b.risks],
+      ];
+
+      document.getElementById('briefing-body').innerHTML = keyFacts + secciones.map(([titulo, contenido]) => `
+        <h3 style="font-family:var(--font-display); font-size:13px; letter-spacing:.18em; text-transform:uppercase; color:var(--gpf-blue-700); margin:0 0 10px; font-weight:700;">${escape(titulo)}</h3>
+        <div style="margin-bottom:22px; color:var(--fg-2);">
+          ${contenido ? escape(String(contenido)).replace(/\n/g, '<br>') : '<em style="color:var(--fg-3);">Sin información en esta sección.</em>'}
+        </div>
+      `).join('');
+    } catch (e) {
+      console.error(e);
+      const body = document.getElementById('briefing-body');
+      if (body) {
+        body.innerHTML = `<div class="card" style="padding:24px; border:1px solid #f0c2c9; background:#fbe4e7; color:var(--mute-red-dark);">
+          <strong>Error al cargar el briefing.</strong><br>${escape(e.message)}
+        </div>`;
+      }
+    }
   }
-  function informe() {
-    document.getElementById('topbar-current').textContent = 'Informe';
+  function keyFact(label, value) {
+    return `<div style="flex:1;">
+      <div style="font-size:11px; color:var(--fg-3); letter-spacing:.14em; text-transform:uppercase; font-weight:600; margin-bottom:3px;">${escape(label)}</div>
+      <div style="font-family:var(--font-display); font-size:17px; font-weight:600; color:var(--fg-1); letter-spacing:-0.005em; line-height:1.1;">${escape(value)}</div>
+    </div>`;
+  }
+
+  /* ============================================================
+     INFORME — formulario con autosave a localStorage
+     ============================================================ */
+  function informe(params) {
     const v = document.getElementById('view-informe');
-    v.innerHTML = `<div style="padding:40px; color:var(--fg-3);">Formulario de informe pendiente en Fase 1.</div>`;
+    if (!v) return;
+    const id = (params && params.studioId) || S.currentStudioId;
+    const s = id && S.studiosById[id];
+    document.getElementById('topbar-current').textContent = `Informe · ${s ? s.name : id}`;
+    if (!s) { v.innerHTML = `<div style="padding:40px;">Estudio no encontrado.</div>`; return; }
+
+    const draftKey = `redesign:informe:draft:${s.id}`;
+    const saved = JSON.parse(localStorage.getItem(draftKey) || '{}');
+
+    v.innerHTML = `
+      <div style="max-width:560px; margin:0 auto; position:relative;">
+        <!-- Header autosave -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <button style="background:transparent; border:0; color:var(--gpf-blue-700); display:flex; align-items:center; gap:4px; padding:6px; cursor:pointer; font-size:16px;" onclick="showView('detail', { studioId: '${escape(s.id)}' })">${I.X()} Cerrar</button>
+          <div style="text-align:center;">
+            <div style="font-family:var(--font-display); font-weight:600; font-size:17px;">Informe de visita</div>
+            <div id="autosave-indicator" style="font-size:11px; color:#14704a; display:flex; align-items:center; gap:4px; justify-content:center; margin-top:1px;">
+              <span style="width:6px; height:6px; border-radius:50%; background:#14704a;"></span>
+              ${saved.notes ? 'Borrador local · cargado' : 'Sin borrador aún'}
+            </div>
+          </div>
+          <span style="width:80px;"></span>
+        </div>
+
+        <!-- Empresa -->
+        <div style="margin-bottom:6px; font-size:14px; color:var(--fg-3);">Empresa</div>
+        <div style="background:var(--gpf-blue-100); padding:12px 14px; border-radius:10px; margin-bottom:22px; display:flex; align-items:center; gap:10px;">
+          <span style="color:var(--gpf-blue-700);">${I.Building()}</span>
+          <span style="font-size:16px; font-weight:600; color:var(--gpf-blue-900);">${escape(s.name)}</span>
+        </div>
+
+        <!-- Modalidad segmented -->
+        <label class="field-label">Modalidad</label>
+        <div id="modalidad-seg" style="display:grid; grid-template-columns:1fr 1fr; gap:0; background:var(--ink-100); border-radius:10px; padding:4px; margin-bottom:20px;">
+          <button id="seg-real" data-val="real" onclick="setInformeField('modalidad','real')" style="padding:12px; text-align:center; font-size:15px; font-weight:600; background:#fff; border-radius:7px; color:var(--gpf-blue-900); box-shadow:0 1px 2px rgba(10,45,82,.08); border:0; cursor:pointer;">Visita real</button>
+          <button id="seg-fict" data-val="ficticia" onclick="setInformeField('modalidad','ficticia')" style="padding:12px; text-align:center; font-size:15px; font-weight:500; color:var(--fg-3); background:transparent; border:0; cursor:pointer;">Ficticia</button>
+        </div>
+
+        <!-- Fecha -->
+        <label class="field-label" for="inf-fecha">Fecha de la visita</label>
+        <input id="inf-fecha" type="date" class="field" value="${escape(saved.fecha || new Date().toISOString().slice(0, 10))}" style="margin-bottom:20px;" oninput="autosaveInforme()"/>
+
+        <!-- Comercial -->
+        <label class="field-label" for="inf-comercial">Comercial de zona</label>
+        <select id="inf-comercial" class="field" style="margin-bottom:20px;" oninput="autosaveInforme()">
+          <option value="manuel">Ferroplast · Manuel Fernández</option>
+          <option value="rafael">Ferroplast · Rafael Jurado</option>
+          <option value="joseba">Tuyper · Joseba Robles</option>
+        </select>
+
+        <!-- Checkbox prescripción -->
+        <label style="display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--paper-warm); border:1px solid var(--line); border-radius:10px; margin-bottom:24px; cursor:pointer;">
+          <input id="inf-prescripcion" type="checkbox" ${saved.prescripcion ? 'checked' : ''} oninput="autosaveInforme()" style="width:22px; height:22px; accent-color: var(--gpf-blue-700);"/>
+          <span style="font-size:15px; color:var(--fg-1); flex:1;">Visita iniciada por prescripción</span>
+        </label>
+
+        <!-- Notas -->
+        <label class="field-label" for="inf-notas">Tus notas de la visita</label>
+        <textarea id="inf-notas" class="field" style="min-height:200px; resize:vertical; font-size:16px; line-height:1.55;" oninput="autosaveInforme()" placeholder="Escribe libremente lo que recuerdes de la visita: con quién hablaste, qué se mostró, qué reacciones tuvieron, próximos pasos…">${escape(saved.notes || '')}</textarea>
+        <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--fg-3); margin-top:8px; font-family:var(--font-mono);">
+          <span id="char-count">≈ 0 caracteres</span>
+          <span>autoguardado activo</span>
+        </div>
+
+        <!-- Sticky CTA -->
+        <div style="position:sticky; bottom:0; left:0; right:0; padding:16px 0; background:linear-gradient(to bottom, transparent, var(--bg-app) 20%); margin-top:24px; display:flex; gap:10px;">
+          <button class="btn btn-ghost" onclick="guardarBorrador()" style="flex:0 0 auto;">Guardar borrador</button>
+          <button class="btn btn-primary" style="flex:1; height:54px; font-size:17px;" onclick="generarInforme()">
+            ${I.Check()} Generar informe
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Inicializar modalidad
+    const mod = saved.modalidad || 'real';
+    setTimeout(() => setInformeField('modalidad', mod), 0);
+    updateCharCount();
   }
+
+  window.setInformeField = function (field, value) {
+    if (field === 'modalidad') {
+      const real = document.getElementById('seg-real');
+      const fict = document.getElementById('seg-fict');
+      const active = value === 'real' ? real : fict;
+      const inactive = value === 'real' ? fict : real;
+      if (!real || !fict) return;
+      active.style.background = '#fff';
+      active.style.color = 'var(--gpf-blue-900)';
+      active.style.fontWeight = 600;
+      active.style.boxShadow = '0 1px 2px rgba(10,45,82,.08)';
+      inactive.style.background = 'transparent';
+      inactive.style.color = 'var(--fg-3)';
+      inactive.style.fontWeight = 500;
+      inactive.style.boxShadow = 'none';
+      window.__modalidad = value;
+      autosaveInforme();
+    }
+  };
+
+  function updateCharCount() {
+    const ta = document.getElementById('inf-notas');
+    const out = document.getElementById('char-count');
+    if (!ta || !out) return;
+    out.textContent = `≈ ${ta.value.length} caracteres`;
+  }
+
+  window.autosaveInforme = function () {
+    if (!S.currentStudioId) return;
+    const draftKey = `redesign:informe:draft:${S.currentStudioId}`;
+    const draft = {
+      modalidad: window.__modalidad || 'real',
+      fecha: document.getElementById('inf-fecha')?.value || '',
+      comercial: document.getElementById('inf-comercial')?.value || '',
+      prescripcion: document.getElementById('inf-prescripcion')?.checked || false,
+      notes: document.getElementById('inf-notas')?.value || '',
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(draftKey, JSON.stringify(draft));
+    const ind = document.getElementById('autosave-indicator');
+    if (ind) ind.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#14704a;"></span> Guardado · hace 0 s';
+    updateCharCount();
+  };
+
+  window.guardarBorrador = function () {
+    window.autosaveInforme();
+    alert('Borrador guardado localmente.');
+  };
+
+  window.generarInforme = function () {
+    alert('Generación de informe: pendiente de wirear al endpoint GAS. Por ahora se guarda solo el borrador local.');
+  };
+
+  /* ============================================================
+     BANDEJA del agente — placeholder Fase 2
+     ============================================================ */
   function bandeja() {
     document.getElementById('topbar-current').textContent = 'Bandeja del agente';
     const v = document.getElementById('view-bandeja');
-    v.innerHTML = `<div style="padding:40px; color:var(--fg-3);">Bandeja del agente pendiente en Fase siguiente.</div>`;
+    v.innerHTML = `<div style="max-width:720px; margin:0 auto;">
+      <h1 style="font-family:var(--font-display); font-weight:600; font-size:32px; text-transform:uppercase; margin:0 0 16px;">Bandeja</h1>
+      <p style="color:var(--fg-3);">Pendiente de implementar — Fase 2.</p>
+    </div>`;
   }
 
   /* ============================================================
