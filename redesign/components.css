@@ -1,0 +1,940 @@
+/* CRM Prospector · rediseño v1 — componentes base
+ *
+ * Todos los estilos están scoped bajo .crm-root para aislar del index.html
+ * actual durante coexistencia (Fases A–G). En Fase H, cuando hagamos el swap,
+ * se pueden des-namespacizar si conviene.
+ *
+ * Estructura del archivo:
+ *   1. Layout · app shell (#app, sidebar, topbar, main)
+ *   2. iPhone frame (statusbar, tabbar, topapp, home-indicator)
+ *   3. Botones · .btn (-primary, -strong, -ghost, -block, -lg)
+ *   4. Tarjetas · .card, .card-flat
+ *   5. Chips · .chip (-accent, -red, -green)
+ *   6. Campos · .field, .field-label, textarea, select
+ *   7. Filas · .row (label / value)
+ *   8. Progreso · .progress + .fill
+ *   9. Skeleton shimmer
+ *  10. Sheet bottom · .sheet-overlay, .sheet
+ *  11. CmdK palette · .cmdk-overlay, .cmdk-palette, .cmdk-hit
+ *  12. KPIs · .kpi, .kpi-grid-{3,5}
+ *  13. Próxima visita hero
+ *  14. Utilidades (.eyebrow, .mono, .muted, .t-num, etc.)
+ *  15. Loader inicial
+ *  16. Responsive
+ */
+
+/* ============================================================
+   1. LAYOUT · APP SHELL
+   ============================================================ */
+html, body { margin: 0; padding: 0; height: 100%; }
+html { background: var(--bg-app); }
+body {
+  background: var(--bg-app);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  color: var(--fg-1);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+* { box-sizing: border-box; }
+
+.crm-root { height: 100%; display: flex; flex-direction: column; }
+.shell {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+.shell > .main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-app);
+  min-width: 0;
+}
+.shell > .main > .content {
+  flex: 1;
+  overflow: auto;
+  padding: var(--sp-6) var(--sp-7);
+}
+@media (max-width: 1000px) {
+  .shell > .main > .content { padding: var(--sp-5) var(--sp-5); }
+}
+
+/* ============================================================
+   SIDEBAR (desktop) — fondo azul GPF, item activo con franja roja
+   ============================================================ */
+.crm-root .sidebar {
+  width: 230px;
+  flex: 0 0 230px;
+  background: var(--gpf-blue-900);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  transition: width .15s ease;
+  position: relative;
+}
+.crm-root .sidebar.collapsed { width: 64px; flex: 0 0 64px; }
+
+.crm-root .sidebar .sidebar-logo {
+  padding: 22px 22px 24px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.crm-root .sidebar.collapsed .sidebar-logo { padding: 20px 0; justify-content: center; }
+.crm-root .sidebar .logo-mark {
+  width: 32px; height: 32px;
+  background: var(--mute-red);
+  border-radius: var(--radius-m);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 14px;
+  color: #fff;
+  letter-spacing: 0.04em;
+}
+.crm-root .sidebar .logo-full {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.02em;
+  color: #fff;
+  line-height: 1;
+}
+.crm-root .sidebar .logo-sub {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: rgba(255,255,255,.55);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+.crm-root .sidebar.collapsed .logo-full,
+.crm-root .sidebar.collapsed .logo-sub { display: none; }
+
+.crm-root .sidebar nav {
+  flex: 1;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: auto;
+}
+.crm-root .sidebar.collapsed nav { padding: 12px 8px; }
+
+.crm-root .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: var(--radius-m);
+  cursor: pointer;
+  color: rgba(255,255,255,.75);
+  font-weight: 500;
+  font-size: 14px;
+  position: relative;
+  text-decoration: none;
+  transition: background .12s, color .12s;
+}
+.crm-root .sidebar.collapsed .nav-item { padding: 10px 0; justify-content: center; }
+.crm-root .nav-item:hover { background: rgba(255,255,255,.06); color: #fff; }
+.crm-root .nav-item.active {
+  background: rgba(255,255,255,.10);
+  color: #fff;
+  font-weight: 600;
+}
+.crm-root .nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px; bottom: 6px;
+  width: 3px;
+  background: var(--mute-red);
+  border-radius: 2px;
+}
+.crm-root .sidebar.collapsed .nav-item.active::before { display: none; }
+.crm-root .nav-item .nav-label { flex: 1; }
+.crm-root .sidebar.collapsed .nav-item .nav-label { display: none; }
+.crm-root .nav-item .nav-badge {
+  background: rgba(255,255,255,.15);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.crm-root .sidebar.collapsed .nav-badge { display: none; }
+
+.crm-root .sidebar-section-title {
+  font-size: 10px;
+  color: rgba(255,255,255,.5);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0 12px;
+  font-weight: 600;
+  margin: 14px 0 6px;
+}
+.crm-root .sidebar-divider {
+  height: 1px;
+  background: rgba(255,255,255,.08);
+  margin: 14px 12px 10px;
+}
+.crm-root .sidebar.collapsed .sidebar-section-title,
+.crm-root .sidebar.collapsed .sidebar-divider { display: none; }
+
+.crm-root .sidebar-user {
+  padding: 14px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.crm-root .sidebar.collapsed .sidebar-user { padding: 12px 8px; justify-content: center; }
+.crm-root .sidebar-user .avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--mute-red);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12px;
+  flex: 0 0 auto;
+}
+.crm-root .sidebar.collapsed .sidebar-user .user-meta { display: none; }
+.crm-root .sidebar-user .user-name { font-size: 13px; font-weight: 600; color: #fff; }
+.crm-root .sidebar-user .user-role { font-size: 11px; color: rgba(255,255,255,.55); }
+
+/* ============================================================
+   TOPBAR (desktop)
+   ============================================================ */
+.crm-root .topbar {
+  height: 56px;
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--sp-7);
+  gap: 16px;
+}
+.crm-root .topbar.tight { padding: 0 16px; }
+
+.crm-root .topbar .breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--fg-3);
+  font-size: 13px;
+}
+.crm-root .topbar .breadcrumb .current { color: var(--fg-1); font-weight: 600; }
+
+.crm-root .topbar .search-pill {
+  flex: 1;
+  max-width: 520px;
+  margin-left: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--paper-warm);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  padding: 7px 10px;
+  cursor: text;
+}
+.crm-root .topbar .search-pill .placeholder { flex: 1; font-size: 13px; color: var(--fg-3); }
+.crm-root .topbar .search-pill .kbd {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-3);
+}
+
+.crm-root .topbar .actions { display: flex; align-items: center; gap: 8px; }
+.crm-root .topbar .btn { height: 36px; padding: 0 12px; font-size: 13px; }
+.crm-root .topbar .icon-btn {
+  width: 36px; height: 36px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-m);
+  position: relative;
+  color: var(--fg-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.crm-root .topbar .icon-btn:hover { background: var(--ink-100); }
+.crm-root .topbar .icon-btn .badge-dot {
+  position: absolute;
+  top: 8px; right: 9px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--mute-red);
+  border: 2px solid #fff;
+}
+
+/* ============================================================
+   2. IPHONE FRAME
+   ============================================================ */
+.crm-root .iphone-frame {
+  width: 100%;
+  max-width: 430px;
+  height: 100%;
+  min-height: 100vh;
+  background: var(--bg-app);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+}
+.crm-root .iphone-frame .statusbar {
+  height: var(--safe-top);
+  padding: 16px 28px 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-900);
+  letter-spacing: -0.01em;
+  flex: 0 0 auto;
+  background: transparent;
+  z-index: 5;
+}
+.crm-root .iphone-frame .statusbar.dark { color: #fff; }
+.crm-root .iphone-frame .statusbar .right {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.crm-root .iphone-frame .home-indicator {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 134px;
+  height: 5px;
+  background: var(--ink-900);
+  border-radius: 3px;
+  opacity: 0.35;
+  z-index: 20;
+}
+
+.crm-root .iphone-frame .content {
+  flex: 1;
+  overflow: auto;
+  padding: 0 var(--sp-5) calc(100px + var(--safe-bot));
+}
+
+/* Tab bar (PWA standalone) */
+.crm-root .tabbar {
+  position: absolute;
+  bottom: 0;
+  left: 0; right: 0;
+  padding-bottom: calc(var(--safe-bot) + 4px);
+  background: rgba(255,255,255,.92);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  padding-top: 8px;
+  z-index: 10;
+}
+.crm-root .tabbar .tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 60px;
+  padding: 6px 4px;
+  color: var(--fg-3);
+  cursor: pointer;
+  text-decoration: none;
+  background: transparent;
+  border: 0;
+}
+.crm-root .tabbar .tab .icon { width: 24px; height: 24px; }
+.crm-root .tabbar .tab .lbl {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+.crm-root .tabbar .tab.active { color: var(--gpf-blue-700); }
+.crm-root .tabbar .tab.active .lbl { font-weight: 700; }
+
+/* Top app bar móvil */
+.crm-root .topapp {
+  padding: 8px 16px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-app);
+  border-bottom: 1px solid var(--line);
+  flex: 0 0 auto;
+}
+.crm-root .topapp .title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 17px;
+  color: var(--fg-1);
+  letter-spacing: -0.005em;
+}
+.crm-root .topapp .back-btn {
+  background: transparent;
+  border: 0;
+  color: var(--gpf-blue-700);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px 6px 0;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 44px;
+}
+.crm-root .topapp .action-btn {
+  background: transparent;
+  border: 0;
+  padding: 6px;
+  color: var(--gpf-blue-700);
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* ============================================================
+   3. BOTONES — .btn con variantes
+   ============================================================ */
+.crm-root .btn {
+  appearance: none;
+  border: 0;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: var(--fs-body);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-5);
+  height: 48px;
+  min-width: 44px;
+  border-radius: var(--radius-m);
+  cursor: pointer;
+  letter-spacing: -0.005em;
+  transition: background .12s, color .12s, transform .04s;
+  text-decoration: none;
+  color: inherit;
+}
+.crm-root .btn:active { transform: translateY(1px); }
+.crm-root .btn-primary { background: var(--cta); color: #fff; }
+.crm-root .btn-primary:hover { background: var(--cta-hover); }
+.crm-root .btn-strong { background: var(--cta-strong); color: #fff; }
+.crm-root .btn-strong:hover { background: var(--cta-strong-hover); }
+.crm-root .btn-ghost {
+  background: transparent;
+  color: var(--fg-1);
+  border: 1px solid var(--line-strong);
+}
+.crm-root .btn-ghost:hover { background: var(--ink-100); }
+.crm-root .btn-block { width: 100%; }
+.crm-root .btn-lg { height: 56px; font-size: var(--fs-body-l); }
+
+/* ============================================================
+   4. TARJETAS
+   ============================================================ */
+.crm-root .card {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+}
+.crm-root .card-flat {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+}
+
+/* ============================================================
+   5. CHIPS
+   ============================================================ */
+.crm-root .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-cap);
+  font-weight: 600;
+  background: var(--ink-100);
+  color: var(--fg-2);
+  letter-spacing: -0.005em;
+  border: 1px solid var(--line);
+}
+.crm-root .chip-accent {
+  background: var(--gpf-blue-100);
+  color: var(--gpf-blue-700);
+  border-color: transparent;
+}
+.crm-root .chip-red {
+  background: #fbe4e7;
+  color: var(--mute-red-dark);
+  border-color: transparent;
+}
+.crm-root .chip-green {
+  background: #e3f3ec;
+  color: #14704a;
+  border-color: transparent;
+}
+
+/* ============================================================
+   6. CAMPOS
+   ============================================================ */
+.crm-root .field {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  padding: 14px 16px;
+  font-size: var(--fs-body);
+  width: 100%;
+  font-family: inherit;
+  color: var(--fg-1);
+  min-height: 52px;
+}
+.crm-root .field:focus {
+  outline: 2px solid var(--gpf-blue-500);
+  outline-offset: -1px;
+  border-color: var(--gpf-blue-500);
+}
+.crm-root .field-label {
+  display: block;
+  font-size: var(--fs-eyebrow);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.crm-root textarea.field { resize: vertical; line-height: 1.55; }
+.crm-root select.field { appearance: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%235b6672" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>'); background-repeat: no-repeat; background-position: right 12px center; padding-right: 40px; }
+
+/* ============================================================
+   7. FILAS label / value
+   ============================================================ */
+.crm-root .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  min-height: 48px;
+  border-bottom: 1px solid var(--line);
+}
+.crm-root .row:last-child { border-bottom: 0; }
+.crm-root .row .label { font-size: 14px; color: var(--fg-3); }
+.crm-root .row .value { font-size: 15px; font-weight: 500; color: var(--fg-1); }
+
+/* ============================================================
+   8. PROGRESO
+   ============================================================ */
+.crm-root .progress {
+  height: 6px;
+  background: var(--ink-100);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.crm-root .progress .fill {
+  height: 100%;
+  background: var(--gpf-blue-700);
+  transition: width .3s ease;
+}
+.crm-root .progress .fill.red { background: var(--mute-red); }
+.crm-root .progress .fill.gray { background: var(--ink-300); }
+
+/* ============================================================
+   9. SKELETON shimmer (en tokens.css ya, lo replico scoped) ===
+   ============================================================ */
+.crm-root .skeleton {
+  background: linear-gradient(90deg,
+    var(--ink-100) 0%,
+    var(--paper-warm) 50%,
+    var(--ink-100) 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius-m);
+}
+
+/* ============================================================
+   10. SHEET BOTTOM
+   ============================================================ */
+.crm-root .sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0,0,0,.45);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .2s, visibility .2s;
+}
+.crm-root .sheet-overlay.open { opacity: 1; visibility: visible; }
+.crm-root .sheet {
+  background: var(--bg-card);
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  padding: 12px var(--sp-5) calc(var(--safe-bot) + var(--sp-4));
+  box-shadow: 0 -10px 40px rgba(0,0,0,.25);
+  transform: translateY(20px);
+  transition: transform .2s ease;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.crm-root .sheet-overlay.open .sheet { transform: translateY(0); }
+.crm-root .sheet .handle {
+  width: 40px;
+  height: 4px;
+  background: var(--ink-300);
+  border-radius: 2px;
+  margin: 4px auto 16px;
+}
+
+/* ============================================================
+   11. CMD+K PALETTE
+   ============================================================ */
+.crm-root .cmdk-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(10,45,82,.45);
+  display: none;
+}
+.crm-root .cmdk-overlay.open { display: block; }
+.crm-root .cmdk-palette {
+  position: absolute;
+  top: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 640px;
+  max-width: calc(100vw - 32px);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: var(--shadow-modal);
+  overflow: hidden;
+}
+.crm-root .cmdk-palette .input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px var(--sp-5);
+  border-bottom: 1px solid var(--line);
+}
+.crm-root .cmdk-palette input {
+  flex: 1;
+  border: 0;
+  outline: none;
+  font: inherit;
+  font-size: 16px;
+  color: var(--fg-1);
+  background: transparent;
+}
+.crm-root .cmdk-palette .esc-kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-3);
+  background: var(--paper-warm);
+  border: 1px solid var(--line);
+  padding: 3px 7px;
+  border-radius: 4px;
+}
+.crm-root .cmdk-results {
+  max-height: 480px;
+  overflow: auto;
+  padding: 4px 0 8px;
+}
+.crm-root .cmdk-section { padding: 8px 0; }
+.crm-root .cmdk-section-title {
+  padding: 4px var(--sp-5) 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+.crm-root .cmdk-hit {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 9px var(--sp-5);
+  cursor: pointer;
+  border-left: 3px solid transparent;
+}
+.crm-root .cmdk-hit:hover,
+.crm-root .cmdk-hit.selected {
+  background: var(--gpf-blue-100);
+  border-left-color: var(--gpf-blue-700);
+}
+.crm-root .cmdk-hit .icon { color: var(--fg-2); flex: 0 0 auto; }
+.crm-root .cmdk-hit.selected .icon,
+.crm-root .cmdk-hit:hover .icon { color: var(--gpf-blue-700); }
+.crm-root .cmdk-hit .title { font-size: 14px; font-weight: 500; color: var(--fg-1); }
+.crm-root .cmdk-hit.selected .title { font-weight: 600; color: var(--gpf-blue-900); }
+.crm-root .cmdk-hit .sub { font-size: 12px; color: var(--fg-3); margin-top: 1px; }
+.crm-root .cmdk-hit .trail {
+  font-size: 12px;
+  color: var(--fg-3);
+  font-family: var(--font-mono);
+}
+.crm-root .cmdk-hit .kbd-trail {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-size: 10px;
+  color: var(--fg-2);
+  font-family: var(--font-mono);
+}
+.crm-root .cmdk-footer {
+  padding: 10px var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--fg-3);
+  font-family: var(--font-mono);
+  background: var(--paper-warm);
+}
+
+/* ============================================================
+   12. KPIs
+   ============================================================ */
+.crm-root .kpi {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.crm-root .kpi.big { padding: 18px 20px; }
+.crm-root .kpi .label {
+  font-size: var(--fs-eyebrow);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  font-weight: 600;
+}
+.crm-root .kpi .value {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-size: 30px;
+  line-height: 1;
+  color: var(--fg-1);
+}
+.crm-root .kpi.big .value { font-size: 36px; }
+.crm-root .kpi .delta { font-size: 12px; color: var(--fg-3); }
+.crm-root .kpi-grid-5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+.crm-root .kpi-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.crm-root .kpi-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* ============================================================
+   13. PRÓXIMA VISITA HERO (azul oscuro, halo decorativo)
+   ============================================================ */
+.crm-root .next-visit-hero {
+  background: var(--gpf-blue-900);
+  color: #fff;
+  border-radius: 14px;
+  padding: 18px 20px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.crm-root .next-visit-hero::before {
+  content: '';
+  position: absolute;
+  right: -20px; top: -20px;
+  width: 140px; height: 140px;
+  border-radius: 50%;
+  background: var(--gpf-blue-700);
+  opacity: 0.5;
+}
+.crm-root .next-visit-hero > * { position: relative; }
+.crm-root .next-visit-hero .eyebrow-light {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #7fb1e6;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.crm-root .next-visit-hero h2,
+.crm-root .next-visit-hero .h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1.05;
+  margin: 0 0 6px;
+  color: #fff;
+}
+.crm-root .next-visit-hero .meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: rgba(255,255,255,.85);
+  margin-bottom: 4px;
+}
+
+/* ============================================================
+   14. UTILIDADES
+   ============================================================ */
+.crm-root h1, .crm-root h2, .crm-root h3, .crm-root h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+  line-height: 1.05;
+  color: var(--fg-1);
+}
+.crm-root .eyebrow {
+  font-family: var(--font-sans);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  font-weight: 600;
+}
+.crm-root .mono { font-family: var(--font-mono); }
+.crm-root .muted { color: var(--fg-3); }
+.crm-root .t-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.crm-root .t-num {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Iconos */
+.crm-root .icon {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: middle;
+  flex: 0 0 auto;
+}
+.crm-root .icon-sm { width: 16px; height: 16px; }
+.crm-root .icon-lg { width: 24px; height: 24px; }
+
+/* ============================================================
+   15. LOADER INICIAL
+   ============================================================ */
+#app-loader {
+  position: fixed;
+  inset: 0;
+  background: var(--paper-warm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 9999;
+  transition: opacity .3s ease;
+}
+#app-loader.hidden { opacity: 0; pointer-events: none; }
+#app-loader .spinner {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 3px solid var(--ink-100);
+  border-top-color: var(--gpf-blue-700);
+  animation: skeleton-spin 0.9s linear infinite;
+}
+#app-loader .label { font-size: 13px; color: var(--fg-3); }
+@keyframes skeleton-spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   16. RESPONSIVE
+   ============================================================ */
+/* < 1000px: sidebar colapsada por defecto, KPIs 3 columnas */
+@media (max-width: 1000px) {
+  .crm-root .sidebar {
+    width: 64px;
+    flex: 0 0 64px;
+  }
+  .crm-root .sidebar .sidebar-logo {
+    padding: 20px 0;
+    justify-content: center;
+  }
+  .crm-root .sidebar .logo-full,
+  .crm-root .sidebar .logo-sub { display: none; }
+  .crm-root .sidebar nav { padding: 12px 8px; }
+  .crm-root .nav-item {
+    padding: 10px 0;
+    justify-content: center;
+  }
+  .crm-root .nav-item .nav-label,
+  .crm-root .nav-badge,
+  .crm-root .sidebar-section-title,
+  .crm-root .sidebar-divider { display: none; }
+  .crm-root .nav-item.active::before { display: none; }
+  .crm-root .sidebar-user {
+    padding: 12px 8px;
+    justify-content: center;
+  }
+  .crm-root .sidebar-user .user-meta { display: none; }
+  .crm-root .kpi-grid-5 { grid-template-columns: repeat(3, 1fr); }
+  .crm-root .topbar { padding: 0 16px; }
+}
+
+/* < 700px: vista mobile, sin sidebar */
+@media (max-width: 700px) {
+  .crm-root .shell > .sidebar,
+  .crm-root .shell > .main > .topbar { display: none; }
+  .crm-root .shell > .main > .content { padding: 0; }
+  .crm-root .kpi-grid-5 { grid-template-columns: 1fr 1fr; }
+}
+
+/* Vistas */
+.crm-root .view { display: none; }
+.crm-root .view.active { display: block; }

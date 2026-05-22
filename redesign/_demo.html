@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CRM Prospector · Storybook · Componentes base</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+
+<link rel="stylesheet" href="tokens.css"/>
+<link rel="stylesheet" href="components.css"/>
+
+<style>
+  /* Estilos solo de la página storybook (no son parte del DS) */
+  body { padding: 40px 28px 80px; max-width: 1280px; margin: 0 auto; }
+  .storybook-section { margin-bottom: 48px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
+  .storybook-section h2 { font-size: 22px; text-transform: uppercase; margin: 0 0 8px; letter-spacing: 0.01em; }
+  .storybook-section p { color: var(--fg-3); margin: 0 0 24px; font-size: 14px; }
+  .storybook-grid {
+    display: grid; gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+  .storybook-card {
+    background: var(--bg-card); border: 1px solid var(--line);
+    border-radius: var(--radius-l); padding: 16px;
+  }
+  .storybook-card .label {
+    font-family: var(--font-mono); font-size: 11px; color: var(--fg-3);
+    text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 12px;
+  }
+  .swatch-box { height: 60px; border-radius: var(--radius-m); border: 1px solid var(--line); display: flex; align-items: flex-end; padding: 8px 10px; font-family: var(--font-mono); font-size: 10px; color: #fff; }
+  .swatch-box.light { color: var(--ink-700); }
+</style>
+</head>
+<body class="crm-root">
+
+<header style="margin-bottom: 48px;">
+  <div class="eyebrow" style="margin-bottom: 4px;">Storybook · v1 · 22 may 2026</div>
+  <h1 style="font-family: var(--font-display); font-weight: 600; font-size: 40px; text-transform: uppercase; margin: 0;">Componentes base</h1>
+  <p style="font-size: 14px; color: var(--fg-3); margin: 12px 0 0;">Inspección visual del DS aplicado. Cada sección muestra los componentes con sus variantes para validación pixel-perfect contra el handoff.</p>
+</header>
+
+<!-- ============================================================
+     PALETA
+     ============================================================ -->
+<section class="storybook-section">
+  <h2>Paleta</h2>
+  <p>7 colores funcionales del DS Ferroplast + neutros. El rojo MUTE es escaso por diseño.</p>
+  <div class="storybook-grid">
+    <div class="storybook-card">
+      <div class="label">CTA Primary</div>
+      <div class="swatch-box" style="background: var(--gpf-blue-700);">--gpf-blue-700</div>
+    </div>
+    <div class="storybook-card">
+      <div class="label">Sidebar / Headlines</div>
+      <div class="swatch-box" style="background: var(--gpf-blue-900);">--gpf-blue-900</div>
+    </div>
+    <div class="storybook-card">
+      <div class="label">Enlaces / Focus</div>
+      <div class="swatch-box" style="background: var(--gpf-blue-500);">--gpf-blue-500</div>
+    </div>
+    <div class="storybook-card">
+      <div class="label">Superficie tintada</div>
+      <div class="swatch-box light" style="background: var(--gpf-blue-100);">--gpf-blue-100</div>
+    </div>
+    <div class="storybook-card">
+      <div class="label">CTA Crítico (Cómo llegar)</div>
+      <div class="swatch-box" style="background: var(--mute-red);">--mute-red</div>
+    </div>
+    <div class="storybook-card">
+      <div class="label">Fondo app</div>
+      <div class="swatch-box light" style="background: var(--paper-warm);">--paper-warm</div>
+    </div>
+    <div class="storybook-card">
+      <div class="label">Texto body</div>
+      <div class="swatch-box" style="background: var(--ink-700);">--ink-700</div>
+    </div>
+    <div class="storybook-card">
+      <div class="label">Hairlines</div>
+      <div class="swatch-box light" style="background: var(--ink-200);">--ink-200</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     TIPOGRAFÍA
+     ============================================================ -->
+<section class="storybook-section">
+  <h2>Tipografía</h2>
+  <p>3 familias · 10 tamaños · Barlow Condensed display + Inter sans + IBM Plex Mono.</p>
+  <div class="storybook-grid" style="grid-template-columns: 1fr 1fr;">
+    <div class="storybook-card">
+      <div class="label">Display · Barlow Condensed 600</div>
+      <div style="font-family: var(--font-display); font-weight: 600; font-size: 40px; line-height: 1; letter-spacing: -0.005em; text-transform: uppercase;">DASHBOARD</div>
+      <div style="font-family: var(--font-display); font-weight: 600; font-size: 30px; margin-top: 8px;">Próxima visita</div>
+      <div style="font-family: var(--font-display); font-weight: 600; font-size: 24px; margin-top: 8px;">Subtítulo</div>
+      <div style="font-family: var(--font-display); font-variant-numeric: tabular-nums; font-weight: 600; font-size: 36px; margin-top: 12px; color: var(--gpf-blue-700);">1 597</div>
+    </div>
+    <div class="storybook-card">
+      <div class="label">Body · Inter 500/400</div>
+      <div style="font-size: 18px; margin-bottom: 8px;">Body large · 18px</div>
+      <div style="font-size: 16px; margin-bottom: 8px;">Body · 16px (móvil mínimo)</div>
+      <div style="font-size: 14px; margin-bottom: 8px;">Body small · 14px (desktop tablas)</div>
+      <div style="font-size: 12px; margin-bottom: 8px; color: var(--fg-3);">Caption · 12px</div>
+      <div class="eyebrow" style="margin-top: 12px;">Eyebrow · 11px tracking ancho</div>
+    </div>
+    <div class="storybook-card">
+      <div class="label">Mono · IBM Plex Mono</div>
+      <div style="font-family: var(--font-mono); font-size: 13px; line-height: 1.6;">
+        ID: 3012<br>
+        Score: 9 · Q1<br>
+        2026-05-26 · 10:30<br>
+        +34 955 600 808
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     BOTONES
+     ============================================================ -->
+<section class="storybook-section">
+  <h2>Botones</h2>
+  <p>3 variantes principales · modificadores <code>-block</code> y <code>-lg</code>. CTA primario azul GPF, CTA crítico de campo rojo MUTE, secundario ghost.</p>
+  <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+    <button class="btn btn-primary"><span class="icon"></span> Primary</button>
+    <button class="btn btn-strong">Strong · Cómo llegar</button>
+    <button class="btn btn-ghost">Ghost</button>
+    <button class="btn btn-primary btn-lg">Primary large</button>
+    <button class="btn btn-strong btn-lg" style="box-shadow: 0 4px 14px rgba(200,16,46,.35);">Strong large + shadow</button>
+  </div>
+  <div style="margin-top: 16px; max-width: 320px;">
+    <button class="btn btn-primary btn-block">Block primary</button>
+    <button class="btn btn-ghost btn-block" style="margin-top: 8px;">Block ghost</button>
+  </div>
+</section>
+
+<!-- ============================================================
+     CHIPS
+     ============================================================ -->
+<section class="storybook-section">
+  <h2>Chips</h2>
+  <p>4 variantes · default neutro + accent azul + red MUTE + green éxito.</p>
+  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <span class="chip">Q9 · Congelar</span>
+    <span class="chip chip-accent">Arquitectura</span>
+    <span class="chip chip-red">Alta prioridad</span>
+    <span class="chip chip-green">Ganado</span>
+    <span class="chip">2026</span>
+    <span class="chip">Andalucía</span>
+  </div>
+</section>
+
+<!-- ============================================================
+     TARJETAS Y FILAS
+     ============================================================ -->
+<section class="storybook-section">
+  <h2>Tarjetas + filas label/value</h2>
+  <p>Tarjeta base + filas label/value usadas en ficha cliente y dashboards.</p>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+    <div class="card" style="padding: 0;">
+      <div class="row">
+        <span class="label">Tipo</span>
+        <span class="value">Arquitectura</span>
+      </div>
+      <div class="row">
+        <span class="label">Estado</span>
+        <span class="value"><span class="chip">Reunión</span></span>
+      </div>
+      <div class="row">
+        <span class="label">Score</span>
+        <span class="value mono">9</span>
+      </div>
+      <div class="row">
+        <span class="label">Última actividad</span>
+        <span class="value mono">12 may 2026</span>
+      </div>
+    </div>
+    <div class="card" style="padding: 20px;">
+      <div class="eyebrow" style="margin-bottom: 8px;">KPI</div>
+      <div style="font-family: var(--font-display); font-weight: 600; font-size: 36px; line-height: 1;">227</div>
+      <div style="font-size: 12px; color: var(--fg-3); margin-top: 4px;">+18 vs semana pasada</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     KPIs
+     ============================================================ -->
+<section class="storybook-section">
+  <h2>KPIs en grid</h2>
+  <p>Grid de 5 columnas para Dashboard 1280, colapsa a 3 en < 1000px.</p>
+  <div class="kpi-grid-5">
+    <div class="kpi">
+      <div class="label">Total empresas</div>
+      <div class="value">1 597</div>
+      <div class="delta">+12 vs semana pasada</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Ganados 2026</div>
+      <div class="value">0</div>
+      <div class="delta">objetivo 8</div>
+    </div>
+    <div class="kpi">
+      <div class="label">En reunión</div>
+      <div class="value">229</div>
+      <div class="delta">14% del pipeline</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Nuevos (7d)</div>
+      <div class="value">1 349</div>
+      <div class="delta">+84 ayer</div>
+    </div>
+    <div class="kpi">
+      <div class="label" style="color: var(--mute-red-dark);">Prioridad alta</div>
+      <div class="value">4</div>
+      <div class="delta">2 sin contacto &gt;14d</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     PRÓXIMA VISITA HERO
+     ============================================================ -->
+<section class="storybook-section">
+  <h2>Próxima visita hero</h2>
+  <p>Tarjeta azul oscuro con halo decorativo y CTA crítico rojo. Usada en Inicio (iPhone) y Dashboard (desktop).</p>
+  <div style="max-width: 380px;">
+    <div class="next-visit-hero">
+      <div class="eyebrow-light">
+        <span class="icon icon-sm"></span> Próxima visita · en 47 min
+      </div>
+      <h2>J. Huesa Water<br>Technology</h2>
+      <div class="meta">10:30 · Reunión</div>
+      <div class="meta">Av. Valencina 25 · Bollullos</div>
+      <button class="btn btn-strong btn-block btn-lg" style="margin-top: 18px; box-shadow: 0 4px 14px rgba(200,16,46,.35);">
+        Cómo llegar
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CAMPOS Y FORMULARIO
+     ============================================================ -->
+<section class="storybook-section">
+  <h2>Campos de formulario</h2>
+  <p>Inputs con label + focus visible azul GPF + altura mínima 52px para hit area móvil.</p>
+  <div style="max-width: 380px;">
+    <label class="field-label" for="demo-text">Empresa</label>
+    <input id="demo-text" class="field" placeholder="Buscar…" style="margin-bottom: 18px;"/>
+    <label class="field-label" for="demo-date">Fecha de la visita</label>
+    <input id="demo-date" class="field" type="date" value="2026-05-26" style="margin-bottom: 18px;"/>
+    <label class="field-label" for="demo-select">Comercial de zona</label>
+    <select id="demo-select" class="field" style="margin-bottom: 18px;">
+      <option>Ferroplast · Manuel Fernández</option>
+      <option>Tuyper · Joseba Robles</option>
+    </select>
+    <label class="field-label" for="demo-textarea">Notas</label>
+    <textarea id="demo-textarea" class="field" style="min-height: 120px;" placeholder="Escribe libremente lo que recuerdes…"></textarea>
+  </div>
+</section>
+
+<!-- ============================================================
+     PROGRESO
+     ============================================================ -->
+<section class="storybook-section">
+  <h2>Progress bars</h2>
+  <p>Barras finas (6px) para objetivos. Azul GPF por defecto, rojo MUTE para visitas MUTE.</p>
+  <div style="max-width: 380px;">
+    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+      <span style="font-size: 14px; font-weight: 500;">Visitas presenciales</span>
+      <span class="t-num" style="font-size: 18px;">109<span style="color: var(--fg-3); font-size: 13px;"> / 140</span></span>
+    </div>
+    <div class="progress"><div class="fill" style="width: 78%;"></div></div>
+    <div style="display: flex; justify-content: space-between; align-items: baseline; margin: 18px 0 6px;">
+      <span style="font-size: 14px; font-weight: 500;">Visitas MUTE</span>
+      <span class="t-num" style="font-size: 18px;">4<span style="color: var(--fg-3); font-size: 13px;"> / 30</span></span>
+    </div>
+    <div class="progress"><div class="fill red" style="width: 13%;"></div></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SKELETON
+     ============================================================ -->
+<section class="storybook-section">
+  <h2>Skeleton shimmer</h2>
+  <p>Estado loading. Animación de barrido infinita 1.4s ease-in-out.</p>
+  <div style="max-width: 380px;">
+    <div class="skeleton" style="height: 11px; width: 40%; margin-bottom: 10px;"></div>
+    <div class="skeleton" style="height: 16px; width: 85%; margin-bottom: 6px;"></div>
+    <div class="skeleton" style="height: 16px; width: 95%; margin-bottom: 6px;"></div>
+    <div class="skeleton" style="height: 16px; width: 70%;"></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ICONOS
+     ============================================================ -->
+<section class="storybook-section">
+  <h2>Iconos Lucide stroke 1.75</h2>
+  <p>35 iconos exportados como <code>window.Icon.{Name}()</code>. Tamaño default 20×20, modificadores <code>.icon-sm</code> (16×16) y <code>.icon-lg</code> (24×24).</p>
+  <div id="icon-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 16px; margin-top: 12px;">
+    <!-- Se rellena por JS -->
+  </div>
+</section>
+
+<!-- ============================================================
+     BRAND MARKS
+     ============================================================ -->
+<section class="storybook-section">
+  <h2>Brand marks (mapas)</h2>
+  <p>Apple Maps · Google Maps · Waze. Usadas en el bottom sheet "Cómo llegar".</p>
+  <div id="brandmarks-row" style="display: flex; gap: 16px; align-items: center;"></div>
+</section>
+
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+<script src="icons.js"></script>
+<script>
+  // Pintar iconos
+  const grid = document.getElementById('icon-grid');
+  if (grid && window.Icon) {
+    Object.keys(window.Icon).forEach((name) => {
+      const cell = document.createElement('div');
+      cell.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:6px; padding:14px 6px; background:var(--bg-card); border:1px solid var(--line); border-radius:var(--radius-m); color:var(--fg-2);';
+      cell.innerHTML = window.Icon[name]() + `<div style="font-family:var(--font-mono); font-size:10px; color:var(--fg-3);">${name}</div>`;
+      grid.appendChild(cell);
+    });
+  }
+
+  // Pintar brand marks
+  const bm = document.getElementById('brandmarks-row');
+  if (bm && window.BrandMarks) {
+    Object.keys(window.BrandMarks).forEach((name) => {
+      const cell = document.createElement('div');
+      cell.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:6px;';
+      cell.innerHTML = window.BrandMarks[name](48) + `<div style="font-family:var(--font-mono); font-size:10px; color:var(--fg-3);">${name}</div>`;
+      bm.appendChild(cell);
+    });
+  }
+</script>
+
+</body>
+</html>
