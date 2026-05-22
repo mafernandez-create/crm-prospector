@@ -886,15 +886,306 @@
   };
 
   /* ============================================================
-     BANDEJA del agente — placeholder Fase 2
+     BANDEJA del agente — matriz Q1-Q9 + secciones de seguimiento
      ============================================================ */
   function bandeja() {
-    document.getElementById('topbar-current').textContent = 'Bandeja del agente';
     const v = document.getElementById('view-bandeja');
-    v.innerHTML = `<div style="max-width:720px; margin:0 auto;">
-      <h1 style="font-family:var(--font-display); font-weight:600; font-size:32px; text-transform:uppercase; margin:0 0 16px;">Bandeja</h1>
-      <p style="color:var(--fg-3);">Pendiente de implementar — Fase 2.</p>
-    </div>`;
+    if (!v) return;
+    document.getElementById('topbar-current').textContent = 'Bandeja del agente';
+
+    // Matriz cuadrantes Q1-Q9 → cuenta de estudios
+    const cuadrantes = {};
+    const cuadrantesActivos = {};
+    for (const s of S.studios) {
+      const c = s.cuadrante || s.quadrant;
+      if (c) {
+        cuadrantes[c] = (cuadrantes[c] || 0) + 1;
+        const last = U.lastInteraction(s);
+        if (last && last >= new Date(S.today.getTime() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10)) {
+          cuadrantesActivos[c] = (cuadrantesActivos[c] || 0) + 1;
+        }
+      }
+    }
+
+    // Visitados >45 días sin tocar (candidatos a reactivar)
+    const hace45 = new Date(S.today.getTime() - 45 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    const enfriandose = S.studios
+      .filter((s) => {
+        const l = U.lastInteraction(s);
+        return l && l < hace45 && (s.score || 0) >= 7;
+      })
+      .sort((a, b) => (b.score || 0) - (a.score || 0))
+      .slice(0, 8);
+
+    // Sin visitar de alto potencial
+    const altoPotencialVirgen = S.studios
+      .filter((s) => U.reports(s).length === 0 && (s.score || 0) >= 8)
+      .sort((a, b) => (b.score || 0) - (a.score || 0))
+      .slice(0, 8);
+
+    // Visitas fallidas / canceladas recientes
+    const visitasFallidas = S.studios.filter((s) => {
+      const rs = U.reports(s);
+      return rs.some((r) => {
+        const txt = ((r.notes || '') + ' ' + (r.title || '') + ' ' + (r.fileName || '')).toLowerCase();
+        return /fallid|plantón|cancel|reprogram/.test(txt);
+      });
+    }).slice(0, 6);
+
+    v.innerHTML = `
+      <div style="max-width:1180px; margin:0 auto;">
+        <header style="margin-bottom:20px;">
+          <div class="eyebrow">Agente CRM · ${escape(U.formatDateES(new Date()))}</div>
+          <h1 style="font-family:var(--font-display); font-weight:600; font-size:32px; line-height:1; text-transform:uppercase; letter-spacing:.005em; margin:6px 0 4px;">Bandeja del agente</h1>
+          <p style="color:var(--fg-3); font-size:14px; margin:0;">Acciones priorizadas que el agente ha detectado en tu cartera.</p>
+        </header>
+
+        <!-- Matriz cuadrantes 3x3 -->
+        <section style="margin-bottom:24px;">
+          <div class="eyebrow" style="margin-bottom:10px;">Cuadrantes · scoring por influencia × red</div>
+          <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px;">
+            ${[
+              { q: 'Q1', label: 'Estratégico',     color: 'var(--q-estrategico)',    fg: '#fff' },
+              { q: 'Q2', label: 'Cliente core',    color: 'var(--q-cliente-core)',   fg: '#fff' },
+              { q: 'Q3', label: 'Cliente volumen', color: 'var(--q-cliente-volumen)', fg: '#fff' },
+              { q: 'Q4', label: 'Puerta entrada',  color: 'var(--q-puerta)',         fg: '#fff' },
+              { q: 'Q5', label: 'Cartera estándar', color: 'var(--q-cartera)',       fg: '#fff' },
+              { q: 'Q6', label: 'Mantenimiento',   color: 'var(--q-mantenimiento)',  fg: '#fff' },
+              { q: 'Q7', label: 'Conector',        color: 'var(--q-conector)',       fg: '#fff' },
+              { q: 'Q8', label: 'Seguimiento',     color: 'var(--q-seguimiento)',    fg: '#fff' },
+              { q: 'Q9', label: 'Congelar',        color: 'var(--q-congelar)',       fg: 'var(--fg-1)' },
+            ].map((q) => {
+              const n = cuadrantes[q.q] || 0;
+              const activos = cuadrantesActivos[q.q] || 0;
+              return `
+                <div style="background:${q.color}; color:${q.fg}; border-radius:8px; padding:12px 14px; cursor:pointer;" onclick="filtrarPorCuadrante('${q.q}')">
+                  <div style="font-family:var(--font-mono); font-size:11px; opacity:.8; letter-spacing:.08em; font-weight:600;">${q.q}</div>
+                  <div style="font-family:var(--font-display); font-weight:700; font-size:18px; line-height:1.1; margin-top:2px;">${escape(q.label)}</div>
+                  <div style="display:flex; align-items:baseline; gap:6px; margin-top:8px; font-family:var(--font-mono); font-size:12px; opacity:.85;">
+                    <span style="font-family:var(--font-display); font-size:22px; font-weight:600;">${n}</span>
+                    <span>empresa${n === 1 ? '' : 's'}</span>
+                    ${activos ? `<span>· ${activos} activa${activos === 1 ? '' : 's'} (30d)</span>` : ''}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </section>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px;">
+
+          <!-- Enfriándose -->
+          <div class="card" style="padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="color:var(--mute-red);">${I.AlertTriangle()}</span>
+                <h3 style="font-family:var(--font-display); font-weight:600; font-size:16px; text-transform:uppercase; letter-spacing:.01em; margin:0;">Cuentas enfriándose</h3>
+              </div>
+              <span class="chip chip-red">${enfriandose.length}</span>
+            </div>
+            <p style="font-size:13px; color:var(--fg-3); margin:0 0 12px;">+45 días sin contacto con score ≥7. Toca reactivar antes de que se duerman del todo.</p>
+            ${enfriandose.length ? enfriandose.map((s) => {
+              const last = U.lastInteraction(s);
+              const dias = U.diasDesde(last);
+              return `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-top:1px solid var(--line); cursor:pointer;" onclick="showView('detail', { studioId: '${escape(s.id)}' })">
+                  <div style="min-width:0; flex:1;">
+                    <div style="font-size:14px; font-weight:600; color:var(--fg-1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escape(s.name)}</div>
+                    <div style="font-size:12px; color:var(--fg-3);">${escape([tipoLabel(s.type), s.province].filter(Boolean).join(' · '))}</div>
+                  </div>
+                  <div style="text-align:right; flex:0 0 auto;">
+                    <div style="font-family:var(--font-mono); font-size:12px; color:var(--mute-red-dark); font-weight:600;">${dias}d</div>
+                    <div style="font-size:11px; color:var(--fg-3);">score ${s.score || '—'}</div>
+                  </div>
+                </div>
+              `;
+            }).join('') : '<div style="padding:16px 0; color:var(--fg-3); font-size:13px; text-align:center;">Sin cuentas enfriándose. ¡Bien!</div>'}
+          </div>
+
+          <!-- Alto potencial sin visitar -->
+          <div class="card" style="padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="color:var(--gpf-blue-700);">${I.Target()}</span>
+                <h3 style="font-family:var(--font-display); font-weight:600; font-size:16px; text-transform:uppercase; letter-spacing:.01em; margin:0;">Alto potencial sin visitar</h3>
+              </div>
+              <span class="chip chip-accent">${altoPotencialVirgen.length}</span>
+            </div>
+            <p style="font-size:13px; color:var(--fg-3); margin:0 0 12px;">Score ≥8 que nunca has visitado. Prioridad de calle.</p>
+            ${altoPotencialVirgen.length ? altoPotencialVirgen.map((s) => `
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-top:1px solid var(--line); cursor:pointer;" onclick="showView('detail', { studioId: '${escape(s.id)}' })">
+                <div style="min-width:0; flex:1;">
+                  <div style="font-size:14px; font-weight:600; color:var(--fg-1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escape(s.name)}</div>
+                  <div style="font-size:12px; color:var(--fg-3);">${escape([tipoLabel(s.type), s.city, s.province].filter(Boolean).join(' · '))}</div>
+                </div>
+                <div style="text-align:right; flex:0 0 auto;">
+                  <div style="font-family:var(--font-mono); font-size:12px; color:var(--gpf-blue-700); font-weight:600;">score ${s.score || '—'}</div>
+                </div>
+              </div>
+            `).join('') : '<div style="padding:16px 0; color:var(--fg-3); font-size:13px; text-align:center;">Sin candidatos detectados.</div>'}
+          </div>
+
+          <!-- Visitas fallidas / a reprogramar -->
+          <div class="card" style="padding:16px; grid-column: span 2;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="color:var(--fg-2);">${I.AlertTriangle()}</span>
+                <h3 style="font-family:var(--font-display); font-weight:600; font-size:16px; text-transform:uppercase; letter-spacing:.01em; margin:0;">Visitas fallidas o a reprogramar</h3>
+              </div>
+              <span class="chip">${visitasFallidas.length}</span>
+            </div>
+            ${visitasFallidas.length ? `
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 24px;">
+                ${visitasFallidas.map((s) => `
+                  <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-top:1px solid var(--line); cursor:pointer;" onclick="showView('detail', { studioId: '${escape(s.id)}' })">
+                    <div style="min-width:0; flex:1;">
+                      <div style="font-size:14px; font-weight:600; color:var(--fg-1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escape(s.name)}</div>
+                      <div style="font-size:12px; color:var(--fg-3);">${escape(s.province || '')}</div>
+                    </div>
+                    <span style="color:var(--fg-muted);">${I.ChevronRight()}</span>
+                  </div>
+                `).join('')}
+              </div>
+            ` : '<div style="padding:16px 0; color:var(--fg-3); font-size:13px; text-align:center;">Sin visitas fallidas recientes.</div>'}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  window.filtrarPorCuadrante = function (q) {
+    showView('studios');
+    // Aplicar filtro tras render
+    setTimeout(() => {
+      window.__filtroCuadrante = q;
+      window.Renderers.studios({ cuadrante: q });
+    }, 50);
+  };
+
+  /* ============================================================
+     ESTADOS (Empty / Loading / Error / Success / Keyboard)
+     ============================================================
+     Se exponen como helpers para mostrar en cualquier vista. */
+  function showEmptyState(viewId, { icon, title, body, ctas = [] }) {
+    const v = document.getElementById(viewId);
+    if (!v) return;
+    v.innerHTML = `
+      <div style="max-width:380px; margin:80px auto; text-align:center;">
+        <div style="width:88px; height:88px; border-radius:50%; background:var(--gpf-blue-100); display:flex; align-items:center; justify-content:center; color:var(--gpf-blue-700); margin:0 auto 18px;">
+          ${icon || I.Calendar()}
+        </div>
+        <h2 style="font-family:var(--font-display); font-weight:600; font-size:22px; color:var(--fg-1); letter-spacing:-0.01em; margin:0 0 8px;">${escape(title)}</h2>
+        <p style="font-size:15px; color:var(--fg-3); line-height:1.5; max-width:300px; margin:0 auto 24px;">${escape(body || '')}</p>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${ctas.map((c, i) => `
+            <button class="btn ${i === 0 ? 'btn-primary' : 'btn-ghost'} btn-block" onclick="${escape(c.onclick || '')}">${c.icon || ''} ${escape(c.label)}</button>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function showLoadingState(viewId, { title = 'Cargando…', sub = '' } = {}) {
+    const v = document.getElementById(viewId);
+    if (!v) return;
+    v.innerHTML = `
+      <div style="max-width:440px; margin:60px auto;">
+        ${sub ? `
+          <div style="background:var(--gpf-blue-100); border:1px solid #c7dcef; border-radius:12px; padding:18px; margin-bottom:20px; display:flex; align-items:center; gap:14px;">
+            <div style="width:36px; height:36px; border-radius:50%; border:3px solid var(--gpf-blue-100); border-top-color:var(--gpf-blue-700); animation:spin 0.9s linear infinite; flex:0 0 auto;"></div>
+            <div>
+              <div style="font-size:15px; font-weight:600; color:var(--gpf-blue-900);">${escape(title)}</div>
+              <div style="font-size:13px; color:var(--gpf-blue-700); margin-top:2px;">${escape(sub)}</div>
+            </div>
+          </div>
+        ` : ''}
+        <div style="display:flex; flex-direction:column; gap:18px;">
+          ${[1, 2, 3].map(() => `
+            <div>
+              <div class="skeleton" style="height:11px; width:40%; margin-bottom:10px;"></div>
+              <div class="skeleton" style="height:16px; width:85%; margin-bottom:6px;"></div>
+              <div class="skeleton" style="height:16px; width:95%; margin-bottom:6px;"></div>
+              <div class="skeleton" style="height:16px; width:70%;"></div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+    `;
+  }
+
+  function showErrorState(viewId, { title = 'Algo ha fallado', body, detail, ctas = [] }) {
+    const v = document.getElementById(viewId);
+    if (!v) return;
+    v.innerHTML = `
+      <div style="max-width:440px; margin:60px auto;">
+        <div style="background:#fbe4e7; border:1px solid #f0c2c9; border-radius:12px; padding:16px 18px; margin-bottom:24px; display:flex; gap:14px; align-items:flex-start;">
+          <span style="color:var(--mute-red-dark); margin-top:2px;">${I.AlertTriangle()}</span>
+          <div style="flex:1;">
+            <div style="font-size:15px; font-weight:600; color:var(--mute-red-dark);">${escape(title)}</div>
+            <div style="font-size:14px; color:var(--mute-red-dark); opacity:.85; margin-top:4px; line-height:1.45;">${escape(body || '')}</div>
+          </div>
+        </div>
+        ${ctas.length ? `<div style="display:flex; flex-direction:column; gap:8px;">
+          ${ctas.map((c, i) => `<button class="btn ${i === 0 ? 'btn-primary' : 'btn-ghost'} btn-block" onclick="${escape(c.onclick || '')}">${c.icon || ''} ${escape(c.label)}</button>`).join('')}
+        </div>` : ''}
+        ${detail ? `<div style="margin-top:24px; padding:10px 14px; background:var(--paper-warm); border-radius:8px; font-size:12px; font-family:var(--font-mono); color:var(--fg-3); line-height:1.5;">
+          <div style="font-weight:600; margin-bottom:4px;">Detalle técnico</div>
+          ${escape(detail)}
+        </div>` : ''}
+      </div>
+    `;
+  }
+
+  function showSuccessState(viewId, { title = 'Hecho', body, stats = [], ctas = [] }) {
+    const v = document.getElementById(viewId);
+    if (!v) return;
+    v.innerHTML = `
+      <div style="max-width:380px; margin:60px auto; text-align:center;">
+        <div style="width:88px; height:88px; border-radius:50%; background:#e3f3ec; display:flex; align-items:center; justify-content:center; color:#14704a; margin:0 auto 20px;">
+          ${I.Check()}
+        </div>
+        <h2 style="font-family:var(--font-display); font-weight:600; font-size:24px; color:var(--fg-1); letter-spacing:-0.01em; margin:0 0 8px;">${escape(title)}</h2>
+        <p style="font-size:15px; color:var(--fg-3); line-height:1.5; max-width:320px; margin:0 auto 24px;">${body || ''}</p>
+        ${stats.length ? `<div class="card" style="padding:14px 18px; margin-bottom:24px; text-align:left;">
+          ${stats.map((row, i) => `<div style="display:flex; justify-content:space-between; padding:8px 0; ${i < stats.length - 1 ? 'border-bottom:1px solid var(--line);' : ''} font-size:14px;">
+            <span style="color:var(--fg-3);">${escape(row.label)}</span>
+            <span style="color:var(--fg-1); font-weight:500;">${escape(row.value)}</span>
+          </div>`).join('')}
+        </div>` : ''}
+        ${ctas.length ? `<div style="display:flex; gap:10px; width:100%;">
+          ${ctas.map((c, i) => `<button class="btn ${i === 0 ? 'btn-ghost' : 'btn-primary'}" style="flex:1;" onclick="${escape(c.onclick || '')}">${escape(c.label)}</button>`).join('')}
+        </div>` : ''}
+      </div>
+    `;
+  }
+
+  // Exponer estados como API window.States para llamar desde cualquier lugar
+  window.States = { showEmptyState, showLoadingState, showErrorState, showSuccessState };
+
+  /* ============================================================
+     FALLBACK PARA VISTAS SIN DATOS
+     ============================================================ */
+  function inicioWithStates() {
+    if (S.error) {
+      showErrorState('view-inicio', {
+        title: 'No se pudo cargar la cartera',
+        body: 'Hay un problema de conexión con Firestore. Inténtalo de nuevo en unos segundos.',
+        detail: S.error,
+        ctas: [{ label: 'Reintentar', icon: I.Edit(), onclick: 'location.reload()' }],
+      });
+      return true;
+    }
+    if (!S.studios.length) {
+      showEmptyState('view-inicio', {
+        icon: I.Calendar(),
+        title: 'Sin datos en cartera',
+        body: 'La cartera está vacía o no se ha podido cargar. Comprueba la conexión.',
+        ctas: [{ label: 'Recargar', icon: I.Edit(), onclick: 'location.reload()' }],
+      });
+      return true;
+    }
+    return false;
   }
 
   /* ============================================================
