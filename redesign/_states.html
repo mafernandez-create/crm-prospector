@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CRM Prospector · Estados clave · Storybook</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+
+<link rel="stylesheet" href="tokens.css"/>
+<link rel="stylesheet" href="components.css"/>
+
+<style>
+  body { padding: 40px 28px 80px; max-width: 1400px; margin: 0 auto; }
+  h1 { font-family: var(--font-display); font-weight: 600; font-size: 36px; text-transform: uppercase; margin: 0 0 12px; }
+  .intro { color: var(--fg-3); font-size: 14px; margin: 0 0 32px; max-width: 720px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 32px;
+  }
+  .phone-mount {
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .phone-mount .label {
+    font-family: var(--font-mono); font-size: 11px; color: var(--fg-3);
+    text-transform: uppercase; letter-spacing: 0.12em;
+  }
+  .artboard {
+    width: 390px; height: 720px;
+    border: 8px solid #1a1a1a; border-radius: 38px;
+    overflow: hidden; position: relative;
+    background: var(--bg-app);
+    box-shadow: 0 24px 60px rgba(10,45,82,.15);
+  }
+  .artboard > section {
+    height: 100%; display: flex; flex-direction: column;
+  }
+</style>
+</head>
+<body class="crm-root">
+
+<h1>Estados clave · Fase F</h1>
+<p class="intro">5 helpers <code>window.States.*</code> que cualquier pantalla puede invocar. Aquí los renderizamos lado a lado para inspección visual contra el handoff del rediseño.</p>
+
+<div class="grid">
+
+  <div class="phone-mount">
+    <div class="label">I · Empty · Día libre</div>
+    <div class="artboard"><section class="view active" id="state-empty"></section></div>
+  </div>
+
+  <div class="phone-mount">
+    <div class="label">J · Loading · briefing</div>
+    <div class="artboard"><section class="view active" id="state-loading"></section></div>
+  </div>
+
+  <div class="phone-mount">
+    <div class="label">K · Error · sin conexión</div>
+    <div class="artboard"><section class="view active" id="state-error"></section></div>
+  </div>
+
+  <div class="phone-mount">
+    <div class="label">L · Success · informe enviado</div>
+    <div class="artboard"><section class="view active" id="state-success"></section></div>
+  </div>
+
+  <div class="phone-mount">
+    <div class="label">M · Keyboard · informe + iOS</div>
+    <div class="artboard" style="height:740px;"><section class="view active" id="state-keyboard"></section></div>
+  </div>
+
+</div>
+
+<script src="icons.js"></script>
+<script src="states.js"></script>
+<script>
+  // Forzar render mobile en cada artboard (innerWidth>=768 en página, pero
+  // los artboards son fijos a 390 — fuerzo la rama móvil via override)
+  const _orig = Object.getOwnPropertyDescriptor(Window.prototype, 'innerWidth');
+  Object.defineProperty(window, 'innerWidth', { value: 390, configurable: true });
+
+  // 1. Empty
+  States.showEmpty('state-empty', {
+    icon: Icon.Calendar(),
+    title: 'Día libre de tareas',
+    body: 'No tienes visitas ni tareas pendientes hoy. Buen momento para revisar pipeline o programar la semana.',
+    ctas: [
+      { label: 'Planificar la semana',  icon: Icon.Calendar(), onclick: 'alert(\'planificador (demo)\')' },
+      { label: 'Explorar empresas Q1-Q3', icon: Icon.Building(), onclick: 'alert(\'studios filtro Q1-Q3 (demo)\')' },
+    ],
+  });
+
+  // 2. Loading
+  States.showLoading('state-loading', {
+    title: 'Analizando capa 1 de 3',
+    sub: 'Buscando licitaciones y red profesional…',
+  });
+
+  // 3. Error
+  States.showError('state-error', {
+    title: 'No se pudo enviar',
+    body: 'Sin conexión estable. Tu borrador se ha guardado localmente y se reenviará automáticamente cuando vuelva la red.',
+    draft: { empresa: 'Estudio Córdoba Levante SL', meta: 'Visita real · 22 may 2026 · 290 caracteres', tiempo: '9:38' },
+    detail: 'NetworkError · ERR_INTERNET_DISCONNECTED · v5.2.1',
+    ctas: [
+      { label: 'Reintentar envío', icon: Icon.Edit(), onclick: 'alert(\'retry (demo)\')' },
+      { label: 'Seguir editando',  onclick: 'alert(\'volver (demo)\')' },
+    ],
+  });
+
+  // 4. Success
+  States.showSuccess('state-success', {
+    title: 'Informe enviado',
+    body: 'Estudio Córdoba Levante registrado. Has subido a <strong style="color:var(--fg-1)">110 / 140</strong> visitas presenciales este año.',
+    progress: { pct: 79, label: 'Objetivo 2026', sub: '79%' },
+    stats: [
+      { label: 'Próximo paso', value: 'Enviar tarifa MUTE' },
+      { label: 'Recordatorio', value: 'Lun 25 may, 9:00' },
+    ],
+    ctas: [
+      { label: 'Ver informe', onclick: 'alert(\'ver informe (demo)\')' },
+      { label: 'Hoy',         onclick: 'alert(\'volver a Hoy (demo)\')' },
+    ],
+  });
+
+  // 5. Keyboard
+  States.showKeyboard('state-keyboard', {
+    studioName: 'Estudio Córdoba Levante',
+    savedSecs: 4,
+  });
+</script>
+
+</body>
+</html>
