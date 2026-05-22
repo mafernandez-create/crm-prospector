@@ -33,7 +33,7 @@ async function fetchText(url) {
   A.eq(r2.status, 200, 'GET /index-legacy.html → 200');
   A.matches(r2.text, /CRM Prospector/i, 'legacy contiene CRM Prospector');
   // firebaseConfig aparece bien dentro del HTML (línea ~5530), comprobamos en todo el texto:
-  A.contains(r2.text, 'firebaseConfig', 'legacy tiene firebaseConfig embebido (CRM antiguo)');
+  A.contains(r2.text, 'FIREBASE_CONFIG', 'legacy tiene FIREBASE_CONFIG embebido (CRM antiguo)');
   A.contains(r2.text, 'ferroplast-crm', 'legacy apunta al mismo Firestore (ferroplast-crm)');
 
   // 3. Recursos críticos del rediseño servidos correctamente
