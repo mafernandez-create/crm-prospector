@@ -52,6 +52,7 @@ async function fetchText(url) {
     'redesign/app.js',
     'redesign/shell.js',
     'redesign/screens/inicio.js',
+    'redesign/screens/studios.js',
     'redesign/screens/detail.js',
     'redesign/screens/comollegar.js',
     'redesign/screens/briefing.js',

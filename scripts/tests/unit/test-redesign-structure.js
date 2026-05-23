@@ -10,7 +10,7 @@ const A = require('../_lib/assert');
   const REDESIGN_DIR = path.resolve(__dirname, '..', '..', '..', 'redesign');
 
   // 1. Cada screen registra render() y se acopla a window.Screens
-  const screens = ['inicio', 'detail', 'briefing', 'informe', 'dashboard', 'bandeja', 'cmdk'];
+  const screens = ['inicio', 'studios', 'detail', 'briefing', 'informe', 'dashboard', 'bandeja', 'cmdk'];
   for (const s of screens) {
     const file = path.join(REDESIGN_DIR, 'screens', s + '.js');
     const src = fs.readFileSync(file, 'utf8');
