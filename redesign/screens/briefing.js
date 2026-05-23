@@ -138,7 +138,7 @@
     ];
     return [
       { label: 'Ubicación',  value: s.city || s.province || '—' },
-      { label: 'Cuadrante',  value: s.cuadrante || s.quadrant || '—' },
+      { label: 'Cuadrante',  value: s.priorityQuadrantName || s.priorityQuadrant || s.cuadrante || s.quadrant || '—' },
       { label: 'Score',      value: String(s.score || '—') },
     ];
   }

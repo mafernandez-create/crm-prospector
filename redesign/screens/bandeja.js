@@ -43,7 +43,7 @@
     const conteoQActivos = {};
     const hace30 = new Date(State.today.getTime() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
     for (const s of State.studios) {
-      const q = s.cuadrante || s.quadrant;
+      const q = s.priorityQuadrant || s.cuadrante || s.quadrant;
       if (!q) continue;
       conteoQ[q] = (conteoQ[q] || 0) + 1;
       const last = U.lastInteraction(s);
@@ -69,7 +69,7 @@
     });
 
     // Cuántos studios SIN cuadrante (para mostrar advertencia)
-    const sinCuadrante = State.studios.filter(function (s) { return !(s.cuadrante || s.quadrant); }).length;
+    const sinCuadrante = State.studios.filter(function (s) { return !(s.priorityQuadrant || s.cuadrante || s.quadrant); }).length;
 
     return {
       cuadrantes: cuadrantes,
