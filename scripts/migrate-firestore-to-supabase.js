@@ -158,24 +158,39 @@ function asNumber(v) {
 
 function mapStudio(s) {
   const types = Array.isArray(s.type) ? s.type : (s.type ? [s.type] : []);
-  const flatKeys = [
+
+  // El JSONB `data` debe contener todo el sub-objeto data del studio + cualquier
+  // otro campo no plano que venga directamente en s. NO envolver doblemente.
+  // Si s.data ya es un objeto, ESE es el data JSONB de salida (lo enriquecemos
+  // si hace falta, pero no lo metemos dentro de otra clave `data`).
+  const data = (s.data && typeof s.data === 'object' && !Array.isArray(s.data))
+    ? Object.assign({}, s.data)
+    : {};
+
+  // Cualquier otro campo no plano + no es 'data' → al JSONB de salida.
+  const flatKeys = new Set([
     'id','name','type','city','province','score','priority','status',
     'priorityQuadrant','priorityQuadrantName','priorityDirect','priorityDirectScore',
     'priorityNetwork','priorityNetworkScore','priorityDirectScoreNatural','priorityNetworkScoreNatural',
-    'es_cliente_puente','fuente_descubrimiento',
-  ];
-  const data = {};
+    'es_cliente_puente','fuente_descubrimiento','data',
+  ]);
   for (const k in s) {
-    if (!flatKeys.includes(k)) data[k] = s[k];
+    if (!flatKeys.has(k)) data[k] = s[k];
   }
-  // Si el tipo es array de varios, guardamos los demás en data.types_all
   if (types.length > 1) data.types_all = types;
+
+  // City: directa o como fallback desde data.contact.city o data.studio.city
+  const city =
+    readField(s.city) ||
+    readField(data && data.contact && data.contact.city) ||
+    readField(data && data.studio && data.studio.city) ||
+    null;
 
   return {
     id: String(s.id),
     name: readField(s.name),
     type: types[0] || null,
-    city: readField(s.city),
+    city: city,
     province: readField(s.province),
     score: asNumber(s.score),
     priority: readField(s.priority),
