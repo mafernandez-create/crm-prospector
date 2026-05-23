@@ -149,17 +149,36 @@
     return res;
   }
 
+  /* Pagina todos los rows de una tabla con Range header.
+     PostgREST limita por defecto a 1000 rows/req → iterar hasta vacío. */
+  async function _fetchAllRows(pathQ, pageSize) {
+    pageSize = pageSize || 1000;
+    const out = [];
+    let from = 0;
+    while (true) {
+      const to = from + pageSize - 1;
+      const res = await sbFetch(pathQ, {
+        headers: { 'Range-Unit': 'items', 'Range': from + '-' + to },
+      });
+      const batch = await res.json();
+      if (!Array.isArray(batch) || batch.length === 0) break;
+      out.push.apply(out, batch);
+      if (batch.length < pageSize) break;
+      from += pageSize;
+      if (from > 50000) break;  // sanity guard
+    }
+    return out;
+  }
+
   /* ============================================================
      loadAll — equivalente al de data.js pero contra Supabase
      ============================================================ */
   async function loadAll() {
-    // Trae 1597 studios + planificador. Una sola petición por tabla.
     const t0 = Date.now();
-    const [studiosRes, planRes] = await Promise.all([
-      sbFetch('/studios?select=*&limit=5000'),
+    const [rows, planRes] = await Promise.all([
+      _fetchAllRows('/studios?select=*'),
       sbFetch('/meta_planificador?id=eq.1&select=schedule,updated_at').catch(function () { return null; }),
     ]);
-    const rows = await studiosRes.json();
     const studios = rows.map(rowToInternal);
     let planificador = null;
     if (planRes) {
@@ -200,16 +219,15 @@
     opts = opts || {};
     const limit = opts.limit || 5000;
     if (name === 'studios') {
-      const r = await sbFetch('/studios?select=*&limit=' + limit);
-      const arr = await r.json();
-      return arr.map(rowToInternal);
+      // Usar paginación para superar el límite de 1000 de PostgREST
+      const rows = await _fetchAllRows('/studios?select=*');
+      return rows.slice(0, limit).map(rowToInternal);
     }
     if (/^briefings\/[^/]+\/items$/.test(name)) {
       const studioId = name.split('/')[1];
       const r = await sbFetch('/briefings?studio_id=eq.' + encodeURIComponent(studioId) +
-        '&select=*&order=generated_at.desc&limit=' + limit);
+        '&select=*&order=generated_at.desc&limit=' + Math.min(limit, 1000));
       const arr = await r.json();
-      // Devolvemos en el shape que el rediseño espera (legacy Firestore item)
       return arr.map(function (b) {
         return Object.assign({}, b, { id: b.iso_date });
       });
