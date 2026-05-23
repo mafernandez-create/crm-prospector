@@ -442,26 +442,32 @@
     throw lastErr;
   }
 
-  /* Cache local de la última carga exitosa (TTL 6h). Sirve cuando Firestore
-     devuelve 429 sostenido y no podemos esperar a que se libere el rate limit. */
+  /* Cache local de la última carga exitosa.
+     - TTL_FRESH (1h): si tenemos cache fresco, lo servimos SIN tocar Firestore
+       (0 reads por recarga durante la primera hora).
+     - TTL_STALE (24h): si cache existe pero es viejo, intentamos refresh; si
+       Firestore falla devolvemos lo viejo con aviso de antigüedad.
+     - Más de 24h: cache obsoleto, fuerza recarga. */
   const CACHE_KEY = 'redesign:studios:cache:v1';
-  const CACHE_TTL_MS = 6 * 3600 * 1000;
+  const CACHE_TTL_STALE_MS = 24 * 3600 * 1000;
+  const CACHE_TTL_FRESH_MS = 60 * 60 * 1000;
 
-  function _readCache() {
+  function _readCache(maxAgeMs) {
     try {
       const raw = localStorage.getItem(CACHE_KEY);
       if (!raw) return null;
       const obj = JSON.parse(raw);
       if (!obj || !obj.savedAt || !Array.isArray(obj.studios)) return null;
-      if (Date.now() - obj.savedAt > CACHE_TTL_MS) return null;
+      if (Date.now() - obj.savedAt > (maxAgeMs || CACHE_TTL_STALE_MS)) return null;
       return obj;
     } catch (_) { return null; }
   }
-  function _writeCache(studios) {
+  function _writeCache(studios, planificador) {
     try {
       localStorage.setItem(CACHE_KEY, JSON.stringify({
         savedAt: Date.now(),
         studios: studios,
+        planificador: planificador || null,
       }));
     } catch (_) { /* quota llena o private mode */ }
   }
@@ -475,6 +481,20 @@
     State.loading = true;
     State.error = null;
 
+    // ¿Tenemos cache fresco (<1h)? Servir sin tocar Firestore.
+    const fresh = _readCache(CACHE_TTL_FRESH_MS);
+    if (fresh) {
+      State.studios = fresh.studios;
+      State.studiosById = {};
+      fresh.studios.forEach(function (s) { State.studiosById[s.id] = s; });
+      State.planificador = fresh.planificador || null;
+      State.loading = false;
+      console.info('[redesign/data] cartera servida desde cache local (' +
+        Math.round((Date.now() - fresh.savedAt) / 60000) + ' min) · ' +
+        fresh.studios.length + ' studios · 0 reads Firestore');
+      return;
+    }
+
     // Carga las dos fuentes en paralelo pero AISLADAS: si una falla,
     // la otra sigue. La cartera es crítica; el planificador, accesorio.
     const studiosP = _withRetry(function () {
@@ -487,26 +507,27 @@
       return null;
     });
 
-    let studios = null;
     try {
-      studios = await studiosP;
+      const studios = await studiosP;
       State.studios = studios || [];
       State.studiosById = {};
       (studios || []).forEach(function (s) { State.studiosById[s.id] = s; });
-      _writeCache(studios || []);
+      const plan = await planP;
+      State.planificador = plan;
+      _writeCache(studios || [], plan);
       console.info('[redesign/data] cartera cargada: ' + (studios || []).length + ' studios');
     } catch (e) {
-      // Firestore caído / 429 sostenido: usar cache local si existe
-      const cached = _readCache();
-      if (cached) {
-        console.warn('[redesign/data] Firestore falló, usando cache local de hace ' +
-          Math.round((Date.now() - cached.savedAt) / 60000) + ' min · ' +
-          cached.studios.length + ' studios');
-        State.studios = cached.studios;
+      // Firestore caído / 429 sostenido: usar cache STALE si existe (hasta 24h)
+      const stale = _readCache(CACHE_TTL_STALE_MS);
+      if (stale) {
+        const ageMin = Math.round((Date.now() - stale.savedAt) / 60000);
+        console.warn('[redesign/data] Firestore falló, usando cache stale de hace ' +
+          ageMin + ' min · ' + stale.studios.length + ' studios');
+        State.studios = stale.studios;
         State.studiosById = {};
-        cached.studios.forEach(function (s) { State.studiosById[s.id] = s; });
-        State.error = 'Datos de hace ' + Math.round((Date.now() - cached.savedAt) / 60000) +
-          ' min (Firestore no disponible). Recarga más tarde.';
+        stale.studios.forEach(function (s) { State.studiosById[s.id] = s; });
+        State.planificador = stale.planificador || null;
+        State.error = 'Datos de hace ' + ageMin + ' min (Firestore no disponible)';
       } else {
         console.error('[redesign/data] error cargando studios y sin cache:', e);
         State.error = e.message || String(e);
@@ -514,10 +535,13 @@
         throw e;
       }
     }
-    try {
-      State.planificador = await planP;
-    } catch (_) { /* ya logged en .catch */ State.planificador = null; }
     State.loading = false;
+  }
+
+  /* Fuerza recarga ignorando cache (botón "Sincronizar ahora") */
+  async function forceReload() {
+    try { localStorage.removeItem(CACHE_KEY); } catch (_) {}
+    return loadAll();
   }
 
   /* ============================================================
@@ -528,6 +552,7 @@
     REST_BASE: REST_BASE,
     GAS_URL: GAS_URL,
     loadAll: loadAll,
+    forceReload: forceReload,
     getDoc: getDoc,
     listCollection: listCollection,
     patchDoc: patchDoc,
