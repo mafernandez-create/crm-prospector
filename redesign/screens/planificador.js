@@ -125,15 +125,16 @@
       ? '<span style="font-size:12px; color:#b45309; background:#fef3c7; padding:3px 8px; border-radius:999px; font-weight:500;">Cambios sin guardar</span>'
       : '<span style="font-size:12px; color:var(--fg-3);">Sin cambios pendientes</span>';
     return (
-      '<div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; ' +
+      '<div class="planner-toolbar" style="display:flex; align-items:center; gap:12px; margin-bottom:16px; ' +
         'padding:10px 12px; background:var(--bg-2); border-radius:8px;">' +
         '<button class="btn btn-ghost" onclick="window.Screens.planificador.cambiarSemana(-7)" title="Semana anterior">' +
           I.ChevronLeft() + '</button>' +
         '<button class="btn btn-ghost" onclick="window.Screens.planificador.irHoy()" style="font-family:var(--font-mono); font-size:12px;">Hoy</button>' +
         '<button class="btn btn-ghost" onclick="window.Screens.planificador.cambiarSemana(7)" title="Semana siguiente">' +
           I.ChevronRight() + '</button>' +
-        '<strong style="font-family:var(--font-display); font-size:18px; margin-left:8px;">' + semanaEtiqueta(Local.semanaLunes) + '</strong>' +
-        '<span style="color:var(--fg-3); font-size:12px;">· ' + totalSemana + ' visita' + (totalSemana === 1 ? '' : 's') + '</span>' +
+        '<strong class="planner-week-label" style="font-family:var(--font-display); font-size:18px; margin-left:8px;">' + semanaEtiqueta(Local.semanaLunes) +
+          '<span style="color:var(--fg-3); font-size:12px; font-weight:400; margin-left:8px;">· ' + totalSemana + ' visita' + (totalSemana === 1 ? '' : 's') + '</span>' +
+        '</strong>' +
         '<div style="flex:1;"></div>' +
         dirtyBadge +
         (Local.dirty
@@ -157,7 +158,7 @@
 
   function weekGrid(dias) {
     return (
-      '<div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:10px;">' +
+      '<div class="planner-week-grid">' +
         dias.map(diaCol).join('') +
       '</div>'
     );

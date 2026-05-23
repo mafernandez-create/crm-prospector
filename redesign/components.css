@@ -938,3 +938,45 @@ body {
 /* Vistas */
 .crm-root .view { display: none; }
 .crm-root .view.active { display: block; }
+
+/* =====================================================================
+   Planificador — responsivo
+   Desktop: 7 columnas (lun…dom)
+   Tablet/Mobile (<900px): stack vertical de un día encima del otro
+   ===================================================================== */
+.crm-root .planner-week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+}
+@media (max-width: 900px) {
+  .crm-root .planner-week-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .crm-root .planner-col {
+    min-height: auto !important;
+  }
+  /* Toolbar: el row se parte en varias líneas si no caben */
+  .crm-root .planner-toolbar {
+    flex-wrap: wrap;
+    gap: 6px !important;
+  }
+  .crm-root .planner-toolbar > .planner-week-label {
+    flex-basis: 100%;
+    order: -1;
+    text-align: center;
+  }
+}
+
+/* Modal del planificador (alta/edición de visita) — full-screen en mobile */
+@media (max-width: 600px) {
+  .planner-modal-overlay > div {
+    min-width: 0 !important;
+    width: 96vw !important;
+    max-width: 96vw !important;
+    max-height: 92vh;
+    overflow: auto;
+    padding: 16px !important;
+  }
+}
