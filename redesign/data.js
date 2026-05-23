@@ -166,6 +166,7 @@
 
   async function getBriefingItems(studioId, limit) {
     try {
+      if (_useSupabase()) return await _sb().getBriefingItems(studioId, limit);
       return await listCollection('briefings/' + studioId + '/items', { limit: limit || 10 });
     } catch (e) {
       console.warn('[redesign/data] no se pudo leer briefings/' + studioId + '/items:', e.message);
@@ -180,11 +181,18 @@
      client-side (igual que el legacy).
      ============================================================ */
 
-  /* Helper: localiza el studio en State o lo fetcha de Firestore */
+  /* Helper: localiza el studio en State o lo fetcha del backend activo */
   async function _getStudio(studioId) {
     const State = window.State;
     if (State && State.studiosById && State.studiosById[studioId]) return State.studiosById[studioId];
+    if (_useSupabase()) return await _sb().getDoc('studios/' + studioId);
     return await getDoc('studios/' + studioId);
+  }
+  /* Helper: patch que respeta el backend activo. Lo usan las funciones de
+     alto nivel (generateBriefing, generateReport, savePlanificador, …) */
+  async function _patchDocActive(path, obj) {
+    if (_useSupabase()) return _sb().patchDoc(path, obj);
+    return patchDoc(path, obj);
   }
 
   /* Helper: read value (puede venir como string o {valor, fuente_url}) */
@@ -313,10 +321,10 @@
     const raw = await _claudeCall(systemPrompt, userMsg, 4096);
     const briefing = _parseJSON(raw);
 
-    // Persistir en Firestore
+    // Persistir en el backend activo
     const isoDate = new Date().toISOString().replace(/[:.]/g, '-');
     try {
-      await patchDoc('briefings/' + studioId + '/items/' + isoDate, {
+      await _patchDocActive('briefings/' + studioId + '/items/' + isoDate, {
         fecha_visita: fecha,
         generated_at: new Date().toISOString(),
         contexto_extra: contextoExtra || null,
@@ -395,7 +403,7 @@
     // Persistir como un report más en el studio
     const isoDate = new Date().toISOString().replace(/[:.]/g, '-');
     try {
-      await patchDoc('studios/' + studioId + '/reports/' + isoDate, {
+      await _patchDocActive('studios/' + studioId + '/reports/' + isoDate, {
         date: fecha,
         generated_at: new Date().toISOString(),
         modalidad: modalidad,
@@ -415,7 +423,7 @@
   /* Guarda _meta/planificador con el schedule pasado. Reemplaza el documento
      entero porque planificador se trata como una unidad atómica. */
   async function savePlanificador(schedule) {
-    const out = await patchDoc('_meta/planificador', { schedule: schedule || {} });
+    const out = await _patchDocActive('_meta/planificador', { schedule: schedule || {} });
     if (window.State) window.State.planificador = out;
     return out;
   }
@@ -472,6 +480,23 @@
     } catch (_) { /* quota llena o private mode */ }
   }
 
+  /* ============================================================
+     BACKEND SWITCH (Fase 1 migración Supabase)
+     ============================================================
+     Si localStorage['redesign:backend'] === 'supabase', delega TODO el
+     I/O a window.DataSupabase (definido en redesign/data-supabase.js).
+     Default: 'firebase' = comportamiento actual. */
+  function _activeBackend() {
+    try { return localStorage.getItem('redesign:backend') || 'firebase'; }
+    catch (_) { return 'firebase'; }
+  }
+  function _sb() {
+    return window.DataSupabase;
+  }
+  function _useSupabase() {
+    return _activeBackend() === 'supabase' && !!_sb();
+  }
+
   async function loadAll() {
     const State = window.State;
     if (!State) {
@@ -480,8 +505,9 @@
     }
     State.loading = true;
     State.error = null;
+    State.backend = _activeBackend();
 
-    // ¿Tenemos cache fresco (<1h)? Servir sin tocar Firestore.
+    // ¿Tenemos cache fresco (<1h)? Servir sin tocar el backend.
     const fresh = _readCache(CACHE_TTL_FRESH_MS);
     if (fresh) {
       State.studios = fresh.studios;
@@ -491,10 +517,45 @@
       State.loading = false;
       console.info('[redesign/data] cartera servida desde cache local (' +
         Math.round((Date.now() - fresh.savedAt) / 60000) + ' min) · ' +
-        fresh.studios.length + ' studios · 0 reads Firestore');
+        fresh.studios.length + ' studios · 0 reads remotos');
       return;
     }
 
+    // Path Supabase: una sola llamada que retorna {studios, planificador}
+    if (_useSupabase()) {
+      try {
+        const out = await _sb().loadAll();
+        State.studios = out.studios || [];
+        State.studiosById = {};
+        State.studios.forEach(function (s) { State.studiosById[s.id] = s; });
+        State.planificador = out.planificador || null;
+        _writeCache(State.studios, State.planificador);
+        State.loading = false;
+        console.info('[redesign/data] backend=supabase · cartera: ' + State.studios.length);
+        return;
+      } catch (e) {
+        // Si Supabase falla, fallback a cache STALE (24h)
+        const stale = _readCache(CACHE_TTL_STALE_MS);
+        if (stale) {
+          const ageMin = Math.round((Date.now() - stale.savedAt) / 60000);
+          console.warn('[redesign/data] Supabase falló, cache stale ' + ageMin + ' min');
+          State.studios = stale.studios;
+          State.studiosById = {};
+          stale.studios.forEach(function (s) { State.studiosById[s.id] = s; });
+          State.planificador = stale.planificador || null;
+          State.error = 'Datos de hace ' + ageMin + ' min (Supabase no disponible)';
+        } else {
+          console.error('[redesign/data] Supabase falló y sin cache:', e);
+          State.error = e.message || String(e);
+          State.loading = false;
+          throw e;
+        }
+        State.loading = false;
+        return;
+      }
+    }
+
+    // Path Firebase (default) — comportamiento previo
     // Carga las dos fuentes en paralelo pero AISLADAS: si una falla,
     // la otra sigue. La cartera es crítica; el planificador, accesorio.
     const studiosP = _withRetry(function () {
@@ -515,7 +576,7 @@
       const plan = await planP;
       State.planificador = plan;
       _writeCache(studios || [], plan);
-      console.info('[redesign/data] cartera cargada: ' + (studios || []).length + ' studios');
+      console.info('[redesign/data] backend=firebase · cartera: ' + (studios || []).length);
     } catch (e) {
       // Firestore caído / 429 sostenido: usar cache STALE si existe (hasta 24h)
       const stale = _readCache(CACHE_TTL_STALE_MS);
@@ -546,16 +607,32 @@
 
   /* ============================================================
      EXPORT
-     ============================================================ */
+     ============================================================
+     Para getDoc/listCollection/patchDoc, exponemos wrappers que enrutan
+     al backend activo. Las pantallas siguen llamando a window.Data.X
+     sin saber qué backend hay detrás. */
+  function _routeGetDoc(path) {
+    if (_useSupabase()) return _sb().getDoc(path);
+    return getDoc(path);
+  }
+  function _routeListCollection(name, opts) {
+    if (_useSupabase()) return _sb().listCollection(name, opts);
+    return listCollection(name, opts);
+  }
+  function _routePatchDoc(path, obj, opts) {
+    if (_useSupabase()) return _sb().patchDoc(path, obj, opts);
+    return patchDoc(path, obj, opts);
+  }
+
   window.Data = {
     PROJECT: PROJECT,
     REST_BASE: REST_BASE,
     GAS_URL: GAS_URL,
     loadAll: loadAll,
     forceReload: forceReload,
-    getDoc: getDoc,
-    listCollection: listCollection,
-    patchDoc: patchDoc,
+    getDoc: _routeGetDoc,
+    listCollection: _routeListCollection,
+    patchDoc: _routePatchDoc,
     callGAS: callGAS,
     generateBriefing: generateBriefing,
     generateReport: generateReport,
@@ -566,5 +643,7 @@
     fieldsToObj: fieldsToObj,
     wrap: wrap,
     objToFields: objToFields,
+    // Diagnóstico
+    activeBackend: _activeBackend,
   };
 })();
