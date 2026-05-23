@@ -173,17 +173,243 @@
     }
   }
 
-  async function generateBriefing(studioId, fechaISO, contextoExtra) {
-    return callGAS('briefingNarrativo', {
-      studioId: studioId,
-      fecha: fechaISO,
-      contextoExtra: contextoExtra || '',
+  /* ============================================================
+     IA: BRIEFING + INFORME
+     El GAS sólo expone 'claudeProxy' (passthrough a la API de Claude).
+     La lógica de build prompt + parseo + persistencia se hace
+     client-side (igual que el legacy).
+     ============================================================ */
+
+  /* Helper: localiza el studio en State o lo fetcha de Firestore */
+  async function _getStudio(studioId) {
+    const State = window.State;
+    if (State && State.studiosById && State.studiosById[studioId]) return State.studiosById[studioId];
+    return await getDoc('studios/' + studioId);
+  }
+
+  /* Helper: read value (puede venir como string o {valor, fuente_url}) */
+  function _val(v) {
+    if (v == null) return '';
+    if (typeof v === 'string') return v;
+    if (typeof v === 'object' && 'valor' in v) return v.valor || '';
+    return String(v);
+  }
+
+  /* Llama a claudeProxy a través de GAS. Devuelve el texto plano de Claude
+     o lanza con el mensaje de error. */
+  async function _claudeCall(systemPrompt, userMsg, maxTokens) {
+    const res = await callGAS('claudeProxy', {
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: maxTokens || 4096,
+      messages: [{ role: 'user', content: userMsg }],
+      system: systemPrompt,
     });
+    if (res && res.error) {
+      const msg = typeof res.error === 'string' ? res.error : (res.error.message || JSON.stringify(res.error));
+      throw new Error(msg);
+    }
+    const text = (res && res.content && res.content[0] && (res.content[0].text || res.content[0].value)) || res.text || '';
+    if (!text) throw new Error('Respuesta vacía de la IA');
+    return text;
+  }
+
+  /* Extrae JSON de la respuesta de Claude (con ```json fences o no) */
+  function _parseJSON(raw) {
+    const cleaned = String(raw).replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    try { return JSON.parse(cleaned); } catch (_) {}
+    const s = raw.indexOf('{'), e = raw.lastIndexOf('}');
+    if (s >= 0 && e > s) {
+      try { return JSON.parse(raw.slice(s, e + 1)); } catch (_) {}
+    }
+    throw new Error('La IA no devolvió JSON parseable');
+  }
+
+  async function generateBriefing(studioId, fechaISO, contextoExtra) {
+    const studio = await _getStudio(studioId);
+    if (!studio) throw new Error('Estudio ' + studioId + ' no encontrado');
+
+    const State = window.State;
+    const studios = (State && State.studios) || [];
+    const fecha = fechaISO || new Date().toISOString().slice(0, 10);
+
+    // Datos del studio
+    const studioName = studio.name || 'Empresa';
+    const province = _val(studio.province) || _val(studio.city) || '';
+    const city = _val(studio.city) || province;
+    const types = Array.isArray(studio.type) ? studio.type : [studio.type || 'ARQ'];
+    const contact = (studio.data && studio.data.contact) || {};
+    const reports = (studio.data && studio.data.reports) || [];
+    const activities = (studio.data && studio.data.activities) || [];
+    const lastEvents = [].concat(reports, activities)
+      .filter(function (e) { return e && (e.date || e.createdAt); })
+      .sort(function (a, b) {
+        const da = new Date(b.date || b.createdAt || 0).getTime();
+        const db = new Date(a.date || a.createdAt || 0).getTime();
+        return da - db;
+      }).slice(0, 5);
+
+    // Red de conexiones: mismo cuadrante o misma provincia
+    const sameProvince = studios.filter(function (s) {
+      return s.id !== studio.id && (_val(s.province) === province);
+    });
+    const sameQuadrant = sameProvince.filter(function (s) {
+      return s.priorityQuadrant && s.priorityQuadrant === studio.priorityQuadrant;
+    }).slice(0, 5);
+    const puentes = sameProvince.filter(function (s) { return s.es_cliente_puente === true; }).slice(0, 5);
+
+    const crmCtx = [
+      'NOMBRE: ' + studioName,
+      'CIUDAD: ' + (city || '—') + ' · PROVINCIA: ' + (province || '—'),
+      'TIPOS: ' + types.join(', '),
+      studio.es_cliente_puente ? '⚠️ ES CLIENTE PUENTE' : null,
+      studio.priorityQuadrant ? 'CUADRANTE: Q' + studio.priorityQuadrant + ' ' + (studio.priorityQuadrantName || '') : null,
+      studio.priorityDirect ? 'Eje Directo: ' + studio.priorityDirect + ' (' + (studio.priorityDirectScore || 0) + 'pts)' : null,
+      studio.priorityNetwork ? 'Eje Red: ' + studio.priorityNetwork + ' (' + (studio.priorityNetworkScore || 0) + 'pts)' : null,
+      studio.score ? 'SCORE INTERNO: ' + studio.score : null,
+      _val(contact.phone) ? 'TEL: ' + _val(contact.phone) : null,
+      _val(contact.email) ? 'EMAIL: ' + _val(contact.email) : null,
+      _val(contact.web) ? 'WEB: ' + _val(contact.web) : null,
+      studio.data && studio.data.description ? 'DESCRIPCIÓN: ' + studio.data.description.slice(0, 400) : null,
+    ].filter(Boolean).join('\n');
+
+    const histCtx = lastEvents.length === 0
+      ? 'Sin visitas ni actividades registradas (primera visita).'
+      : lastEvents.map(function (v, i) {
+          const d = (v.date || v.createdAt || '').slice(0, 10);
+          const t = v.title || v.type || 'evento';
+          const n = (v.notes || '').slice(0, 220);
+          return '[' + d + '] ' + t + (n ? ' — ' + n : '');
+        }).join('\n');
+
+    const redCtx = [];
+    if (puentes.length) redCtx.push('Otros prescriptores puente en ' + province + ': ' + puentes.map(function (s) { return s.name; }).join(', '));
+    if (sameQuadrant.length) redCtx.push('Mismo cuadrante Q' + studio.priorityQuadrant + ' en provincia: ' + sameQuadrant.slice(0, 3).map(function (s) { return s.name; }).join(', '));
+
+    const systemPrompt = 'Eres el asistente comercial de Manolo Fernández, prescriptor de Grupo GPF (Ferroplast, Tuyper, Ecosan, Biopipe, PVC-O, MUTE) en Andalucía/Extremadura/Levante.\n\n' +
+      'Misión: generar un briefing pre-visita ACCIONABLE de 1 página con 8 secciones exactas.\n\n' +
+      'REGLAS:\n' +
+      '- Concreto, NO genérico. Si no hay datos suficientes, dilo explícito.\n' +
+      '- Productos GPF: MUTE (saneamiento insonorizado PVC), Ecosan (saneamiento ecológico), Biopipe (bioplástico), PVC-O (presión), Tuyper.\n' +
+      '- Devuelve ÚNICAMENTE el JSON con las 8 claves exactas, sin texto extra.';
+
+    const userMsg = 'Genera briefing pre-visita para esta empresa.\n\n' +
+      'DATOS CRM:\n' + crmCtx + '\n' +
+      (contextoExtra ? '\nCONTEXTO ADICIONAL:\n' + contextoExtra + '\n' : '') +
+      '\nHISTÓRICO RECIENTE:\n' + histCtx + '\n' +
+      '\nRED DE CONEXIONES:\n' + (redCtx.join('\n') || 'Sin conexiones destacables.') + '\n' +
+      '\nFECHA VISITA: ' + fecha + '\n\n' +
+      'Devuelve ÚNICAMENTE este JSON (8 claves exactas):\n' +
+      '{\n' +
+      '  "resumen_ejecutivo": "3-4 líneas: quién es, dónde está en la cartera (cuadrante), por qué se le visita ahora",\n' +
+      '  "historico_reciente": "Lo último que se habló, fecha, interlocutor. Si primera visita, di \'Primera visita — sin historial\'",\n' +
+      '  "compromisos_abiertos": "Lo prometido y no cerrado. Si no hay, di \'—\'",\n' +
+      '  "senales_mercado": "Adjudicaciones públicas recientes, cambios sector, noticias 2024-2026 relevantes",\n' +
+      '  "red_conexiones": "Otros prospects/clientes relacionados, especialmente cliente puente si aplica",\n' +
+      '  "spin_visita": {"situacion":"Pregunta concreta", "problema":"Pregunta concreta", "implicacion":"Pregunta concreta", "necesidad_pago":"Pregunta concreta"},\n' +
+      '  "catalogo_prioritario": ["Producto GPF 1 — razón específica", "Producto 2 — razón", "Producto 3 — razón (opcional)"],\n' +
+      '  "evitar_mencionar": ["Aspecto 1 a no revelar", "Aspecto 2"]\n' +
+      '}';
+
+    const raw = await _claudeCall(systemPrompt, userMsg, 4096);
+    const briefing = _parseJSON(raw);
+
+    // Persistir en Firestore
+    const isoDate = new Date().toISOString().replace(/[:.]/g, '-');
+    try {
+      await patchDoc('briefings/' + studioId + '/items/' + isoDate, {
+        fecha_visita: fecha,
+        generated_at: new Date().toISOString(),
+        contexto_extra: contextoExtra || null,
+        briefing: briefing,
+        studio_snapshot: {
+          name: studioName,
+          province: province,
+          cuadrante: studio.priorityQuadrant || null,
+          es_cliente_puente: studio.es_cliente_puente === true,
+        },
+      });
+    } catch (e) {
+      console.warn('[redesign/data] persistencia briefing falló:', e.message);
+    }
+
+    return { success: true, briefing: briefing, persisted: true };
   }
 
   async function generateReport(studioId, payload) {
-    // payload: { modalidad, fecha, comercial, prescripcion, notes }
-    return callGAS('informeIA', Object.assign({ studioId: studioId }, payload || {}));
+    payload = payload || {};
+    const studio = await _getStudio(studioId);
+    if (!studio) throw new Error('Estudio ' + studioId + ' no encontrado');
+
+    const modalidad = payload.modalidad || 'real';
+    const fecha = payload.fecha || new Date().toISOString().slice(0, 10);
+    const comercial = payload.comercial || 'Manolo Fernández';
+    const prescripcion = !!payload.prescripcion;
+    const notas = payload.notes || payload.notas || '';
+
+    if (modalidad === 'real' && !notas.trim()) {
+      throw new Error('Necesitas escribir las notas de la visita antes de generar el informe.');
+    }
+
+    const studioName = studio.name || 'Empresa';
+    const province = _val(studio.province) || '';
+    const city = _val(studio.city) || province;
+    const contact = (studio.data && studio.data.contact) || {};
+
+    const crmCtx = [
+      'EMPRESA: ' + studioName,
+      'CIUDAD: ' + (city || '—') + ' · PROVINCIA: ' + (province || '—'),
+      _val(contact.phone) ? 'TEL: ' + _val(contact.phone) : null,
+      _val(contact.email) ? 'EMAIL: ' + _val(contact.email) : null,
+      _val(contact.web) ? 'WEB: ' + _val(contact.web) : null,
+      studio.priorityQuadrant ? 'CUADRANTE: Q' + studio.priorityQuadrant : null,
+      studio.score ? 'SCORE: ' + studio.score : null,
+    ].filter(Boolean).join('\n');
+
+    const systemPrompt = 'Eres el asistente de informes de visitas comerciales de Manuel Fernández (Manolo), prescriptor de Grupo Plásticos Ferro (GPF) en Andalucía/Extremadura/Levante.\n\n' +
+      'Misión: convertir las notas en bruto de una visita en un informe estructurado, conciso y accionable.\n\n' +
+      'REGLAS:\n' +
+      '- Tono profesional pero ameno, primera persona ("estuve con…", "me comentaron que…").\n' +
+      '- Sintetiza, no copies literal. Detecta compromisos, acciones siguientes y oportunidades.\n' +
+      '- Devuelve ÚNICAMENTE el JSON con las claves exactas, sin texto extra.';
+
+    const userMsg = 'Genera un informe de visita.\n\n' +
+      'DATOS EMPRESA:\n' + crmCtx + '\n' +
+      '\nFECHA VISITA: ' + fecha + '\nCOMERCIAL: ' + comercial + '\nMODALIDAD: ' + modalidad +
+      (prescripcion ? ' (visita de prescripción)' : '') + '\n' +
+      '\nNOTAS EN BRUTO DEL COMERCIAL:\n' + notas + '\n\n' +
+      'Devuelve ÚNICAMENTE este JSON:\n' +
+      '{\n' +
+      '  "resumen": "1-2 párrafos sintetizando la reunión",\n' +
+      '  "interlocutores": ["Nombre 1 — cargo", "Nombre 2 — cargo"],\n' +
+      '  "temas_tratados": ["Tema 1", "Tema 2", "Tema 3"],\n' +
+      '  "compromisos": [{"que":"Qué hacer", "quien":"Quién", "cuando":"Cuándo"}],\n' +
+      '  "oportunidades_detectadas": ["Producto/proyecto identificado"],\n' +
+      '  "proxima_accion": "La acción más concreta para mover el deal",\n' +
+      '  "nivel_interes": "alto|medio|bajo",\n' +
+      '  "notas_adicionales": "Cualquier cosa relevante que no encaje arriba"\n' +
+      '}';
+
+    const raw = await _claudeCall(systemPrompt, userMsg, 4096);
+    const report = _parseJSON(raw);
+
+    // Persistir como un report más en el studio
+    const isoDate = new Date().toISOString().replace(/[:.]/g, '-');
+    try {
+      await patchDoc('studios/' + studioId + '/reports/' + isoDate, {
+        date: fecha,
+        generated_at: new Date().toISOString(),
+        modalidad: modalidad,
+        comercial: comercial,
+        prescripcion: prescripcion,
+        notes_raw: notas,
+        report: report,
+        title: 'Visita ' + fecha + ' · ' + comercial,
+      });
+    } catch (e) {
+      console.warn('[redesign/data] persistencia report falló:', e.message);
+    }
+
+    return { success: true, report: report, persisted: true };
   }
 
   /* Guarda _meta/planificador con el schedule pasado. Reemplaza el documento
