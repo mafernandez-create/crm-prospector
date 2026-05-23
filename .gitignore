@@ -20,3 +20,7 @@ dunsSegmentacion_fix.js
 *.xlsx
 *.csv
 .claude/
+
+# Supabase credentials (nunca commitear)
+.env.supabase*
+*.supabase.env
