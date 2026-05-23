@@ -195,11 +195,33 @@ function mapStudio(s) {
   };
 }
 
+// ─── Fuente de datos: Firestore en vivo o JSON local ────────────────
+// Variable global que decide de dónde leer. Se inicializa en main().
+let SOURCE = null;  // { type: 'firestore' } | { type: 'file', data: {…} }
+
+async function _readStudios() {
+  if (SOURCE.type === 'file') return SOURCE.data.data.studios || [];
+  return await listAll('studios');
+}
+async function _readMeta(key) {
+  if (SOURCE.type === 'file') {
+    const m = (SOURCE.data.data || {}).meta || {};
+    return m[key] || null;
+  }
+  return await getDoc('_meta/' + key);
+}
+async function _readBriefings() {
+  if (SOURCE.type === 'file') return SOURCE.data.data.briefings || [];
+  // Para Firestore en vivo, no listamos subcolecciones masivamente.
+  // Se hace bajo demanda en otro punto.
+  return [];
+}
+
 // ─── Migraciones por colección ───────────────────────────────────────
 async function migrateStudios() {
   console.log('\n=== MIGRACIÓN: studios ===');
-  console.log('1) Leyendo Firestore (paginado)…');
-  const docs = await listAll('studios');
+  console.log(`1) Leyendo de ${SOURCE.type === 'file' ? 'JSON local' : 'Firestore'}…`);
+  const docs = await _readStudios();
   console.log(`   Total: ${docs.length}`);
 
   console.log('2) Mapeando al schema Postgres…');
@@ -218,7 +240,7 @@ async function migrateStudios() {
 
 async function migrateMeta() {
   console.log('\n=== MIGRACIÓN: _meta/* ===');
-  const planificador = await getDoc('_meta/planificador');
+  const planificador = await _readMeta('planificador');
   if (planificador) {
     const schedule = planificador.schedule || {};
     const r = await fetch(`${SUPABASE_URL}/rest/v1/meta_planificador?id=eq.1`, {
@@ -243,7 +265,7 @@ async function migrateMeta() {
   const otherKeys = ['batch_checkpoint', 'search_metrics', 'counters', 'referencias_cruzadas'];
   const kvRows = [];
   for (const key of otherKeys) {
-    const doc = await getDoc('_meta/' + key);
+    const doc = await _readMeta(key);
     if (doc) {
       // Eliminamos el campo 'id' que viene del unwrap (es el nombre del doc, no útil)
       const value = Object.assign({}, doc);
@@ -259,26 +281,67 @@ async function migrateMeta() {
 
 async function migrateBriefings() {
   console.log('\n=== MIGRACIÓN: briefings ===');
-  console.log('Nota: las subcolecciones briefings/{id}/items no se pueden listar globalmente sin collectionGroup query.');
-  console.log('Esto migra briefings iterando los studios con campo briefingPreview o leyendo cada subcol.');
-  console.log('Por defecto NO se migra en esta fase. Activar manualmente cuando sea necesario.');
-  // TODO: implementar cuando sea necesario. La mayoría de briefings se regenerarán
-  // bajo demanda desde el rediseño, no es crítico portar el histórico.
+  const list = await _readBriefings();
+  if (!list.length) {
+    console.log('  (sin briefings que migrar)');
+    return;
+  }
+  const rows = list.map(b => ({
+    studio_id: String(b.studio_id),
+    iso_date: b.iso_date || b.id || new Date().toISOString().replace(/[:.]/g, '-'),
+    fecha_visita: b.fecha_visita || null,
+    briefing: b.briefing || null,
+    markdown: b.markdown || null,
+    contexto_extra: b.contexto_extra || null,
+    studio_snapshot: b.studio_snapshot || null,
+    generated_at: b.generated_at || new Date().toISOString(),
+  })).filter(r => r.briefing);  // solo si tiene contenido real
+  console.log(`   Total briefings a migrar: ${rows.length}`);
+  if (!rows.length) return;
+  let done = 0;
+  for (let i = 0; i < rows.length; i += 100) {
+    const batch = rows.slice(i, i + 100);
+    await supabaseUpsert('briefings', batch, 'studio_id,iso_date');
+    done += batch.length;
+    process.stdout.write(`\r   ${done}/${rows.length}`);
+  }
+  console.log(`\n✓ ${done} briefings migrados`);
 }
 
 // ─── Entrada ────────────────────────────────────────────────────────
-const argOnly = (() => {
-  const eq = process.argv.find(a => a.startsWith('--only='));
-  if (eq) return eq.slice(7);
-  const idx = process.argv.indexOf('--only');
+function getArg(name, def) {
+  const eq = process.argv.find(a => a.startsWith('--' + name + '='));
+  if (eq) return eq.slice(name.length + 3);
+  const idx = process.argv.indexOf('--' + name);
   if (idx > 0 && process.argv[idx + 1]) return process.argv[idx + 1];
-  return 'studios';
-})();
+  return def;
+}
+const argOnly = getArg('only', 'studios');
+const argFromBackup = getArg('from-backup', null);
 
 (async () => {
   const start = Date.now();
-  console.log(`[migration] arrancando · only=${argOnly}`);
+
+  // Decidir fuente de datos
+  if (argFromBackup) {
+    console.log(`[migration] fuente: JSON local ${argFromBackup}`);
+    const buf = fs.readFileSync(argFromBackup, 'utf8');
+    const data = JSON.parse(buf);
+    // Normalizar: aceptamos backups antiguos del legacy (data.studios array directo)
+    // o nuevos (data.studios + data.meta).
+    if (!data.data) {
+      console.error('ERROR: el backup no tiene la clave "data". Estructura inesperada.');
+      process.exit(1);
+    }
+    SOURCE = { type: 'file', data: data };
+    console.log(`[migration] backup creado: ${data.createdAt || '(desconocido)'}`);
+    console.log(`[migration] contenido: ${(data.data.studios || []).length} studios, ${(data.data.activities || []).length} activities, ${(data.data.briefings || []).length} briefings`);
+  } else {
+    console.log('[migration] fuente: Firestore en vivo');
+    SOURCE = { type: 'firestore' };
+  }
   console.log(`[migration] target: ${SUPABASE_URL}`);
+  console.log(`[migration] only=${argOnly}\n`);
 
   if (argOnly === 'studios' || argOnly === 'all') await migrateStudios();
   if (argOnly === 'meta' || argOnly === 'all') await migrateMeta();
