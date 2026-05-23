@@ -1,10 +1,17 @@
-/* CRM Prospector · Service Worker v2 (rediseño)
+/* CRM Prospector · Service Worker v10 (rediseño)
  *
- * Estrategia network-first con fallback a caché. Borra cachés viejas
- * (v1 del CRM antiguo) al activar para que los usuarios con PWA instalada
- * vean el rediseño tras el primer refresh.
+ * IMPORTANTE: este SW NO cachea los scripts/HTML del rediseño para evitar
+ * el problema observado el 2026-05-23 — un SW antiguo siguió sirviendo
+ * data.js cacheado tras varios deploys, bloqueando los fixes.
+ *
+ * Reglas:
+ *   - HTML, JS, CSS del rediseño → siempre red (network-only). Si falla,
+ *     se cae a un fallback offline mínimo.
+ *   - Recursos terceros (fuentes Google, CDN Leaflet/XLSX) → cache-first
+ *     porque son inmutables por URL.
+ *   - Firestore / GAS → pasan tal cual (no se interceptan).
  */
-const CACHE_NAME = 'crm-prospector-v9';
+const CACHE_NAME = 'crm-prospector-v10';
 
 self.addEventListener('install', function (e) {
   self.skipWaiting();
@@ -22,14 +29,40 @@ self.addEventListener('activate', function (e) {
   })());
 });
 
-self.addEventListener('fetch', function (e) {
-  // Solo cacheamos GET de mismo origen para no interferir con Firestore/GAS
-  if (e.request.method !== 'GET') return;
-  if (new URL(e.request.url).origin !== self.location.origin) return;
+function isAppScript(url) {
+  return (
+    url.pathname.endsWith('/') ||
+    url.pathname.endsWith('.html') ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css') ||
+    url.pathname.endsWith('/sw.js')
+  );
+}
 
+self.addEventListener('fetch', function (e) {
+  if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+
+  // No interceptar nada fuera del origen propio (Firestore, GAS, fuentes…)
+  if (url.origin !== self.location.origin) return;
+
+  // Scripts/HTML/CSS del rediseño → network-only.
+  // Si la red falla, devolvemos el cache si existe; sin red ni cache, error
+  // explícito al navegador (mejor que servir un asset desactualizado).
+  if (isAppScript(url)) {
+    e.respondWith(
+      fetch(e.request, { cache: 'no-store' }).catch(function () {
+        return caches.match(e.request);
+      })
+    );
+    return;
+  }
+
+  // Resto de assets propios (imágenes, etc.) → cache-first
   e.respondWith(
-    fetch(e.request)
-      .then(function (r) {
+    caches.match(e.request).then(function (cached) {
+      if (cached) return cached;
+      return fetch(e.request).then(function (r) {
         if (r && r.ok) {
           const copy = r.clone();
           caches.open(CACHE_NAME)
@@ -37,7 +70,7 @@ self.addEventListener('fetch', function (e) {
             .catch(function () { /* ignore */ });
         }
         return r;
-      })
-      .catch(function () { return caches.match(e.request); })
+      });
+    })
   );
 });
