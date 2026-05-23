@@ -221,10 +221,13 @@
 
   function buildNavegar() {
     return [
-      { key: 'n:hoy',       icon: I.Home(),       title: 'Hoy',       trail: '⌘1', kbd: true, onExecute: function () { window.showView('inicio'); } },
-      { key: 'n:empresas',  icon: I.Building(),   title: 'Empresas',  trail: '⌘2', kbd: true, onExecute: function () { window.showView('studios'); } },
-      { key: 'n:dashboard', icon: I.TrendingUp(), title: 'Dashboard', trail: '⌘3', kbd: true, onExecute: function () { window.showView('dashboard'); } },
-      { key: 'n:bandeja',   icon: I.Layers(),     title: 'Bandeja del agente', trail: '⌘4', kbd: true, onExecute: function () { window.showView('bandeja'); } },
+      { key: 'n:hoy',          icon: I.Home(),       title: 'Hoy',                  trail: '⌘1', kbd: true, onExecute: function () { window.showView('inicio'); } },
+      { key: 'n:empresas',     icon: I.Building(),   title: 'Empresas',             trail: '⌘2', kbd: true, onExecute: function () { window.showView('studios'); } },
+      { key: 'n:dashboard',    icon: I.TrendingUp(), title: 'Dashboard',            trail: '⌘3', kbd: true, onExecute: function () { window.showView('dashboard'); } },
+      { key: 'n:bandeja',      icon: I.Layers(),     title: 'Bandeja del agente',   trail: '⌘4', kbd: true, onExecute: function () { window.showView('bandeja'); } },
+      { key: 'n:planificador', icon: I.Calendar(),   title: 'Planificador',         trail: '⌘5', kbd: true, onExecute: function () { window.showView('planificador'); } },
+      { key: 'n:mapa',         icon: I.MapPin(),     title: 'Mapa caliente',        trail: '⌘6', kbd: true, onExecute: function () { window.showView('mapa'); } },
+      { key: 'n:importar',     icon: I.Save(),       title: 'Importar / Exportar',  trail: '⌘7', kbd: true, onExecute: function () { window.showView('importar'); } },
     ];
   }
 
