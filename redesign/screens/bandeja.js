@@ -25,6 +25,15 @@
      DATOS — Fase G/v1.1: lee de State.studios real.
               Si la cartera no está cargada, mock fallback.
      ============================================================ */
+  // Normaliza priorityQuadrant a "Q{n}" (Firestore lo guarda como número 1-9)
+  function normalizeQ(v) {
+    if (v == null) return null;
+    if (typeof v === 'string' && /^Q[1-9]$/.test(v)) return v;
+    if (typeof v === 'number' && v >= 1 && v <= 9) return 'Q' + v;
+    if (typeof v === 'string' && /^[1-9]$/.test(v)) return 'Q' + v;
+    return null;
+  }
+
   const TIPO_LABELS = {
     ARQ: 'Arquitectura',
     ING: 'Ingeniería',
@@ -43,7 +52,7 @@
     const conteoQActivos = {};
     const hace30 = new Date(State.today.getTime() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
     for (const s of State.studios) {
-      const q = s.priorityQuadrant || s.cuadrante || s.quadrant;
+      const q = normalizeQ(s.priorityQuadrant) || s.cuadrante || s.quadrant;
       if (!q) continue;
       conteoQ[q] = (conteoQ[q] || 0) + 1;
       const last = U.lastInteraction(s);
@@ -69,7 +78,7 @@
     });
 
     // Cuántos studios SIN cuadrante (para mostrar advertencia)
-    const sinCuadrante = State.studios.filter(function (s) { return !(s.priorityQuadrant || s.cuadrante || s.quadrant); }).length;
+    const sinCuadrante = State.studios.filter(function (s) { return !(normalizeQ(s.priorityQuadrant) || s.cuadrante || s.quadrant); }).length;
 
     return {
       cuadrantes: cuadrantes,

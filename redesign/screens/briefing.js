@@ -129,6 +129,14 @@
     };
   }
 
+  function normQuadrantLocal(v) {
+    if (v == null) return null;
+    if (typeof v === 'string' && /^Q[1-9]$/.test(v)) return v;
+    if (typeof v === 'number' && v >= 1 && v <= 9) return 'Q' + v;
+    if (typeof v === 'string' && /^[1-9]$/.test(v)) return 'Q' + v;
+    return null;
+  }
+
   function keyFactsFromStudio(id) {
     const s = State.studiosById[id];
     if (!s) return [
@@ -138,7 +146,7 @@
     ];
     return [
       { label: 'Ubicación',  value: s.city || s.province || '—' },
-      { label: 'Cuadrante',  value: s.priorityQuadrantName || s.priorityQuadrant || s.cuadrante || s.quadrant || '—' },
+      { label: 'Cuadrante',  value: s.priorityQuadrantName || normQuadrantLocal(s.priorityQuadrant) || s.cuadrante || s.quadrant || '—' },
       { label: 'Score',      value: String(s.score || '—') },
     ];
   }

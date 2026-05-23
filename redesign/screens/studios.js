@@ -30,6 +30,14 @@
   };
   const POR_PAGINA = 50;
 
+  function normalizeQ(v) {
+    if (v == null) return null;
+    if (typeof v === 'string' && /^Q[1-9]$/.test(v)) return v;
+    if (typeof v === 'number' && v >= 1 && v <= 9) return 'Q' + v;
+    if (typeof v === 'string' && /^[1-9]$/.test(v)) return 'Q' + v;
+    return null;
+  }
+
   const TIPO_LABELS = {
     ARQ: 'Arquitectura',
     ING: 'Ingeniería',
@@ -207,7 +215,7 @@
               '<span style="color:var(--fg-2);">' + escape(TIPO_LABELS[s.type] || s.type || '—') + '</span>' +
               '<span style="color:var(--fg-2);">' + escape(s.province || '—') + '</span>' +
               '<span style="color:var(--fg-2); font-family:var(--font-mono); font-size:12px;" title="' + escape(s.priorityQuadrantName || '') + '">' +
-                escape(s.priorityQuadrant || s.cuadrante || s.quadrant || '—') +
+                escape(normalizeQ(s.priorityQuadrant) || s.cuadrante || s.quadrant || '—') +
               '</span>' +
               '<span style="color:var(--fg-2); font-family:var(--font-mono); font-size:12px;">' +
                 (lastDate ? U.formatDateES(lastDate) : '—') +
