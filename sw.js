@@ -4,7 +4,7 @@
  * (v1 del CRM antiguo) al activar para que los usuarios con PWA instalada
  * vean el rediseño tras el primer refresh.
  */
-const CACHE_NAME = 'crm-prospector-v6';
+const CACHE_NAME = 'crm-prospector-v7';
 
 self.addEventListener('install', function (e) {
   self.skipWaiting();

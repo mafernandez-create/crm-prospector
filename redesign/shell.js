@@ -115,7 +115,7 @@
     return (
       // Cmd+K palette overlay (vacío hasta Fase E)
       '<div class="cmdk-overlay" id="cmdk-overlay" onclick="if(event.target===this) Cmdk.close()">' +
-        '<div class="cmdk-palette" onclick="event.stopPropagation()">' +
+        '<div class="cmdk-palette">' +
           '<div class="input-row">' +
             '<span style="color:var(--fg-3)">' + I.Search() + '</span>' +
             '<input id="cmdk-input" placeholder="Empresa, acción o atajo…" ' +
