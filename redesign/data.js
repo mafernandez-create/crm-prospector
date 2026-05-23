@@ -423,6 +423,25 @@
   /* ============================================================
      CARGA INICIAL
      ============================================================ */
+  /* Reintenta una promesa con backoff exponencial si Firestore devuelve 429 */
+  async function _withRetry(fn, label, maxAttempts) {
+    maxAttempts = maxAttempts || 4;
+    let lastErr;
+    for (let i = 1; i <= maxAttempts; i++) {
+      try {
+        return await fn();
+      } catch (e) {
+        lastErr = e;
+        const is429 = /\b429\b|Too Many Requests/i.test(e.message || '');
+        if (!is429 || i === maxAttempts) throw e;
+        const wait = Math.min(5000, 400 * Math.pow(2, i - 1)) + Math.random() * 200;
+        console.warn('[redesign/data] ' + label + ' 429, reintento ' + i + '/' + (maxAttempts - 1) + ' en ' + Math.round(wait) + 'ms');
+        await new Promise(function (r) { setTimeout(r, wait); });
+      }
+    }
+    throw lastErr;
+  }
+
   async function loadAll() {
     const State = window.State;
     if (!State) {
@@ -431,23 +450,35 @@
     }
     State.loading = true;
     State.error = null;
+
+    // Carga las dos fuentes en paralelo pero AISLADAS: si una falla,
+    // la otra sigue. La cartera es crítica; el planificador, accesorio.
+    const studiosP = _withRetry(function () {
+      return listCollection('studios', { pageSize: 300, limit: 5000 });
+    }, 'studios');
+    const planP = _withRetry(function () {
+      return getDoc('_meta/planificador');
+    }, 'planificador', 2).catch(function (e) {
+      console.warn('[redesign/data] planificador no se pudo cargar (no es crítico):', e.message);
+      return null;
+    });
+
     try {
-      const [studios, plan] = await Promise.all([
-        listCollection('studios', { pageSize: 300, limit: 5000 }),
-        getDoc('_meta/planificador'),
-      ]);
-      State.studios = studios;
+      const studios = await studiosP;
+      State.studios = studios || [];
       State.studiosById = {};
-      studios.forEach(function (s) { State.studiosById[s.id] = s; });
-      State.planificador = plan;
-      State.loading = false;
-      console.info('[redesign/data] cartera cargada: ' + studios.length + ' studios');
+      (studios || []).forEach(function (s) { State.studiosById[s.id] = s; });
+      console.info('[redesign/data] cartera cargada: ' + (studios || []).length + ' studios');
     } catch (e) {
-      console.error('[redesign/data] error de carga:', e);
+      console.error('[redesign/data] error cargando studios:', e);
       State.error = e.message || String(e);
       State.loading = false;
       throw e;
     }
+    try {
+      State.planificador = await planP;
+    } catch (_) { /* ya logged en .catch */ State.planificador = null; }
+    State.loading = false;
   }
 
   /* ============================================================
