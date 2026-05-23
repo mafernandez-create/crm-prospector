@@ -44,41 +44,19 @@
 <script src="redesign/screens/bandeja.js"></script>
 <script src="redesign/screens/cmdk.js"></script>
 
-<!-- Service Worker v2 — invalida caché v1 del CRM antiguo y aplica
-     network-first para que los cambios entren al recargar -->
+<!-- Service Worker v2 — registrado como archivo real /sw.js
+     (blob: URLs no se admiten para SW en Chrome moderno, error
+     "URL protocol of the script is not supported") -->
 <script>
 (function () {
   if (!('serviceWorker' in navigator)) return;
-  const swCode = `
-    const CACHE_NAME = 'crm-prospector-v2';
-    self.addEventListener('install', function (e) { self.skipWaiting(); });
-    self.addEventListener('activate', function (e) {
-      e.waitUntil((async function () {
-        // Borrar cachés viejas (v1, etc.) para forzar refresh tras el rediseño
-        const names = await caches.keys();
-        await Promise.all(names.filter(function (n) { return n !== CACHE_NAME; })
-                              .map(function (n) { return caches.delete(n); }));
-        await clients.claim();
-      })());
-    });
-    self.addEventListener('fetch', function (e) {
-      // Network first con fallback a caché
-      e.respondWith(
-        fetch(e.request)
-          .then(function (r) {
-            const copy = r.clone();
-            caches.open(CACHE_NAME).then(function (c) { c.put(e.request, copy); }).catch(function(){});
-            return r;
-          })
-          .catch(function () { return caches.match(e.request); })
-      );
-    });
-  `;
-  const swBlob = new Blob([swCode], { type: 'application/javascript' });
-  const swUrl = URL.createObjectURL(swBlob);
-  navigator.serviceWorker.register(swUrl, { scope: '/' })
-    .then(function () { console.info('[redesign] SW v2 registrado'); })
-    .catch(function () { /* ok, normal en file:// o sandboxed */ });
+  // Resolver paths relativos a la URL actual (compatible con GH Pages
+  // donde la app vive en /crm-prospector/, no en raíz).
+  const swUrl = new URL('sw.js', location.href).toString();
+  const scopeUrl = new URL('.', location.href).pathname;
+  navigator.serviceWorker.register(swUrl, { scope: scopeUrl })
+    .then(function () { console.info('[redesign] SW v2 registrado en ' + scopeUrl); })
+    .catch(function (err) { console.warn('[redesign] SW registro fallido:', err && err.message); });
 })();
 </script>
 

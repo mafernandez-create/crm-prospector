@@ -26,7 +26,13 @@ async function fetchText(url) {
   A.matches(r1.text, /Redise[ñn]o\s*v1/i, '/ es el rediseño v1 (no legacy)');
   A.contains(r1.text, 'redesign/tokens.css', '/ carga tokens.css');
   A.contains(r1.text, 'redesign/app.js', '/ carga app.js');
-  A.contains(r1.text, 'crm-prospector-v2', '/ declara SW v2');
+  A.contains(r1.text, 'sw.js', '/ registra SW desde archivo externo sw.js');
+
+  // 1b. sw.js servido correctamente y tiene CACHE_NAME v2
+  const swResp = await fetchText(root + 'sw.js');
+  A.eq(swResp.status, 200, 'GET /sw.js → 200');
+  A.contains(swResp.text, "CACHE_NAME = 'crm-prospector-v2'", 'sw.js sirve CACHE_NAME v2');
+  A.matches(swResp.text, /content-type|/i, 'sw.js servido (chequeo trivial)');
 
   // 2. index-legacy.html accesible para rollback
   const r2 = await fetchText(root + 'index-legacy.html');

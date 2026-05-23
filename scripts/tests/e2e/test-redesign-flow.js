@@ -53,10 +53,11 @@ async function fetchText(url) {
     lastPos = pos;
   }
 
-  // 3. PWA: el SW v2 está embebido inline en el HTML
-  A.contains(html, "CACHE_NAME = 'crm-prospector-v2'", 'SW: CACHE_NAME = crm-prospector-v2');
-  A.contains(html, 'self.skipWaiting()', 'SW: skipWaiting registrado');
-  A.contains(html, 'clients.claim()', 'SW: clients.claim registrado');
+  // 3. PWA: el SW v2 está como archivo externo /sw.js (no inline, blob:
+  //    no admitido por Chrome moderno para SW)
+  A.contains(html, 'sw.js', 'HTML registra SW desde archivo externo sw.js');
+  A.contains(html, 'navigator.serviceWorker.register', 'HTML llama serviceWorker.register');
+  // El SW real está en /sw.js (verificado en smoke/test-redesign-pages.js)
 
   // 4. Manifest meta + safe-area iOS
   A.contains(html, 'apple-mobile-web-app-status-bar-style', 'meta status-bar-style');

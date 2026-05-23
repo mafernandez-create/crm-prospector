@@ -100,7 +100,17 @@ const A = require('../_lib/assert');
   A.contains(indexHtml, 'redesign/app.js', 'index.html carga app.js');
   A.contains(indexHtml, 'redesign/screens/inicio.js', 'index.html carga inicio.js');
   A.contains(indexHtml, 'redesign/screens/informe.js', 'index.html carga informe.js');
-  A.contains(indexHtml, 'crm-prospector-v2', 'index.html declara SW con CACHE_NAME v2');
+  A.contains(indexHtml, "register(swUrl", 'index.html registra el SW (archivo externo)');
+
+  // 6b. sw.js existe como archivo real y tiene la CACHE_NAME esperada
+  const swPath = path.resolve(__dirname, '..', '..', '..', 'sw.js');
+  A.truthy(fs.existsSync(swPath), 'sw.js existe en raíz (archivo real, no blob)');
+  if (fs.existsSync(swPath)) {
+    const swSrc = fs.readFileSync(swPath, 'utf8');
+    A.contains(swSrc, "CACHE_NAME = 'crm-prospector-v2'", 'sw.js declara CACHE_NAME v2');
+    A.contains(swSrc, 'skipWaiting', 'sw.js usa skipWaiting');
+    A.contains(swSrc, 'clients.claim', 'sw.js usa clients.claim');
+  }
 
   // 7. index-legacy.html sigue accesible (rollback path)
   const legacyPath = path.resolve(__dirname, '..', '..', '..', 'index-legacy.html');
