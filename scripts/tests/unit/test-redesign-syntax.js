@@ -29,6 +29,9 @@ const A = require('../_lib/assert');
     'screens/informe.js',
     'screens/dashboard.js',
     'screens/bandeja.js',
+    'screens/planificador.js',
+    'screens/mapa.js',
+    'screens/importar.js',
     'screens/cmdk.js',
   ];
 
@@ -64,6 +67,9 @@ const A = require('../_lib/assert');
     { file: 'screens/informe.js',        globals: ['window.Screens'] },
     { file: 'screens/dashboard.js',      globals: ['window.Screens'] },
     { file: 'screens/bandeja.js',        globals: ['window.Screens'] },
+    { file: 'screens/planificador.js',   globals: ['window.Screens'] },
+    { file: 'screens/mapa.js',           globals: ['window.Screens'] },
+    { file: 'screens/importar.js',       globals: ['window.Screens'] },
     { file: 'screens/cmdk.js',           globals: ['window.Screens'] },
   ];
 
@@ -109,7 +115,7 @@ const A = require('../_lib/assert');
   A.truthy(fs.existsSync(swPath), 'sw.js existe en raíz (archivo real, no blob)');
   if (fs.existsSync(swPath)) {
     const swSrc = fs.readFileSync(swPath, 'utf8');
-    A.contains(swSrc, "CACHE_NAME = 'crm-prospector-v2'", 'sw.js declara CACHE_NAME v2');
+    A.matches(swSrc, /CACHE_NAME = 'crm-prospector-v\d+'/, 'sw.js declara CACHE_NAME versionado');
     A.contains(swSrc, 'skipWaiting', 'sw.js usa skipWaiting');
     A.contains(swSrc, 'clients.claim', 'sw.js usa clients.claim');
   }
