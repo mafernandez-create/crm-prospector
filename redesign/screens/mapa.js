@@ -51,8 +51,31 @@
   const Local = {
     map: null,         // Instancia Leaflet
     layer: null,       // LayerGroup con círculos
+    /* modo del mapa:
+         'cartera'   → todos los studios (densidad de cartera bruta)
+         'actividad' → sólo studios con reports o activities (presencia real)
+         'priority'  → sólo studios con score ≥ 7 (oportunidades fuertes)
+     */
+    modo: 'actividad',
     filters: { tipo: '', status: '', scoreMin: 0 },
   };
+
+  const MODO_LABEL = {
+    cartera:   'Cartera total',
+    actividad: 'Con actividad',
+    priority:  'Score ≥ 7',
+  };
+  const MODO_DESC = {
+    cartera:   'Densidad bruta de cartera por provincia. Incluye leads no clasificados.',
+    actividad: 'Presencia comercial real: estudios con visitas, informes o actividades registradas.',
+    priority:  'Oportunidades fuertes: estudios con score ≥ 7. Donde concentrar prospección.',
+  };
+
+  function tieneActividad(s) {
+    const r = (s.data && s.data.reports) || [];
+    const a = (s.data && s.data.activities) || [];
+    return r.length > 0 || a.length > 0;
+  }
 
   function provinciaCoord(prov) {
     if (!prov) return null;
@@ -83,6 +106,10 @@
 
   function aplicaFiltros(studios) {
     return studios.filter(function (s) {
+      // Filtro por modo del mapa
+      if (Local.modo === 'actividad' && !tieneActividad(s)) return false;
+      if (Local.modo === 'priority' && (s.score || 0) < 7) return false;
+      // Filtros adicionales de la toolbar
       if (Local.filters.tipo && s.type !== Local.filters.tipo) return false;
       if (Local.filters.status && s.status !== Local.filters.status) return false;
       if (Local.filters.scoreMin && (s.score || 0) < Local.filters.scoreMin) return false;
@@ -128,8 +155,31 @@
         '<div class="eyebrow">Distribución geográfica</div>' +
         '<h1 style="font-family:var(--font-display); font-weight:600; font-size:32px; line-height:1; ' +
           'text-transform:uppercase; letter-spacing:.005em; margin:6px 0 4px;">Mapa caliente</h1>' +
-        '<p style="color:var(--fg-3); font-size:14px; margin:0;">Concentración de cartera por provincia. Tamaño del círculo proporcional al número de estudios.</p>' +
+        '<p style="color:var(--fg-3); font-size:14px; margin:0;" id="mapa-subtitulo">' + escape(MODO_DESC[Local.modo]) + '</p>' +
       '</header>'
+    );
+  }
+
+  function modoToggle() {
+    const modos = ['actividad', 'priority', 'cartera'];
+    return (
+      '<div role="tablist" style="display:inline-flex; gap:0; background:var(--bg-1); border:1px solid var(--border-1); border-radius:6px; overflow:hidden;">' +
+        modos.map(function (m, i) {
+          const active = Local.modo === m;
+          const bg = active ? 'var(--gpf-blue-900)' : 'transparent';
+          const fg = active ? '#fff' : 'var(--fg-2)';
+          const sep = i > 0 ? 'border-left:1px solid var(--border-1);' : '';
+          return (
+            '<button role="tab" aria-selected="' + active + '" ' +
+              'onclick="window.Screens.mapa.setModo(\'' + m + '\')" ' +
+              'style="' + sep + ' background:' + bg + '; color:' + fg + '; ' +
+              'border:0; padding:6px 12px; font:inherit; font-size:12px; font-family:var(--font-mono); ' +
+              'cursor:pointer; text-transform:uppercase; letter-spacing:.04em;">' +
+              escape(MODO_LABEL[m]) +
+            '</button>'
+          );
+        }).join('') +
+      '</div>'
     );
   }
 
@@ -146,6 +196,8 @@
     }).join('');
     return (
       '<div style="display:flex; gap:10px; align-items:center; margin-bottom:12px; padding:10px 12px; background:var(--bg-2); border-radius:8px; flex-wrap:wrap;">' +
+        modoToggle() +
+        '<span style="width:1px; height:24px; background:var(--border-1); margin:0 4px;"></span>' +
         '<select onchange="window.Screens.mapa.setFiltro(\'tipo\', this.value)" style="padding:6px 8px; border:1px solid var(--border-1); border-radius:4px; font:inherit; font-size:13px;">' +
           tipoOpts +
         '</select>' +
@@ -164,13 +216,18 @@
   }
 
   function leyenda() {
+    const modoTxt = {
+      cartera:   'Tamaño = nº empresas en cartera (incluye leads no clasificados)',
+      actividad: 'Tamaño = nº empresas con visitas o actividades registradas',
+      priority:  'Tamaño = nº empresas con score ≥ 7',
+    }[Local.modo];
     return (
       '<div style="display:flex; gap:14px; margin-top:8px; font-size:12px; color:var(--fg-3); flex-wrap:wrap;">' +
         '<span><span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:#0a2d52; vertical-align:middle; margin-right:4px;"></span> score ≥ 8</span>' +
         '<span><span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:#3478b8; vertical-align:middle; margin-right:4px;"></span> 6–7</span>' +
         '<span><span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:#7eb0d5; vertical-align:middle; margin-right:4px;"></span> 4–5</span>' +
         '<span><span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:#c8d6e3; vertical-align:middle; margin-right:4px;"></span> &lt; 4</span>' +
-        '<span style="margin-left:auto;">Tamaño = nº empresas en la provincia</span>' +
+        '<span style="margin-left:auto;">' + escape(modoTxt) + '</span>' +
       '</div>'
     );
   }
@@ -234,6 +291,7 @@
       }).bindPopup(
         '<div style="font-family:Inter,sans-serif;">' +
           '<strong>' + escape(g.provincia) + '</strong><br>' +
+          '<span style="font-size:11px; color:#666; text-transform:uppercase; letter-spacing:.05em;">' + escape(MODO_LABEL[Local.modo]) + '</span><br>' +
           escape(String(g.n)) + ' empresa' + (g.n === 1 ? '' : 's') + '<br>' +
           'Score medio: ' + scoreMedio.toFixed(1) + '<br>' +
           '<a href="#studios" onclick="setTimeout(function(){window.Screens.studios&&window.Screens.studios.setFiltro&&window.Screens.studios.setFiltro(\'provincia\',\'' + provEsc + '\')},50)" style="color:#0a2d52; font-weight:600;">Ver listado →</a>' +
@@ -257,6 +315,13 @@
     repintar();
   }
 
+  function setModo(m) {
+    if (!MODO_LABEL[m]) return;
+    Local.modo = m;
+    // Necesitamos re-renderizar toolbar + subtítulo, no sólo repaint del mapa
+    render();
+  }
+
   /* ============================================================
      REGISTRO
      ============================================================ */
@@ -264,5 +329,6 @@
   window.Screens.mapa = {
     render: render,
     setFiltro: setFiltro,
+    setModo: setModo,
   };
 })();
