@@ -22,42 +22,143 @@
   const escape = U.escapeHtml;
 
   /* ============================================================
-     MOCK DATA (Fase D)
+     DATOS — Fase G/v1.1: lee de State.studios real.
+              Si la cartera no está cargada, mock fallback.
      ============================================================ */
+  const TIPO_LABELS = {
+    ARQ: 'Arquitectura',
+    ING: 'Ingeniería',
+    CCRR: 'Comunidad de Regantes',
+    OCV: 'Promotora · Constructora',
+    CICA: 'Ciclo del agua',
+    AAPP: 'Admin. Pública',
+  };
+
   function getData() {
+    const hasReal = State.studios && State.studios.length > 0;
+    if (!hasReal) return mockData();
+
+    // Cuadrantes Q1-Q9 con cuenta real
+    const conteoQ = {};
+    const conteoQActivos = {};
+    const hace30 = new Date(State.today.getTime() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    for (const s of State.studios) {
+      const q = s.cuadrante || s.quadrant;
+      if (!q) continue;
+      conteoQ[q] = (conteoQ[q] || 0) + 1;
+      const last = U.lastInteraction(s);
+      if (last && last >= hace30) {
+        conteoQActivos[q] = (conteoQActivos[q] || 0) + 1;
+      }
+    }
+    const cuadrantes = [
+      { q: 'Q1', label: 'Estratégico',      color: 'var(--q-estrategico)',    fg: '#fff' },
+      { q: 'Q2', label: 'Cliente core',     color: 'var(--q-cliente-core)',   fg: '#fff' },
+      { q: 'Q3', label: 'Cliente volumen',  color: 'var(--q-cliente-volumen)', fg: '#fff' },
+      { q: 'Q4', label: 'Puerta entrada',   color: 'var(--q-puerta)',         fg: '#fff' },
+      { q: 'Q5', label: 'Cartera estándar', color: 'var(--q-cartera)',        fg: '#fff' },
+      { q: 'Q6', label: 'Mantenimiento',    color: 'var(--q-mantenimiento)',  fg: '#fff' },
+      { q: 'Q7', label: 'Conector',         color: 'var(--q-conector)',       fg: '#fff' },
+      { q: 'Q8', label: 'Seguimiento',      color: 'var(--q-seguimiento)',    fg: '#fff' },
+      { q: 'Q9', label: 'Congelar',         color: 'var(--q-congelar)',       fg: 'var(--fg-1)' },
+    ].map(function (c) {
+      return Object.assign({}, c, {
+        n: conteoQ[c.q] || 0,
+        activos: conteoQActivos[c.q] || 0,
+      });
+    });
+
+    // Cuántos studios SIN cuadrante (para mostrar advertencia)
+    const sinCuadrante = State.studios.filter(function (s) { return !(s.cuadrante || s.quadrant); }).length;
+
+    return {
+      cuadrantes: cuadrantes,
+      sinCuadrante: sinCuadrante,
+      enfriandose: pickEnfriandose(),
+      altoPotencialVirgen: pickAltoPotencialVirgen(),
+      visitasFallidas: pickVisitasFallidas(),
+    };
+  }
+
+  function pickEnfriandose() {
+    // score ≥7 con última interacción >45 días pero <365 (no nunca)
+    const hace45 = new Date(State.today.getTime() - 45 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    const hace365 = new Date(State.today.getTime() - 365 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    const out = [];
+    for (const s of State.studios) {
+      if ((s.score || 0) < 7) continue;
+      const last = U.lastInteraction(s);
+      if (!last) continue;
+      if (last >= hace45) continue;
+      if (last < hace365) continue;
+      out.push({
+        studioId: s.id,
+        name: s.name || s.id,
+        tipo: TIPO_LABELS[s.type] || s.type || '—',
+        province: s.province || '',
+        dias: U.diasDesde(last),
+        score: s.score || 0,
+      });
+    }
+    out.sort(function (a, b) { return b.score - a.score || a.dias - b.dias; });
+    return out.slice(0, 8);
+  }
+
+  function pickAltoPotencialVirgen() {
+    const out = [];
+    for (const s of State.studios) {
+      if ((s.score || 0) < 8) continue;
+      if (U.reports(s).length > 0) continue;
+      out.push({
+        studioId: s.id,
+        name: s.name || s.id,
+        tipo: TIPO_LABELS[s.type] || s.type || '—',
+        city: s.city || '',
+        province: s.province || '',
+        score: s.score || 0,
+      });
+    }
+    out.sort(function (a, b) { return b.score - a.score; });
+    return out.slice(0, 8);
+  }
+
+  function pickVisitasFallidas() {
+    const out = [];
+    const re = /fallid|plantón|cancel|reprogram|no\s+pud|no\s+realiz/i;
+    for (const s of State.studios) {
+      const reps = U.reports(s);
+      const hit = reps.some(function (r) {
+        const txt = ((r && (r.notes || '')) + ' ' + (r && (r.title || '')) + ' ' + (r && (r.fileName || '')));
+        return re.test(txt);
+      });
+      if (hit) {
+        out.push({
+          studioId: s.id,
+          name: s.name || s.id,
+          province: s.province || '',
+        });
+      }
+    }
+    return out.slice(0, 8);
+  }
+
+  function mockData() {
     return {
       cuadrantes: [
-        { q: 'Q1', label: 'Estratégico',     n: 12,  activos: 5,  color: 'var(--q-estrategico)',    fg: '#fff' },
-        { q: 'Q2', label: 'Cliente core',    n: 38,  activos: 14, color: 'var(--q-cliente-core)',   fg: '#fff' },
-        { q: 'Q3', label: 'Cliente volumen', n: 84,  activos: 22, color: 'var(--q-cliente-volumen)', fg: '#fff' },
-        { q: 'Q4', label: 'Puerta entrada',  n: 47,  activos: 11, color: 'var(--q-puerta)',         fg: '#fff' },
-        { q: 'Q5', label: 'Cartera estándar', n: 209, activos: 31, color: 'var(--q-cartera)',       fg: '#fff' },
-        { q: 'Q6', label: 'Mantenimiento',   n: 156, activos: 18, color: 'var(--q-mantenimiento)',  fg: '#fff' },
-        { q: 'Q7', label: 'Conector',        n: 23,  activos: 6,  color: 'var(--q-conector)',       fg: '#fff' },
-        { q: 'Q8', label: 'Seguimiento',     n: 311, activos: 12, color: 'var(--q-seguimiento)',    fg: '#fff' },
-        { q: 'Q9', label: 'Congelar',        n: 717, activos: 8,  color: 'var(--q-congelar)',       fg: 'var(--fg-1)' },
+        { q: 'Q1', label: 'Estratégico',     n: 0, activos: 0, color: 'var(--q-estrategico)',    fg: '#fff' },
+        { q: 'Q2', label: 'Cliente core',    n: 0, activos: 0, color: 'var(--q-cliente-core)',   fg: '#fff' },
+        { q: 'Q3', label: 'Cliente volumen', n: 0, activos: 0, color: 'var(--q-cliente-volumen)', fg: '#fff' },
+        { q: 'Q4', label: 'Puerta entrada',  n: 0, activos: 0, color: 'var(--q-puerta)',         fg: '#fff' },
+        { q: 'Q5', label: 'Cartera estándar', n: 0, activos: 0, color: 'var(--q-cartera)',       fg: '#fff' },
+        { q: 'Q6', label: 'Mantenimiento',   n: 0, activos: 0, color: 'var(--q-mantenimiento)',  fg: '#fff' },
+        { q: 'Q7', label: 'Conector',        n: 0, activos: 0, color: 'var(--q-conector)',       fg: '#fff' },
+        { q: 'Q8', label: 'Seguimiento',     n: 0, activos: 0, color: 'var(--q-seguimiento)',    fg: '#fff' },
+        { q: 'Q9', label: 'Congelar',        n: 0, activos: 0, color: 'var(--q-congelar)',       fg: 'var(--fg-1)' },
       ],
-      enfriandose: [
-        { studioId: '13',    name: 'SINGULAB Arquitectura e Ingeniería', tipo: 'Arquitectura',         province: 'Málaga',   dias: 124, score: 8 },
-        { studioId: '2',     name: 'AMA Arquitectos Málaga',             tipo: 'Arquitectura',         province: 'Málaga',   dias: 125, score: 8 },
-        { studioId: '202',   name: 'Hombre de Piedra Arquitectos',       tipo: 'Arquitectura',         province: 'Sevilla',  dias: 117, score: 8 },
-        { studioId: '2435',  name: 'ARRAM Consultores',                   tipo: 'Ingeniería',           province: 'Badajoz',  dias: 73,  score: 8 },
-        { studioId: '2599',  name: 'Aguas de El Ejido',                   tipo: 'Ciclo del agua',       province: 'Almería',  dias: 64,  score: 8 },
-        { studioId: '293',   name: 'INGHO Ingeniería y FM',               tipo: 'Ingeniería',           province: 'Málaga',   dias: 58,  score: 8 },
-      ],
-      altoPotencialVirgen: [
-        { studioId: '179',   name: 'Cruz y Ortiz Arquitectos SL',          tipo: 'Arquitectura', city: 'Sevilla',   province: 'Sevilla', score: 8 },
-        { studioId: 'hh9L',  name: 'Proinaqua — Ing. del Agua',            tipo: 'Ingeniería',   city: 'Murcia',    province: 'Murcia',  score: 9 },
-        { studioId: '137',   name: 'Consultores Ingeniería UG21',           tipo: 'Ingeniería',   city: 'Sevilla',   province: 'Sevilla', score: 8 },
-        { studioId: '101',   name: 'Reina y Asociados Arquitectura',        tipo: 'Arquitectura', city: 'Sevilla',   province: 'Sevilla', score: 8 },
-        { studioId: '177',   name: 'Estudio JSDALP SLP',                    tipo: 'Arquitectura', city: 'Sevilla',   province: 'Sevilla', score: 8 },
-        { studioId: '126',   name: 'NuVe Arquitectos',                      tipo: 'Arquitectura', city: 'Sevilla',   province: 'Sevilla', score: 8 },
-      ],
-      visitasFallidas: [
-        { studioId: '3016', name: 'ECOFLUVIAL',                  province: 'Sevilla' },
-        { studioId: '3017', name: 'AGRIMENSUR',                  province: 'Sevilla' },
-        { studioId: '3029', name: 'ININCO',                       province: 'Córdoba' },
-      ],
+      sinCuadrante: 0,
+      enfriandose: [],
+      altoPotencialVirgen: [],
+      visitasFallidas: [],
     };
   }
 
@@ -72,8 +173,22 @@
     v.innerHTML = (
       '<div style="max-width:1180px; margin:0 auto;">' +
         header() +
+        (d.sinCuadrante > 0 ? bannerSinCuadrante(d.sinCuadrante) : '') +
         matrizCuadrantes(d.cuadrantes) +
         twoColumnGrid(d) +
+      '</div>'
+    );
+  }
+
+  function bannerSinCuadrante(n) {
+    return (
+      '<div style="background:var(--gpf-blue-100); border:1px solid #c7dcef; border-radius:8px; ' +
+        'padding:10px 14px; margin-bottom:16px; font-size:13px; color:var(--gpf-blue-900); ' +
+        'display:flex; align-items:center; gap:8px;">' +
+        '<span style="color:var(--gpf-blue-700);">' + I.AlertTriangle() + '</span>' +
+        '<span><strong>' + n + ' estudios todavía sin clasificar en cuadrante</strong> · ' +
+        'el batch nocturno los va asignando progresivamente. ' +
+        'La cuenta total bajará a medida que se completen.</span>' +
       '</div>'
     );
   }
