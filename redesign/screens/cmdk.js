@@ -49,6 +49,14 @@
     { id: 'hh9L', name: 'Proinaqua — Ing. del Agua',                type: 'Ingeniería',   city: 'Murcia',              province: 'Murcia',   cuadrante: 'Q1', score: 9 },
   ];
 
+  function normQ(v) {
+    if (v == null) return null;
+    if (typeof v === 'string' && /^Q[1-9]$/.test(v)) return v;
+    if (typeof v === 'number' && v >= 1 && v <= 9) return 'Q' + v;
+    if (typeof v === 'string' && /^[1-9]$/.test(v)) return 'Q' + v;
+    return null;
+  }
+
   function getEmpresas() {
     if (State.studios && State.studios.length) {
       return State.studios.map(function (s) {
@@ -58,7 +66,7 @@
           type: s.type,
           city: s.city,
           province: s.province,
-          cuadrante: s.priorityQuadrant || s.cuadrante || s.quadrant,
+          cuadrante: normQ(s.priorityQuadrant) || s.cuadrante || s.quadrant,
           score: s.score,
         };
       });

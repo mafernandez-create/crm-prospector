@@ -77,13 +77,21 @@
     return null;
   }
 
+  function normalizeQ(v) {
+    if (v == null) return null;
+    if (typeof v === 'string' && /^Q[1-9]$/.test(v)) return v;
+    if (typeof v === 'number' && v >= 1 && v <= 9) return 'Q' + v;
+    if (typeof v === 'string' && /^[1-9]$/.test(v)) return 'Q' + v;
+    return null;
+  }
+
   function normalizarReal(s) {
     const contact = (s.data && s.data.contact) || {};
     return {
       id: s.id,
       name: s.name || s.id,
       type: s.type,
-      cuadrante: s.priorityQuadrant || s.cuadrante || s.quadrant,
+      cuadrante: normalizeQ(s.priorityQuadrant) || s.cuadrante || s.quadrant,
       cuadranteName: s.priorityQuadrantName || null,
       recommendedAction: s.priorityRecommendedAction || null,
       scoreDirect: s.priorityDirectScore || null,
