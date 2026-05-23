@@ -18,6 +18,14 @@
 <!-- DS -->
 <link rel="stylesheet" href="redesign/tokens.css"/>
 <link rel="stylesheet" href="redesign/components.css"/>
+
+<!-- Leaflet (mapa) — sólo se usa en la vista #mapa, pero el CSS y el JS
+     son ligeros y caben en cache; se cargan defer para no bloquear render -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
+
+<!-- XLSX (importar Excel) — defer también -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
 </head>
 <body>
 
@@ -43,6 +51,9 @@
 <script src="redesign/screens/informe.js"></script>
 <script src="redesign/screens/dashboard.js"></script>
 <script src="redesign/screens/bandeja.js"></script>
+<script src="redesign/screens/planificador.js"></script>
+<script src="redesign/screens/mapa.js"></script>
+<script src="redesign/screens/importar.js"></script>
 <script src="redesign/screens/cmdk.js"></script>
 
 <!-- Service Worker v2 — registrado como archivo real /sw.js

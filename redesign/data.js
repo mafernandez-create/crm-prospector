@@ -8,17 +8,20 @@
  *   window.Data.loadAll()        — carga studios + planificador en State
  *   window.Data.getDoc(path)     — un único documento
  *   window.Data.listCollection(name, opts) — lista paginada
+ *   window.Data.patchDoc(path, obj) — UPSERT documento (rules-permitting)
  *   window.Data.callGAS(action, params)    — proxy genérico al GAS Web App
  *   window.Data.generateBriefing(studioId, fecha, contextoExtra)
  *   window.Data.generateReport(studioId, payload)
  *   window.Data.getBriefingItems(studioId, limit) — read briefings/{id}/items
+ *   window.Data.savePlanificador(schedule) — persiste _meta/planificador
  *
  * Convenciones:
  *   - Sin Firebase compat SDK: usamos REST directo, mismo patrón que
  *     scripts/tests/_lib/firestore.js para no tener que cargar 200KB
  *     adicionales de Firebase SDK.
- *   - Las escrituras requieren auth — por ahora no se hacen desde el
- *     rediseño (el CRM viejo las gestiona). El rediseño solo lee.
+ *   - Escrituras REST usan apiKey público (mismo que el legacy SDK). Las
+ *     reglas de Firestore deciden qué se puede escribir; _meta/planificador
+ *     y studios admiten patch (igual que el legacy).
  *   - GAS URL es la misma del CRM actual. Si se redeploya, hay que
  *     actualizar aquí también.
  */
@@ -29,6 +32,7 @@
      CONFIG (extraída del index.html actual)
      ============================================================ */
   const PROJECT = 'ferroplast-crm';
+  const API_KEY = 'AIzaSyCVxMjrIfB4MrYiUzvKzt8fJeKKNne-Cm0';
   const REST_BASE = 'https://firestore.googleapis.com/v1/projects/' + PROJECT + '/databases/(default)/documents';
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbxx6KIUavnMAVn3eUtX4SKMoVAnOQ3YAsIYofiMufkw6tkbQDaG3-jDku_Z8kEsNY_6aQ/exec';
 
@@ -56,6 +60,31 @@
     const o = {};
     for (const k in (fields || {})) o[k] = unwrap(fields[k]);
     return o;
+  }
+
+  /* Inversa de unwrap — convierte un valor JS en un Firestore Value typed */
+  function wrap(v) {
+    if (v === null || v === undefined) return { nullValue: null };
+    if (typeof v === 'boolean') return { booleanValue: v };
+    if (typeof v === 'number') {
+      if (Number.isInteger(v)) return { integerValue: String(v) };
+      return { doubleValue: v };
+    }
+    if (typeof v === 'string') return { stringValue: v };
+    if (Array.isArray(v)) {
+      return { arrayValue: { values: v.map(wrap) } };
+    }
+    if (typeof v === 'object') {
+      const fields = {};
+      for (const k in v) fields[k] = wrap(v[k]);
+      return { mapValue: { fields: fields } };
+    }
+    return { stringValue: String(v) };
+  }
+  function objToFields(obj) {
+    const fields = {};
+    for (const k in (obj || {})) fields[k] = wrap(obj[k]);
+    return fields;
   }
 
   async function getDoc(path) {
@@ -86,6 +115,29 @@
       pageToken = j.nextPageToken || null;
     } while (pageToken && docs.length < limit);
     return docs;
+  }
+
+  /* PATCH = upsert. Si el doc no existe se crea, si existe se mergea
+     (sólo los campos indicados; pasar updateMask vacío reemplaza todo).
+     Usa la API key pública del proyecto, idéntico al SDK del legacy. */
+  async function patchDoc(path, obj, opts) {
+    opts = opts || {};
+    const url = new URL(REST_BASE + '/' + path);
+    url.searchParams.set('key', API_KEY);
+    if (opts.updateMask && opts.updateMask.length) {
+      opts.updateMask.forEach(function (m) { url.searchParams.append('updateMask.fieldPaths', m); });
+    }
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: objToFields(obj) }),
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(function () { return ''; });
+      throw new Error('Firestore PATCH ' + res.status + ' ' + res.statusText + ' (' + path + ') ' + txt.slice(0, 200));
+    }
+    const j = await res.json();
+    return Object.assign({ id: (j.name || '').split('/').pop() }, fieldsToObj(j.fields || {}));
   }
 
   /* ============================================================
@@ -134,6 +186,14 @@
     return callGAS('informeIA', Object.assign({ studioId: studioId }, payload || {}));
   }
 
+  /* Guarda _meta/planificador con el schedule pasado. Reemplaza el documento
+     entero porque planificador se trata como una unidad atómica. */
+  async function savePlanificador(schedule) {
+    const out = await patchDoc('_meta/planificador', { schedule: schedule || {} });
+    if (window.State) window.State.planificador = out;
+    return out;
+  }
+
   /* ============================================================
      CARGA INICIAL
      ============================================================ */
@@ -174,12 +234,16 @@
     loadAll: loadAll,
     getDoc: getDoc,
     listCollection: listCollection,
+    patchDoc: patchDoc,
     callGAS: callGAS,
     generateBriefing: generateBriefing,
     generateReport: generateReport,
     getBriefingItems: getBriefingItems,
+    savePlanificador: savePlanificador,
     // Helpers internos por si las pantallas quieren parsear ad-hoc
     unwrap: unwrap,
     fieldsToObj: fieldsToObj,
+    wrap: wrap,
+    objToFields: objToFields,
   };
 })();

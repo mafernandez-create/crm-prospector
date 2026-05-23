@@ -374,6 +374,14 @@
   /* ============================================================
      EXPORT
      ============================================================ */
+  /* Aplica un filtro programático y re-renderiza (usado por el mapa, ⌘K, …) */
+  function setFiltro(key, value) {
+    if (!(key in FILTERS)) return;
+    FILTERS[key] = value;
+    FILTERS.pagina = 1;
+    render();
+  }
+
   window.Screens = window.Screens || {};
-  window.Screens.studios = { render: render };
+  window.Screens.studios = { render: render, setFiltro: setFiltro };
 })();
