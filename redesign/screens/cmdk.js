@@ -58,7 +58,7 @@
           type: s.type,
           city: s.city,
           province: s.province,
-          cuadrante: s.cuadrante || s.quadrant,
+          cuadrante: s.priorityQuadrant || s.cuadrante || s.quadrant,
           score: s.score,
         };
       });

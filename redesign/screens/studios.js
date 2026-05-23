@@ -206,8 +206,8 @@
               '</span>' +
               '<span style="color:var(--fg-2);">' + escape(TIPO_LABELS[s.type] || s.type || '—') + '</span>' +
               '<span style="color:var(--fg-2);">' + escape(s.province || '—') + '</span>' +
-              '<span style="color:var(--fg-2); font-family:var(--font-mono); font-size:12px;">' +
-                escape(s.cuadrante || s.quadrant || '—') +
+              '<span style="color:var(--fg-2); font-family:var(--font-mono); font-size:12px;" title="' + escape(s.priorityQuadrantName || '') + '">' +
+                escape(s.priorityQuadrant || s.cuadrante || s.quadrant || '—') +
               '</span>' +
               '<span style="color:var(--fg-2); font-family:var(--font-mono); font-size:12px;">' +
                 (lastDate ? U.formatDateES(lastDate) : '—') +
