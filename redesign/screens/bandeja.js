@@ -80,6 +80,9 @@
     // Cuántos studios SIN cuadrante (para mostrar advertencia)
     const sinCuadrante = State.studios.filter(function (s) { return !(normalizeQ(s.priorityQuadrant) || s.cuadrante || s.quadrant); }).length;
 
+    // Diagnóstico — visible en consola del navegador
+    console.info('[bandeja] conteoQ:', conteoQ, 'sin cuadrante:', sinCuadrante, 'total:', State.studios.length);
+
     return {
       cuadrantes: cuadrantes,
       sinCuadrante: sinCuadrante,
