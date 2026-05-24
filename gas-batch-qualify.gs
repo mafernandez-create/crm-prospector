@@ -470,7 +470,78 @@ function firestoreBatchPatch(updatesArray) {
     throw new Error('Firestore batchWrite error ' + resp.getResponseCode() + ': ' + resp.getContentText().substring(0, 300));
   }
 
+  // ── DUAL-WRITE Supabase (no bloqueante) ──────────────────────────────
+  // Si está configurado SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY en Script
+  // Properties, replicamos cada update también a Supabase. Si falla, log
+  // pero NO se bloquea la respuesta — Firestore es la fuente de la verdad.
+  try { supabaseBatchUpsert(updatesArray); }
+  catch (e) { Logger.log('[supabase] dual-write fallo (no crítico): ' + e.message); }
+
   return { written: writes.length };
+}
+
+/**
+ * Replica updates a Supabase via REST. Requiere en Script Properties:
+ *   SUPABASE_URL = https://xxx.supabase.co
+ *   SUPABASE_SERVICE_ROLE_KEY = eyJ... (service_role, NO anon)
+ * Si no están configurados, hace no-op silencioso.
+ *
+ * Mapeo Firestore (camelCase) → Postgres (snake_case + JSONB data).
+ * Sólo replica los campos que tocan los detectores del batch (scoring,
+ * cuadrante, puente, fuente). Los demás campos del studio quedan
+ * intactos en Supabase porque PostgREST upsert respeta los no incluidos.
+ */
+function supabaseBatchUpsert(updatesArray) {
+  var props = PropertiesService.getScriptProperties();
+  var supaUrl = props.getProperty('SUPABASE_URL');
+  var supaKey = props.getProperty('SUPABASE_SERVICE_ROLE_KEY');
+  if (!supaUrl || !supaKey) return;  // no configurado → no-op
+
+  // Mapeo de claves Firestore → columnas Postgres
+  var FIELD_MAP = {
+    priorityQuadrant: 'priority_quadrant',
+    priorityQuadrantName: 'priority_quadrant_name',
+    priorityDirect: 'priority_direct',
+    priorityDirectScore: 'priority_direct_score',
+    priorityNetwork: 'priority_network',
+    priorityNetworkScore: 'priority_network_score',
+    priorityDirectScoreNatural: 'priority_direct_score_natural',
+    priorityNetworkScoreNatural: 'priority_network_score_natural',
+    score: 'score',
+    priority: 'priority',
+    status: 'status',
+    es_cliente_puente: 'es_cliente_puente',
+    fuente_descubrimiento: 'fuente_descubrimiento',
+  };
+
+  // Construir los rows para Supabase
+  var rows = updatesArray.map(function (item) {
+    var row = { id: String(item.docId) };
+    for (var k in item.updates) {
+      if (FIELD_MAP[k]) {
+        row[FIELD_MAP[k]] = item.updates[k];
+      }
+      // Campos que no están en FIELD_MAP no se replican porque el batch
+      // sólo escribe a esos. Si en el futuro escribe otros, ampliar MAP.
+    }
+    return row;
+  });
+
+  var resp = UrlFetchApp.fetch(supaUrl + '/rest/v1/studios?on_conflict=id', {
+    method: 'post',
+    contentType: 'application/json',
+    muteHttpExceptions: true,
+    headers: {
+      'apikey': supaKey,
+      'Authorization': 'Bearer ' + supaKey,
+      'Prefer': 'resolution=merge-duplicates,return=minimal',
+    },
+    payload: JSON.stringify(rows),
+  });
+  if (resp.getResponseCode() >= 400) {
+    throw new Error('Supabase upsert ' + resp.getResponseCode() + ': ' + resp.getContentText().substring(0, 200));
+  }
+  Logger.log('[supabase] dual-write OK · ' + rows.length + ' rows');
 }
 
 function firestoreSaveCheckpoint(checkpoint) {

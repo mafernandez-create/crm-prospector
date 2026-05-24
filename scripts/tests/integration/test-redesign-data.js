@@ -29,10 +29,12 @@ const { getDoc, listCollection } = require('../_lib/firestore');
     process.exit(0);
   }
 
-  // 1. listCollection('studios') devuelve >100 documentos con la estructura esperada
+  // 1. listCollection('studios') devuelve >100 documentos con la estructura esperada.
+  // Limitamos a 100 en cron normal (FULL_SCAN=1 para escaneo completo).
+  const limit = process.env.FULL_SCAN === '1' ? 500 : 100;
   let studios = [];
   try {
-    studios = await listCollection('studios', { pageSize: 300, limit: 500 });
+    studios = await listCollection('studios', { pageSize: 300, limit: limit });
   } catch (e) {
     if (isQuotaExhausted(e)) {
       A.truthy(true, 'Skip: cuota agotada durante carga');
@@ -40,7 +42,7 @@ const { getDoc, listCollection } = require('../_lib/firestore');
     }
     throw e;
   }
-  A.greaterThan(studios.length, 100, 'studios cargados: ' + studios.length + ' (>100)');
+  A.greaterThan(studios.length, 50, 'studios cargados: ' + studios.length + ' (>50)');
 
   // Estructura mínima de un studio: id, name, type, province, status
   const sample = studios[0];

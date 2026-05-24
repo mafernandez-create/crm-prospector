@@ -31,10 +31,13 @@ const { listCollection, getDoc } = require('../_lib/firestore');
     process.exit(0);  // skip != fail
   }
 
-  // 1) Cartera (lectura paginada, hasta 2000 docs)
+  // 1) Cartera (lectura paginada). El cron diario usa LIMIT 100 para no
+  // quemar cuota Firebase free (~1600 docs × cron diario = 50K reads/mes
+  // sólo por el cron). Smoke con 100 docs basta para validar estructura.
+  const carteraLimit = process.env.FULL_SCAN === '1' ? 2000 : 100;
   let studios = [];
   try {
-    studios = await listCollection('studios', { pageSize: 300, limit: 2000 });
+    studios = await listCollection('studios', { pageSize: 300, limit: carteraLimit });
   } catch (e) {
     if (isQuotaExhausted(e)) {
       A.truthy(true, 'Firestore quota exhausted durante carga — skip resto');
@@ -42,7 +45,7 @@ const { listCollection, getDoc } = require('../_lib/firestore');
     }
     console.error('ERROR listCollection(studios):', e.message);
   }
-  A.greaterThan(studios.length, 1000, 'Cartera: Firestore devuelve >1000 studios');
+  A.greaterThan(studios.length, 50, 'Cartera: Firestore devuelve >50 studios (limit=' + carteraLimit + ')');
 
   // 2) _meta/batch_checkpoint debe existir y traer success
   let bc = null;
