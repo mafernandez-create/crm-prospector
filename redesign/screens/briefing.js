@@ -104,17 +104,35 @@
   }
 
   async function fetchBriefingReal(id) {
-    // Fase G: lee briefings/{id}/items/ y devuelve el más reciente normalizado
+    // Fase G: lee briefings/{id}/items/ y devuelve el más reciente normalizado.
+    // Soporta dos formatos:
+    //   - v1 (legacy): briefing = { resumen_ejecutivo, historico_reciente, ... }
+    //   - v2 (Bloque 9 §19.2): markdown = "# Briefing pre-visita - ...\n..."
     if (!window.Data || !window.Data.getBriefingItems) return null;
     const items = await window.Data.getBriefingItems(id, 10);
     if (!items.length) return null;
-    // Más reciente: ordena por id (suelen ser ISO date) descendente
     items.sort(function (a, b) { return String(b.id || '').localeCompare(String(a.id || '')); });
     const latest = items[0];
+
+    const studioLabel = (State.studiosById[id] && State.studiosById[id].name) || ('Estudio ' + id);
+    const fechaLabel = U.formatDateES(latest.id) || U.formatDateES(latest.updatedAt) || U.formatDateES(new Date());
+
+    // ── v2 markdown ──────────────────────────────────────────────
+    if (latest.formato === 'markdown_v2' && latest.markdown) {
+      return {
+        studio: studioLabel,
+        fecha: fechaLabel,
+        keyFacts: keyFactsFromStudio(id),
+        markdown: latest.markdown,
+        formato: 'markdown_v2',
+      };
+    }
+
+    // ── v1 legacy JSON ───────────────────────────────────────────
     const b = (latest.briefing && typeof latest.briefing === 'object') ? latest.briefing : {};
     return {
-      studio: (State.studiosById[id] && State.studiosById[id].name) || ('Estudio ' + id),
-      fecha: U.formatDateES(latest.id) || U.formatDateES(latest.updatedAt) || U.formatDateES(new Date()),
+      studio: studioLabel,
+      fecha: fechaLabel,
       keyFacts: keyFactsFromStudio(id),
       secciones: {
         'Resumen ejecutivo':   b.resumen_ejecutivo  || b.resumen   || b.summary || '<em>Sin contenido en esta sección.</em>',
@@ -127,6 +145,65 @@
         'Riesgos':             b.riesgos || b.risks || '<em>Sin contenido en esta sección.</em>',
       },
     };
+  }
+
+  /* Mini-parser markdown → HTML. Soporta: # ## ### headings, párrafos,
+     listas - y 1., negrita **, italic _, código `, blockquote >, ---. */
+  function md2html(src) {
+    if (!src) return '';
+    const lines = String(src).split('\n');
+    const out = [];
+    let inList = false, listOrdered = false;
+    function closeList() {
+      if (inList) { out.push(listOrdered ? '</ol>' : '</ul>'); inList = false; }
+    }
+    function inline(s) {
+      // Negrita ** -> <strong>
+      s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      // Italic _foo_
+      s = s.replace(/(^|\s)_([^_]+)_(\s|[.,;:!?]|$)/g, '$1<em>$2</em>$3');
+      // Inline code `x`
+      s = s.replace(/`([^`]+)`/g, '<code style="background:rgba(10,45,82,.06); padding:0.1em 0.35em; border-radius:3px; font-size:0.9em;">$1</code>');
+      // Links [txt](url)
+      s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+      return s;
+    }
+    for (let i = 0; i < lines.length; i++) {
+      const raw = lines[i];
+      const line = raw.replace(/\s+$/, '');
+      // Headings
+      if (/^###\s+/.test(line)) { closeList(); out.push('<h4 style="font-family:var(--font-display); font-size:14px; font-weight:600; color:var(--gpf-blue-700); margin:18px 0 6px;">' + inline(line.replace(/^###\s+/, '')) + '</h4>'); continue; }
+      if (/^##\s+/.test(line))  { closeList(); out.push('<h3 style="font-family:var(--font-display); font-size:15px; letter-spacing:0.10em; text-transform:uppercase; color:var(--gpf-blue-900); margin:24px 0 10px; font-weight:700;">' + inline(line.replace(/^##\s+/, '')) + '</h3>'); continue; }
+      if (/^#\s+/.test(line))   { closeList(); out.push('<h2 style="font-family:var(--font-display); font-size:24px; font-weight:600; color:var(--fg-1); margin:0 0 16px;">' + inline(line.replace(/^#\s+/, '')) + '</h2>'); continue; }
+      // Separador
+      if (/^---+\s*$/.test(line)) { closeList(); out.push('<hr style="border:0; border-top:1px solid var(--line); margin:18px 0;">'); continue; }
+      // Blockquote
+      if (/^>\s?/.test(line)) {
+        closeList();
+        out.push('<blockquote style="border-left:3px solid var(--gpf-blue-700); padding:6px 14px; margin:12px 0; background:rgba(10,45,82,.04); color:var(--fg-2); font-style:italic;">' + inline(line.replace(/^>\s?/, '')) + '</blockquote>');
+        continue;
+      }
+      // Listas
+      const mUl = line.match(/^[\-\*]\s+(.*)$/);
+      const mOl = line.match(/^(\d+)\.\s+(.*)$/);
+      if (mUl) {
+        if (!inList || listOrdered) { closeList(); out.push('<ul style="margin:6px 0 12px 22px; padding:0;">'); inList = true; listOrdered = false; }
+        out.push('<li style="margin:3px 0;">' + inline(mUl[1]) + '</li>');
+        continue;
+      }
+      if (mOl) {
+        if (!inList || !listOrdered) { closeList(); out.push('<ol style="margin:6px 0 12px 22px; padding:0;">'); inList = true; listOrdered = true; }
+        out.push('<li style="margin:3px 0;">' + inline(mOl[2]) + '</li>');
+        continue;
+      }
+      // Línea vacía
+      if (line.trim() === '') { closeList(); continue; }
+      // Párrafo normal
+      closeList();
+      out.push('<p style="margin:0 0 10px;">' + inline(line) + '</p>');
+    }
+    closeList();
+    return out.join('\n');
   }
 
   function normQuadrantLocal(v) {
@@ -183,6 +260,14 @@
     }
   }
 
+  function bodyContent(b) {
+    // v2: markdown directo. v1: secciones por clave.
+    if (b.formato === 'markdown_v2' && b.markdown) {
+      return md2html(b.markdown);
+    }
+    return seccionesBlock(b.secciones);
+  }
+
   /* ============================================================
      MOBILE — iPhone frame con header sticky
      ============================================================ */
@@ -201,7 +286,7 @@
         // Body scroll con tipo grande para sol
         '<div style="flex:1; overflow:auto; padding:20px 22px 130px; font-size:17px; line-height:1.6; color:var(--fg-1);">' +
           keyFactsRow(b.keyFacts) +
-          seccionesBlock(b.secciones) +
+          bodyContent(b) +
         '</div>' +
 
         ctaFlotante(id) +
@@ -211,15 +296,16 @@
   }
 
   function renderDesktopColumn(id, b) {
+    // Helper para inyectar bodyContent en desktop sin tocar resto
     return (
-      '<div style="max-width:640px; margin:0 auto;">' +
+      '<div style="max-width:760px; margin:0 auto;">' +
         '<div style="padding:14px 0 18px; border-bottom:1px solid var(--line); margin-bottom:24px;">' +
           headerActions(id) +
           headerTitle(b) +
         '</div>' +
-        '<div style="font-size:17px; line-height:1.6; color:var(--fg-1);">' +
+        '<div style="font-size:16px; line-height:1.6; color:var(--fg-1);">' +
           keyFactsRow(b.keyFacts) +
-          seccionesBlock(b.secciones) +
+          bodyContent(b) +
         '</div>' +
         '<div style="position:sticky; bottom:0; padding:16px 0 24px; ' +
           'background:linear-gradient(to bottom, transparent, var(--bg-app) 30%);">' +
