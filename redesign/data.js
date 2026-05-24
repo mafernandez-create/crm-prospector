@@ -232,6 +232,51 @@
     throw new Error('La IA no devolvió JSON parseable');
   }
 
+  /* ============================================================
+     BRIEFING IA · §19.2 Modo Briefing Narrativo
+     Metodología documentada en docs/metodologia_briefing_AEGRA.md
+     ============================================================ */
+
+  /* Tabla de catálogo GPF prioritario por tipo de cliente */
+  const CATALOGO_POR_TIPO = {
+    'ING': 'Ingeniería · regadío/saneamiento/obra civil → BIOPIPE PVC-O y PE 100 (conducción a presión, regadío); TUYPER conducción (transporte agua); ECOSAN y CONDUSAN (saneamiento enterrado). Si hay edificación: MUTE/EUME para saneamiento insonorizado.',
+    'CCRR': 'Comunidad de Regantes → BIOPIPE PVC-O y PE 100 (sustitución acequia por tubería a presión); TUYPER conducción; soluciones para telecontrol y riego a demanda.',
+    'ARQ': 'Arquitectura → MUTE (saneamiento insonorizado PVC, requisito DB-HR); EUME (canalón aluminio); CONDUSAN para enterrado. Énfasis en certificaciones y cumplimiento DB-HR.',
+    'OCV': 'Promotora / OCV → ECOSAN, CONDUSAN, MUTE para edificios residenciales; TUYPER conducción si hay urbanización. Catálogo según la fase del proyecto.',
+    'CICA': 'Ciclo del agua → ECOSAN y CONDUSAN (saneamiento); BIOPIPE / TUYPER para conducción a presión y abastecimiento. Énfasis en garantía a largo plazo.',
+    'AAPP': 'Admin. pública → según el tipo de obra: BIOPIPE/PE 100 para abastecimiento; ECOSAN/CONDUSAN para saneamiento; MUTE para reformas en edificios públicos.',
+  };
+
+  /* Mapa de fuentes sectoriales por tipo (§18.5 + sección 8 doc metodología) */
+  const FUENTES_SECTORIALES = {
+    'ING': ['SEIASA (modernización regadíos)', 'Plan PARRA Andalucía (agua regenerada)', 'PERTE digitalización ciclo del agua', 'TED Europa / PLACSP', 'BOE (CCRR)', 'FERAGUA'],
+    'CCRR': ['SEIASA', 'PERTE agua', 'FERAGUA', 'Confederación hidrográfica de la cuenca', 'BOE'],
+    'ARQ': ['Colegio Oficial Arquitectos (COA provincial)', 'AIA Journey to Specification', 'Plataformas de concursos', 'Visados de obra colegios'],
+    'OCV': ['PLACSP / TED Europa', 'BORME (datos mercantiles)', 'Prensa económica local'],
+    'CICA': ['Confederaciones hidrográficas', 'iAgua, RETEMA, AguasResiduales', 'Empresas gestoras del ciclo integral'],
+    'AAPP': ['PLACSP', 'Presupuestos municipales', 'Planes provinciales de obras (Diputaciones)'],
+  };
+
+  /* Reglas implícitas del método (sección 6 del doc metodología) */
+  const REGLAS_IMPLICITAS = [
+    'Si el cliente es nuevo, las secciones 3 (Histórico) y 4 (Compromisos) se DECLARAN vacías explícitamente, NO se omiten.',
+    'Si tipo=ING/CCRR y provincia andaluza, mencionar el contexto SEIASA / Plan PARRA / PERTE agua como pico de inversión actual.',
+    'Toda señal de mercado debe llevar cifra concreta + fuente (aunque sea solo "según prensa sectorial").',
+    'Cada señal de mercado cierra con una "lectura para la visita": cómo se traduce esa señal en argumento comercial concreto.',
+    'El catálogo GPF se filtra: máximo 3-4 productos relevantes, NUNCA el catálogo entero.',
+    'Recomienda llevar un CASO CONCRETO de proyecto similar, no fichas comerciales genéricas.',
+    'NUNCA menciones scoring interno, cuadrantes, ni clasificación de cartera al cliente.',
+    'NUNCA reveles cómo se ha identificado al cliente (búsqueda automatizada, BORME, etc.).',
+    'El objetivo final de la visita es un ADVANCE (entregable concreto + fecha), nunca una "continuation" tipo "ya hablaremos".',
+    'Advierte explícitamente del riesgo de continuation disfrazada de éxito.',
+    'Tono: rol consultor técnico, NO comercial. Especialmente con ingenierías/CCRR que tienen equipo técnico propio.',
+    'Mix SPIN proporcional a 30 min: 1-2 Situación, 3-4 Problema, 4-6 Implicación, 2-3 Need-payoff (~12-15 preguntas).',
+    'Las preguntas de Situación se MINIMIZAN porque lo demás se investiga antes de la visita.',
+    'Separa lo VERIFICADO de lo INFERIDO: incluye bloque "lo que NO se sabe y conviene verificar en visita".',
+    'Si la información del cliente es muy limitada, di explícitamente "perfil reconstruido desde fuentes públicas, nivel de confianza single_source".',
+    'Descarta resultados de homónimos en otros países (caso clásico: empresas con mismo nombre en LatAm).',
+  ];
+
   async function generateBriefing(studioId, fechaISO, contextoExtra) {
     const studio = await _getStudio(studioId);
     if (!studio) throw new Error('Estudio ' + studioId + ' no encontrado');
@@ -245,6 +290,7 @@
     const province = _val(studio.province) || _val(studio.city) || '';
     const city = _val(studio.city) || province;
     const types = Array.isArray(studio.type) ? studio.type : [studio.type || 'ARQ'];
+    const tipoPrincipal = types[0];
     const contact = (studio.data && studio.data.contact) || {};
     const reports = (studio.data && studio.data.reports) || [];
     const activities = (studio.data && studio.data.activities) || [];
@@ -256,7 +302,16 @@
         return da - db;
       }).slice(0, 5);
 
-    // Red de conexiones: mismo cuadrante o misma provincia
+    // Compromisos abiertos: propuestas pendientes en activities
+    const propuestasPendientes = [];
+    activities.forEach(function (a) {
+      const ps = (a && a.registroVisita && a.registroVisita.actualizaciones_propuestas) || [];
+      ps.forEach(function (p) {
+        if (!p.decision || p.decision === 'pending') propuestasPendientes.push(p);
+      });
+    });
+
+    // Red de conexiones
     const sameProvince = studios.filter(function (s) {
       return s.id !== studio.id && (_val(s.province) === province);
     });
@@ -264,62 +319,117 @@
       return s.priorityQuadrant && s.priorityQuadrant === studio.priorityQuadrant;
     }).slice(0, 5);
     const puentes = sameProvince.filter(function (s) { return s.es_cliente_puente === true; }).slice(0, 5);
+    const visitadosProvincia = sameProvince.filter(function (s) {
+      return (s.data && (s.data.reports || []).length > 0) || (s.data && (s.data.activities || []).length > 0);
+    }).slice(0, 5);
 
+    // Es cliente nuevo si no tiene histórico
+    const esClienteNuevo = lastEvents.length === 0;
+
+    // Contexto CRM (estructurado)
     const crmCtx = [
-      'NOMBRE: ' + studioName,
-      'CIUDAD: ' + (city || '—') + ' · PROVINCIA: ' + (province || '—'),
-      'TIPOS: ' + types.join(', '),
-      studio.es_cliente_puente ? '⚠️ ES CLIENTE PUENTE' : null,
-      studio.priorityQuadrant ? 'CUADRANTE: Q' + studio.priorityQuadrant + ' ' + (studio.priorityQuadrantName || '') : null,
-      studio.priorityDirect ? 'Eje Directo: ' + studio.priorityDirect + ' (' + (studio.priorityDirectScore || 0) + 'pts)' : null,
-      studio.priorityNetwork ? 'Eje Red: ' + studio.priorityNetwork + ' (' + (studio.priorityNetworkScore || 0) + 'pts)' : null,
-      studio.score ? 'SCORE INTERNO: ' + studio.score : null,
-      _val(contact.phone) ? 'TEL: ' + _val(contact.phone) : null,
-      _val(contact.email) ? 'EMAIL: ' + _val(contact.email) : null,
-      _val(contact.web) ? 'WEB: ' + _val(contact.web) : null,
-      studio.data && studio.data.description ? 'DESCRIPCIÓN: ' + studio.data.description.slice(0, 400) : null,
+      '## DATOS DEL CLIENTE',
+      'Nombre: ' + studioName,
+      'Ciudad / Provincia: ' + (city || '—') + ' / ' + (province || '—'),
+      'Tipo(s): ' + types.join(', '),
+      studio.es_cliente_puente ? 'CLIENTE PUENTE: sí (fuente: ' + (_val(studio.fuente_descubrimiento) || 'sectorial') + ')' : 'Cliente puente: no',
+      studio.priorityQuadrant ? 'Cuadrante: Q' + studio.priorityQuadrant + ' (' + (studio.priorityQuadrantName || '') + ')' : 'Cuadrante: sin clasificar',
+      studio.priorityDirect ? 'Eje Directo: ' + studio.priorityDirect + ' · score ' + (studio.priorityDirectScore || 0) : null,
+      studio.priorityNetwork ? 'Eje Red: ' + studio.priorityNetwork + ' · score ' + (studio.priorityNetworkScore || 0) : null,
+      studio.score ? 'Score interno: ' + studio.score : null,
+      _val(contact.phone) ? 'Teléfono: ' + _val(contact.phone) : null,
+      _val(contact.email) ? 'Email: ' + _val(contact.email) : null,
+      _val(contact.web) ? 'Web: ' + _val(contact.web) : null,
+      _val(contact.address) ? 'Dirección: ' + _val(contact.address) : null,
+      studio.data && studio.data.description ? 'Descripción: ' + studio.data.description.slice(0, 500) : null,
+      studio.data && studio.data.studio && studio.data.studio.employees ? 'Empleados: ' + _val(studio.data.studio.employees) : null,
     ].filter(Boolean).join('\n');
 
-    const histCtx = lastEvents.length === 0
-      ? 'Sin visitas ni actividades registradas (primera visita).'
+    const histCtx = esClienteNuevo
+      ? 'PRIMERA VISITA — cliente nuevo, sin histórico previo de visitas ni actividades registradas en el CRM.'
       : lastEvents.map(function (v, i) {
           const d = (v.date || v.createdAt || '').slice(0, 10);
           const t = v.title || v.type || 'evento';
-          const n = (v.notes || '').slice(0, 220);
-          return '[' + d + '] ' + t + (n ? ' — ' + n : '');
+          const n = (v.notes || '').slice(0, 350);
+          return (i + 1) + '. [' + d + '] ' + t + (n ? '\n   Notas: ' + n : '');
+        }).join('\n');
+
+    const compromisosCtx = propuestasPendientes.length === 0
+      ? 'Sin compromisos abiertos.'
+      : propuestasPendientes.map(function (p) {
+          return '- ' + (p.tipo || 'propuesta') + ': ' + (p.propuesta || '');
         }).join('\n');
 
     const redCtx = [];
-    if (puentes.length) redCtx.push('Otros prescriptores puente en ' + province + ': ' + puentes.map(function (s) { return s.name; }).join(', '));
-    if (sameQuadrant.length) redCtx.push('Mismo cuadrante Q' + studio.priorityQuadrant + ' en provincia: ' + sameQuadrant.slice(0, 3).map(function (s) { return s.name; }).join(', '));
+    if (puentes.length) redCtx.push('PRESCRIPTORES PUENTE en ' + province + ' (red para activar): ' + puentes.map(function (s) { return s.name; }).join(', '));
+    if (sameQuadrant.length) redCtx.push('Otros clientes del mismo cuadrante Q' + studio.priorityQuadrant + ' en ' + province + ' (referencias): ' + sameQuadrant.slice(0, 5).map(function (s) { return s.name; }).join(', '));
+    if (visitadosProvincia.length) redCtx.push('Clientes visitados en ' + province + ' (referencias activas): ' + visitadosProvincia.map(function (s) { return s.name; }).join(', '));
+    const redText = redCtx.length ? redCtx.join('\n') : 'Sin red de conexiones destacable en el CRM para esta provincia.';
 
-    const systemPrompt = 'Eres el asistente comercial de Manolo Fernández, prescriptor de Grupo GPF (Ferroplast, Tuyper, Ecosan, Biopipe, PVC-O, MUTE) en Andalucía/Extremadura/Levante.\n\n' +
-      'Misión: generar un briefing pre-visita ACCIONABLE de 1 página con 8 secciones exactas.\n\n' +
-      'REGLAS:\n' +
-      '- Concreto, NO genérico. Si no hay datos suficientes, dilo explícito.\n' +
-      '- Productos GPF: MUTE (saneamiento insonorizado PVC), Ecosan (saneamiento ecológico), Biopipe (bioplástico), PVC-O (presión), Tuyper.\n' +
-      '- Devuelve ÚNICAMENTE el JSON con las 8 claves exactas, sin texto extra.';
+    const catalogoSugerido = CATALOGO_POR_TIPO[tipoPrincipal] || 'Catálogo GPF: elegir 3-4 productos según el perfil técnico del cliente.';
+    const fuentesSugeridas = (FUENTES_SECTORIALES[tipoPrincipal] || []).join(', ');
 
-    const userMsg = 'Genera briefing pre-visita para esta empresa.\n\n' +
-      'DATOS CRM:\n' + crmCtx + '\n' +
-      (contextoExtra ? '\nCONTEXTO ADICIONAL:\n' + contextoExtra + '\n' : '') +
-      '\nHISTÓRICO RECIENTE:\n' + histCtx + '\n' +
-      '\nRED DE CONEXIONES:\n' + (redCtx.join('\n') || 'Sin conexiones destacables.') + '\n' +
-      '\nFECHA VISITA: ' + fecha + '\n\n' +
-      'Devuelve ÚNICAMENTE este JSON (8 claves exactas):\n' +
-      '{\n' +
-      '  "resumen_ejecutivo": "3-4 líneas: quién es, dónde está en la cartera (cuadrante), por qué se le visita ahora",\n' +
-      '  "historico_reciente": "Lo último que se habló, fecha, interlocutor. Si primera visita, di \'Primera visita — sin historial\'",\n' +
-      '  "compromisos_abiertos": "Lo prometido y no cerrado. Si no hay, di \'—\'",\n' +
-      '  "senales_mercado": "Adjudicaciones públicas recientes, cambios sector, noticias 2024-2026 relevantes",\n' +
-      '  "red_conexiones": "Otros prospects/clientes relacionados, especialmente cliente puente si aplica",\n' +
-      '  "spin_visita": {"situacion":"Pregunta concreta", "problema":"Pregunta concreta", "implicacion":"Pregunta concreta", "necesidad_pago":"Pregunta concreta"},\n' +
-      '  "catalogo_prioritario": ["Producto GPF 1 — razón específica", "Producto 2 — razón", "Producto 3 — razón (opcional)"],\n' +
-      '  "evitar_mencionar": ["Aspecto 1 a no revelar", "Aspecto 2"]\n' +
-      '}';
+    /* SYSTEM PROMPT — perfil del agente + reglas duras */
+    const systemPrompt =
+      'Eres el asistente comercial estratégico de Manuel Fernández (Manolo), prescriptor de Grupo Plásticos Ferro (GPF) en Andalucía, Extremadura y Levante. Trabajas bajo la metodología SPIN de Neil Rackham aplicada a prescripción técnica B2B en construcción/agua.\n\n' +
+      'MISIÓN: generar un briefing pre-visita ACCIONABLE en formato markdown, siguiendo la estructura del Modo Briefing §19.2 del CRM. NO un informe genérico: un documento de 2-4 páginas que prepare a Manolo para entrar a la visita con un PLAN claro y salir con un ADVANCE concreto.\n\n' +
+      'PRODUCTOS GPF (catálogo de referencia):\n' +
+      '- MUTE: saneamiento insonorizado PVC tricapa, requisito DB-HR edificación residencial.\n' +
+      '- EUME: canalón de aluminio extruido.\n' +
+      '- ECOSAN: saneamiento enterrado PVC corrugado.\n' +
+      '- CONDUSAN: tubería saneamiento de gran diámetro.\n' +
+      '- BIOPIPE PVC-O: tubería a presión orientada (regadío + abastecimiento).\n' +
+      '- PE 100: polietileno alta densidad para presión.\n' +
+      '- TUYPER: marca hermana, gama conducción.\n\n' +
+      'REGLAS DURAS (cumplir TODAS):\n' +
+      REGLAS_IMPLICITAS.map(function (r, i) { return (i + 1) + '. ' + r; }).join('\n') + '\n\n' +
+      'FORMATO DE OUTPUT: markdown directo, con headings ## para cada sección. SIN frontmatter YAML. SIN texto antes ni después del markdown. Las secciones DEBEN ser exactamente las 10 listadas en el user prompt, en ese orden.';
 
-    const raw = await _claudeCall(systemPrompt, userMsg, 4096);
-    const briefing = _parseJSON(raw);
+    /* USER PROMPT — datos concretos + plantilla */
+    const userMsg =
+      'Genera el briefing pre-visita para esta visita.\n\n' +
+      '## FECHA DE VISITA\n' + fecha + '\n\n' +
+      crmCtx + '\n\n' +
+      '## HISTÓRICO RECIENTE (últimas 5 entradas)\n' + histCtx + '\n\n' +
+      '## COMPROMISOS ABIERTOS\n' + compromisosCtx + '\n\n' +
+      '## RED DE CONEXIONES EN EL CRM\n' + redText + '\n\n' +
+      (contextoExtra ? '## CONTEXTO EXTRA INDICADO POR MANOLO\n' + contextoExtra + '\n\n' : '') +
+      '## ORIENTACIÓN SECTORIAL\n' +
+      'Tipo principal: ' + tipoPrincipal + '\n' +
+      'Fuentes sectoriales habituales: ' + (fuentesSugeridas || '(no mapeado)') + '\n' +
+      'Catálogo GPF sugerido para este tipo:\n' + catalogoSugerido + '\n\n' +
+      '---\n\n' +
+      'Genera el briefing en MARKDOWN con EXACTAMENTE estas 10 secciones, en este orden:\n\n' +
+      '# Briefing pre-visita — ' + studioName + '\n\n' +
+      '> (línea de aviso si procede: si la cartera es escasa, decir "perfil reconstruido desde el CRM, nivel single_source")\n\n' +
+      '## 1. Resumen ejecutivo\n' +
+      '(3-5 líneas: quién es, dónde está en cartera, por qué se le visita AHORA — específico, no genérico. Si es cliente nuevo, mencionar que el objetivo no es vender sino posicionarse como interlocutor técnico)\n\n' +
+      '## 2. Contexto del cliente\n' +
+      '(actividad, estructura, proyectos verificados, perfil; bloque al final "lo que NO se sabe y conviene verificar en visita")\n\n' +
+      '## 3. Histórico reciente\n' +
+      '(' + (esClienteNuevo ? 'declarar explícitamente: PRIMERA VISITA, sin histórico' : 'resumir últimas 3-5 interacciones con fecha + insight') + ')\n\n' +
+      '## 4. Compromisos abiertos\n' +
+      '(' + (propuestasPendientes.length === 0 ? 'declarar: ninguno por ' + (esClienteNuevo ? 'no haber relación previa' : 'estar al día') : 'listar compromisos con qué/quién/cuándo') + ')\n\n' +
+      '## 5. Señales de mercado relevantes\n' +
+      '(adjudicaciones públicas recientes y noticias del sector ' + tipoPrincipal + ' en ' + province + '. Cada señal con cifra concreta + fuente. Cerrar con "Lectura para la visita")\n\n' +
+      '## 6. Red y conexiones\n' +
+      '(prescriptores puente, clientes referenciables en la zona, ecosistema natural donde el cliente opera)\n\n' +
+      '## 7. Sugerencia SPIN para esta visita\n' +
+      '(apertura breve + Situación 1-2 preguntas + Problema 3-4 preguntas + Implicación 4-6 preguntas + Need-payoff 2-3 preguntas. Particulariza las preguntas al cliente concreto, no plantillas)\n\n' +
+      '## 8. Catálogo GPF prioritario para esta visita\n' +
+      '(3-4 productos relevantes, NO el catálogo entero. Para cada producto, una línea de POR QUÉ encaja con ESTE cliente)\n\n' +
+      '## 9. Cosas a evitar mencionar\n' +
+      '(3-5 cosas concretas: origen del descubrimiento, scoring, posicionarse como comercial puro, presionar para cierre, etc.)\n\n' +
+      '## 10. Objetivo de advance para esta visita\n' +
+      '(2-3 opciones realistas de compromiso entregable + fecha; advertencia sobre continuation; cómo cerrar la reunión sin caer en "ya hablaremos")';
+
+    const raw = await _claudeCall(systemPrompt, userMsg, 8192);
+
+    // El output es markdown directo. Lo limpiamos por si vino con fences.
+    const markdown = String(raw)
+      .replace(/^```(?:markdown|md)?\s*/i, '')
+      .replace(/\s*```\s*$/, '')
+      .trim();
 
     // Persistir en el backend activo
     const isoDate = new Date().toISOString().replace(/[:.]/g, '-');
@@ -328,7 +438,8 @@
         fecha_visita: fecha,
         generated_at: new Date().toISOString(),
         contexto_extra: contextoExtra || null,
-        briefing: briefing,
+        markdown: markdown,
+        formato: 'markdown_v2',
         studio_snapshot: {
           name: studioName,
           province: province,
@@ -340,7 +451,7 @@
       console.warn('[redesign/data] persistencia briefing falló:', e.message);
     }
 
-    return { success: true, briefing: briefing, persisted: true };
+    return { success: true, markdown: markdown, persisted: true };
   }
 
   async function generateReport(studioId, payload) {
