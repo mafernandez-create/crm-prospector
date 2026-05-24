@@ -293,6 +293,7 @@
         fecha_visita: obj.fecha_visita || null,
         briefing: obj.briefing || null,
         markdown: obj.markdown || null,
+        formato: obj.formato || (obj.markdown ? 'markdown_v2' : 'json_v1'),
         contexto_extra: obj.contexto_extra || null,
         studio_snapshot: obj.studio_snapshot || null,
         generated_at: obj.generated_at || new Date().toISOString(),
