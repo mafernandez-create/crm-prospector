@@ -233,6 +233,167 @@
   }
 
   /* ============================================================
+     BÚSQUEDA WEB MULTI-FUENTE (Fase B briefing IA)
+     Replica el método del legacy (index-legacy.html línea 30791+):
+     - Web propia del cliente via allorigins.win proxy CORS
+     - DuckDuckGo Instant Answer API (sin CORS, devuelve JSON)
+     - Páginas Amarillas / InfoEmpresas para datos mercantiles
+     - Queries sectoriales según tipo de cliente + provincia
+     ============================================================ */
+
+  /* Queries sectoriales por tipo de cliente y provincia.
+     Devuelven una lista de strings de búsqueda específicos del nicho. */
+  const QUERIES_SECTORIALES = {
+    'ING':  function (p) { return [
+      'SEIASA modernización regadíos ' + p + ' adjudicación 2024 2025',
+      'Plan PARRA Andalucía agua regenerada ' + p + ' proyectos',
+      'PERTE digitalización ciclo agua comunidades regantes ' + p,
+    ]; },
+    'CCRR': function (p) { return [
+      'SEIASA modernización regadíos ' + p,
+      'comunidad regantes ' + p + ' adjudicación tubería presión',
+      'Plan PARRA agua regenerada ' + p + ' riego',
+    ]; },
+    'ARQ':  function (p) { return [
+      'arquitectura visados obra ' + p + ' 2024 2025',
+      'colegio arquitectos ' + p + ' concursos proyectos',
+    ]; },
+    'OCV':  function (p) { return [
+      'obra civil licitación adjudicación ' + p + ' 2024 2025',
+      'promotora ' + p + ' BORME constitución administradores',
+    ]; },
+    'CICA': function (p) { return [
+      'ciclo urbano agua ' + p + ' concesión gestión',
+      'confederación hidrográfica ' + p + ' obras hidráulicas 2024 2025',
+      'iAgua ' + p + ' adjudicación saneamiento',
+    ]; },
+    'AAPP': function (p) { return [
+      'ayuntamiento ' + p + ' licitación obras agua saneamiento 2024 2025',
+      'diputación ' + p + ' plan provincial obras servicios',
+    ]; },
+  };
+
+  /* Fetch genérico vía allorigins.win con timeout. Devuelve texto plano
+     limpio del HTML o '' si falla. */
+  async function _fetchTextoWeb(url, maxChars, timeoutMs) {
+    maxChars = maxChars || 2000;
+    timeoutMs = timeoutMs || 7000;
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(function () { ctrl.abort(); }, timeoutMs);
+      const r = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(url),
+        { signal: ctrl.signal });
+      clearTimeout(t);
+      if (!r.ok) return '';
+      const d = await r.json();
+      if (!d.contents) return '';
+      // Limpiar HTML básico (sin DOMParser para ser portable)
+      let html = d.contents;
+      html = html.replace(/<(script|style|nav|footer|header|aside|form|button)[\s\S]*?<\/\1>/gi, ' ');
+      html = html.replace(/<[^>]+>/g, ' ');
+      html = html.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+      html = html.replace(/\s+/g, ' ').trim();
+      return html.substring(0, maxChars);
+    } catch (_) { return ''; }
+  }
+
+  /* Llama a DuckDuckGo Instant Answer API (devuelve JSON, sin CORS).
+     No siempre devuelve contenido — depende de la query. Best-effort. */
+  async function _searchDuckDuckGo(query) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(function () { ctrl.abort(); }, 5000);
+      const r = await fetch('https://api.duckduckgo.com/?q=' + encodeURIComponent(query) + '&format=json&no_html=1&skip_disambig=1',
+        { signal: ctrl.signal });
+      clearTimeout(t);
+      if (!r.ok) return '';
+      const j = await r.json();
+      const parts = [j.AbstractText, j.Answer];
+      (j.RelatedTopics || []).slice(0, 6).forEach(function (top) {
+        if (top.Text) parts.push(top.Text);
+        else if (top.Topics) top.Topics.forEach(function (s) { if (s.Text) parts.push(s.Text); });
+      });
+      const text = parts.filter(Boolean).join(' · ').trim();
+      return text.length > 50 ? text.substring(0, 1200) : '';
+    } catch (_) { return ''; }
+  }
+
+  /* Recopila contexto web para el briefing. Ejecuta varias búsquedas
+     en paralelo con timeouts. Devuelve un string markdown listo para
+     inyectar en el user prompt, o '' si nada funcionó. */
+  async function _gatherWebContext(studio) {
+    const startTs = Date.now();
+    const sources = [];
+    const studioName = studio.name || '';
+    const province = _val(studio.province) || '';
+    const city = _val(studio.city) || '';
+    const types = Array.isArray(studio.type) ? studio.type : [studio.type || ''];
+    const tipo = types[0];
+    const contact = (studio.data && studio.data.contact) || {};
+    const webUrl = _val(contact.web);
+
+    // Lanzamos todas en paralelo y filtramos las que devuelvan algo
+    const tasks = [];
+
+    // 1. Web propia del cliente
+    if (webUrl && /^https?:\/\//i.test(webUrl)) {
+      tasks.push(
+        _fetchTextoWeb(webUrl, 2500, 8000).then(function (t) {
+          return t.length > 80 ? { label: 'Web del cliente · ' + webUrl, text: t } : null;
+        })
+      );
+    }
+
+    // 2. DuckDuckGo del cliente (info general)
+    const qCliente = studioName + (city ? ' ' + city : '');
+    tasks.push(
+      _searchDuckDuckGo(qCliente).then(function (t) {
+        return t ? { label: 'Buscador · ' + qCliente, text: t } : null;
+      })
+    );
+
+    // 3. Páginas Amarillas (datos contacto / categoría)
+    const normalSlug = studioName.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9\s]/g, '').trim();
+    if (normalSlug.length > 3) {
+      tasks.push(
+        _fetchTextoWeb('https://www.paginasamarillas.es/search/' + encodeURIComponent(normalSlug) + '/all-spain/', 1500, 6000)
+          .then(function (t) { return t.length > 100 ? { label: 'Páginas Amarillas', text: t } : null; })
+      );
+    }
+
+    // 4. Búsquedas sectoriales según tipo + provincia
+    const getQueries = QUERIES_SECTORIALES[tipo];
+    if (getQueries && province) {
+      const queries = getQueries(province);
+      queries.forEach(function (q) {
+        tasks.push(
+          _searchDuckDuckGo(q).then(function (t) {
+            return t ? { label: 'Sectorial · ' + q.substring(0, 50), text: t } : null;
+          })
+        );
+      });
+    }
+
+    // Limit total time: 25s
+    const results = await Promise.race([
+      Promise.all(tasks),
+      new Promise(function (resolve) { setTimeout(function () { resolve([]); }, 25000); }),
+    ]);
+
+    (results || []).forEach(function (r) { if (r) sources.push(r); });
+
+    if (!sources.length) return '';
+
+    const duration = ((Date.now() - startTs) / 1000).toFixed(1);
+    console.info('[redesign/data] contexto web recopilado · ' + sources.length + ' fuentes · ' + duration + 's');
+
+    return '\n## CONTEXTO WEB RECOPILADO (' + new Date().toISOString().slice(0, 10) + ')\n\n' +
+      sources.map(function (s) {
+        return '### ' + s.label + '\n' + s.text + '\n';
+      }).join('\n');
+  }
+
+  /* ============================================================
      BRIEFING IA · §19.2 Modo Briefing Narrativo
      Metodología documentada en docs/metodologia_briefing_AEGRA.md
      ============================================================ */
@@ -369,6 +530,16 @@
     const catalogoSugerido = CATALOGO_POR_TIPO[tipoPrincipal] || 'Catálogo GPF: elegir 3-4 productos según el perfil técnico del cliente.';
     const fuentesSugeridas = (FUENTES_SECTORIALES[tipoPrincipal] || []).join(', ');
 
+    /* Fase B: recopilar contexto web ANTES de llamar a Claude.
+       Esto suma 10-25s pero garantiza datos verificables con URL. */
+    let webContext = '';
+    try {
+      webContext = await _gatherWebContext(studio);
+    } catch (e) {
+      console.warn('[redesign/data] _gatherWebContext falló (no bloqueante):', e.message);
+    }
+    const tieneWeb = !!webContext;
+
     /* SYSTEM PROMPT — perfil del agente + reglas duras */
     const systemPrompt =
       'Eres el asistente comercial estratégico de Manuel Fernández (Manolo), prescriptor de Grupo Plásticos Ferro (GPF) en Andalucía, Extremadura y Levante. Trabajas bajo la metodología SPIN de Neil Rackham aplicada a prescripción técnica B2B en construcción/agua.\n\n' +
@@ -381,7 +552,15 @@
       '- BIOPIPE PVC-O: tubería a presión orientada (regadío + abastecimiento).\n' +
       '- PE 100: polietileno alta densidad para presión.\n' +
       '- TUYPER: marca hermana, gama conducción.\n\n' +
-      'REGLAS DURAS (cumplir TODAS):\n' +
+      'USO DEL CONTEXTO WEB:\n' +
+      (tieneWeb
+        ? 'El user prompt incluye un bloque "## CONTEXTO WEB RECOPILADO" con fuentes reales (web del cliente, buscador, prensa sectorial). REGLAS PARA USARLO:\n' +
+          '- Cualquier CIFRA que cites en la sección 5 (Señales de mercado) DEBE venir de ese bloque, indicando la fuente (nombre o URL).\n' +
+          '- Si una señal no la encuentras en el bloque web, NO la inventes. Es mejor decir "sin cifra verificable, comprobar antes de la visita" que inventar un dato.\n' +
+          '- Cita la fuente como `(según paginasamarillas.es)`, `(según iAgua)`, `(según noticia del [medio])`, etc.\n' +
+          '- Si el bloque web te aporta datos NUEVOS del cliente (proyectos verificados, equipo, premios, web propia), úsalos en la sección 2 (Contexto del cliente) con la misma regla de citación.\n'
+        : 'NO se ha recopilado contexto web (fuentes inalcanzables o cliente sin web). REGLA: en la sección 5 (Señales de mercado), si citas cifras concretas, marca explícitamente "estimación orientativa basada en conocimiento sectorial" o "comprobar antes de la visita". Mejor pocos datos verificables que muchos inventados.\n') +
+      '\nREGLAS DURAS (cumplir TODAS):\n' +
       REGLAS_IMPLICITAS.map(function (r, i) { return (i + 1) + '. ' + r; }).join('\n') + '\n\n' +
       'FORMATO DE OUTPUT: markdown directo, con headings ## para cada sección. SIN frontmatter YAML. SIN texto antes ni después del markdown. Las secciones DEBEN ser exactamente las 10 listadas en el user prompt, en ese orden.';
 
@@ -397,11 +576,14 @@
       '## ORIENTACIÓN SECTORIAL\n' +
       'Tipo principal: ' + tipoPrincipal + '\n' +
       'Fuentes sectoriales habituales: ' + (fuentesSugeridas || '(no mapeado)') + '\n' +
-      'Catálogo GPF sugerido para este tipo:\n' + catalogoSugerido + '\n\n' +
+      'Catálogo GPF sugerido para este tipo:\n' + catalogoSugerido + '\n' +
+      webContext + '\n' +
       '---\n\n' +
       'Genera el briefing en MARKDOWN con EXACTAMENTE estas 10 secciones, en este orden:\n\n' +
       '# Briefing pre-visita — ' + studioName + '\n\n' +
-      '> (línea de aviso si procede: si la cartera es escasa, decir "perfil reconstruido desde el CRM, nivel single_source")\n\n' +
+      '> (línea de aviso si procede: si la cartera es escasa, decir "perfil reconstruido desde el CRM' +
+      (tieneWeb ? ' + búsqueda web del ' + new Date().toISOString().slice(0,10) : '') +
+      ', nivel single_source")\n\n' +
       '## 1. Resumen ejecutivo\n' +
       '(3-5 líneas: quién es, dónde está en cartera, por qué se le visita AHORA — específico, no genérico. Si es cliente nuevo, mencionar que el objetivo no es vender sino posicionarse como interlocutor técnico)\n\n' +
       '## 2. Contexto del cliente\n' +
