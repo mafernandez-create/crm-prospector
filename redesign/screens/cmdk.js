@@ -210,8 +210,18 @@
   function buildAcciones() {
     return [
       { key: 'a:nuevo',     icon: I.Plus(),       title: 'Nuevo análisis',                trail: 'N', kbd: true, onExecute: function () { alert('TODO: nuevo análisis (Fase G)'); } },
-      { key: 'a:informe',   icon: I.Edit(),       title: 'Redactar informe de visita',     trail: 'R', kbd: true, onExecute: function () { if (State.currentStudioId) window.showView('informe', { studioId: State.currentStudioId }); else alert('Selecciona primero un cliente'); } },
-      { key: 'a:briefing',  icon: I.FileText(),   title: 'Generar briefing pre-visita',    trail: 'B', kbd: true, onExecute: function () { if (State.currentStudioId) window.showView('briefing', { studioId: State.currentStudioId }); else alert('Selecciona primero un cliente'); } },
+      { key: 'a:informe',   icon: I.Edit(),       title: 'Redactar informe de visita (tras la visita)', trail: 'R', kbd: true, onExecute: function () { if (State.currentStudioId) window.showView('informe', { studioId: State.currentStudioId }); else alert('Selecciona primero un cliente'); } },
+      { key: 'a:briefing',  icon: I.FileText(),   title: 'Abrir briefing pre-visita',      trail: 'B', kbd: true, onExecute: function () { if (State.currentStudioId) window.showView('briefing', { studioId: State.currentStudioId }); else alert('Selecciona primero un cliente'); } },
+      { key: 'a:briefing-gen', icon: I.Plus(),    title: 'Generar nuevo briefing con IA',  trail: '✨', kbd: true, onExecute: function () {
+        if (!State.currentStudioId) { alert('Selecciona primero un cliente'); return; }
+        const studio = State.studiosById && State.studiosById[State.currentStudioId];
+        if (!studio) { alert('Cliente no encontrado'); return; }
+        if (window.Screens.detail && window.Screens.detail.regenerarBriefingIA) {
+          window.Screens.detail.regenerarBriefingIA(studio);
+        } else {
+          alert('Función de generación no disponible — abre la ficha del cliente y usa el botón "Regenerar"');
+        }
+      } },
       { key: 'a:llegar',    icon: I.Navigation(), title: 'Cómo llegar al próximo cliente', trail: 'G', kbd: true, onExecute: function () {
         if (window.Screens.comollegar && State.currentStudioId) window.Screens.comollegar.open(State.currentStudioId);
         else if (window.Screens.comollegar) window.Screens.comollegar.open('3012');

@@ -463,5 +463,5 @@
      EXPORT
      ============================================================ */
   window.Screens = window.Screens || {};
-  window.Screens.detail = { render: render };
+  window.Screens.detail = { render: render, regenerarBriefingIA: regenerarBriefingIA };
 })();

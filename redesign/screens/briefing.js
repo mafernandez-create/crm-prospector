@@ -329,7 +329,7 @@
       '<button class="btn btn-primary btn-block btn-lg" ' +
         'style="box-shadow:0 8px 24px rgba(10,45,82,.25);" ' +
         'onclick="showView(\'informe\', { studioId: \'' + escape(id) + '\' })">' +
-        I.Edit() + ' Empezar informe de la visita' +
+        I.Edit() + ' Tras la visita · Redactar informe' +
       '</button>'
     );
   }
