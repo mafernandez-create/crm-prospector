@@ -1,0 +1,98 @@
+# ============================================================
+# CRM GPF — Batch Qualify Node (reemplazo del GAS legacy)
+#
+# Port de gas-batch-qualify.gs::handleBatchQualify a Node.js puro corriendo
+# en GH Actions. Razón: las nuevas Secret API keys de Supabase (sb_secret_*)
+# no son válidas desde GAS UrlFetchApp (Supabase las rechaza como "browser"),
+# así que necesitamos un "protected environment" real.
+#
+# Llamado cada noche a las 02:00 UTC. Procesa hasta `limite` studios:
+# recalcula scoring v2 y escribe los cambios en Firestore + Supabase
+# (dual-write, paridad con el código legacy).
+#
+# Secrets de repo necesarios:
+#   - FIREBASE_SERVICE_ACCOUNT_KEY → JSON completo del service account
+#       crm-batch-qualify@ferroplast-crm.iam.gserviceaccount.com
+#   - FIRESTORE_PROJECT_ID         → ferroplast-crm
+#   - SUPABASE_URL                 → https://<ref>.supabase.co
+#   - SUPABASE_SERVICE_ROLE_KEY    → legacy JWT por ahora; cuando se valide,
+#                                    cambiar a sb_secret_* y desactivar legacy.
+#
+# ESTADO: paralelo al cron viejo (batch-qualify.yml) durante validación.
+# Tras 1 semana de runs verdes, desactivar el cron viejo.
+# ============================================================
+
+name: Batch Qualify Studios (Node)
+
+on:
+  schedule:
+    # 02:30 UTC — 30 min después del GAS legacy para no solaparse durante
+    # validación. Cuando se desactive el viejo, cambiar a 02:00.
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+    inputs:
+      filtro:
+        description: 'Filtro de estudios'
+        type: choice
+        required: false
+        default: 'sin_cuadrante'
+        options:
+          - sin_cuadrante
+          - todos
+          - ARQ
+          - ING
+          - OCV
+          - AAPP
+          - CCRR
+          - CICA
+      limite:
+        description: 'Número máximo de estudios a procesar (1-1585)'
+        required: false
+        default: '200'
+
+permissions:
+  contents: read
+
+jobs:
+  batch-qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify secrets present
+        run: |
+          missing=()
+          [ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}" ] && missing+=(FIREBASE_SERVICE_ACCOUNT_KEY)
+          [ -z "${{ secrets.SUPABASE_URL }}" ]                && missing+=(SUPABASE_URL)
+          [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]   && missing+=(SUPABASE_SERVICE_ROLE_KEY)
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "❌ Faltan secrets: ${missing[*]}"
+            exit 1
+          fi
+          echo "✅ Todos los secrets presentes"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run batch-qualify (Node)
+        env:
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+          FIRESTORE_PROJECT_ID: ferroplast-crm
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FILTRO: ${{ inputs.filtro || 'sin_cuadrante' }}
+          LIMITE: ${{ inputs.limite || '200' }}
+        run: |
+          echo "======================================"
+          echo "Batch Qualify Node"
+          echo "======================================"
+          echo "Filtro:  $FILTRO"
+          echo "Límite:  $LIMITE"
+          echo "Ejecutado: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo ""
+          node scripts/batch-qualify/index.mjs
