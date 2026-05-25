@@ -55,11 +55,14 @@ jobs:
         run: |
           # Supabase corre Postgres 17.x (verificado 2026-05-25: server 17.6).
           # El client 17 es required (16.x aborta por version mismatch).
+          # Ubuntu mantiene varios pg_dump simultáneos — el comando `pg_dump`
+          # sin path apunta al cluster default (16), así que invocamos por
+          # path absoluto en el step de dump: /usr/lib/postgresql/17/bin/pg_dump.
           sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
           wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
           sudo apt-get update -qq
           sudo apt-get install -y postgresql-client-17
-          pg_dump --version
+          /usr/lib/postgresql/17/bin/pg_dump --version
 
       - name: Dump Supabase database
         id: dump
@@ -79,7 +82,8 @@ jobs:
           # --schema=public → sólo nuestro schema, no auth/storage/realtime
           #   de Supabase (esos los restaura Supabase automáticamente).
           # NOTA: la URL contiene la password — nunca la imprimimos.
-          pg_dump \
+          # Path absoluto al binario 17 (no usar `pg_dump` plano: apunta al 16).
+          /usr/lib/postgresql/17/bin/pg_dump \
             --dbname="${DB_URL}" \
             --schema=public \
             --no-owner \
