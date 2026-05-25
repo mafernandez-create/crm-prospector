@@ -33,6 +33,7 @@
     /* Cursores */
     ArrowLeft:    () => _('<line x1="20" y1="12" x2="4" y2="12"/><polyline points="10 6 4 12 10 18"/>'),
     ArrowRight:   () => _('<line x1="4" y1="12" x2="20" y2="12"/><polyline points="14 6 20 12 14 18"/>'),
+    ChevronLeft:  () => _('<polyline points="15 6 9 12 15 18"/>'),
     ChevronRight: () => _('<polyline points="9 6 15 12 9 18"/>'),
     ChevronDown:  () => _('<polyline points="6 9 12 15 18 9"/>'),
 
