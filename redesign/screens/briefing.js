@@ -339,12 +339,17 @@
           I.ArrowLeft() + ' <span>Atrás</span>' +
         '</button>' +
         '<div class="briefing-toolbar" style="display:flex; gap:4px;">' +
-          '<button aria-label="Descargar markdown" title="Descargar .md" ' +
+          '<button aria-label="Descargar Word" title="Descargar Word (.doc)" ' +
+            'onclick="window.Screens.briefing.descargarDOC(\'' + escape(id) + '\')" ' +
+            'style="width:44px; height:44px; background:transparent; border:0; color:var(--fg-2); border-radius:8px; cursor:pointer; font-weight:600; font-family:var(--font-mono); font-size:11px;">' +
+            'W' +
+          '</button>' +
+          '<button aria-label="Descargar markdown" title="Descargar Markdown (.md)" ' +
             'onclick="window.Screens.briefing.descargarMD(\'' + escape(id) + '\')" ' +
             'style="width:44px; height:44px; background:transparent; border:0; color:var(--fg-2); border-radius:8px; cursor:pointer;">' +
             I.Download() +
           '</button>' +
-          '<button aria-label="Imprimir" title="Imprimir / Guardar PDF" ' +
+          '<button aria-label="Imprimir o guardar PDF" title="Imprimir o Guardar como PDF (⌘P)" ' +
             'onclick="window.print()" ' +
             'style="width:44px; height:44px; background:transparent; border:0; color:var(--fg-2); border-radius:8px; cursor:pointer;">' +
             I.Printer() +
@@ -474,5 +479,68 @@
     setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1000);
   }
 
-  window.Screens.briefing = { render: render, descargarMD: descargarMD };
+  /* Descarga como .doc (Word abre HTML como documento). El truco: envolver
+     el HTML con namespaces de Word y servirlo con extensión .doc — Word
+     lo abre y permite guardar como .docx desde ahí. No requiere librería. */
+  async function descargarDOC(studioId) {
+    let md = null, fecha = null;
+    try {
+      const items = await window.Data.getBriefingItems(studioId, 1);
+      if (items && items[0]) {
+        md = items[0].markdown || null;
+        fecha = items[0].fecha_visita || (items[0].iso_date || '').slice(0, 10);
+      }
+    } catch (_) {}
+    const studioName = (State.studiosById[studioId] && State.studiosById[studioId].name) || ('Estudio_' + studioId);
+
+    // Convertir el markdown a HTML usando el mismo md2html ya cargado
+    let bodyHTML;
+    if (md) {
+      bodyHTML = md2html(md);
+    } else {
+      // Fallback: tomar el HTML ya renderizado en la vista
+      const v = document.getElementById('view-briefing');
+      bodyHTML = v ? v.innerHTML : '<p>Sin contenido.</p>';
+    }
+
+    // Word espera HTML con XML headers + namespaces. Esto es lo mínimo
+    // que abre Word como documento editable. Estilos inline para que se
+    // conserven al guardar como .docx.
+    const wordHTML =
+      '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+            'xmlns:w="urn:schemas-microsoft-com:office:word" ' +
+            'xmlns="http://www.w3.org/TR/REC-html40">' +
+        '<head>' +
+          '<meta charset="utf-8">' +
+          '<title>' + escape(studioName) + '</title>' +
+          '<style>' +
+            'body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.45; color: #1a1a1a; }' +
+            'h1, h2 { color: #0a2d52; font-family: Calibri, sans-serif; }' +
+            'h2 { font-size: 16pt; border-bottom: 1px solid #d0d7de; padding-bottom: 4pt; margin-top: 14pt; }' +
+            'h3 { color: #1f3a5a; font-size: 12pt; margin-top: 12pt; }' +
+            'h4 { color: #1f3a5a; font-size: 11pt; }' +
+            'blockquote { background:#f6f8fa; border-left:3px solid #0a2d52; padding:6pt 12pt; margin:8pt 0; color:#4a5a72; }' +
+            'code { background:#f3f5f8; padding:1pt 4pt; border:1px solid #e1e6ed; font-family: "Courier New", monospace; font-size: 10pt; }' +
+            'ul, ol { margin: 6pt 0 8pt 22pt; }' +
+            'li { margin: 2pt 0; }' +
+            'p { margin: 6pt 0; }' +
+            'hr { border:0; border-top:1px solid #d0d7de; margin: 12pt 0; }' +
+          '</style>' +
+        '</head>' +
+        '<body>' + bodyHTML + '</body>' +
+      '</html>';
+
+    const safeName = studioName.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+    const filename = 'briefing_' + safeName + (fecha ? '_' + fecha : '') + '.doc';
+    const blob = new Blob(['﻿', wordHTML], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  }
+
+  window.Screens.briefing = { render: render, descargarMD: descargarMD, descargarDOC: descargarDOC };
 })();
