@@ -309,6 +309,13 @@
               : '') +
             '</div>'
           : '') +
+
+        // Escape hatch → ficha completa en legacy (Contacto, Equipo cliente,
+        // Actividades, Informes, Pipeline, Proyectos). 2026-05-25.
+        '<a class="btn btn-ghost" style="height:44px; font-size:13px; color:var(--gpf-blue-700); text-decoration:none;" ' +
+          'href="index-legacy.html?force=legacy#detail/' + escape(s.id) + '">' +
+          'Ficha completa (vista clásica) ↗' +
+        '</a>' +
       '</div>'
     );
   }
