@@ -194,7 +194,8 @@
     { tipo: 'AAPP', re: /\b(Diputación (?:Provincial de |de )?[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)/g },
     { tipo: 'AAPP', re: /\b(Mancomunidad (?:de |del? )?[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s[A-Za-záéíóúñ]+){0,3})/g },
     { tipo: 'CICA', re: /\b(Aqualia|EMASESA|EMACSA|Hidralia|Hidragua|EMASA|EMUASA|EMASAGRA|Giahsa|Aguas de [A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)/g },
-    { tipo: 'ING',  re: /\b([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+ (?:Ingenieros?|Consultores?|Ingeniería|Técnicos?|Arquitectos?))\b/g },
+    { tipo: 'ARQ',  re: /\b([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){0,3}\s(?:Arquitectos?|Arquitectura|Interiorismo))\b/g },
+    { tipo: 'ING',  re: /\b([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+ (?:Ingenieros?|Consultores?|Ingeniería|Técnicos?))\b/g },
   ];
 
   function _rcNorm(s) {
@@ -508,6 +509,7 @@
       EDAR: { bg: '#ede9fe', fg: '#5b21b6', label: 'EDAR/ETAP' },
       AAPP: { bg: '#fef9c3', fg: '#854d0e', label: 'AAPP' },
       CICA: { bg: '#dcfce7', fg: '#166534', label: 'Ciclo Agua' },
+      ARQ:  { bg: '#fff7ed', fg: '#9a3412', label: 'Arquitectura' },
       ING:  { bg: '#fce7f3', fg: '#9d174d', label: 'Ingeniería' },
     };
     var countLabel = rows.length + (total > rows.length ? '/' + total : '');

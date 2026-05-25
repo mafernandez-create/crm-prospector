@@ -34,6 +34,13 @@
   --line: var(--ink-200);
   --line-strong: var(--ink-300);
 
+  /* Aliases de conveniencia usados en pantallas planificador / mapa / importar */
+  --bg-1: var(--paper);          /* = --bg-card */
+  --bg-2: var(--ink-100);        /* panel secundario / toolbar */
+  --border-1: var(--ink-200);    /* = --line */
+  --border-2: var(--ink-300);    /* = --line-strong */
+  --fg-4: var(--ink-300);        /* texto muy apagado = --fg-muted */
+
   /* Acción primaria: azul GPF (acción técnica habitual)
    * Acción crítica / de campo: rojo MUTE (sólo para "Cómo llegar",
    * borrar, alertas — el rojo es escaso en el DS, así lo mantenemos). */
