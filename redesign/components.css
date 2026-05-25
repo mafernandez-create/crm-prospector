@@ -980,3 +980,104 @@ body {
     padding: 16px !important;
   }
 }
+
+/* =====================================================================
+   @media print — modo impresión, sobre todo para el briefing pre-visita.
+   Oculta toda la UI de la app y deja solo el contenido del view activo
+   con tipografía y colores legibles en papel.
+   ===================================================================== */
+@media print {
+  /* Ocultar todo lo que no es contenido */
+  .crm-root .shell > .sidebar,
+  .crm-root .shell > .main > .topbar,
+  .crm-root .nav-pill,
+  .crm-root #app-loader,
+  .crm-root .search-pill,
+  .crm-root .cmdk-overlay,
+  .crm-root .sheet-overlay,
+  .crm-root .briefing-toolbar,
+  .crm-root .back-btn,
+  .crm-root .home-indicator,
+  .crm-root .statusbar,
+  .crm-root .iphone-frame::before,
+  .crm-root .iphone-frame::after,
+  .crm-root .view:not(.active) {
+    display: none !important;
+  }
+
+  /* Solo la vista activa, a sangre y sin marco iPhone */
+  .crm-root,
+  .crm-root .shell,
+  .crm-root .shell > .main,
+  .crm-root .shell > .main > .content,
+  .crm-root .view.active,
+  .crm-root .iphone-frame {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: white !important;
+    overflow: visible !important;
+    height: auto !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Tipografía clara y compacta para A4 */
+  body, .crm-root {
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif !important;
+    font-size: 11pt !important;
+    line-height: 1.45 !important;
+    color: #1a1a1a !important;
+    background: white !important;
+  }
+
+  /* Headings legibles con saltos no rotos */
+  .crm-root h1, .crm-root h2 {
+    color: #0a2d52 !important;
+    page-break-after: avoid;
+    page-break-inside: avoid;
+  }
+  .crm-root h2 { font-size: 16pt !important; margin-top: 14pt !important; }
+  .crm-root h3 {
+    color: #1f3a5a !important;
+    font-size: 12pt !important;
+    margin-top: 12pt !important;
+    page-break-after: avoid;
+  }
+  .crm-root h4 {
+    color: #1f3a5a !important;
+    font-size: 11pt !important;
+    page-break-after: avoid;
+  }
+  .crm-root p, .crm-root li, .crm-root blockquote {
+    page-break-inside: avoid;
+  }
+  .crm-root blockquote {
+    background: #f6f8fa !important;
+    border-left: 3px solid #0a2d52 !important;
+    color: #4a5a72 !important;
+  }
+  .crm-root a {
+    color: #0a4ea2 !important;
+    text-decoration: none !important;
+  }
+  .crm-root code {
+    background: #f3f5f8 !important;
+    border: 1px solid #e1e6ed !important;
+    font-size: 10pt !important;
+  }
+  .crm-root hr { border-top: 1px solid #d0d7de !important; }
+
+  /* CTA y botones grandes ocultos en impresión (no sirven en papel) */
+  .crm-root .btn,
+  .crm-root button {
+    display: none !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 16mm 14mm 18mm 14mm;
+  }
+}
