@@ -27,6 +27,8 @@
     Check:      () => _('<polyline points="4 12 10 18 20 6"/>'),
     Edit:       () => _('<path d="M3 21l3-1 12-12-2-2L4 18z"/><path d="M14 6l4 4"/>'),
     Save:       () => _('<path d="M5 4h11l3 3v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><polyline points="7 4 7 10 15 10"/>'),
+    Printer:    () => _('<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>'),
+    Download:   () => _('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'),
 
     /* Cursores */
     ArrowLeft:    () => _('<line x1="20" y1="12" x2="4" y2="12"/><polyline points="10 6 4 12 10 18"/>'),

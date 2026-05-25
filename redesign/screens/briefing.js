@@ -338,14 +338,16 @@
           'onclick="showView(\'detail\', { studioId: \'' + escape(id) + '\' })" aria-label="Volver">' +
           I.ArrowLeft() + ' <span>Atrás</span>' +
         '</button>' +
-        '<div style="display:flex; gap:4px;">' +
-          '<button aria-label="Modo lectura" ' +
+        '<div class="briefing-toolbar" style="display:flex; gap:4px;">' +
+          '<button aria-label="Descargar markdown" title="Descargar .md" ' +
+            'onclick="window.Screens.briefing.descargarMD(\'' + escape(id) + '\')" ' +
             'style="width:44px; height:44px; background:transparent; border:0; color:var(--fg-2); border-radius:8px; cursor:pointer;">' +
-            I.Sun() +
+            I.Download() +
           '</button>' +
-          '<button aria-label="Guardar para después" ' +
+          '<button aria-label="Imprimir" title="Imprimir / Guardar PDF" ' +
+            'onclick="window.print()" ' +
             'style="width:44px; height:44px; background:transparent; border:0; color:var(--fg-2); border-radius:8px; cursor:pointer;">' +
-            I.Save() +
+            I.Printer() +
           '</button>' +
         '</div>' +
       '</div>'
@@ -442,5 +444,35 @@
      EXPORT
      ============================================================ */
   window.Screens = window.Screens || {};
-  window.Screens.briefing = { render: render };
+  /* Descarga el briefing actual como .md (busca primero el cache de Data,
+     y si no, vuelve a fetchear). */
+  async function descargarMD(studioId) {
+    let md = null, fecha = null;
+    try {
+      const items = await window.Data.getBriefingItems(studioId, 1);
+      if (items && items[0]) {
+        md = items[0].markdown || null;
+        fecha = items[0].fecha_visita || (items[0].iso_date || '').slice(0, 10);
+      }
+    } catch (_) {}
+    if (!md) {
+      // Fallback: si el briefing en pantalla es legacy v1, generar markdown
+      // a partir de las secciones renderizadas. Simple text dump.
+      const v = document.getElementById('view-briefing');
+      md = '# Briefing\n\n' + (v ? v.innerText : '(sin contenido)');
+    }
+    const studioName = (State.studiosById[studioId] && State.studiosById[studioId].name) || ('Estudio_' + studioId);
+    const safeName = studioName.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+    const filename = 'briefing_' + safeName + (fecha ? '_' + fecha : '') + '.md';
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  }
+
+  window.Screens.briefing = { render: render, descargarMD: descargarMD };
 })();
