@@ -16,6 +16,12 @@ const DESDE = process.env.DESDE || '';
 const HASTA = process.env.HASTA || '';
 const LIMITE = parseInt(process.env.LIMITE || '500', 10);
 
+// Supabase — dual-write desde Node.js (cierre migración 2026-05-25).
+// Si no están configurados, el script sigue funcionando con sólo el GAS.
+const SUPABASE_URL = process.env.SUPABASE_URL || '';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const SUPABASE_ENABLED = !!(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
+
 // CPV relevantes según §19.3 (ingeniería + obra hidráulica + saneamiento)
 const CPV_RELEVANTES = [
   '71300000','71310000','71311000','71320000','71321000','71322000',
@@ -182,6 +188,217 @@ async function postToGAS(adjudicaciones) {
   return JSON.parse(resp);
 }
 
+// ──────────────────────────────────────────────────────────────────────
+// SUPABASE — dual-write del cross-check
+//
+// Replica la lógica de handlePlacspCrosscheck (gas-batch-qualify.gs:775)
+// pero contra Supabase. No depende del GAS — si SUPABASE_URL/KEY están
+// configurados, el script lee studios desde Supabase, hace el match
+// localmente y upserta resultados en placsp_adjudicaciones + studios.data.
+// ──────────────────────────────────────────────────────────────────────
+
+function normalizeNameForMatch(name) {
+  if (!name) return '';
+  return String(name).toLowerCase()
+    .replace(/\b(s\.?l\.?|s\.?a\.?|s\.?l\.?u\.?|s\.?c\.?p\.?|sociedad limitada|sociedad an[óo]nima|sociedad cooperativa|ute|s\.?c\.?|c\.?b\.?)\b/g, '')
+    .replace(/[.,&\-_'" ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function supaFetch(path, opts = {}) {
+  const url = SUPABASE_URL.replace(/\/$/, '') + path;
+  const headers = Object.assign({
+    'apikey': SUPABASE_SERVICE_ROLE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY,
+    'Content-Type': 'application/json',
+  }, opts.headers || {});
+  const res = await fetch(url, Object.assign({}, opts, { headers }));
+  return res;
+}
+
+// Lee toda la cartera (sólo id, name, data) paginando con Range header.
+async function supaLoadAllStudios() {
+  const PAGE = 1000;
+  let from = 0;
+  const out = [];
+  while (true) {
+    const to = from + PAGE - 1;
+    const res = await supaFetch('/rest/v1/studios?select=id,name,data&order=id.asc', {
+      method: 'GET',
+      headers: { Range: `${from}-${to}` },
+    });
+    if (!res.ok) throw new Error(`Supabase select studios HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const rows = await res.json();
+    if (!Array.isArray(rows) || rows.length === 0) break;
+    out.push(...rows);
+    if (rows.length < PAGE) break;
+    from += PAGE;
+  }
+  return out;
+}
+
+// Patch del JSONB data preservando los demás campos.
+// Postgres permite jsonb_set para esto, pero la API REST de Supabase no lo
+// expone directamente. Hacemos un GET → merge → PATCH (atómico por studio).
+async function supaPatchStudioData(studioId, partial) {
+  // 1. Leer el data actual
+  const getRes = await supaFetch(
+    `/rest/v1/studios?id=eq.${encodeURIComponent(studioId)}&select=data`,
+    { method: 'GET' }
+  );
+  if (!getRes.ok) throw new Error(`get data ${studioId}: HTTP ${getRes.status}`);
+  const rows = await getRes.json();
+  const currentData = (rows[0] && rows[0].data) || {};
+
+  // 2. Merge superficial — sólo añadimos/sobreescribimos las claves de partial
+  const newData = Object.assign({}, currentData, partial);
+
+  // 3. PATCH
+  const patchRes = await supaFetch(
+    `/rest/v1/studios?id=eq.${encodeURIComponent(studioId)}`,
+    {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ data: newData }),
+    }
+  );
+  if (patchRes.status >= 400) {
+    throw new Error(`patch data ${studioId}: HTTP ${patchRes.status} ${(await patchRes.text()).slice(0, 200)}`);
+  }
+}
+
+// Crea ficha nueva en Supabase (cuando un adjudicatario PLACSP no está en cartera).
+async function supaCreateStudio(id, studio) {
+  const row = {
+    id: String(id),
+    name: studio.name || '',
+    type: Array.isArray(studio.type) ? studio.type[0] : (studio.type || 'ING'),
+    status: studio.status || 'nuevo',
+    fuente_descubrimiento: studio.fuente_descubrimiento || null,
+    data: studio.data || {},
+  };
+  const res = await supaFetch('/rest/v1/studios', {
+    method: 'POST',
+    headers: { Prefer: 'return=minimal,resolution=ignore-duplicates' },
+    body: JSON.stringify(row),
+  });
+  if (res.status >= 400) {
+    throw new Error(`create studio ${id}: HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
+  }
+}
+
+// Upsert de un row en placsp_adjudicaciones (histórico).
+async function supaUpsertAdjudicacion(row) {
+  const res = await supaFetch('/rest/v1/placsp_adjudicaciones?on_conflict=adjudicacion_id', {
+    method: 'POST',
+    headers: { Prefer: 'return=minimal,resolution=merge-duplicates' },
+    body: JSON.stringify(row),
+  });
+  if (res.status >= 400) {
+    throw new Error(`upsert placsp ${row.adjudicacion_id}: HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
+  }
+}
+
+// Cruce completo contra Supabase. Mismo contrato que postToGAS:
+// devuelve { matched, created, errorsCount, errors }.
+async function crosscheckSupabase(adjudicaciones) {
+  if (!SUPABASE_ENABLED) {
+    log('Supabase no configurado (SUPABASE_URL/SERVICE_ROLE_KEY ausentes) — skipping');
+    return null;
+  }
+
+  log(`[supabase] Cruzando ${adjudicaciones.length} adjudicaciones contra cartera Supabase…`);
+  const studios = await supaLoadAllStudios();
+  log(`[supabase] Cartera Supabase: ${studios.length} studios`);
+
+  // Índice por nombre normalizado (primera coincidencia gana, como en el GAS)
+  const byName = {};
+  for (const s of studios) {
+    const k = normalizeNameForMatch(s.name || '');
+    if (k && !byName[k]) byName[k] = s;
+  }
+
+  let matched = 0, created = 0;
+  const errors = [];
+
+  for (const adj of adjudicaciones) {
+    const fecha = (adj.updated || '').slice(0, 10);
+    const yearMonth = fecha.slice(0, 7) || 'unknown';
+    const safeId = (adj.id || '').replace(/[^a-zA-Z0-9_-]/g, '_').slice(-100) || ('adj_' + Date.now());
+
+    const adjudicacionMeta = {
+      adjudicacion_id: adj.id || '',
+      fecha: fecha,
+      titulo: (adj.title || '').slice(0, 250),
+      organismo: adj.organismo || '',
+      importe: adj.importe || null,
+      lugar: adj.lugar || '',
+      cpv: (adj.cpvCodes || []).slice(0, 3),
+      url: adj.link || '',
+    };
+
+    for (const adjName of (adj.adjudicatarios || [])) {
+      const key = normalizeNameForMatch(adjName);
+      if (!key) continue;
+      const hit = byName[key];
+
+      try {
+        if (hit) {
+          // Cruce con cartera — patcha el JSONB data
+          await supaPatchStudioData(hit.id, {
+            ultima_adjudicacion_placsp: adjudicacionMeta,
+            tieneAlertaPlacsp: true,
+          });
+          matched++;
+        } else {
+          // Descubrimiento — crea ficha nueva
+          const newId = String(Date.now()) + '_' + Math.floor(Math.random() * 9999);
+          await supaCreateStudio(newId, {
+            name: adjName,
+            type: ['ING'],
+            status: 'nuevo',
+            fuente_descubrimiento: { valor: 'placsp', nivel_confianza: 'double_source' },
+            data: {
+              description: 'Detectado automáticamente desde PLACSP: ' + adjudicacionMeta.titulo,
+              ultima_adjudicacion_placsp: adjudicacionMeta,
+              tieneAlertaPlacsp: true,
+            },
+          });
+          byName[key] = { id: newId, name: adjName };
+          created++;
+        }
+
+        // Persistencia histórica (siempre, exista o no la ficha)
+        await supaUpsertAdjudicacion({
+          adjudicacion_id: safeId,
+          year_month: yearMonth,
+          fecha: fecha || null,
+          titulo: adjudicacionMeta.titulo,
+          organismo: adjudicacionMeta.organismo,
+          importe: adjudicacionMeta.importe,
+          lugar: adjudicacionMeta.lugar,
+          cpv: adjudicacionMeta.cpv,
+          url: adjudicacionMeta.url,
+          adjudicatario: adjName,
+          adjudicatario_norm: key,
+          cruzado: !!hit,
+          studio_id: hit ? hit.id : null,
+        });
+      } catch (e) {
+        errors.push(`${adj.id || '?'} → ${adjName}: ${e.message}`);
+      }
+    }
+  }
+
+  return {
+    matched,
+    created,
+    errorsCount: errors.length,
+    errors: errors.slice(0, 10),
+  };
+}
+
 async function main() {
   if (!ENDPOINT || !API_KEY) throw new Error('BATCH_ENDPOINT y BATCH_API_KEY requeridos');
 
@@ -228,15 +445,47 @@ async function main() {
     return;
   }
 
-  // POST a GAS
-  const result = await postToGAS(relevantes);
+  // Dual-write: GAS (Firestore) + Supabase, lanzados en paralelo.
+  // Cualquiera de los dos puede fallar sin romper al otro — registramos por separado.
+  const [gasSettled, supaSettled] = await Promise.allSettled([
+    postToGAS(relevantes),
+    crosscheckSupabase(relevantes),
+  ]);
+
+  const result = gasSettled.status === 'fulfilled' ? gasSettled.value : null;
+  const gasErr = gasSettled.status === 'rejected' ? gasSettled.reason : null;
+  const supaResult = supaSettled.status === 'fulfilled' ? supaSettled.value : null;
+  const supaErr = supaSettled.status === 'rejected' ? supaSettled.reason : null;
+
   log('======================================');
   log('Resumen');
   log('======================================');
-  log(`Adjudicaciones enviadas:   ${relevantes.length}`);
-  log(`Cruces con cartera:        ${result.matched ?? '?'}`);
-  log(`Fichas nuevas creadas:     ${result.created ?? '?'}`);
-  log(`Errores:                   ${result.errorsCount ?? 0}`);
+  log(`Adjudicaciones enviadas:        ${relevantes.length}`);
+  if (gasErr) {
+    log(`GAS (Firestore):                ✗ ${gasErr.message}`);
+  } else if (result) {
+    log(`GAS (Firestore) cruces:         ${result.matched ?? '?'}`);
+    log(`GAS (Firestore) creadas:        ${result.created ?? '?'}`);
+    log(`GAS (Firestore) errores:        ${result.errorsCount ?? 0}`);
+  }
+  if (supaErr) {
+    log(`Supabase:                       ✗ ${supaErr.message}`);
+  } else if (supaResult) {
+    log(`Supabase cruces:                ${supaResult.matched}`);
+    log(`Supabase creadas:               ${supaResult.created}`);
+    log(`Supabase errores:               ${supaResult.errorsCount}`);
+    if (supaResult.errors.length > 0) {
+      log('  Primeros errores:');
+      supaResult.errors.forEach(e => log('   - ' + e));
+    }
+  } else if (!SUPABASE_ENABLED) {
+    log(`Supabase:                       skipped (no configurado)`);
+  }
+
+  // Si AMBOS fallaron, sí queremos exit != 0 para que GH Actions marque rojo.
+  if (gasErr && (supaErr || !SUPABASE_ENABLED)) {
+    throw gasErr;
+  }
 }
 
 main().catch(err => {
