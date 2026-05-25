@@ -51,12 +51,22 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Run PLACSP fetch + filter + POST
+      - name: Run PLACSP fetch + filter + dual-write (GAS + Supabase)
         env:
           BATCH_ENDPOINT: ${{ secrets.BATCH_ENDPOINT }}
           BATCH_API_KEY: ${{ secrets.BATCH_API_KEY }}
+          # Supabase opcional — si los secrets están, el script hace
+          # cross-check dual-write contra Supabase. Si no, se salta y sigue
+          # funcionando con sólo Firestore (vía GAS).
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           DESDE: ${{ inputs.desde }}
           HASTA: ${{ inputs.hasta }}
           LIMITE: ${{ inputs.limite_adjudicaciones || '500' }}
         run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "ℹ️  SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY no configurados — se ejecutará sólo el lado Firestore (GAS)."
+          else
+            echo "✅ Dual-write activo (GAS → Firestore + Node → Supabase)"
+          fi
           node scripts/placsp-fetch.js
