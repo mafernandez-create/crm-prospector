@@ -4,7 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <title>CRM Prospector Ferroplast - TEST</title>
-    
+
+    <!-- ──────────────────────────────────────────────────────────────────
+         Redirect inverso (2026-05-25).
+         Móvil/tablet abriendo el legacy → redirect al rediseño (mejor UX
+         táctil + acceso a Hoy/Planificador/Mapa/Briefing IA).
+         Sentinel ?force=legacy desactiva el redirect (escape hatch).
+         ────────────────────────────────────────────────────────────── -->
+    <script>
+    (function () {
+      try {
+        var params = new URLSearchParams(location.search);
+        if (params.get('force') === 'legacy') {
+          sessionStorage.setItem('crm:force-legacy', '1');
+          return;
+        }
+        if (sessionStorage.getItem('crm:force-legacy') === '1') return;
+        var isMobile = window.matchMedia('(max-width: 1023px)').matches;
+        if (isMobile) {
+          location.replace('index.html' + (location.hash || ''));
+        }
+      } catch (e) { /* falla → no redirige */ }
+    })();
+    </script>
+
     <!-- PWA Manifest Inline -->
     <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkNSTSBQcm9zcGVjdG9yIEZlcnJvcGxhc3QiLAogICJzaG9ydF9uYW1lIjogIkNSTSIsCiAgImRlc2NyaXB0aW9uIjogIkdlc3Rpw7NuIGRlIHByb3NwZWN0b3MgeSBjbGllbnRlcyIsCiAgInN0YXJ0X3VybCI6ICIuLyIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzBhMjU0MCIsCiAgInRoZW1lX2NvbG9yIjogIiMwYTI1NDAiLAogICJvcmllbnRhdGlvbiI6ICJhbnkiLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWwsJTNDc3ZnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zycgdmlld0JveD0nMCAwIDE5MiAxOTInJTNFJTNDcmVjdCBmaWxsPSclMjMwYTI1NDAnIHdpZHRoPScxOTInIGhlaWdodD0nMTkyJyByeD0nMzInLyUzRSUzQ3RleHQgeD0nOTYnIHk9JzEyMCcgZm9udC1zaXplPSc3MCcgdGV4dC1hbmNob3I9J21pZGRsZScgZmlsbD0nd2hpdGUnIGZvbnQtZmFtaWx5PSdzeXN0ZW0tdWknJTNFQ1JNJTNDL3RleHQlM0UlM0Mvc3ZnJTNFIiwKICAgICAgInNpemVzIjogIjE5MngxOTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwKICAgICAgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIgogICAgfQogIF0KfQ==">
     
@@ -34792,6 +34815,38 @@ Notas:
         <!-- Contenedor de modales móviles -->
         <div id="mobile-modal-root" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:20000;"></div>
     </div>
+
+    <!-- Escape hatch → rediseño (Hoy, Planificador, Mapa caliente, Briefing IA, ⌘K).
+         Botón flotante bottom-right en desktop. 2026-05-25. -->
+    <script>
+    (function () {
+      function mount() {
+        if (document.getElementById('redesign-link')) return;
+        var hash = location.hash || '';
+        var link = document.createElement('a');
+        link.id = 'redesign-link';
+        link.href = 'index.html?force=redesign' + hash;
+        link.title = 'Abrir vista rediseño (Hoy / Planificador / Mapa caliente / Briefing IA)';
+        link.textContent = 'Vista rediseño ↗';
+        link.style.cssText = [
+          'position:fixed', 'bottom:16px', 'right:16px', 'z-index:99998',
+          'background:rgba(10,45,82,0.92)', 'color:#fff', 'padding:8px 14px',
+          'border-radius:20px', 'font-size:13px', 'font-weight:500',
+          'text-decoration:none', 'box-shadow:0 4px 12px rgba(0,0,0,0.18)',
+          'font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif',
+          'transition:transform .15s ease',
+        ].join(';');
+        link.onmouseover = function () { link.style.transform = 'translateY(-2px)'; };
+        link.onmouseout  = function () { link.style.transform = ''; };
+        document.body.appendChild(link);
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', mount);
+      } else {
+        mount();
+      }
+    })();
+    </script>
 
 </body>
 </html>
