@@ -51,14 +51,14 @@ jobs:
           fi
           echo "✅ Todos los secrets presentes"
 
-      - name: Install postgresql-client-16
+      - name: Install postgresql-client-17
         run: |
-          # Supabase corre Postgres 15.x — el client 16 es compatible y trae
-          # mejor soporte de tipos modernos (jsonb, ranges, etc.).
+          # Supabase corre Postgres 17.x (verificado 2026-05-25: server 17.6).
+          # El client 17 es required (16.x aborta por version mismatch).
           sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
           wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
           sudo apt-get update -qq
-          sudo apt-get install -y postgresql-client-16
+          sudo apt-get install -y postgresql-client-17
           pg_dump --version
 
       - name: Dump Supabase database
