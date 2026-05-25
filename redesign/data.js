@@ -774,14 +774,18 @@
   }
 
   /* ============================================================
-     BACKEND SWITCH (Fase 1 migración Supabase)
+     BACKEND SWITCH (migración Supabase consolidada 2026-05-25)
      ============================================================
-     Si localStorage['redesign:backend'] === 'supabase', delega TODO el
-     I/O a window.DataSupabase (definido en redesign/data-supabase.js).
-     Default: 'firebase' = comportamiento actual. */
+     Default: 'supabase'. Firestore queda como fallback opcional:
+       localStorage.setItem('redesign:backend','firebase'); location.reload()
+     vuelve al comportamiento legacy.
+
+     Si window.DataSupabase no está cargado por cualquier motivo,
+     _useSupabase() devuelve false y caemos a Firestore automáticamente. */
+  const DEFAULT_BACKEND = 'supabase';
   function _activeBackend() {
-    try { return localStorage.getItem('redesign:backend') || 'firebase'; }
-    catch (_) { return 'firebase'; }
+    try { return localStorage.getItem('redesign:backend') || DEFAULT_BACKEND; }
+    catch (_) { return DEFAULT_BACKEND; }
   }
   function _sb() {
     return window.DataSupabase;
