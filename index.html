@@ -5,31 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>CRM Prospector · Rediseño v1 · Ferroplast</title>
 
-<!-- ──────────────────────────────────────────────────────────────────────
-     Redirect por dispositivo (2026-05-25).
-     Desktop (>= 1024 px) → index-legacy.html (ficha completa con
-     Contacto / Actividades / Informes / Pipeline / Equipo / Proyectos).
-     Móvil/tablet → se queda en este rediseño.
-     Preserva el hash (#detail/3018, #planificador, etc.).
-     Sentinel ?force=redesign desactiva el redirect (uso desde el legacy).
-     ────────────────────────────────────────────────────────────────────── -->
-<script>
-(function () {
-  try {
-    var params = new URLSearchParams(location.search);
-    if (params.get('force') === 'redesign') {
-      sessionStorage.setItem('crm:force-redesign', '1');
-      return;
-    }
-    if (sessionStorage.getItem('crm:force-redesign') === '1') return;
-    var isDesktop = window.matchMedia('(min-width: 1024px)').matches;
-    if (isDesktop) {
-      var target = 'index-legacy.html' + (location.hash || '');
-      location.replace(target);
-    }
-  } catch (e) { /* falla → no redirige, se queda en el rediseño */ }
-})();
-</script>
+<!-- Rediseño v1 — ya no se redirige a legacy.
+     Eliminado el redirect de dispositivo 2026-05-25: el rediseño tiene
+     todas las secciones (Contacto, Equipo, Actividades, Informes, Pipeline,
+     Proyectos) y es 100% funcional en desktop y móvil.
+     El legacy (index-legacy.html) sigue disponible como fallback manual. -->
 
 <meta name="theme-color" content="#0a2d52"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>

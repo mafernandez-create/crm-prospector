@@ -5,28 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <title>CRM Prospector Ferroplast - TEST</title>
 
-    <!-- ──────────────────────────────────────────────────────────────────
-         Redirect inverso (2026-05-25).
-         Móvil/tablet abriendo el legacy → redirect al rediseño (mejor UX
-         táctil + acceso a Hoy/Planificador/Mapa/Briefing IA).
-         Sentinel ?force=legacy desactiva el redirect (escape hatch).
-         ────────────────────────────────────────────────────────────── -->
-    <script>
-    (function () {
-      try {
-        var params = new URLSearchParams(location.search);
-        if (params.get('force') === 'legacy') {
-          sessionStorage.setItem('crm:force-legacy', '1');
-          return;
-        }
-        if (sessionStorage.getItem('crm:force-legacy') === '1') return;
-        var isMobile = window.matchMedia('(max-width: 1023px)').matches;
-        if (isMobile) {
-          location.replace('index.html' + (location.hash || ''));
-        }
-      } catch (e) { /* falla → no redirige */ }
-    })();
-    </script>
+    <!-- Legacy CRM — se mantiene como fallback manual.
+         El rediseño (index.html) es la versión principal y tiene todas las
+         funciones: Contacto, Equipo, Actividades, Informes, Pipeline, Proyectos.
+         Redirect inverso eliminado 2026-05-25 — ambas versiones coexisten sin
+         redirección automática para que el usuario elija libremente. -->
 
     <!-- PWA Manifest Inline -->
     <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkNSTSBQcm9zcGVjdG9yIEZlcnJvcGxhc3QiLAogICJzaG9ydF9uYW1lIjogIkNSTSIsCiAgImRlc2NyaXB0aW9uIjogIkdlc3Rpw7NuIGRlIHByb3NwZWN0b3MgeSBjbGllbnRlcyIsCiAgInN0YXJ0X3VybCI6ICIuLyIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzBhMjU0MCIsCiAgInRoZW1lX2NvbG9yIjogIiMwYTI1NDAiLAogICJvcmllbnRhdGlvbiI6ICJhbnkiLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWwsJTNDc3ZnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zycgdmlld0JveD0nMCAwIDE5MiAxOTInJTNFJTNDcmVjdCBmaWxsPSclMjMwYTI1NDAnIHdpZHRoPScxOTInIGhlaWdodD0nMTkyJyByeD0nMzInLyUzRSUzQ3RleHQgeD0nOTYnIHk9JzEyMCcgZm9udC1zaXplPSc3MCcgdGV4dC1hbmNob3I9J21pZGRsZScgZmlsbD0nd2hpdGUnIGZvbnQtZmFtaWx5PSdzeXN0ZW0tdWknJTNFQ1JNJTNDL3RleHQlM0UlM0Mvc3ZnJTNFIiwKICAgICAgInNpemVzIjogIjE5MngxOTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwKICAgICAgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIgogICAgfQogIF0KfQ==">
