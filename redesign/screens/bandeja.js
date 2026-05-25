@@ -89,6 +89,7 @@
       enfriandose: pickEnfriandose(),
       altoPotencialVirgen: pickAltoPotencialVirgen(),
       visitasFallidas: pickVisitasFallidas(),
+      refCruz: _getRefCruz(false),
     };
   }
 
@@ -136,22 +137,170 @@
 
   function pickVisitasFallidas() {
     const out = [];
-    const re = /fallid|plantón|cancel|reprogram|no\s+pud|no\s+realiz/i;
+    const re = /fallid|plantón|planton|cancel|reprogram|no\s+pud|no\s+realiz|no\s+asisti|no\s+contest|nadie\s+en\s+la|cerrad/i;
     for (const s of State.studios) {
+      // Buscar en informes (title + notes)
       const reps = U.reports(s);
-      const hit = reps.some(function (r) {
-        const txt = ((r && (r.notes || '')) + ' ' + (r && (r.title || '')) + ' ' + (r && (r.fileName || '')));
+      const hitRep = reps.some(function (r) {
+        const txt = (r.notes || '') + ' ' + (r.title || '') + ' ' + (r.fileName || '');
         return re.test(txt);
       });
-      if (hit) {
+      // Buscar en actividades (text + notes) — aquí están los apuntes reales de visita
+      const acts = U.activities(s);
+      const hitAct = acts.some(function (a) {
+        const txt = (a.text || '') + ' ' + (a.notes || '') + ' ' + (a.description || '');
+        return re.test(txt);
+      });
+      if (hitRep || hitAct) {
+        const lastDate = (function () {
+          const all = reps.concat(acts).map(function (x) { return x.date || x.createdAt || ''; }).filter(Boolean);
+          return all.sort().pop() || null;
+        })();
         out.push({
           studioId: s.id,
           name: s.name || s.id,
           province: s.province || '',
+          lastDate: lastDate,
         });
       }
     }
-    return out.slice(0, 8);
+    out.sort(function (a, b) { return (b.lastDate || '') > (a.lastDate || '') ? 1 : -1; });
+    return out.slice(0, 10);
+  }
+
+  /* ============================================================
+     REFERENCIAS CRUZADAS — detecta menciones de terceros en los
+     apuntes de visita y las cruza con la cartera por provincia.
+     Puerto del motor del legacy (gas-refcruz).
+     ============================================================ */
+  var _RC_CACHE_KEY = 'crm_refcruz_redesign_v1';
+  var _RC_TTL = 24 * 60 * 60 * 1000;
+
+  var _RC_PROVINCIAS = [
+    'Almería','Cádiz','Córdoba','Granada','Huelva','Jaén','Málaga','Sevilla',
+    'Cáceres','Badajoz','Toledo','Cuenca','Ciudad Real','Albacete','Guadalajara',
+    'Madrid','Alicante','Valencia','Castellón','Murcia','Zaragoza','Tarragona',
+    'Barcelona','Girona','Lleida','Navarra','La Rioja','Burgos','Valladolid',
+    'Salamanca','León','Palencia','Soria','Segovia','Ávila','Zamora',
+    'Las Palmas','Santa Cruz de Tenerife','Baleares','Ceuta','Melilla',
+  ];
+
+  var _RC_PATRONES = [
+    { tipo: 'CCRR', re: /\b(Comunidad de Regantes (?:de |del? )?[A-ZÁÉÍÓÚÑ][a-záéíóúñ\-]+(?:[\s\-][A-ZÁÉÍÓÚÑA-Za-z]+){0,4})/g },
+    { tipo: 'CCRR', re: /\b(C\.?R\.? de [A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s[A-Za-záéíóúñ]+){0,3})/g },
+    { tipo: 'EDAR', re: /\b(EDAR (?:de |del? )?[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:[\s\-][A-Za-záéíóúñ]+)?)/g },
+    { tipo: 'EDAR', re: /\b(ETAP (?:de |del? )?[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:[\s\-][A-Za-záéíóúñ]+)?)/g },
+    { tipo: 'AAPP', re: /\b(Ayuntamiento (?:de |del? )?[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:[\s\-][A-Za-záéíóúñ]+){0,3})/g },
+    { tipo: 'AAPP', re: /\b(Diputación (?:Provincial de |de )?[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)/g },
+    { tipo: 'AAPP', re: /\b(Mancomunidad (?:de |del? )?[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s[A-Za-záéíóúñ]+){0,3})/g },
+    { tipo: 'CICA', re: /\b(Aqualia|EMASESA|EMACSA|Hidralia|Hidragua|EMASA|EMUASA|EMASAGRA|Giahsa|Aguas de [A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)/g },
+    { tipo: 'ING',  re: /\b([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+ (?:Ingenieros?|Consultores?|Ingeniería|Técnicos?|Arquitectos?))\b/g },
+  ];
+
+  function _rcNorm(s) {
+    return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  function _rcInferirProvincia(txt) {
+    for (var i = 0; i < _RC_PROVINCIAS.length; i++) {
+      var p = _RC_PROVINCIAS[i];
+      var re = new RegExp('\\b' + p.replace(/[áéíóúÁÉÍÓÚ]/g, '[a-záéíóúÁÉÍÓÚ]') + '\\b', 'i');
+      if (re.test(txt)) return p;
+    }
+    return null;
+  }
+
+  function _rcEsRuido(nombre) {
+    if (!nombre || nombre.length < 6) return true;
+    if (/(?:de|del?|en|por|para|con|los|las|el|la)$/i.test(nombre)) return true;
+    return false;
+  }
+
+  function _scanRefCruz(studios) {
+    // Mapa nombre normalizado → studioId para cross-check con cartera
+    var carteraMap = {};
+    for (var i = 0; i < studios.length; i++) {
+      var s = studios[i];
+      carteraMap[_rcNorm(s.name || '')] = s.id;
+    }
+
+    var resultMap = {}; // key = nombre normalizado
+
+    for (var si = 0; si < studios.length; si++) {
+      var origen = studios[si];
+      // Texto a escanear: actividades + notas de informes
+      var textos = [];
+      var acts = U.activities(origen);
+      for (var ai = 0; ai < acts.length; ai++) {
+        var t = (acts[ai].text || '') + ' ' + (acts[ai].notes || '');
+        if (t.trim()) textos.push(t);
+      }
+      var reps = U.reports(origen);
+      for (var ri = 0; ri < reps.length; ri++) {
+        var rt = (reps[ri].notes || '') + ' ' + (reps[ri].title || '');
+        if (rt.trim()) textos.push(rt);
+      }
+
+      var textoTotal = textos.join(' ');
+      if (!textoTotal.trim()) continue;
+
+      for (var pi = 0; pi < _RC_PATRONES.length; pi++) {
+        var pat = _RC_PATRONES[pi];
+        var re2 = new RegExp(pat.re.source, 'gi');
+        var m;
+        while ((m = re2.exec(textoTotal)) !== null) {
+          var nombre = (m[1] || m[0]).trim();
+          if (_rcEsRuido(nombre)) continue;
+          var key = _rcNorm(nombre);
+          if (key === _rcNorm(origen.name || '')) continue; // no auto-referencias
+          var prov = _rcInferirProvincia(textoTotal.slice(Math.max(0, m.index - 120), m.index + 120));
+          if (!resultMap[key]) {
+            resultMap[key] = {
+              nombre: nombre,
+              tipo: pat.tipo,
+              provinciaInferida: prov,
+              matchStudioId: carteraMap[key] || null,
+              origenes: [],
+            };
+          }
+          // Evitar duplicar mismo origen
+          var yaEsta = resultMap[key].origenes.some(function (o) { return o.origenId === origen.id; });
+          if (!yaEsta) {
+            resultMap[key].origenes.push({
+              origenId: origen.id,
+              origenName: origen.name || origen.id,
+              origenProvincia: origen.province || '',
+            });
+          }
+          if (prov && !resultMap[key].provinciaInferida) {
+            resultMap[key].provinciaInferida = prov;
+          }
+        }
+      }
+    }
+
+    return Object.values(resultMap).filter(function (r) { return r.origenes.length > 0; });
+  }
+
+  function _getRefCruz(force) {
+    if (!force) {
+      try {
+        var raw = localStorage.getItem(_RC_CACHE_KEY);
+        if (raw) {
+          var j = JSON.parse(raw);
+          if (j.ts && (Date.now() - j.ts) < _RC_TTL) return j.refs;
+        }
+      } catch (e) {}
+    }
+    if (!State.studios || !State.studios.length) return [];
+    var refs = _scanRefCruz(State.studios);
+    try { localStorage.setItem(_RC_CACHE_KEY, JSON.stringify({ ts: Date.now(), refs: refs })); } catch (e) {}
+    return refs;
+  }
+
+  function refrescarRefCruz() {
+    try { localStorage.removeItem(_RC_CACHE_KEY); } catch (e) {}
+    render();
   }
 
   function mockData() {
@@ -171,20 +320,24 @@
       enfriandose: [],
       altoPotencialVirgen: [],
       visitasFallidas: [],
+      refCruz: [],
     };
   }
 
   /* ============================================================
      RENDER
      ============================================================ */
-  function render() {
+  var _provFiltro = '';
+
+  function render(params) {
     const v = document.getElementById('view-bandeja');
     if (!v) return;
+    if (params && params.provincia != null) _provFiltro = params.provincia;
     document.getElementById('topbar-current').textContent = 'Bandeja del agente';
     const d = getData();
     v.innerHTML = (
       '<div style="max-width:1180px; margin:0 auto;">' +
-        header() +
+        header(d) +
         (d.sinCuadrante > 0 ? bannerSinCuadrante(d.sinCuadrante) : '') +
         matrizCuadrantes(d.cuadrantes) +
         twoColumnGrid(d) +
@@ -205,15 +358,31 @@
     );
   }
 
-  function header() {
+  function header(d) {
     const fecha = State.today.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' });
     const fechaCap = fecha.charAt(0).toUpperCase() + fecha.slice(1);
+    const INPUT_STYLE = 'padding:8px 12px; border:1.5px solid var(--line); border-radius:8px; ' +
+      'font-size:13px; background:var(--bg-card); color:var(--fg-1); cursor:pointer;';
     return (
-      '<header style="margin-bottom:20px;">' +
-        '<div class="eyebrow">Agente CRM · ' + escape(fechaCap) + '</div>' +
-        '<h1 style="font-family:var(--font-display); font-weight:600; font-size:32px; line-height:1; ' +
-          'text-transform:uppercase; letter-spacing:.005em; margin:6px 0 4px;">Bandeja del agente</h1>' +
-        '<p style="color:var(--fg-3); font-size:14px; margin:0;">Acciones priorizadas que el agente ha detectado en tu cartera.</p>' +
+      '<header style="margin-bottom:20px; display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; justify-content:space-between;">' +
+        '<div>' +
+          '<div class="eyebrow">Agente CRM · ' + escape(fechaCap) + '</div>' +
+          '<h1 style="font-family:var(--font-display); font-weight:600; font-size:32px; line-height:1; ' +
+            'text-transform:uppercase; letter-spacing:.005em; margin:6px 0 4px;">Bandeja del agente</h1>' +
+          '<p style="color:var(--fg-3); font-size:14px; margin:0;">Acciones priorizadas · referencias cruzadas de visitas.</p>' +
+        '</div>' +
+        '<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">' +
+          '<select style="' + INPUT_STYLE + '" ' +
+            'onchange="window.Screens.bandeja.filtrarProvincia(this.value)">' +
+            '<option value="">Todas las provincias</option>' +
+            _RC_PROVINCIAS.map(function (p) {
+              return '<option value="' + escape(p) + '"' + (_provFiltro === p ? ' selected' : '') + '>' + escape(p) + '</option>';
+            }).join('') +
+          '</select>' +
+          '<button style="padding:8px 12px; border:1.5px solid var(--line); border-radius:8px; font-size:13px; ' +
+            'background:var(--bg-card); cursor:pointer; color:var(--fg-3);" ' +
+            'onclick="window.Screens.bandeja.refrescar()" title="Re-procesar referencias cruzadas">↺ Refrescar</button>' +
+        '</div>' +
       '</header>'
     );
   }
@@ -243,11 +412,21 @@
   }
 
   function twoColumnGrid(d) {
+    // Filtrar referencias por provincia seleccionada
+    var rcFiltradas = d.refCruz || [];
+    if (_provFiltro) {
+      var provN = _rcNorm(_provFiltro);
+      rcFiltradas = rcFiltradas.filter(function (r) {
+        if (r.provinciaInferida && _rcNorm(r.provinciaInferida) === provN) return true;
+        return (r.origenes || []).some(function (o) { return _rcNorm(o.origenProvincia) === provN; });
+      });
+    }
     return (
       '<div style="display:grid; grid-template-columns:1fr 1fr; gap:18px;">' +
         cardEnfriandose(d.enfriandose) +
         cardAltoPotencial(d.altoPotencialVirgen) +
         cardVisitasFallidas(d.visitasFallidas) +
+        cardReferencias(rcFiltradas, (d.refCruz || []).length) +
       '</div>'
     );
   }
@@ -323,6 +502,73 @@
     );
   }
 
+  function cardReferencias(rows, total) {
+    var TIPO_COLORS = {
+      CCRR: { bg: '#e0f2fe', fg: '#0369a1', label: 'C.R.' },
+      EDAR: { bg: '#ede9fe', fg: '#5b21b6', label: 'EDAR/ETAP' },
+      AAPP: { bg: '#fef9c3', fg: '#854d0e', label: 'AAPP' },
+      CICA: { bg: '#dcfce7', fg: '#166534', label: 'Ciclo Agua' },
+      ING:  { bg: '#fce7f3', fg: '#9d174d', label: 'Ingeniería' },
+    };
+    var countLabel = rows.length + (total > rows.length ? '/' + total : '');
+    var cardH = cardHeader('Referencias cruzadas', countLabel, 'var(--gpf-blue-700)', 'chip-accent', I.Target());
+    var subtext = _provFiltro
+      ? '<p style="font-size:13px; color:var(--fg-3); margin:0 0 12px;">Entidades mencionadas en apuntes de visita que podrían ser prospectos en <strong>' + escape(_provFiltro) + '</strong>.</p>'
+      : '<p style="font-size:13px; color:var(--fg-3); margin:0 0 12px;">Entidades mencionadas en tus apuntes de visita. Filtra por provincia para enfocar tu ruta de captación.</p>';
+    var body;
+    if (rows.length === 0) {
+      body = (
+        '<div style="padding:20px 0; color:var(--fg-3); font-size:13px; text-align:center;">' +
+          (_provFiltro
+            ? 'Sin referencias para <strong>' + escape(_provFiltro) + '</strong>. Prueba otra provincia o pulsa ↺ Refrescar.'
+            : 'Sin referencias cruzadas aún. Añade apuntes de visita para que el motor detecte menciones de terceros.') +
+        '</div>'
+      );
+    } else {
+      body = (
+        '<div style="display:grid; grid-template-columns:1fr 1fr; gap:0 24px;">' +
+          rows.slice(0, 20).map(function (r) {
+            var tc = TIPO_COLORS[r.tipo] || { bg: '#f0f0f0', fg: '#555', label: r.tipo };
+            var badge = (
+              '<span style="font-size:10px; font-weight:600; font-family:var(--font-mono); letter-spacing:.04em; ' +
+                'padding:2px 6px; border-radius:4px; background:' + tc.bg + '; color:' + tc.fg + '; flex-shrink:0;">' +
+                escape(tc.label) +
+              '</span>'
+            );
+            var origenes = r.origenes || [];
+            var origDesc = origenes.slice(0, 3).map(function (o) { return o.origenName; }).join(', ');
+            if (origenes.length > 3) origDesc += ' +' + (origenes.length - 3);
+            var enCartera = r.matchStudioId
+              ? '<span style="font-size:11px; color:var(--gpf-blue-600); font-weight:600; margin-left:4px; flex-shrink:0;">↗ cartera</span>'
+              : '';
+            var rowClick = r.matchStudioId
+              ? 'onclick="showView(\'detail\', { studioId: \'' + escape(r.matchStudioId) + '\' })" '
+              : '';
+            return (
+              '<div ' + rowClick + 'style="padding:9px 0; border-top:1px solid var(--line); cursor:' + (r.matchStudioId ? 'pointer' : 'default') + ';">' +
+                '<div style="display:flex; align-items:center; gap:6px; min-width:0;">' +
+                  badge +
+                  '<span style="font-size:13px; font-weight:600; color:var(--fg-1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;" ' +
+                    'title="' + escape(r.nombre) + '">' + escape(r.nombre) + '</span>' +
+                  enCartera +
+                '</div>' +
+                '<div style="font-size:11px; color:var(--fg-3); margin-top:2px;">' +
+                  (r.provinciaInferida ? '<span style="color:var(--fg-2); font-weight:500;">' + escape(r.provinciaInferida) + '</span> · ' : '') +
+                  'visto en: ' + escape(origDesc) +
+                '</div>' +
+              '</div>'
+            );
+          }).join('') +
+        '</div>'
+      );
+    }
+    return (
+      '<div class="card" style="padding:16px; grid-column:span 2;">' +
+        cardH + subtext + body +
+      '</div>'
+    );
+  }
+
   function cardHeader(title, n, iconColor, chipClass, iconHtml) {
     return (
       '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">' +
@@ -339,5 +585,9 @@
      EXPORT
      ============================================================ */
   window.Screens = window.Screens || {};
-  window.Screens.bandeja = { render: render };
+  window.Screens.bandeja = {
+    render: render,
+    filtrarProvincia: function (prov) { _provFiltro = prov; render(); },
+    refrescar: refrescarRefCruz,
+  };
 })();
