@@ -268,11 +268,37 @@
     return seccionesBlock(b.secciones);
   }
 
+  /* Cabecera/pie SOLO visibles al imprimir (clase .print-only).
+     Inspiración: planning_murcia_abril_2026.html — banda azul GPF +
+     metadatos clientes. */
+  function printChrome(b) {
+    const studioName = b.studio || '';
+    const fecha = b.fecha || U.formatDateES(new Date());
+    const provincia = (State.studiosById && State.studiosById[State.currentStudioId] &&
+      State.studiosById[State.currentStudioId].province) || '';
+    const cuadrante = (State.studiosById && State.studiosById[State.currentStudioId] &&
+      State.studiosById[State.currentStudioId].priorityQuadrantName) || '';
+    return (
+      '<div class="print-only print-header">' +
+        '<div class="print-brand">FERROPLAST · TUYPER</div>' +
+        '<div class="print-doc-type">Briefing pre-visita</div>' +
+      '</div>' +
+      '<h1 class="print-only print-title">' + escape(studioName) + '</h1>' +
+      '<div class="print-only print-meta">' +
+        '<span><strong>Fecha visita:</strong> ' + escape(fecha) + '</span>' +
+        (provincia ? '<span><strong>Provincia:</strong> ' + escape(provincia) + '</span>' : '') +
+        (cuadrante ? '<span><strong>Cuadrante:</strong> ' + escape(cuadrante) + '</span>' : '') +
+        '<span><strong>Generado:</strong> ' + escape(new Date().toLocaleDateString('es-ES')) + '</span>' +
+      '</div>'
+    );
+  }
+
   /* ============================================================
      MOBILE — iPhone frame con header sticky
      ============================================================ */
   function renderMobile(id, b) {
     return (
+      printChrome(b) +
       '<div class="iphone-frame">' +
         statusBar() +
 
@@ -284,7 +310,7 @@
         '</div>' +
 
         // Body scroll con tipo grande para sol
-        '<div style="flex:1; overflow:auto; padding:20px 22px 130px; font-size:17px; line-height:1.6; color:var(--fg-1);">' +
+        '<div style="flex:1; overflow:auto; padding:20px 22px 130px; font-size:17px; line-height:1.6; color:var(--fg-1);" class="briefing-body">' +
           keyFactsRow(b.keyFacts) +
           bodyContent(b) +
         '</div>' +
@@ -298,12 +324,13 @@
   function renderDesktopColumn(id, b) {
     // Helper para inyectar bodyContent en desktop sin tocar resto
     return (
+      printChrome(b) +
       '<div style="max-width:760px; margin:0 auto;">' +
         '<div style="padding:14px 0 18px; border-bottom:1px solid var(--line); margin-bottom:24px;">' +
           headerActions(id) +
           headerTitle(b) +
         '</div>' +
-        '<div style="font-size:16px; line-height:1.6; color:var(--fg-1);">' +
+        '<div style="font-size:16px; line-height:1.6; color:var(--fg-1);" class="briefing-body">' +
           keyFactsRow(b.keyFacts) +
           bodyContent(b) +
         '</div>' +
@@ -503,9 +530,31 @@
       bodyHTML = v ? v.innerHTML : '<p>Sin contenido.</p>';
     }
 
-    // Word espera HTML con XML headers + namespaces. Esto es lo mínimo
-    // que abre Word como documento editable. Estilos inline para que se
-    // conserven al guardar como .docx.
+    // Word espera HTML con XML headers + namespaces. Estilos inspirados
+    // en planning_murcia_abril_2026.html (banda azul GPF, headings con
+    // fondo, blockquote con barra lateral). Word conserva los estilos
+    // al guardar como .docx.
+    const provincia = (State.studiosById[studioId] && State.studiosById[studioId].province) || '';
+    const cuadrante = (State.studiosById[studioId] && State.studiosById[studioId].priorityQuadrantName) || '';
+    const hoy = new Date().toLocaleDateString('es-ES');
+
+    const portada =
+      '<table style="width:100%; background:#0a2d52; color:white; padding:10pt 12pt; margin-bottom:4pt;">' +
+        '<tr>' +
+          '<td style="color:#aed6f1; font-size:9pt; letter-spacing:0.08em; font-weight:700;">FERROPLAST · TUYPER</td>' +
+          '<td style="text-align:right; font-size:10pt; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Briefing pre-visita</td>' +
+        '</tr>' +
+      '</table>' +
+      '<h1 style="color:#0a2d52; font-family:Calibri,sans-serif; font-size:20pt; font-weight:700; margin:10pt 0 2pt 0; line-height:1.15;">' + escape(studioName) + '</h1>' +
+      '<table style="width:100%; border-bottom:2pt solid #0a2d52; margin-bottom:14pt; padding-bottom:6pt; font-size:10pt; color:#555;">' +
+        '<tr>' +
+          '<td style="padding:4pt 0;"><strong style="color:#222;">Fecha visita:</strong> ' + escape(fecha || hoy) + '</td>' +
+          (provincia ? '<td style="padding:4pt 0;"><strong style="color:#222;">Provincia:</strong> ' + escape(provincia) + '</td>' : '<td></td>') +
+          (cuadrante ? '<td style="padding:4pt 0;"><strong style="color:#222;">Cuadrante:</strong> ' + escape(cuadrante) + '</td>' : '<td></td>') +
+          '<td style="padding:4pt 0; text-align:right;"><strong style="color:#222;">Generado:</strong> ' + escape(hoy) + '</td>' +
+        '</tr>' +
+      '</table>';
+
     const wordHTML =
       '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
             'xmlns:w="urn:schemas-microsoft-com:office:word" ' +
@@ -514,20 +563,22 @@
           '<meta charset="utf-8">' +
           '<title>' + escape(studioName) + '</title>' +
           '<style>' +
-            'body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.45; color: #1a1a1a; }' +
-            'h1, h2 { color: #0a2d52; font-family: Calibri, sans-serif; }' +
-            'h2 { font-size: 16pt; border-bottom: 1px solid #d0d7de; padding-bottom: 4pt; margin-top: 14pt; }' +
-            'h3 { color: #1f3a5a; font-size: 12pt; margin-top: 12pt; }' +
-            'h4 { color: #1f3a5a; font-size: 11pt; }' +
-            'blockquote { background:#f6f8fa; border-left:3px solid #0a2d52; padding:6pt 12pt; margin:8pt 0; color:#4a5a72; }' +
-            'code { background:#f3f5f8; padding:1pt 4pt; border:1px solid #e1e6ed; font-family: "Courier New", monospace; font-size: 10pt; }' +
-            'ul, ol { margin: 6pt 0 8pt 22pt; }' +
+            'body { font-family: Calibri, Arial, sans-serif; font-size: 10.5pt; line-height: 1.5; color: #222; }' +
+            'h1 { color:#0a2d52; font-family:Calibri,sans-serif; }' +
+            'h2 { background:#1f3a5a; color:white; padding:6pt 12pt; font-family:Calibri,sans-serif; font-size:13pt; font-weight:600; margin:14pt 0 6pt 0; }' +
+            'h3 { color:#1f3a5a; font-family:Calibri,sans-serif; font-size:11pt; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; margin:10pt 0 4pt 0; padding-left:10pt; border-left:3pt solid #2e6da4; }' +
+            'h4 { color:#2e6da4; font-size:10.5pt; font-weight:600; margin:8pt 0 3pt 0; }' +
+            'blockquote { background:#e8f0f7; border-left:4pt solid #2e6da4; padding:6pt 12pt; margin:8pt 0; color:#1a3a5c; font-size:10pt; }' +
+            'code { background:#f0f5fc; border:1px solid #d0d8e8; color:#0a2d52; padding:1pt 4pt; font-family:"Courier New",monospace; font-size:9.5pt; }' +
+            'strong, b { color:#0a2d52; font-weight:600; }' +
+            'ul, ol { margin: 4pt 0 6pt 22pt; }' +
             'li { margin: 2pt 0; }' +
-            'p { margin: 6pt 0; }' +
-            'hr { border:0; border-top:1px solid #d0d7de; margin: 12pt 0; }' +
+            'p { margin: 3pt 0; }' +
+            'hr { border:0; border-top:1pt solid #d0d8e8; margin: 12pt 0; }' +
+            'a { color:#2e6da4; }' +
           '</style>' +
         '</head>' +
-        '<body>' + bodyHTML + '</body>' +
+        '<body>' + portada + bodyHTML + '</body>' +
       '</html>';
 
     const safeName = studioName.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '');
