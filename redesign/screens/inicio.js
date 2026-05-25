@@ -332,8 +332,8 @@
   function tabBar() {
     const tabs = [
       { id: 'inicio',   label: 'Hoy',     icon: I.Home() },
-      { id: 'studios',  label: 'Visitas', icon: I.Calendar() },
-      { id: 'studios',  label: 'Empresas',icon: I.Building() },
+      { id: 'planificador', label: 'Visitas',  icon: I.Calendar() },
+      { id: 'studios',      label: 'Empresas', icon: I.Building() },
       { id: 'bandeja',  label: 'Bandeja', icon: I.Layers() },
     ];
     // Marcamos "Hoy" como activo (estamos en inicio)
