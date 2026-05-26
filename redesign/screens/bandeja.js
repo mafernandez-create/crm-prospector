@@ -342,8 +342,127 @@
         (d.sinCuadrante > 0 ? bannerSinCuadrante(d.sinCuadrante) : '') +
         matrizCuadrantes(d.cuadrantes) +
         twoColumnGrid(d) +
+        accionesPendientesSection() +
       '</div>'
     );
+    // Cargar acciones pendientes de forma asíncrona
+    _loadAcciones();
+  }
+
+  /* ============================================================
+     ACCIONES PENDIENTES — detectadas en informes de visita
+     ============================================================ */
+  function accionesPendientesSection() {
+    return (
+      '<div style="margin-top:24px;" id="bandeja-acciones-wrap">' +
+        '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">' +
+          '<div>' +
+            '<div class="eyebrow">Informes de visita</div>' +
+            '<h2 style="font-family:var(--font-display); font-weight:600; font-size:20px; text-transform:uppercase; letter-spacing:.005em; margin:4px 0 0;">📋 Acciones pendientes</h2>' +
+          '</div>' +
+          '<button class="btn btn-ghost" style="font-size:12px;" ' +
+            'onclick="window.Screens.bandeja._refrescarAcciones()" title="Re-procesar todos los informes">↺ Refrescar</button>' +
+        '</div>' +
+        '<div id="bandeja-acciones-list">' +
+          '<span style="font-size:13px; color:var(--fg-3);">⏳ Detectando compromisos en los informes…</span>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  var _accionesLoading = false;
+
+  function _loadAcciones(force) {
+    if (_accionesLoading && !force) return;
+    var engine = window.AccionesEngine;
+    if (!engine) {
+      // AccionesEngine no disponible (JSZip no cargado o script no incluido)
+      var el = document.getElementById('bandeja-acciones-list');
+      if (el) el.innerHTML = '<span style="font-size:13px; color:var(--fg-3);">Motor de acciones no disponible (requiere JSZip).</span>';
+      return;
+    }
+    _accionesLoading = true;
+    var studios = State.studios || [];
+    engine.cargarAcciones(studios, force).then(function (allItems) {
+      _accionesLoading = false;
+      var vigentes = engine.filtrarVigentes(allItems, studios);
+      // Filtrar por provincia si está activo
+      if (_provFiltro) {
+        var norm = _rcNorm(_provFiltro);
+        vigentes = vigentes.filter(function (it) { return _rcNorm(it.studioProvince) === norm; });
+      }
+      _renderAcciones(vigentes, allItems.length);
+    }).catch(function (e) {
+      _accionesLoading = false;
+      var el = document.getElementById('bandeja-acciones-list');
+      if (el) el.innerHTML = '<span style="font-size:13px; color:var(--mute-red-dark);">Error al procesar informes: ' + escape(e.message) + '</span>';
+    });
+  }
+
+  function _renderAcciones(items, totalSinFiltrar) {
+    var el = document.getElementById('bandeja-acciones-list');
+    if (!el) return;
+    if (items.length === 0) {
+      el.innerHTML = '<p style="font-size:13px; color:var(--fg-3); margin:0;">' +
+        (totalSinFiltrar === 0
+          ? 'Sin compromisos detectados. Asegúrate de tener informes de visita en formato .docx.'
+          : 'Sin acciones pendientes para la provincia seleccionada.') +
+        '</p>';
+      return;
+    }
+    var hoy = new Date().toISOString().slice(0, 10);
+    var tipoBg = { llamada: '#3b82f6', email: '#8b5cf6', material: '#f59e0b', reunion: '#10b981' };
+    el.innerHTML = (
+      '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">' +
+        items.slice(0, 30).map(function (it) {
+          var bg = tipoBg[it.tipo] || '#64748b';
+          var urgente = it.fechaLimite && it.fechaLimite <= hoy;
+          var plazoHtml = it.fechaLimite
+            ? '<span style="background:' + (urgente ? '#fef2f2' : '#eff6ff') + ';color:' +
+              (urgente ? '#991b1b' : '#1e40af') + ';padding:2px 7px;border-radius:6px;font-size:11px;font-weight:600;">' +
+              (urgente ? '🔴' : '📅') + ' ' + escape(it.fechaLimite) + '</span>'
+            : '';
+          return (
+            '<div style="background:var(--bg-card); border:1px solid var(--line); border-radius:10px; padding:12px; ' +
+              (urgente ? 'border-left:3px solid #dc2626;' : '') + '">' +
+              '<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px;">' +
+                '<span style="background:' + bg + ';color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;">' +
+                  it.tipoIcon + ' ' + it.tipo.toUpperCase() +
+                '</span>' +
+                '<strong style="font-size:13px; color:var(--gpf-blue-700); cursor:pointer;" ' +
+                  'onclick="showView(\'detail\',{studioId:\'' + escape(it.studioId) + '\'})">' +
+                  escape(it.studioName) +
+                '</strong>' +
+                '<span style="font-size:11px; color:var(--fg-3);">(' + escape(it.studioProvince) + ')</span>' +
+                plazoHtml +
+              '</div>' +
+              '<div style="font-size:12px; color:var(--fg-2); margin-bottom:8px; font-style:italic;">"' + escape(it.descripcion) + '"</div>' +
+              '<div style="display:flex; gap:6px;">' +
+                '<button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" ' +
+                  'onclick="window.Screens.bandeja._descartar(\'' + it.id + '\')">✕ Descartar</button>' +
+                '<a href="#detail/' + escape(it.studioId) + '" class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" ' +
+                  'onclick="showView(\'detail\',{studioId:\'' + escape(it.studioId) + '\'});return false;">Ver ficha →</a>' +
+              '</div>' +
+            '</div>'
+          );
+        }).join('') +
+      '</div>' +
+      (items.length > 30 ? '<p style="font-size:12px; color:var(--fg-3); margin-top:8px; text-align:center;">… y ' + (items.length - 30) + ' más · filtra por provincia para acotar.</p>' : '')
+    );
+  }
+
+  function _descartarAccion(id) {
+    var engine = window.AccionesEngine;
+    if (engine) engine.descartar(id);
+    window.showNotification && window.showNotification('✕ Acción descartada', 'info');
+    _loadAcciones();
+  }
+  function _refrescarAcciones() {
+    var engine = window.AccionesEngine;
+    if (engine) engine.invalidarCache();
+    _accionesLoading = false;
+    window.showNotification && window.showNotification('🔄 Re-procesando informes…', 'info');
+    _loadAcciones(true);
   }
 
   function bannerSinCuadrante(n) {
@@ -591,5 +710,7 @@
     render: render,
     filtrarProvincia: function (prov) { _provFiltro = prov; render(); },
     refrescar: refrescarRefCruz,
+    _descartar: _descartarAccion,
+    _refrescarAcciones: _refrescarAcciones,
   };
 })();

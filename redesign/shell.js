@@ -30,6 +30,7 @@
       { id: 'planificador', label: 'Planificador',     icon: I.Calendar() },
       { id: 'mapa',         label: 'Mapa caliente',    icon: I.MapPin() },
       { id: 'importar',     label: 'Importar / Exportar', icon: I.Save() },
+      { id: 'asistente',    label: 'Asistente IA',     icon: I.Sparkles() },
     ];
 
     return (
@@ -105,6 +106,7 @@
           '<section class="view" id="view-planificador"></section>' +
           '<section class="view" id="view-mapa"></section>' +
           '<section class="view" id="view-importar"></section>' +
+          '<section class="view" id="view-asistente"></section>' +
         '</div>' +
       '</div>' +
       '</div>'  // cierre .shell
