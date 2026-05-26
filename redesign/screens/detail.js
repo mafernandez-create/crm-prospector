@@ -1193,10 +1193,21 @@
       '&body=' + encodeURIComponent(body);
   }
 
-  /* Abre el cliente de correo usando location.href (funciona en PWA/Safari/Mac) */
+  /* Abre Mail.app usando un anchor oculto + click programático.
+   * Es el método más fiable en Chrome/Safari/Mac — window.location.href = mailto:
+   * no siempre dispara el cliente de correo en contextos PWA o Chrome moderno. */
   function _abrirMail(toEmail, subject, body) {
-    if (!toEmail) { window.showNotification && window.showNotification('Sin email registrado para este cliente', 'warning'); return; }
-    window.location.href = _mailtoUrl(toEmail, subject, body);
+    if (!toEmail) {
+      window.showNotification && window.showNotification('Sin email registrado para este cliente', 'warning');
+      return;
+    }
+    var url = _mailtoUrl(toEmail, subject, body);
+    var a = document.createElement('a');
+    a.href = url;
+    a.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;pointer-events:none;';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { if (a.parentNode) a.parentNode.removeChild(a); }, 500);
     window.showNotification && window.showNotification('📧 Abriendo Mail…', 'info');
   }
   window._abrirMail = _abrirMail;   // exponer para los onclick del sheet

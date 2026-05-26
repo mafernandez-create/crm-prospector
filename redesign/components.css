@@ -612,6 +612,26 @@ body {
   margin: 4px auto 16px;
 }
 
+/* En desktop (≥ 768 px): panel flotante centrado, con margen inferior para
+   que no quede oculto detrás del dock de macOS. */
+@media (min-width: 768px) {
+  .crm-root .sheet-overlay {
+    justify-content: center;
+    align-items: center;
+  }
+  .crm-root .sheet {
+    width: 100%;
+    max-width: 600px;
+    max-height: 82vh;
+    border-radius: 20px;       /* radio completo, ya no es un "bottom sheet" */
+    margin-bottom: 72px;       /* espacio libre por encima del dock (≈ 60-80 px) */
+    transform: translateY(16px);
+  }
+  .crm-root .sheet-overlay.open .sheet { transform: translateY(0); }
+  /* El handle no tiene mucho sentido en modal de escritorio, lo ocultamos */
+  .crm-root .sheet .handle { display: none; }
+}
+
 /* ============================================================
    11. CMD+K PALETTE
    ============================================================ */
