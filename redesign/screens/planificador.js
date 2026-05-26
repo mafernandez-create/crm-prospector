@@ -293,7 +293,7 @@
     const v = opts.visita;
     const studios = State.studios || [];
     // Sugerencias datalist
-    const options = studios.slice(0, 1000).map(function (s) {
+    const options = studios.map(function (s) {
       return '<option value="' + escape(s.name || '') + '" data-id="' + escape(s.id) + '" data-city="' + escape(s.city || '') + '" data-province="' + escape(s.province || '') + '">';
     }).join('');
 
