@@ -1160,6 +1160,7 @@
     var telActual     = typeof ctc.phone === 'object' ? (ctc.phone && ctc.phone.valor || '') : (ctc.phone || '');
     var emailActual   = typeof ctc.email === 'object' ? (ctc.email && ctc.email.valor || '') : (ctc.email || '');
     var webActual     = typeof ctc.web === 'object' ? (ctc.web && ctc.web.valor || '') : (ctc.web || '');
+    var addressActual = typeof ctc.address === 'object' ? (ctc.address && ctc.address.valor || '') : (ctc.address || '');
 
     var fld = 'style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;' +
               'background:var(--bg-input,var(--bg-card));color:var(--fg-1);font-size:14px;box-sizing:border-box;"';
@@ -1238,6 +1239,11 @@
               '<input id="ef-web" ' + fld + ' value="' + escape(webActual) + '"/>' +
             '</div>' +
 
+            '<div style="grid-column:1/-1;">' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Dirección</label>' +
+              '<input id="ef-address" ' + fld + ' placeholder="C/ Ejemplo, 12, CP 41470, Peñaflor" value="' + escape(addressActual) + '"/>' +
+            '</div>' +
+
           '</div>' +
           '<div id="ef-error" style="margin-top:10px;color:var(--mute-red-dark,#c0392b);font-size:13px;display:none;"></div>' +
         '</div>' +
@@ -1292,15 +1298,17 @@
     var tel       = ((document.getElementById('ef-tel')      || {}).value || '').trim();
     var email     = ((document.getElementById('ef-email')    || {}).value || '').trim();
     var web       = ((document.getElementById('ef-web')      || {}).value || '').trim();
+    var address   = ((document.getElementById('ef-address')  || {}).value || '').trim();
     if (web && !/^https?:\/\//i.test(web)) web = 'https://' + web;
 
     // Construir data JSONB completo para no machacar campos existentes
     var s = State.studiosById && State.studiosById[studioId];
     var currentData = Object.assign({}, (s && s.data) || {});
     var ctc = Object.assign({}, currentData.contact || {});
-    if (tel)   ctc.phone = tel;
-    if (email) ctc.email = email;
-    if (web)   ctc.web   = web;
+    if (tel)     ctc.phone   = tel;
+    if (email)   ctc.email   = email;
+    if (web)     ctc.web     = web;
+    if (address) ctc.address = address;
     currentData.contact = ctc;
 
     var patch = {
