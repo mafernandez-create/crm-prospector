@@ -1125,6 +1125,239 @@
   /* ============================================================
      CTAs
      ============================================================ */
+  /* ============================================================
+     PANEL DE EMAIL — plantillas + historial + Mac Mail
+     ============================================================ */
+
+  // 6 plantillas personalizables para cada ocasión de venta
+  function _emailTemplates(s) {
+    var nombre = s.name || 'su empresa';
+    var ciudad = (typeof s.city === 'object' ? (s.city && s.city.valor) : s.city) || '';
+    var prov   = (typeof s.province === 'object' ? (s.province && s.province.valor) : s.province) || '';
+    var loc    = ciudad || prov || 'su localidad';
+    var contacto = (s.team && s.team[0] && s.team[0].name) ? s.team[0].name.split(' ')[0] : 'estimado/a';
+    var saludo = 'Estimado/a ' + contacto;
+
+    var firma = '\n\nUn cordial saludo,\nManuel Fernández\nFerroplast · Delegado Zona Sur\n+34 655 810 836';
+
+    return [
+      {
+        id: 'primera',
+        icon: '👋',
+        label: 'Primera toma de contacto',
+        subject: 'Sistemas de tuberías GPF · ' + nombre,
+        body: saludo + ',\n\nMe pongo en contacto con usted desde Ferroplast (Grupo GPF), empresa especializada en sistemas de tuberías y accesorios de polietileno, PVC y fundición para proyectos de infraestructura, edificación y ciclo del agua.\n\nConocemos el trabajo de ' + nombre + ' en ' + loc + ' y nos gustaría presentarles nuestro catálogo técnico y las soluciones que ofrecemos para estudios como el suyo.\n\n¿Tendría disponibilidad para una breve llamada o para recibirme en ' + loc + '? Puedo adaptar la visita a su agenda.\n\nQuedo a su disposición.' + firma,
+      },
+      {
+        id: 'seguimiento',
+        icon: '🔄',
+        label: 'Seguimiento tras visita',
+        subject: 'Seguimiento visita · ' + nombre,
+        body: saludo + ',\n\nGracias por recibirme en ' + loc + '. Tal y como comentamos, le adjunto la información solicitada sobre nuestros productos GPF.\n\nQuedo a su disposición para resolver cualquier duda técnica o para facilitar muestras físicas.\n\n¿Le parece bien que retomemos contacto la próxima semana para ver si puedo ayudarles en algún proyecto concreto?' + firma,
+      },
+      {
+        id: 'catalogo',
+        icon: '📋',
+        label: 'Envío de catálogo / documentación',
+        subject: 'Catálogo técnico GPF · ' + nombre,
+        body: saludo + ',\n\nComo le comenté, le hago llegar nuestro catálogo técnico GPF con la gama completa de tubería y accesorios de polietileno, PVC, fundición y materiales especiales.\n\nDestacamos especialmente nuestras soluciones para:\n- Redes de distribución de agua\n- Instalaciones de riego y comunidades de regantes\n- Saneamiento y pluviales\n- Sistemas de presión para edificación\n\nSi necesita fichas técnicas específicas, cálculos o muestras físicas de algún producto, no dude en pedirlo.' + firma,
+      },
+      {
+        id: 'reunion',
+        icon: '📅',
+        label: 'Concertar visita / reunión',
+        subject: 'Propuesta de visita técnica · ' + nombre,
+        body: saludo + ',\n\nMe gustaría concertar una visita para presentarles en detalle las novedades de nuestro catálogo GPF y hablar sobre posibles proyectos en los que podamos colaborar.\n\nEstoy disponible cualquier día de la semana en ' + loc + '. ¿Qué fecha y hora le va mejor?\n\nAlternativamente, si prefiere una videollamada también puedo adaptarme.' + firma,
+      },
+      {
+        id: 'agradecimiento',
+        icon: '🤝',
+        label: 'Agradecimiento reunión',
+        subject: 'Gracias por la reunión · ' + nombre,
+        body: saludo + ',\n\nGracias por su tiempo en la reunión de hoy. Ha sido un placer conocerles y entender mejor los proyectos en los que están trabajando.\n\nComo acordamos, les haré llegar [documentación / presupuesto / muestras] en los próximos días.\n\nQuedo a su disposición para cualquier consulta. ¡Hasta pronto!' + firma,
+      },
+      {
+        id: 'reactivacion',
+        icon: '💫',
+        label: 'Reactivación · retomar contacto',
+        subject: 'Retomamos contacto · ' + nombre + ' y Ferroplast',
+        body: saludo + ',\n\nHacía tiempo que no teníamos noticias mutuas y quería retomar el contacto. En Ferroplast hemos incorporado nuevos productos a nuestra gama GPF que creo que pueden interesarles.\n\nAdemás, me gustaría ponerme al día sobre los proyectos en los que estén trabajando actualmente para ver si puedo serles de utilidad.\n\n¿Podríamos hablar brevemente esta semana?' + firma,
+      },
+    ];
+  }
+
+  function openEmailPanel(studio) {
+    var email = studio.email || '';
+    var templates = _emailTemplates(studio);
+    var emailActs = studio.activities.filter(function (a) { return a.type === 'email'; })
+                                     .sort(function (a, b) { return (b.createdAt || b.date || '') > (a.createdAt || a.date || '') ? 1 : -1; });
+
+    function buildSheet(activeIdx) {
+      var tpl = templates[activeIdx];
+
+      var histHtml = emailActs.length === 0
+        ? '<p style="font-size:13px; color:var(--fg-3); margin:0;">Sin emails registrados en el CRM para este cliente.</p>'
+        : emailActs.slice(0, 5).map(function (a) {
+            return (
+              '<div style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--line);">' +
+                '<span style="font-size:18px; flex:0 0 auto;">📧</span>' +
+                '<div style="min-width:0;">' +
+                  '<div style="font-size:13px; font-weight:600; color:var(--fg-1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' +
+                    escape(a.text || '(sin asunto)') +
+                  '</div>' +
+                  '<div style="font-size:12px; color:var(--fg-3);">' + escape(U.formatDateES(a.createdAt) || a.date || '—') + '</div>' +
+                '</div>' +
+              '</div>'
+            );
+          }).join('');
+
+      var chipStyle = function (active) {
+        return 'padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; border:1.5px solid; ' +
+          (active
+            ? 'background:var(--gpf-blue-700); color:#fff; border-color:var(--gpf-blue-700);'
+            : 'background:transparent; color:var(--fg-2); border-color:var(--line);');
+      };
+
+      var mailtoUrl = 'mailto:' + encodeURIComponent(email) +
+        '?subject=' + encodeURIComponent(tpl.subject) +
+        '&body='    + encodeURIComponent(tpl.body);
+
+      return (
+        '<div class="handle"></div>' +
+        // Header
+        '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">' +
+          '<div>' +
+            '<div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-3);">Correo electrónico</div>' +
+            '<div style="font-size:18px; font-weight:700; color:var(--fg-1); margin-top:2px;">' + escape(studio.name) + '</div>' +
+            (email ? '<a href="mailto:' + escape(email) + '" style="font-size:13px; color:var(--gpf-blue-700);">' + escape(email) + '</a>' : '<span style="font-size:13px; color:var(--fg-3);">Sin email registrado</span>') +
+          '</div>' +
+          '<button onclick="window.closeSheet()" style="background:none; border:none; cursor:pointer; font-size:22px; color:var(--fg-3); padding:4px;">✕</button>' +
+        '</div>' +
+
+        // Historial
+        '<div style="margin-bottom:20px;">' +
+          '<div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-3); margin-bottom:8px;">📬 Historial CRM</div>' +
+          histHtml +
+        '</div>' +
+
+        // Selector de plantilla
+        '<div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-3); margin-bottom:10px;">✍️ Plantillas de correo</div>' +
+        '<div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px;">' +
+          templates.map(function (t, idx) {
+            return '<button style="' + chipStyle(idx === activeIdx) + '" ' +
+              'onclick="window.Screens.detail._emailChip(' + idx + ')">' +
+              t.icon + ' ' + escape(t.label) +
+            '</button>';
+          }).join('') +
+        '</div>' +
+
+        // Preview
+        '<div style="background:var(--bg-1); border:1.5px solid var(--line); border-radius:10px; padding:14px; margin-bottom:16px;">' +
+          '<div style="font-size:12px; font-weight:700; color:var(--fg-3); margin-bottom:6px;">Asunto: <span style="color:var(--fg-1); font-weight:400;">' + escape(tpl.subject) + '</span></div>' +
+          '<div style="font-size:13px; color:var(--fg-1); line-height:1.6; white-space:pre-wrap; max-height:200px; overflow-y:auto;">' + escape(tpl.body) + '</div>' +
+        '</div>' +
+
+        // Acciones
+        '<div style="display:flex; gap:10px;">' +
+          (email
+            ? '<a href="' + escape(mailtoUrl) + '" class="btn btn-primary" style="flex:1; text-align:center; text-decoration:none;" ' +
+                'onclick="window.showNotification(\'📧 Abriendo Mail…\', \'info\')">' +
+                I.Mail() + ' Abrir en Mail' +
+              '</a>'
+            : '<button class="btn btn-primary" style="flex:1; opacity:.5; cursor:not-allowed;" disabled>Sin email registrado</button>') +
+          '<button class="btn btn-ghost" style="flex:0 0 auto;" ' +
+            'onclick="navigator.clipboard && navigator.clipboard.writeText(' + JSON.stringify(tpl.subject + '\n\n' + tpl.body).replace(/"/g, '&quot;') + ').then(function(){window.showNotification(\'📋 Texto copiado\', \'success\')})">' +
+            I.FileText() + ' Copiar' +
+          '</button>' +
+        '</div>'
+      );
+    }
+
+    // Guarda el estado activo para los chips
+    window._emailPanelStudio = studio;
+    window._emailPanelActive = 0;
+
+    window.openSheet(buildSheet(0));
+  }
+
+  // Llamado desde los chips del sheet
+  window.Screens = window.Screens || {};
+  window.Screens.detail = window.Screens.detail || {};
+  window.Screens.detail._emailChip = function (idx) {
+    var studio = window._emailPanelStudio;
+    if (!studio) return;
+    window._emailPanelActive = idx;
+    var content = document.getElementById('sheet-content');
+    if (!content) return;
+
+    var templates = _emailTemplates(studio);
+    var tpl = templates[idx];
+    var email = studio.email || '';
+
+    // Re-renderizar solo el preview y el botón (sin recrear el sheet entero para no perder scroll)
+    var preview = content.querySelector('[data-preview]');
+    if (preview) {
+      preview.querySelector('[data-subject]').textContent = tpl.subject;
+      preview.querySelector('[data-body]').textContent = tpl.body;
+    }
+
+    // Actualizar chips
+    content.querySelectorAll('[data-chip-idx]').forEach(function (btn) {
+      var i = parseInt(btn.getAttribute('data-chip-idx'));
+      btn.style.cssText = btn.style.cssText.replace(/background:[^;]+;color:[^;]+;border-color:[^;]+;/,
+        i === idx
+          ? 'background:var(--gpf-blue-700);color:#fff;border-color:var(--gpf-blue-700);'
+          : 'background:transparent;color:var(--fg-2);border-color:var(--line);');
+    });
+
+    // Re-abrir el sheet con el nuevo contenido (más simple y robusto)
+    var emailActs = studio.activities.filter(function (a) { return a.type === 'email'; })
+                                     .sort(function (a, b) { return (b.createdAt || b.date || '') > (a.createdAt || a.date || '') ? 1 : -1; });
+
+    var histHtml = emailActs.length === 0
+      ? '<p style="font-size:13px; color:var(--fg-3); margin:0;">Sin emails registrados en el CRM para este cliente.</p>'
+      : emailActs.slice(0, 5).map(function (a) {
+          return '<div style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--line);">' +
+            '<span style="font-size:18px; flex:0 0 auto;">📧</span>' +
+            '<div style="min-width:0;"><div style="font-size:13px; font-weight:600; color:var(--fg-1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + escape(a.text || '(sin asunto)') + '</div>' +
+            '<div style="font-size:12px; color:var(--fg-3);">' + escape(U.formatDateES(a.createdAt) || a.date || '—') + '</div></div></div>';
+        }).join('');
+
+    var chipStyle = function (active) {
+      return 'padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; border:1.5px solid; ' +
+        (active ? 'background:var(--gpf-blue-700); color:#fff; border-color:var(--gpf-blue-700);'
+                : 'background:transparent; color:var(--fg-2); border-color:var(--line);');
+    };
+    var mailtoUrl = 'mailto:' + encodeURIComponent(email) +
+      '?subject=' + encodeURIComponent(tpl.subject) + '&body=' + encodeURIComponent(tpl.body);
+
+    content.innerHTML = (
+      '<div class="handle"></div>' +
+      '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">' +
+        '<div><div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-3);">Correo electrónico</div>' +
+        '<div style="font-size:18px; font-weight:700; color:var(--fg-1); margin-top:2px;">' + escape(studio.name) + '</div>' +
+        (email ? '<a href="mailto:' + escape(email) + '" style="font-size:13px; color:var(--gpf-blue-700);">' + escape(email) + '</a>' : '<span style="font-size:13px; color:var(--fg-3);">Sin email registrado</span>') +
+        '</div><button onclick="window.closeSheet()" style="background:none; border:none; cursor:pointer; font-size:22px; color:var(--fg-3); padding:4px;">✕</button></div>' +
+      '<div style="margin-bottom:20px;"><div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-3); margin-bottom:8px;">📬 Historial CRM</div>' + histHtml + '</div>' +
+      '<div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-3); margin-bottom:10px;">✍️ Plantillas de correo</div>' +
+      '<div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px;">' +
+        templates.map(function (t, i) {
+          return '<button style="' + chipStyle(i === idx) + '" onclick="window.Screens.detail._emailChip(' + i + ')">' + t.icon + ' ' + escape(t.label) + '</button>';
+        }).join('') +
+      '</div>' +
+      '<div style="background:var(--bg-1); border:1.5px solid var(--line); border-radius:10px; padding:14px; margin-bottom:16px;">' +
+        '<div style="font-size:12px; font-weight:700; color:var(--fg-3); margin-bottom:6px;">Asunto: <span style="color:var(--fg-1); font-weight:400;">' + escape(tpl.subject) + '</span></div>' +
+        '<div style="font-size:13px; color:var(--fg-1); line-height:1.6; white-space:pre-wrap; max-height:200px; overflow-y:auto;">' + escape(tpl.body) + '</div>' +
+      '</div>' +
+      '<div style="display:flex; gap:10px;">' +
+        (email
+          ? '<a href="' + escape(mailtoUrl) + '" class="btn btn-primary" style="flex:1; text-align:center; text-decoration:none;" onclick="window.showNotification(\'📧 Abriendo Mail…\', \'info\')">' + I.Mail() + ' Abrir en Mail</a>'
+          : '<button class="btn btn-primary" style="flex:1; opacity:.5; cursor:not-allowed;" disabled>Sin email registrado</button>') +
+        '<button class="btn btn-ghost" style="flex:0 0 auto;" onclick="navigator.clipboard && navigator.clipboard.writeText(' + JSON.stringify(tpl.subject + '\n\n' + tpl.body).replace(/"/g, '&quot;') + ').then(function(){window.showNotification(\'📋 Texto copiado\', \'success\')})">' + I.FileText() + ' Copiar</button>' +
+      '</div>'
+    );
+  };
+
   function wireCTAs(studio) {
     const v = document.getElementById('view-detail');
     if (!v) return;
@@ -1133,15 +1366,7 @@
       el.addEventListener('click', function (e) {
         e.preventDefault();
         if (action === 'email') {
-          const email = el.getAttribute('data-email') || '';
-          // Intentar abrir cliente de correo
-          window.open('mailto:' + email);
-          // Copiar al portapapeles como fallback
-          if (navigator.clipboard) {
-            navigator.clipboard.writeText(email).then(function () {
-              window.showNotification('📋 Email copiado: ' + email, 'success');
-            }).catch(function () {});
-          }
+          openEmailPanel(studio);
         } else if (action === 'como-llegar') {
           if (window.Screens && window.Screens.comollegar && window.Screens.comollegar.open) {
             window.Screens.comollegar.open(studio.id);
