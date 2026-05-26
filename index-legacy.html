@@ -7614,6 +7614,7 @@ ${totalAlertas > 0 ? `
                 try {
                     studio.id = await getNextFirebaseId('studios');
                     await firestoreDB.collection('studios').doc(String(studio.id)).set(studio);
+                    SupaBridge.upsertStudio(studio).catch(e => console.warn('[SupaBridge] addStudio:', e.message));
                     cloudCache.studios.push(studio);
                     localData.studios.push(studio);
                     saveToLocalStorage();
@@ -7700,6 +7701,7 @@ ${totalAlertas > 0 ? `
                     }
                     const idx = cloudCache.studios.findIndex(s => s.id == entry.id);
                     if (idx !== -1) Object.assign(cloudCache.studios[idx], updatesWithTs);
+                    if (idx !== -1) SupaBridge.upsertStudio(cloudCache.studios[idx]).catch(e => console.warn('[SupaBridge] flushPending:', e.message));
                     flushed++;
                 } catch(e) {
                     if (e.code === 'resource-exhausted' || (e.message||'').toLowerCase().includes('quota')) {
@@ -7758,6 +7760,7 @@ ${totalAlertas > 0 ? `
                 if (index !== -1) Object.assign(cloudCache.studios[index], updatesWithTs);
                 const localIndex = localData.studios.findIndex(s => s.id == id);
                 if (localIndex !== -1) { Object.assign(localData.studios[localIndex], updatesWithTs); saveToLocalStorage(); }
+                if (index !== -1) SupaBridge.upsertStudio(cloudCache.studios[index]).catch(e => console.warn('[SupaBridge] updateStudio:', e.message));
                 return cloudCache.studios[index];
             }
 
@@ -7816,6 +7819,7 @@ ${totalAlertas > 0 ? `
             // FIREBASE
             if (useFirebase) {
                 await firestoreDB.collection('studios').doc(String(id)).delete();
+                SupaBridge.deleteStudio(id).catch(e => console.warn('[SupaBridge] deleteStudio:', e.message));
                 const relatedSnap = await firestoreDB.collection('activities').where('studioId', '==', id).get();
                 const batch = firestoreDB.batch();
                 relatedSnap.docs.forEach(d => batch.delete(d.ref));
@@ -34532,6 +34536,102 @@ Notas:
         function mobileToggleAgendaDay(header) {
             header.nextElementSibling.classList.toggle('open');
         }
+
+        /* ============================================================
+           SupaBridge — dual-write Firestore → Supabase (fire & forget)
+           Propaga automáticamente los cambios del legacy al backend
+           del rediseño para mantener ambos en sincronía.
+           Las llamadas son siempre fire-and-forget (.catch) para no
+           bloquear ni revertir las operaciones Firestore existentes.
+           ============================================================ */
+        (function () {
+          'use strict';
+          const _SB_URL  = 'https://zmelqffrkwxkbzzutjrg.supabase.co';
+          const _SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9' +
+            '.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InptZWxxZmZya3d4a2J6enV0anJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1Mjg2MzAsImV4cCI6MjA5NTEwNDYzMH0' +
+            '.v1_Isxz6-mZtz_DJs3k6qoH9mV9FNW21Z94tiew9cQE';
+          const _REST = _SB_URL + '/rest/v1';
+
+          // Campos scoring v2 con equivalente snake_case en Supabase
+          const _FLAT = [
+            ['priority_quadrant',              'priorityQuadrant'],
+            ['priority_quadrant_name',         'priorityQuadrantName'],
+            ['priority_direct',                'priorityDirect'],
+            ['priority_direct_score',          'priorityDirectScore'],
+            ['priority_network',               'priorityNetwork'],
+            ['priority_network_score',         'priorityNetworkScore'],
+            ['priority_direct_score_natural',  'priorityDirectScoreNatural'],
+            ['priority_network_score_natural', 'priorityNetworkScoreNatural'],
+          ];
+
+          function _toRow(s) {
+            const row = {
+              id:                   s.id != null ? String(s.id) : undefined,
+              name:                 s.name,
+              type:                 Array.isArray(s.type) ? s.type[0] : s.type,
+              city:                 s.city,
+              province:             s.province,
+              score:                typeof s.score === 'number' ? s.score : (parseInt(s.score, 10) || null),
+              priority:             s.priority,
+              status:               s.status,
+              es_cliente_puente:    s.es_cliente_puente === true,
+              fuente_descubrimiento: s.fuente_descubrimiento || null,
+              updated_at:           s.updatedAt || new Date().toISOString(),
+            };
+            for (var i = 0; i < _FLAT.length; i++) {
+              var pg = _FLAT[i][0], js = _FLAT[i][1];
+              if (s[js] != null) row[pg] = s[js];
+            }
+            // JSONB data: usar s.data si existe, o construir desde campos no planos
+            if (s.data && typeof s.data === 'object') {
+              row.data = s.data;
+            } else {
+              var data = Object.assign({}, s);
+              var strip = ['id','name','type','city','province','score','priority','status',
+                'es_cliente_puente','fuente_descubrimiento','data','createdAt','updatedAt'];
+              for (var k = 0; k < _FLAT.length; k++) strip.push(_FLAT[k][1]);
+              strip.forEach(function (key) { delete data[key]; });
+              row.data = data;
+            }
+            return row;
+          }
+
+          function _hdrs(extra) {
+            return Object.assign({
+              'apikey': _SB_ANON,
+              'Authorization': 'Bearer ' + _SB_ANON,
+              'Content-Type': 'application/json',
+            }, extra || {});
+          }
+
+          async function upsertStudio(studio) {
+            var row = _toRow(studio);
+            if (!row.id) { console.warn('[SupaBridge] upsertStudio: studio sin id, omitiendo'); return; }
+            var res = await fetch(_REST + '/studios?on_conflict=id', {
+              method: 'POST',
+              headers: _hdrs({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+              body: JSON.stringify([row]),
+            });
+            if (!res.ok) {
+              var txt = await res.text().catch(function () { return ''; });
+              throw new Error('[SupaBridge] upsert ' + res.status + ': ' + txt.slice(0, 200));
+            }
+          }
+
+          async function deleteStudio(id) {
+            var res = await fetch(_REST + '/studios?id=eq.' + encodeURIComponent(id), {
+              method: 'DELETE',
+              headers: _hdrs(),
+            });
+            if (!res.ok) {
+              var txt = await res.text().catch(function () { return ''; });
+              throw new Error('[SupaBridge] delete ' + res.status + ': ' + txt.slice(0, 200));
+            }
+          }
+
+          window.SupaBridge = { upsertStudio: upsertStudio, deleteStudio: deleteStudio };
+          console.info('[SupaBridge] inicializado — dual-write Firestore+Supabase activo');
+        })();
 
         init();
     </script>
