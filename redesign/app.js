@@ -149,6 +149,59 @@
   };
 
   /* ============================================================
+     NOTIFICACIONES TOAST — usadas por toda la app con showNotification()
+     ============================================================ */
+  (function () {
+    // Inyectar CSS una sola vez
+    var styleId = 'crm-toast-style';
+    if (!document.getElementById(styleId)) {
+      var s = document.createElement('style');
+      s.id = styleId;
+      s.textContent = [
+        '.crm-toast-wrap{position:fixed;bottom:24px;right:24px;z-index:9999;',
+          'display:flex;flex-direction:column;gap:8px;pointer-events:none;}',
+        '.crm-toast{display:flex;align-items:center;gap:10px;',
+          'padding:12px 16px;border-radius:10px;font-size:14px;font-weight:500;',
+          'color:#fff;max-width:360px;box-shadow:0 4px 16px rgba(0,0,0,.25);',
+          'pointer-events:auto;cursor:default;',
+          'animation:crm-toast-in .22s ease;}',
+        '.crm-toast.hide{animation:crm-toast-out .22s ease forwards;}',
+        '.crm-toast.success{background:#166534;}',
+        '.crm-toast.error{background:#991b1b;}',
+        '.crm-toast.warning{background:#92400e;}',
+        '.crm-toast.info{background:#1e40af;}',
+        '@keyframes crm-toast-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}',
+        '@keyframes crm-toast-out{from{opacity:1}to{opacity:0;transform:translateY(8px)}}',
+      ].join('');
+      document.head.appendChild(s);
+    }
+
+    function getWrap() {
+      var w = document.querySelector('.crm-toast-wrap');
+      if (!w) {
+        w = document.createElement('div');
+        w.className = 'crm-toast-wrap';
+        document.body.appendChild(w);
+      }
+      return w;
+    }
+
+    window.showNotification = function (msg, type) {
+      type = type || 'info';
+      var wrap = getWrap();
+      var el = document.createElement('div');
+      el.className = 'crm-toast ' + type;
+      el.textContent = msg;
+      wrap.appendChild(el);
+      var dur = type === 'error' ? 6000 : type === 'warning' ? 5000 : 4000;
+      setTimeout(function () {
+        el.classList.add('hide');
+        setTimeout(function () { el.remove(); }, 250);
+      }, dur);
+    };
+  })();
+
+  /* ============================================================
      NUEVO ANÁLISIS — sheet de alta rápida de empresa
      ============================================================ */
   window.openNuevoAnalisis = function () {
