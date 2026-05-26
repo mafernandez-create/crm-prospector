@@ -313,6 +313,13 @@
         FILTERS.q = q.value;
         FILTERS.pagina = 1;
         render();
+        // render() reemplaza el DOM completo — restaurar foco al nuevo input
+        var newQ = document.getElementById('studios-q');
+        if (newQ) {
+          newQ.focus();
+          var len = newQ.value.length;
+          try { newQ.setSelectionRange(len, len); } catch (e) { /* Safari type=search */ }
+        }
       }, 250));
     }
     bindSelect('studios-prov',   'provincia');
