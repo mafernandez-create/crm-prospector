@@ -326,6 +326,29 @@
       window.closeSheet();
       if (window.showNotification) window.showNotification('✅ Empresa "' + nombre + '" creada (#' + newId + ')', 'success');
       window.showView('detail', { studioId: newId });
+
+      // Auto-investigación en background — rellena campos desde web + IA
+      if (window.Data && typeof window.Data.enrichStudio === 'function') {
+        setTimeout(async function () {
+          try {
+            if (window.showNotification) window.showNotification('🔍 Investigando "' + nombre + '" en la web…', 'info');
+            var result = await window.Data.enrichStudio(newId);
+            var n = result && result.fieldsUpdated;
+            if (n > 0) {
+              if (window.showNotification) window.showNotification('✨ ' + n + ' campos completados automáticamente', 'success');
+              // Re-render la ficha si sigue siendo la activa
+              if (window.State.currentStudioId === newId && window.Screens.detail) {
+                window.Screens.detail.render({ studioId: newId });
+              }
+            } else {
+              if (window.showNotification) window.showNotification('ℹ️ No se encontraron datos adicionales en web', 'info');
+            }
+          } catch (e) {
+            console.warn('[enrichStudio]', e.message);
+            if (window.showNotification) window.showNotification('⚠️ Investigación web: ' + (e.message || 'sin datos'), 'warning');
+          }
+        }, 800);
+      }
     } catch (e) {
       if (btn) { btn.disabled = false; btn.textContent = '✓ Crear empresa'; }
       if (errEl) { errEl.textContent = '⚠️ Error al guardar: ' + (e.message || e); errEl.style.display = 'block'; }

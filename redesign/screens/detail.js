@@ -1238,7 +1238,7 @@
           '<div id="ef-error" style="margin-top:10px;color:var(--mute-red-dark,#c0392b);font-size:13px;display:none;"></div>' +
         '</div>' +
 
-        '<div style="flex-shrink:0;padding:12px 20px 16px;border-top:1px solid var(--line);display:flex;gap:10px;">' +
+        '<div style="flex-shrink:0;padding:12px 20px 4px;border-top:1px solid var(--line);display:flex;gap:10px;">' +
           '<button onclick="closeSheet()" ' +
                   'style="flex:1;padding:10px;border:1px solid var(--line);border-radius:8px;' +
                   'background:transparent;color:var(--fg-2);font-size:14px;font-weight:600;cursor:pointer;">' +
@@ -1249,6 +1249,15 @@
                   'background:var(--gpf-blue-700,#1d4ed8);color:#fff;font-size:14px;font-weight:600;cursor:pointer;"' +
                   'id="ef-save-btn">' +
             '✓ Guardar cambios' +
+          '</button>' +
+        '</div>' +
+        /* Zona de peligro — eliminar empresa */
+        '<div style="padding:8px 20px 16px; text-align:center;">' +
+          '<button id="ef-delete-btn" ' +
+            'onclick="window.Screens.detail._confirmDelete(\'' + escape(studioId) + '\')" ' +
+            'style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--fg-4,#94a3b8);' +
+            'text-decoration:underline;padding:4px 8px;">' +
+            '🗑️ Eliminar empresa' +
           '</button>' +
         '</div>' +
 
@@ -1302,6 +1311,50 @@
     } catch (e) {
       if (btn) { btn.disabled = false; btn.textContent = '✓ Guardar cambios'; }
       if (errEl) { errEl.textContent = '⚠️ Error: ' + (e.message || e); errEl.style.display = 'block'; }
+    }
+  }
+
+  /* ---- CONFIRMACIÓN Y ELIMINACIÓN ---- */
+  function _confirmDelete(studioId) {
+    var btn = document.getElementById('ef-delete-btn');
+    if (!btn) return;
+    // Si ya está en modo confirmación, ejecutar
+    if (btn.getAttribute('data-confirming') === '1') {
+      window.Screens.detail.eliminarEmpresa(studioId);
+      return;
+    }
+    // Primer click — modo confirmación
+    btn.setAttribute('data-confirming', '1');
+    btn.textContent = '⚠️ ¿Seguro? Pulsa de nuevo para eliminar definitivamente';
+    btn.style.color = '#ef4444';
+    btn.style.fontWeight = '600';
+    // Reset automático si no confirma en 5 s
+    setTimeout(function () {
+      if (btn && btn.getAttribute('data-confirming') === '1') {
+        btn.removeAttribute('data-confirming');
+        btn.textContent = '🗑️ Eliminar empresa';
+        btn.style.color = '';
+        btn.style.fontWeight = '';
+      }
+    }, 5000);
+  }
+
+  async function eliminarEmpresa(studioId) {
+    var btn = document.getElementById('ef-delete-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Eliminando…'; }
+    try {
+      await window.Data.deleteDoc('studios/' + studioId);
+      // Limpiar State
+      if (State.studiosById) delete State.studiosById[studioId];
+      if (State.studios) {
+        State.studios = State.studios.filter(function (s) { return s.id !== studioId; });
+      }
+      window.closeSheet();
+      notif('Empresa eliminada', 'info');
+      window.showView('studios');
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.textContent = '🗑️ Eliminar empresa'; btn.removeAttribute('data-confirming'); }
+      notif('Error al eliminar: ' + (e.message || e), 'error');
     }
   }
 
@@ -1652,9 +1705,11 @@
     saveContact: saveContact,
     // Pipeline
     changeStatus: changeStatus,
-    // Editar ficha
+    // Editar ficha + eliminar
     openEditarFicha: openEditarFicha,
     guardarFicha: guardarFicha,
+    _confirmDelete: _confirmDelete,
+    eliminarEmpresa: eliminarEmpresa,
     // Briefing IA
     regenerarBriefingIA: regenerarBriefingIA,
     // Email panel
