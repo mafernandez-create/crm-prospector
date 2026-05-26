@@ -363,8 +363,12 @@
       '<section style="margin-bottom:16px;">' +
         '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">' +
           '<span class="eyebrow">Contacto y ficha</span>' +
-          '<button class="btn btn-ghost" style="height:30px; font-size:12px; padding:0 10px;" ' +
-            'onclick="window.Screens.detail.openEditContact(\'' + escape(s.id) + '\')">✏️ Editar</button>' +
+          '<div style="display:flex; gap:6px;">' +
+            '<button class="btn btn-ghost" id="btn-enrich-' + escape(s.id) + '" data-action="enrich" ' +
+              'style="height:30px; font-size:12px; padding:0 10px;" title="Buscar datos de contacto en la web">🔍 Enrich</button>' +
+            '<button class="btn btn-ghost" style="height:30px; font-size:12px; padding:0 10px;" ' +
+              'onclick="window.Screens.detail.openEditContact(\'' + escape(s.id) + '\')">✏️ Editar</button>' +
+          '</div>' +
         '</div>' +
         '<div class="card" style="padding:4px 0;">' +
           rows.map(function (r, i) {
@@ -1633,9 +1637,31 @@
           // Scroll al tab Pipeline y muestra el selector de estado
           switchTab('pipeline', studio.id);
           _tab = 'pipeline';
+        } else if (action === 'enrich') {
+          _enrichStudioUI(el, studio);
         }
       });
     });
+  }
+
+  /* Lanza enrichStudio con feedback visual en el botón.
+     enrichStudio ya muestra sus propios toasts de progreso y resultado;
+     aquí sólo gestionamos el estado del botón y el re-render final. */
+  async function _enrichStudioUI(btn, studio) {
+    if (!window.Data || !window.Data.enrichStudio) {
+      window.showNotification('Data.enrichStudio no disponible', 'error'); return;
+    }
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Analizando…';
+    try {
+      await window.Data.enrichStudio(studio.id);
+      // Re-renderizar la ficha para mostrar los datos que se hayan rellenado
+      render({ studioId: studio.id });
+    } catch (e) {
+      window.showNotification('⚠️ ' + (e.message || 'Error en enrich'), 'error');
+      btn.disabled = false;
+      btn.innerHTML = '🔍 Enrich';
+    }
   }
 
   /* ============================================================
