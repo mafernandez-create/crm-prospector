@@ -149,6 +149,189 @@
   };
 
   /* ============================================================
+     NUEVO ANÁLISIS — sheet de alta rápida de empresa
+     ============================================================ */
+  window.openNuevoAnalisis = function () {
+    var TIPOS = ['Arquitectura', 'Ingeniería', 'C.R. Regantes', 'Ciclo del agua',
+                 'Promotora', 'Hotel / Hostelería', 'Hospital', 'Distribuidor', 'Otros'];
+    var PROVINCIAS = ['Almería', 'Cádiz', 'Córdoba', 'Granada', 'Huelva',
+                      'Jaén', 'Málaga', 'Sevilla', 'Murcia', 'Badajoz', 'Otras'];
+
+    var tipoOpts = TIPOS.map(function (t) {
+      return '<option value="' + t + '">' + t + '</option>';
+    }).join('');
+    var provOpts = PROVINCIAS.map(function (p) {
+      return '<option value="' + p + '">' + p + '</option>';
+    }).join('');
+
+    var fld = 'style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;' +
+              'background:var(--bg-input,var(--bg-card));color:var(--fg-1);font-size:14px;box-sizing:border-box;"';
+
+    window.openSheet(
+      '<div style="display:flex;flex-direction:column;height:100%;overflow:hidden;padding:0;">' +
+
+        // Header
+        '<div style="flex-shrink:0;padding:16px 20px 12px;border-bottom:1px solid var(--line);' +
+              'display:flex;align-items:center;justify-content:space-between;">' +
+          '<div style="font-size:16px;font-weight:700;color:var(--fg-1);">➕ Nueva empresa</div>' +
+          '<button onclick="closeSheet()" style="background:none;border:none;cursor:pointer;' +
+                  'color:var(--fg-3);font-size:20px;line-height:1;padding:4px;">✕</button>' +
+        '</div>' +
+
+        // Cuerpo scrollable
+        '<div style="flex:1;overflow-y:auto;padding:16px 20px;min-height:0;">' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
+
+            // Nombre — ocupa toda la fila
+            '<div style="grid-column:1/-1;">' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Nombre *</label>' +
+              '<input id="na-nombre" ' + fld + ' placeholder="Ej. Estudio Ruiz Arquitectos"/>' +
+            '</div>' +
+
+            // Tipo
+            '<div>' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Tipo</label>' +
+              '<select id="na-tipo" ' + fld + '>' + tipoOpts + '</select>' +
+            '</div>' +
+
+            // Provincia
+            '<div>' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Provincia</label>' +
+              '<select id="na-provincia" ' + fld + '><option value="">— Selecciona —</option>' + provOpts + '</select>' +
+            '</div>' +
+
+            // Ciudad
+            '<div>' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Ciudad</label>' +
+              '<input id="na-ciudad" ' + fld + ' placeholder="Ej. Sevilla"/>' +
+            '</div>' +
+
+            // Score
+            '<div>' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Score (1–10)</label>' +
+              '<input id="na-score" type="number" min="1" max="10" value="5" ' + fld + '/>' +
+            '</div>' +
+
+            // Teléfono
+            '<div>' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Teléfono</label>' +
+              '<input id="na-tel" ' + fld + ' placeholder="Ej. 955 000 000"/>' +
+            '</div>' +
+
+            // Email
+            '<div>' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Email</label>' +
+              '<input id="na-email" type="email" ' + fld + ' placeholder="Ej. info@estudio.com"/>' +
+            '</div>' +
+
+            // Web — ocupa toda la fila
+            '<div style="grid-column:1/-1;">' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Web</label>' +
+              '<input id="na-web" ' + fld + ' placeholder="Ej. https://estudio.com"/>' +
+            '</div>' +
+
+          '</div>' +
+          '<div id="na-error" style="margin-top:10px;color:var(--mute-red-dark,#c0392b);font-size:13px;display:none;"></div>' +
+        '</div>' +
+
+        // Footer con botones
+        '<div style="flex-shrink:0;padding:12px 20px 16px;border-top:1px solid var(--line);' +
+              'display:flex;gap:10px;">' +
+          '<button onclick="closeSheet()" ' +
+                  'style="flex:1;padding:10px;border:1px solid var(--line);border-radius:8px;' +
+                  'background:transparent;color:var(--fg-2);font-size:14px;font-weight:600;cursor:pointer;">' +
+            'Cancelar' +
+          '</button>' +
+          '<button onclick="window._guardarNuevoAnalisis()" ' +
+                  'style="flex:2;padding:10px;border:none;border-radius:8px;' +
+                  'background:var(--gpf-blue-700,#1d4ed8);color:#fff;font-size:14px;font-weight:600;cursor:pointer;"' +
+                  'id="na-save-btn">' +
+            '✓ Crear empresa' +
+          '</button>' +
+        '</div>' +
+
+      '</div>'
+    );
+
+    // Focus en el nombre
+    setTimeout(function () {
+      var el = document.getElementById('na-nombre');
+      if (el) el.focus();
+    }, 120);
+  };
+
+  window._guardarNuevoAnalisis = async function () {
+    var nombre = (document.getElementById('na-nombre') || {}).value || '';
+    nombre = nombre.trim();
+    var errEl = document.getElementById('na-error');
+
+    if (!nombre) {
+      if (errEl) { errEl.textContent = '⚠️ El nombre es obligatorio.'; errEl.style.display = 'block'; }
+      var n = document.getElementById('na-nombre'); if (n) n.focus();
+      return;
+    }
+    if (errEl) errEl.style.display = 'none';
+
+    var btn = document.getElementById('na-save-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+
+    // Calcular siguiente ID
+    var maxId = 3000;
+    (State.studios || []).forEach(function (s) {
+      var n = parseInt(s.id, 10);
+      if (!isNaN(n) && n > maxId) maxId = n;
+    });
+    var newId = String(maxId + 1);
+
+    var tipo     = (document.getElementById('na-tipo')     || {}).value || 'Arquitectura';
+    var ciudad   = ((document.getElementById('na-ciudad')   || {}).value || '').trim();
+    var provincia= (document.getElementById('na-provincia') || {}).value || '';
+    var score    = parseInt((document.getElementById('na-score') || {}).value || '5', 10);
+    var tel      = ((document.getElementById('na-tel')     || {}).value || '').trim();
+    var email    = ((document.getElementById('na-email')   || {}).value || '').trim();
+    var web      = ((document.getElementById('na-web')     || {}).value || '').trim();
+    if (web && !/^https?:\/\//i.test(web)) web = 'https://' + web;
+
+    var studioObj = {
+      name: nombre,
+      type: tipo,
+      city: ciudad,
+      province: provincia,
+      score: score,
+      priority: score >= 7 ? 'alta' : score >= 4 ? 'media' : 'baja',
+      status: 'nuevo',
+      data: {
+        contact: { address: '', phone: tel, email: email, web: web },
+        team: [],
+        projects: [],
+        notes: '',
+        description: '',
+        comms: { callPitch: '', openingLine: '' },
+        activities: [],
+        reports: [],
+      },
+    };
+
+    try {
+      await window.Data.patchDoc('studios/' + newId, studioObj);
+
+      // Actualizar State local sin recargar todo
+      var full = Object.assign({ id: newId }, studioObj);
+      State.studios = State.studios || [];
+      State.studios.push(full);
+      State.studiosById = State.studiosById || {};
+      State.studiosById[newId] = full;
+
+      window.closeSheet();
+      if (window.showNotification) window.showNotification('✅ Empresa "' + nombre + '" creada (#' + newId + ')', 'success');
+      window.showView('detail', { studioId: newId });
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.textContent = '✓ Crear empresa'; }
+      if (errEl) { errEl.textContent = '⚠️ Error al guardar: ' + (e.message || e); errEl.style.display = 'block'; }
+    }
+  };
+
+  /* ============================================================
      UTILIDADES UI (usadas en múltiples pantallas)
      ============================================================ */
   function escapeHtml(s) {
