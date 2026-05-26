@@ -153,7 +153,8 @@
      ============================================================ */
   window.openNuevoAnalisis = function () {
     var TIPOS = ['Arquitectura', 'Ingeniería', 'C.R. Regantes', 'Ciclo del agua',
-                 'Promotora', 'Hotel / Hostelería', 'Hospital', 'Distribuidor', 'Otros'];
+                 'Promotora · Constructora', 'Administración pública', 'Hotel / Hostelería',
+                 'Hospital', 'Distribuidor', 'Otros'];
     var PROVINCIAS = ['Almería', 'Cádiz', 'Córdoba', 'Granada', 'Huelva',
                       'Jaén', 'Málaga', 'Sevilla', 'Murcia', 'Badajoz', 'Otras'];
 

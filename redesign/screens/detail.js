@@ -249,11 +249,18 @@
               '</span>' +
             '</div>' +
           '</div>' +
-          /* Botón cambiar estado */
-          '<button data-action="change-status" style="flex:0 0 auto; background:none; border:1px solid var(--line); ' +
-            'border-radius:8px; padding:6px 10px; font-size:12px; color:var(--fg-3); cursor:pointer;">' +
-            '⇄ Estado' +
-          '</button>' +
+          /* Botones header */
+          '<div style="display:flex; flex-direction:column; gap:6px; flex:0 0 auto;">' +
+            '<button data-action="change-status" style="background:none; border:1px solid var(--line); ' +
+              'border-radius:8px; padding:6px 10px; font-size:12px; color:var(--fg-3); cursor:pointer;">' +
+              '⇄ Estado' +
+            '</button>' +
+            '<button onclick="window.Screens.detail.openEditarFicha(\'' + escape(s.id) + '\')" ' +
+              'style="background:none; border:1px solid var(--line); ' +
+              'border-radius:8px; padding:6px 10px; font-size:12px; color:var(--fg-3); cursor:pointer;">' +
+              '✏️ Editar' +
+            '</button>' +
+          '</div>' +
         '</div>' +
 
         /* Dirección */
@@ -1122,6 +1129,182 @@
     } catch (e) { alert('Error: ' + e.message); }
   }
 
+  /* ---- EDITAR FICHA PRINCIPAL ---- */
+  var _EDIT_TIPOS = [
+    'Arquitectura', 'Ingeniería', 'C.R. Regantes', 'Ciclo del agua',
+    'Promotora · Constructora', 'Administración pública', 'Hotel / Hostelería',
+    'Hospital', 'Distribuidor', 'Otros',
+  ];
+  var _EDIT_PROVINCIAS = [
+    'Almería', 'Cádiz', 'Córdoba', 'Granada', 'Huelva',
+    'Jaén', 'Málaga', 'Sevilla', 'Murcia', 'Badajoz', 'Otras',
+  ];
+  var _EDIT_ESTADOS = Object.keys(STATUS_LABELS);
+  var _EDIT_PRIORIDADES = ['alta', 'media', 'baja'];
+
+  function openEditarFicha(studioId) {
+    var s = State.studiosById && State.studiosById[studioId];
+    if (!s) { notif('Empresa no encontrada', 'error'); return; }
+
+    var tipoActual    = s.type || '';
+    var provinciaActual = typeof s.province === 'object' ? (s.province && s.province.valor || '') : (s.province || '');
+    var ciudadActual  = typeof s.city === 'object' ? (s.city && s.city.valor || '') : (s.city || '');
+    var scoreActual   = s.score || 5;
+    var prioActual    = s.priority || 'media';
+    var statusActual  = s.status || 'nuevo';
+    var ctc           = s.data && s.data.contact ? s.data.contact : {};
+    var telActual     = typeof ctc.phone === 'object' ? (ctc.phone && ctc.phone.valor || '') : (ctc.phone || '');
+    var emailActual   = typeof ctc.email === 'object' ? (ctc.email && ctc.email.valor || '') : (ctc.email || '');
+    var webActual     = typeof ctc.web === 'object' ? (ctc.web && ctc.web.valor || '') : (ctc.web || '');
+
+    var fld = 'style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;' +
+              'background:var(--bg-input,var(--bg-card));color:var(--fg-1);font-size:14px;box-sizing:border-box;"';
+
+    function sel(id, opts, current) {
+      return '<select id="' + id + '" ' + fld + '>' +
+        opts.map(function (o) {
+          var val   = typeof o === 'object' ? o.value : o;
+          var label = typeof o === 'object' ? o.label : o;
+          return '<option value="' + escape(val) + '"' + (val === current ? ' selected' : '') + '>' + label + '</option>';
+        }).join('') +
+      '</select>';
+    }
+
+    window.openSheet(
+      '<div style="display:flex;flex-direction:column;height:100%;overflow:hidden;padding:0;">' +
+
+        '<div style="flex-shrink:0;padding:16px 20px 12px;border-bottom:1px solid var(--line);' +
+              'display:flex;align-items:center;justify-content:space-between;">' +
+          '<div style="font-size:16px;font-weight:700;color:var(--fg-1);">✏️ Editar ficha</div>' +
+          '<button onclick="closeSheet()" style="background:none;border:none;cursor:pointer;' +
+                  'color:var(--fg-3);font-size:20px;line-height:1;padding:4px;">✕</button>' +
+        '</div>' +
+
+        '<div style="flex:1;overflow-y:auto;padding:16px 20px;min-height:0;">' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
+
+            '<div style="grid-column:1/-1;">' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Nombre *</label>' +
+              '<input id="ef-nombre" ' + fld + ' value="' + escape(s.name || '') + '"/>' +
+            '</div>' +
+
+            '<div>' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Tipo</label>' +
+              sel('ef-tipo', _EDIT_TIPOS, tipoActual) +
+            '</div>' +
+
+            '<div>' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Estado</label>' +
+              sel('ef-status', _EDIT_ESTADOS.map(function(k){ return { value: k, label: STATUS_LABELS[k] || k }; }), statusActual) +
+            '</div>' +
+
+            '<div>' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Provincia</label>' +
+              '<input id="ef-provincia" ' + fld + ' value="' + escape(provinciaActual) + '" list="ef-prov-list"/>' +
+              '<datalist id="ef-prov-list">' + _EDIT_PROVINCIAS.map(function(p){ return '<option value="' + escape(p) + '">'; }).join('') + '</datalist>' +
+            '</div>' +
+
+            '<div>' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Ciudad</label>' +
+              '<input id="ef-ciudad" ' + fld + ' value="' + escape(ciudadActual) + '"/>' +
+            '</div>' +
+
+            '<div>' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Score (1–10)</label>' +
+              '<input id="ef-score" type="number" min="1" max="10" ' + fld + ' value="' + scoreActual + '"/>' +
+            '</div>' +
+
+            '<div>' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Prioridad</label>' +
+              sel('ef-prioridad', _EDIT_PRIORIDADES, prioActual) +
+            '</div>' +
+
+            '<div>' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Teléfono</label>' +
+              '<input id="ef-tel" ' + fld + ' value="' + escape(telActual) + '"/>' +
+            '</div>' +
+
+            '<div>' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Email</label>' +
+              '<input id="ef-email" type="email" ' + fld + ' value="' + escape(emailActual) + '"/>' +
+            '</div>' +
+
+            '<div style="grid-column:1/-1;">' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Web</label>' +
+              '<input id="ef-web" ' + fld + ' value="' + escape(webActual) + '"/>' +
+            '</div>' +
+
+          '</div>' +
+          '<div id="ef-error" style="margin-top:10px;color:var(--mute-red-dark,#c0392b);font-size:13px;display:none;"></div>' +
+        '</div>' +
+
+        '<div style="flex-shrink:0;padding:12px 20px 16px;border-top:1px solid var(--line);display:flex;gap:10px;">' +
+          '<button onclick="closeSheet()" ' +
+                  'style="flex:1;padding:10px;border:1px solid var(--line);border-radius:8px;' +
+                  'background:transparent;color:var(--fg-2);font-size:14px;font-weight:600;cursor:pointer;">' +
+            'Cancelar' +
+          '</button>' +
+          '<button onclick="window.Screens.detail.guardarFicha(\'' + escape(studioId) + '\')" ' +
+                  'style="flex:2;padding:10px;border:none;border-radius:8px;' +
+                  'background:var(--gpf-blue-700,#1d4ed8);color:#fff;font-size:14px;font-weight:600;cursor:pointer;"' +
+                  'id="ef-save-btn">' +
+            '✓ Guardar cambios' +
+          '</button>' +
+        '</div>' +
+
+      '</div>'
+    );
+
+    setTimeout(function () { var el = document.getElementById('ef-nombre'); if (el) el.focus(); }, 120);
+  }
+
+  async function guardarFicha(studioId) {
+    var nombre = ((document.getElementById('ef-nombre') || {}).value || '').trim();
+    var errEl  = document.getElementById('ef-error');
+    if (!nombre) {
+      if (errEl) { errEl.textContent = '⚠️ El nombre es obligatorio.'; errEl.style.display = 'block'; }
+      return;
+    }
+    if (errEl) errEl.style.display = 'none';
+
+    var btn = document.getElementById('ef-save-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+
+    var tipo      = (document.getElementById('ef-tipo')      || {}).value || '';
+    var status    = (document.getElementById('ef-status')    || {}).value || 'nuevo';
+    var provincia = ((document.getElementById('ef-provincia') || {}).value || '').trim();
+    var ciudad    = ((document.getElementById('ef-ciudad')   || {}).value || '').trim();
+    var score     = parseInt((document.getElementById('ef-score')    || {}).value || '5', 10);
+    var prioridad = (document.getElementById('ef-prioridad') || {}).value || 'media';
+    var tel       = ((document.getElementById('ef-tel')      || {}).value || '').trim();
+    var email     = ((document.getElementById('ef-email')    || {}).value || '').trim();
+    var web       = ((document.getElementById('ef-web')      || {}).value || '').trim();
+    if (web && !/^https?:\/\//i.test(web)) web = 'https://' + web;
+
+    var patch = {
+      name: nombre, type: tipo, status: status,
+      province: provincia, city: ciudad,
+      score: score, priority: prioridad,
+    };
+    // Actualizar contacto sin borrar campos que no están en el form
+    var s = State.studiosById && State.studiosById[studioId];
+    var ctc = (s && s.data && s.data.contact) ? Object.assign({}, s.data.contact) : {};
+    if (tel)   ctc.phone = tel;
+    if (email) ctc.email = email;
+    if (web)   ctc.web   = web;
+    patch['data.contact'] = ctc;
+
+    try {
+      await saveTopFields(studioId, patch);
+      window.closeSheet();
+      notif('Ficha actualizada ✓', 'success');
+      render({ studioId: studioId, tab: _tab });
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.textContent = '✓ Guardar cambios'; }
+      if (errEl) { errEl.textContent = '⚠️ Error: ' + (e.message || e); errEl.style.display = 'block'; }
+    }
+  }
+
   /* ============================================================
      CTAs
      ============================================================ */
@@ -1469,6 +1652,9 @@
     saveContact: saveContact,
     // Pipeline
     changeStatus: changeStatus,
+    // Editar ficha
+    openEditarFicha: openEditarFicha,
+    guardarFicha: guardarFicha,
     // Briefing IA
     regenerarBriefingIA: regenerarBriefingIA,
     // Email panel
