@@ -277,7 +277,7 @@
         (s.phone || s.email
           ? '<div style="display:grid; grid-template-columns:' + (s.phone && s.email ? '1fr 1fr' : '1fr') + '; gap:8px; margin-bottom:4px;">' +
               (s.phone ? '<a class="btn btn-ghost" style="height:46px;" href="tel:' + escape(s.phone.replace(/[^\d+]/g, '')) + '">' + I.Phone() + ' Llamar</a>' : '') +
-              (s.email ? '<a class="btn btn-ghost" style="height:46px;" href="mailto:' + escape(s.email) + '">' + I.Mail() + ' Email</a>' : '') +
+              (s.email ? '<button class="btn btn-ghost" style="height:46px;" data-action="email" data-email="' + escape(s.email) + '">' + I.Mail() + ' Email</button>' : '') +
             '</div>'
           : '') +
       '</div>'
@@ -1132,7 +1132,17 @@
       const action = el.getAttribute('data-action');
       el.addEventListener('click', function (e) {
         e.preventDefault();
-        if (action === 'como-llegar') {
+        if (action === 'email') {
+          const email = el.getAttribute('data-email') || '';
+          // Intentar abrir cliente de correo
+          window.open('mailto:' + email);
+          // Copiar al portapapeles como fallback
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(email).then(function () {
+              window.showNotification('📋 Email copiado: ' + email, 'success');
+            }).catch(function () {});
+          }
+        } else if (action === 'como-llegar') {
           if (window.Screens && window.Screens.comollegar && window.Screens.comollegar.open) {
             window.Screens.comollegar.open(studio.id);
           }
