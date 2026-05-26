@@ -1348,78 +1348,6 @@
     _renderEmailSheet(studio, 0, '', '');
   }
 
-  // Exponer en window.Screens.detail
-  window.Screens = window.Screens || {};
-  window.Screens.detail = window.Screens.detail || {};
-
-  window.Screens.detail._emailChip = function (idx) {
-    var studio = window._emailPanelStudio;
-    if (!studio) return;
-    window._emailPanelActive = idx;
-    // Si cambiamos de plantilla IA a una normal, borrar el texto generado
-    var templates = _emailTemplates(studio);
-    if (!templates[idx].esIA) { window._emailPanelIASub = ''; window._emailPanelIABody = ''; }
-    _renderEmailSheet(studio, idx, window._emailPanelIASub || '', window._emailPanelIABody || '');
-  };
-
-  window.Screens.detail._emailGenerar = async function () {
-    var studio = window._emailPanelStudio;
-    if (!studio) return;
-    var input = document.getElementById('ep-ia-input');
-    var instruccion = input ? input.value.trim() : '';
-    var preview = document.getElementById('ep-preview');
-    if (preview) preview.innerHTML = '<div style="text-align:center; padding:20px; color:var(--fg-3); font-size:13px;">✨ Generando con IA…</div>';
-
-    var nombre  = studio.name || '';
-    var ciudad  = (typeof studio.city === 'object' ? (studio.city && studio.city.valor) : studio.city) || '';
-    var prov    = (typeof studio.province === 'object' ? (studio.province && studio.province.valor) : studio.province) || '';
-    var tipo    = studio.type || '';
-    var score   = studio.score || '';
-    var ctc     = (studio.team && studio.team[0]) ? (studio.team[0].name || '') + (studio.team[0].role ? ' (' + studio.team[0].role + ')' : '') : '';
-    var lastAct = U.lastInteraction(studio);
-    var diasSin = lastAct ? U.diasDesde(lastAct) + ' días sin contacto' : 'sin contacto registrado';
-
-    var systemPrompt = 'Eres el asistente de redacción de correos de Manuel Fernández, ' +
-      'comercial de Ferroplast (Grupo GPF), que vende tuberías y accesorios de polietileno, PVC y fundición ' +
-      'a estudios de arquitectura, ingenierías, comunidades de regantes y ciclo del agua en el sur de España. ' +
-      'Redacta correos profesionales, directos y cercanos, en español. ' +
-      'Firma siempre como: Manuel Fernández · Ferroplast · Delegado Zona Sur · +34 655 810 836 · ma.fernandez@grupogpf.com. ' +
-      'Devuelve SOLO un JSON con la forma {"subject":"...","body":"..."} sin markdown ni texto extra.';
-
-    var userMsg = 'Redacta un correo para:\n' +
-      '- Empresa: ' + nombre + ' (' + tipo + ') · ' + ciudad + ' (' + prov + ')\n' +
-      (ctc ? '- Contacto: ' + ctc + '\n' : '') +
-      '- Score CRM: ' + score + ' · ' + diasSin + '\n' +
-      '- Instrucción: ' + (instruccion || 'correo de contacto genérico presentando Ferroplast GPF');
-
-    try {
-      var Data = window.Data;
-      if (!Data || !Data.callGAS) throw new Error('Data.callGAS no disponible');
-      var res = await Data.callGAS('claudeProxy', {
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userMsg }],
-      });
-      var raw = (res && res.content && res.content[0] && res.content[0].text) || (res && res.text) || '';
-      if (res && res.error) throw new Error(typeof res.error === 'string' ? res.error : (res.error.message || 'Error IA'));
-      // Parsear JSON de la respuesta
-      var cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-      var parsed;
-      try { parsed = JSON.parse(cleaned); } catch (_) {
-        // fallback: buscar el bloque JSON
-        var s = cleaned.indexOf('{'), e = cleaned.lastIndexOf('}');
-        if (s >= 0 && e > s) parsed = JSON.parse(cleaned.slice(s, e + 1));
-        else throw new Error('La IA no devolvió JSON parseable');
-      }
-      window._emailPanelIASub  = parsed.subject || '';
-      window._emailPanelIABody = parsed.body    || '';
-      _renderEmailSheet(studio, window._emailPanelActive, window._emailPanelIASub, window._emailPanelIABody);
-    } catch (e) {
-      if (preview) preview.innerHTML = '<div style="color:var(--mute-red-dark); font-size:13px; padding:10px;">⚠️ Error: ' + escape(e.message) + '</div>';
-    }
-  };
-
   function wireCTAs(studio) {
     const v = document.getElementById('view-detail');
     if (!v) return;
@@ -1543,5 +1471,63 @@
     changeStatus: changeStatus,
     // Briefing IA
     regenerarBriefingIA: regenerarBriefingIA,
+    // Email panel
+    _emailChip: function (idx) {
+      var studio = window._emailPanelStudio;
+      if (!studio) return;
+      window._emailPanelActive = idx;
+      var templates = _emailTemplates(studio);
+      if (!templates[idx].esIA) { window._emailPanelIASub = ''; window._emailPanelIABody = ''; }
+      _renderEmailSheet(studio, idx, window._emailPanelIASub || '', window._emailPanelIABody || '');
+    },
+    _emailGenerar: async function () {
+      var studio = window._emailPanelStudio;
+      if (!studio) return;
+      var input = document.getElementById('ep-ia-input');
+      var instruccion = input ? input.value.trim() : '';
+      var preview = document.getElementById('ep-preview');
+      if (preview) preview.innerHTML = '<div style="text-align:center; padding:20px; color:var(--fg-3); font-size:13px;">✨ Generando con IA…</div>';
+      var nombre  = studio.name || '';
+      var ciudad  = (typeof studio.city === 'object' ? (studio.city && studio.city.valor) : studio.city) || '';
+      var prov    = (typeof studio.province === 'object' ? (studio.province && studio.province.valor) : studio.province) || '';
+      var tipo    = studio.type || '';
+      var score   = studio.score || '';
+      var ctc     = (studio.team && studio.team[0]) ? (studio.team[0].name || '') + (studio.team[0].role ? ' (' + studio.team[0].role + ')' : '') : '';
+      var lastAct = U.lastInteraction(studio);
+      var diasSin = lastAct ? U.diasDesde(lastAct) + ' días sin contacto' : 'sin contacto registrado';
+      var systemPrompt = 'Eres el asistente de redacción de correos de Manuel Fernández, ' +
+        'comercial de Ferroplast (Grupo GPF), que vende tuberías y accesorios de polietileno, PVC y fundición ' +
+        'a estudios de arquitectura, ingenierías, comunidades de regantes y ciclo del agua en el sur de España. ' +
+        'Redacta correos profesionales, directos y cercanos, en español. ' +
+        'Firma siempre como: Manuel Fernández · Ferroplast · Delegado Zona Sur · +34 655 810 836 · ma.fernandez@grupogpf.com. ' +
+        'Devuelve SOLO un JSON con la forma {"subject":"...","body":"..."} sin markdown ni texto extra.';
+      var userMsg = 'Redacta un correo para:\n' +
+        '- Empresa: ' + nombre + ' (' + tipo + ') · ' + ciudad + ' (' + prov + ')\n' +
+        (ctc ? '- Contacto: ' + ctc + '\n' : '') +
+        '- Score CRM: ' + score + ' · ' + diasSin + '\n' +
+        '- Instrucción: ' + (instruccion || 'correo de contacto genérico presentando Ferroplast GPF');
+      try {
+        var Data = window.Data;
+        if (!Data || !Data.callGAS) throw new Error('Data.callGAS no disponible');
+        var res = await Data.callGAS('claudeProxy', {
+          model: 'claude-sonnet-4-20250514', max_tokens: 1024,
+          system: systemPrompt, messages: [{ role: 'user', content: userMsg }],
+        });
+        var raw = (res && res.content && res.content[0] && res.content[0].text) || (res && res.text) || '';
+        if (res && res.error) throw new Error(typeof res.error === 'string' ? res.error : (res.error.message || 'Error IA'));
+        var cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+        var parsed;
+        try { parsed = JSON.parse(cleaned); } catch (_) {
+          var s = cleaned.indexOf('{'), e = cleaned.lastIndexOf('}');
+          if (s >= 0 && e > s) parsed = JSON.parse(cleaned.slice(s, e + 1));
+          else throw new Error('La IA no devolvió JSON parseable');
+        }
+        window._emailPanelIASub  = parsed.subject || '';
+        window._emailPanelIABody = parsed.body    || '';
+        _renderEmailSheet(studio, window._emailPanelActive, window._emailPanelIASub, window._emailPanelIABody);
+      } catch (e) {
+        if (preview) preview.innerHTML = '<div style="color:var(--mute-red-dark); font-size:13px; padding:10px;">⚠️ Error: ' + escape(e.message) + '</div>';
+      }
+    },
   };
 })();
