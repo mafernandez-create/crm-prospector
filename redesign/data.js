@@ -459,19 +459,44 @@
      estructurada de una entidad. Gratuito, CORS nativo, sin proxy.
      Retorna string con los datos formateados para Claude, o '' si no hay. */
   async function _queryNominatim(name, city, province) {
-    try {
-      var q = name + (city ? ' ' + city : '') + (province ? ' ' + province : '') + ' España';
+    async function _nominatimFetch(q) {
       var ctrl = new AbortController();
       var t = setTimeout(function () { ctrl.abort(); }, 6000);
-      var r = await fetch(
-        'https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(q) +
-        '&format=json&addressdetails=1&limit=3&countrycodes=es',
-        { signal: ctrl.signal, headers: { 'Accept-Language': 'es', 'User-Agent': 'CRM-Prospector/1.0' } }
-      );
-      clearTimeout(t);
-      if (!r.ok) return '';
-      var results = await r.json();
-      if (!Array.isArray(results) || !results.length) return '';
+      try {
+        var r = await fetch(
+          'https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(q) +
+          '&format=json&addressdetails=1&limit=3&countrycodes=es',
+          { signal: ctrl.signal, headers: { 'Accept-Language': 'es', 'User-Agent': 'CRM-Prospector/1.0' } }
+        );
+        clearTimeout(t);
+        if (!r.ok) return [];
+        var results = await r.json();
+        return Array.isArray(results) ? results : [];
+      } catch (_) { clearTimeout(t); return []; }
+    }
+
+    try {
+      // Query primaria: nombre completo + ciudad + provincia
+      var q1 = name + (city ? ' ' + city : '') + (province ? ' ' + province : '') + ' España';
+      var results = await _nominatimFetch(q1);
+
+      // Fallback: si no hay resultados, intentar con tipo genérico + municipio.
+      // Útil cuando el nombre del studio tiene typos (ej: "Ayutamiento" → "Ayuntamiento")
+      if (!results.length && city) {
+        // Detectar tipo de entidad pública por palabras clave en el nombre
+        var nameLower = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+        var tipoEntidad = '';
+        if (/ayun?tamiento|ayto\.?/i.test(nameLower)) tipoEntidad = 'Ayuntamiento';
+        else if (/diputacion|diputació/i.test(nameLower))  tipoEntidad = 'Diputación';
+        else if (/mancomunidad/i.test(nameLower))          tipoEntidad = 'Mancomunidad';
+        else if (/consorcio/i.test(nameLower))             tipoEntidad = 'Consorcio';
+        if (tipoEntidad) {
+          var q2 = tipoEntidad + ' ' + city + (province ? ' ' + province : '') + ' España';
+          results = await _nominatimFetch(q2);
+        }
+      }
+
+      if (!results.length) return '';
       // Tomar el primer resultado relevante (preferir amenity=townhall, offices, etc.)
       var best = results.find(function (res) {
         var t = (res.type || '').toLowerCase();
@@ -1041,36 +1066,42 @@
     if (parsed.province && _empty(studio.province)) patch.province = parsed.province;
     if (parsed.type     && _empty(studio.type))     patch.type     = parsed.type;
 
-    const ctcOrig = (studio.data && studio.data.contact) ? Object.assign({}, studio.data.contact) : {};
+    // Construir data JSONB completo para no machacar campos existentes al hacer patchDoc.
+    // IMPORTANTE: nunca usar patch['data.contact'] con clave literal con punto — eso
+    // sobrescribe todo el JSONB con {"data.contact": ...} en internalToRow.
+    const rawStudio = State.studiosById[studioId];
+    const fullData  = Object.assign({}, (rawStudio && rawStudio.data) || {});
+
+    const ctcOrig = Object.assign({}, fullData.contact || {});
     const ctcNew  = parsed.contact || {};
-    let ctcChanged = false;
+    let dataChanged = false;
 
     // Fusión: primero lo que dice Claude, luego los extraídos directamente como fallback
     ['address', 'phone', 'email', 'web'].forEach(function (k) {
-      if (ctcNew[k] && _empty(ctcOrig[k])) { ctcOrig[k] = ctcNew[k]; ctcChanged = true; }
+      if (ctcNew[k] && _empty(ctcOrig[k])) { ctcOrig[k] = ctcNew[k]; dataChanged = true; }
     });
     // Fallback: email/teléfono/dirección extraídos directamente si Claude no los encontró
     if (_empty(ctcOrig.email) && directEmails.length) {
-      ctcOrig.email = directEmails[0]; ctcChanged = true;
+      ctcOrig.email = directEmails[0]; dataChanged = true;
     }
     if (_empty(ctcOrig.phone) && directPhones.length) {
-      ctcOrig.phone = directPhones[0]; ctcChanged = true;
+      ctcOrig.phone = directPhones[0]; dataChanged = true;
     }
     // Dirección de Nominatim (muy fiable para entidades públicas)
     if (_empty(ctcOrig.address) && directAddress) {
-      ctcOrig.address = directAddress; ctcChanged = true;
+      ctcOrig.address = directAddress; dataChanged = true;
     }
-    if (ctcChanged) patch['data.contact'] = ctcOrig;
+    if (dataChanged) fullData.contact = ctcOrig;
 
-    if (parsed.description && _empty(studio.data && studio.data.description)) {
-      patch['data.description'] = parsed.description;
+    if (parsed.description && _empty(fullData.description)) {
+      fullData.description = parsed.description; dataChanged = true;
     }
-    if (Array.isArray(parsed.team) && parsed.team.length > 0) {
-      const teamOrig = (studio.data && studio.data.team) || [];
-      if (!teamOrig.length) {
-        patch['data.team'] = parsed.team.filter(function (t) { return t && t.name; });
-      }
+    if (Array.isArray(parsed.team) && parsed.team.length > 0 && !(fullData.team && fullData.team.length)) {
+      fullData.team = parsed.team.filter(function (t) { return t && t.name; });
+      dataChanged = true;
     }
+
+    if (dataChanged) patch.data = fullData;
 
     if (Object.keys(patch).length === 0) {
       notif('ℹ️ Ya tenía todos los datos, no se actualizó nada', 'info');
@@ -1081,9 +1112,8 @@
     // Actualizar State local
     if (!State.studiosById[studioId].data) State.studiosById[studioId].data = {};
     Object.keys(patch).forEach(function (k) {
-      if (k.startsWith('data.')) {
-        var subk = k.slice(5);
-        State.studiosById[studioId].data[subk] = patch[k];
+      if (k === 'data') {
+        State.studiosById[studioId].data = patch.data;
       } else {
         State.studiosById[studioId][k] = patch[k];
       }
