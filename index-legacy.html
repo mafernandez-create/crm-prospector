@@ -5539,6 +5539,8 @@
             appId: "1:90876822103:web:eb7acb645d7205bd0f1912",
             measurementId: "G-4DM69WSWX9"
         };
+        let useSupabase = false;   // Supabase como backend primario
+        window.useSupabase = false;
         let useFirebase = false;
         window.useFirebase = false;
         let firestoreDB = null; // Instancia Firestore (distinto a 'db' de IndexedDB)
@@ -6202,7 +6204,29 @@
         }
 
         async function initDB() {
-            // 1. Firebase (primera opción)
+            // 0. Supabase (primera opción — backend primario)
+            try {
+                const studios = await SupaBridge.loadStudios();
+                if (studios && studios.length > 0) {
+                    cloudCache.studios = studios;
+                    cloudCache.activities = [];
+                    cloudCache.lastSync = new Date().toISOString();
+                    // Calcular nextId a partir del máximo existente
+                    const maxId = Math.max(0, ...studios.map(s => parseInt(s.id) || 0));
+                    localData.nextStudioId = maxId + 1;
+                    localData.studios = JSON.parse(JSON.stringify(studios));
+                    saveToLocalStorage();
+                    useSupabase = true;
+                    window.useSupabase = true;
+                    console.log('⚡ Usando Supabase (' + studios.length + ' estudios)');
+                    showStorageIndicator('firebase'); // reutilizamos indicador visual
+                    return;
+                }
+            } catch(e) {
+                console.warn('[SupaBridge] initDB Supabase falló, probando Firebase:', e.message);
+            }
+
+            // 1. Firebase (segunda opción)
             const firebaseAvailable = await initFirebase();
             if (firebaseAvailable) {
                 useFirebase = true;
@@ -7609,6 +7633,16 @@ ${totalAlertas > 0 ? `
             // Scoring v2 — siempre en alta creación (legacy priority/score ya no se escriben)
             Object.assign(studio, buildScoringV2Updates(studio, 'importacion'));
 
+            // SUPABASE (primario)
+            if (useSupabase) {
+                studio.id = localData.nextStudioId++;
+                await SupaBridge.upsertStudio(studio);
+                cloudCache.studios.push(studio);
+                localData.studios.push(studio);
+                saveToLocalStorage();
+                return studio.id;
+            }
+
             // FIREBASE
             if (useFirebase) {
                 try {
@@ -7737,6 +7771,17 @@ ${totalAlertas > 0 ? `
             if (!id || id === 'undefined' || id === undefined) {
                 throw new Error('ID de estudio no válido: ' + id);
             }
+            // SUPABASE (primario)
+            if (useSupabase) {
+                const updatesWithTs = { ...updates, updatedAt: new Date().toISOString() };
+                const index = cloudCache.studios.findIndex(s => s.id == id);
+                if (index !== -1) Object.assign(cloudCache.studios[index], updatesWithTs);
+                const localIndex = localData.studios.findIndex(s => s.id == id);
+                if (localIndex !== -1) { Object.assign(localData.studios[localIndex], updatesWithTs); saveToLocalStorage(); }
+                await SupaBridge.upsertStudio(index !== -1 ? cloudCache.studios[index] : { id, ...updatesWithTs });
+                return index !== -1 ? cloudCache.studios[index] : null;
+            }
+
             // FIREBASE
             if (useFirebase) {
                 const updatesWithTs = { ...updates, updatedAt: new Date().toISOString() };
@@ -7816,6 +7861,15 @@ ${totalAlertas > 0 ? `
         }
 
         async function deleteStudio(id) {
+            // SUPABASE (primario)
+            if (useSupabase) {
+                await SupaBridge.deleteStudio(id);
+                cloudCache.studios = cloudCache.studios.filter(s => s.id != id);
+                localData.studios = localData.studios.filter(s => s.id != id);
+                saveToLocalStorage();
+                return;
+            }
+
             // FIREBASE
             if (useFirebase) {
                 await firestoreDB.collection('studios').doc(String(id)).delete();
@@ -25339,6 +25393,36 @@ CUADRANTE 1-9 según bandas {Alto/Medio/Bajo} × {Alta/Media/Baja}
         }
 
         async function loadPlanificadorFromFirebase() {
+            // Supabase (primario)
+            if (useSupabase) {
+                try {
+                    const remote = await SupaBridge.loadPlanificador();
+                    const local = JSON.parse(localStorage.getItem('crm_test_planificador') || 'null');
+                    const hoy = new Date().toISOString().split('T')[0];
+                    const toMs = t => !t ? 0 : (typeof t === 'number' ? t : new Date(t).getTime());
+                    const remoteFuture = remote ? Object.keys(remote.schedule || {}).filter(d => d >= hoy).length : 0;
+                    const localFuture  = local  ? Object.keys(local.schedule  || {}).filter(d => d >= hoy).length : 0;
+                    const remoteTs = toMs(remote && remote.lastModified);
+                    const localTs  = toMs(local  && local.lastModified);
+                    const remoteWins = remoteFuture > localFuture ||
+                                       (remoteFuture >= localFuture && remoteTs >= localTs);
+                    if (remoteWins && remote && remote.schedule) {
+                        planificadorData = remote;
+                        localStorage.setItem('crm_test_planificador', JSON.stringify(planificadorData));
+                        console.log('⚡ Planificador desde Supabase (' + remoteFuture + ' días futuros)');
+                    } else if (local && local.schedule) {
+                        planificadorData = local;
+                        if (localTs > remoteTs) {
+                            await SupaBridge.savePlanificador(planificadorData);
+                            console.log('⚡ Planificador local → Supabase');
+                        }
+                    }
+                } catch(e) {
+                    console.warn('[SupaBridge] loadPlanificador:', e.message);
+                }
+                return;
+            }
+
             if (!useFirebase || !firestoreDB) return;
             try {
                 const doc = await firestoreDB.collection('_meta').doc('planificador').get();
@@ -29684,6 +29768,26 @@ Importante:
         }
 
         async function syncPlanificadorFirebase() {
+            if (useSupabase) {
+                let dataToSync = null;
+                try { dataToSync = JSON.parse(localStorage.getItem('crm_test_planificador') || 'null'); } catch(e) {}
+                if (!dataToSync) dataToSync = planificadorData;
+                if (!dataToSync?.schedule || Object.keys(dataToSync.schedule).length === 0) {
+                    showNotification('⚠️ No hay visitas planificadas que sincronizar', 'warning');
+                    return;
+                }
+                try {
+                    await SupaBridge.savePlanificador(dataToSync);
+                    planificadorData = dataToSync;
+                    const dias = Object.keys(dataToSync.schedule).length;
+                    const visitas = Object.values(dataToSync.schedule).reduce((acc, v) => acc + v.length, 0);
+                    showNotification('✅ Sincronizado con Supabase:\n' + visitas + ' visitas en ' + dias + ' días', 'success');
+                } catch(e) {
+                    showNotification('❌ Error: ' + e.message, 'error');
+                }
+                return;
+            }
+
             if (!useFirebase || !firestoreDB) {
                 showNotification('⚠️ Firebase no está conectado', 'warning'); return;
             }
@@ -34629,8 +34733,94 @@ Notas:
             }
           }
 
-          window.SupaBridge = { upsertStudio: upsertStudio, deleteStudio: deleteStudio };
-          console.info('[SupaBridge] inicializado — dual-write Firestore+Supabase activo');
+          /* ── Supabase row → legacy studio object ─────────────────────────── */
+          function _fromRow(row) {
+            if (!row) return null;
+            var o = {
+              id:                   parseInt(row.id) || row.id,
+              name:                 row.name,
+              type:                 row.type,
+              city:                 row.city,
+              province:             row.province,
+              score:                row.score,
+              priority:             row.priority,
+              status:               row.status || 'nuevo',
+              es_cliente_puente:    row.es_cliente_puente === true,
+              fuente_descubrimiento: row.fuente_descubrimiento || null,
+            };
+            // Scoring v2 (snake → camel)
+            for (var i = 0; i < _FLAT.length; i++) {
+              var pg = _FLAT[i][0], js = _FLAT[i][1];
+              if (row[pg] != null) o[js] = row[pg];
+            }
+            // JSONB data → expandir en el objeto (patrón del legacy)
+            if (row.data && typeof row.data === 'object') {
+              Object.assign(o, row.data);
+              o.data = row.data;  // también mantener como .data para compatibilidad
+            } else {
+              o.data = {};
+            }
+            return o;
+          }
+
+          /* ── Cargar todos los studios con paginación ──────────────────────── */
+          async function loadStudios() {
+            var out = [], from = 0, pageSize = 1000;
+            while (true) {
+              var to = from + pageSize - 1;
+              var res = await fetch(_REST + '/studios?select=*', {
+                headers: {
+                  'apikey': _SB_ANON,
+                  'Authorization': 'Bearer ' + _SB_ANON,
+                  'Range-Unit': 'items',
+                  'Range': from + '-' + to,
+                },
+              });
+              if (!res.ok) throw new Error('[SupaBridge] loadStudios ' + res.status);
+              var batch = await res.json();
+              if (!Array.isArray(batch) || batch.length === 0) break;
+              out.push.apply(out, batch.map(_fromRow));
+              if (batch.length < pageSize) break;
+              from += pageSize;
+              if (from > 100000) break;
+            }
+            return out;
+          }
+
+          /* ── Planificador ─────────────────────────────────────────────────── */
+          async function loadPlanificador() {
+            var res = await fetch(_REST + '/meta_planificador?id=eq.1&select=schedule,updated_at', {
+              headers: { 'apikey': _SB_ANON, 'Authorization': 'Bearer ' + _SB_ANON },
+            });
+            if (!res.ok) return null;
+            var arr = await res.json();
+            return arr && arr[0] ? { schedule: arr[0].schedule || {}, lastModified: arr[0].updated_at } : null;
+          }
+
+          async function savePlanificador(data) {
+            var body = {
+              schedule:   (data && data.schedule) ? data.schedule : {},
+              updated_at: new Date().toISOString(),
+            };
+            var res = await fetch(_REST + '/meta_planificador?id=eq.1', {
+              method: 'PATCH',
+              headers: _hdrs({ 'Prefer': 'return=minimal' }),
+              body: JSON.stringify(body),
+            });
+            if (!res.ok) {
+              var txt = await res.text().catch(function () { return ''; });
+              throw new Error('[SupaBridge] savePlanificador ' + res.status + ': ' + txt.slice(0, 200));
+            }
+          }
+
+          window.SupaBridge = {
+            upsertStudio:    upsertStudio,
+            deleteStudio:    deleteStudio,
+            loadStudios:     loadStudios,
+            loadPlanificador: loadPlanificador,
+            savePlanificador: savePlanificador,
+          };
+          console.info('[SupaBridge] inicializado — Supabase como backend primario');
         })();
 
         init();
