@@ -1381,6 +1381,32 @@
     var saludo   = 'Estimado/a ' + contacto;
     var firma    = '\n\nUn cordial saludo,\nManuel Fernández\nFerroplast · Delegado Zona Sur\n+34 655 810 836\nma.fernandez@grupogpf.com';
 
+    // Extraer datos del último informe de visita para enriquecer la plantilla de seguimiento
+    var informeRep = null;
+    var sortedReps = (s.reports || []).slice().sort(function (a, b) {
+      return (b.date || b.generated_at || '') > (a.date || a.generated_at || '') ? 1 : -1;
+    });
+    if (sortedReps.length > 0 && sortedReps[0].report) {
+      informeRep = sortedReps[0].report;
+    }
+    var seguimientoBody = (function () {
+      if (!informeRep) {
+        return saludo + ',\n\nGracias por recibirme en ' + loc + '. Tal y como comentamos, le adjunto la información solicitada sobre nuestros productos GPF.\n\nQuedo a su disposición para resolver cualquier duda técnica o para facilitar muestras físicas.\n\n¿Le parece bien que retomemos contacto la próxima semana para ver si puedo ayudarles en algún proyecto concreto?' + firma;
+      }
+      var temasStr = '';
+      var temas = informeRep.temas_tratados || [];
+      if (temas.length) temasStr = 'Repasamos temas como ' + temas.slice(0, 3).join(', ') + '.';
+      var compLines = (informeRep.compromisos || []).filter(function (c) { return c && c.que; }).map(function (c) { return '• ' + c.que; });
+      var compStr   = compLines.length ? '\n\nComo acordamos, le confirmo que por nuestra parte procedemos a:\n' + compLines.join('\n') : '';
+      var accionStr = informeRep.proxima_accion ? '\n\n' + informeRep.proxima_accion : '';
+      return saludo + ',\n\nGracias por recibirme en ' + loc + '. ' +
+        (temasStr || 'Fue un placer conocernos y repasar los detalles.') +
+        compStr +
+        '\n\nQuedo a su disposición para cualquier duda técnica o para facilitar muestras de producto.' +
+        accionStr +
+        firma;
+    })();
+
     return [
       {
         id: 'primera', icon: '👋', label: 'Primera toma de contacto',
@@ -1390,7 +1416,7 @@
       {
         id: 'seguimiento', icon: '🔄', label: 'Seguimiento tras visita',
         subject: 'Seguimiento visita · ' + nombre,
-        body: saludo + ',\n\nGracias por recibirme en ' + loc + '. Tal y como comentamos, le adjunto la información solicitada sobre nuestros productos GPF.\n\nQuedo a su disposición para resolver cualquier duda técnica o para facilitar muestras físicas.\n\n¿Le parece bien que retomemos contacto la próxima semana para ver si puedo ayudarles en algún proyecto concreto?' + firma,
+        body: seguimientoBody,
       },
       {
         id: 'catalogo', icon: '📋', label: 'Envío de catálogo',
@@ -1736,17 +1762,40 @@
       var ctc     = (studio.team && studio.team[0]) ? (studio.team[0].name || '') + (studio.team[0].role ? ' (' + studio.team[0].role + ')' : '') : '';
       var lastAct = U.lastInteraction(studio);
       var diasSin = lastAct ? U.diasDesde(lastAct) + ' días sin contacto' : 'sin contacto registrado';
+      // Buscar el último informe de visita para enriquecer el correo de seguimiento
+      var ultimoInformeCtx = '';
+      var repsOrdenados = (studio.reports || []).slice().sort(function (a, b) {
+        return (b.date || b.generated_at || '') > (a.date || a.generated_at || '') ? 1 : -1;
+      });
+      if (repsOrdenados.length > 0) {
+        var repObj = repsOrdenados[0];
+        var repData = repObj.report || {};
+        var lineas = [];
+        if (repObj.date) lineas.push('Fecha visita: ' + repObj.date);
+        if (repData.resumen) lineas.push('Resumen: ' + repData.resumen);
+        if (repData.temas_tratados && repData.temas_tratados.length) lineas.push('Temas: ' + repData.temas_tratados.join('; '));
+        if (repData.compromisos && repData.compromisos.length) lineas.push('Compromisos: ' + repData.compromisos.map(function (c) { return c.que + (c.quien ? ' (' + c.quien + ')' : ''); }).join('; '));
+        if (repData.proxima_accion) lineas.push('Próxima acción: ' + repData.proxima_accion);
+        if (repData.nivel_interes) lineas.push('Nivel interés: ' + repData.nivel_interes);
+        if (!repData.resumen && repObj.notes_raw) lineas.push('Notas: ' + String(repObj.notes_raw).substring(0, 400));
+        if (lineas.length) {
+          ultimoInformeCtx = '\n\nÚLTIMO INFORME DE VISITA:\n' + lineas.join('\n');
+        }
+      }
+
       var systemPrompt = 'Eres el asistente de redacción de correos de Manuel Fernández, ' +
         'comercial de Ferroplast (Grupo GPF), que vende tuberías y accesorios de polietileno, PVC y fundición ' +
         'a estudios de arquitectura, ingenierías, comunidades de regantes y ciclo del agua en el sur de España. ' +
         'Redacta correos profesionales, directos y cercanos, en español. ' +
+        'Si hay un informe de visita, úsalo para personalizar el correo con detalles reales de la reunión. ' +
         'Firma siempre como: Manuel Fernández · Ferroplast · Delegado Zona Sur · +34 655 810 836 · ma.fernandez@grupogpf.com. ' +
         'Devuelve SOLO un JSON con la forma {"subject":"...","body":"..."} sin markdown ni texto extra.';
       var userMsg = 'Redacta un correo para:\n' +
         '- Empresa: ' + nombre + ' (' + tipo + ') · ' + ciudad + ' (' + prov + ')\n' +
         (ctc ? '- Contacto: ' + ctc + '\n' : '') +
         '- Score CRM: ' + score + ' · ' + diasSin + '\n' +
-        '- Instrucción: ' + (instruccion || 'correo de contacto genérico presentando Ferroplast GPF');
+        ultimoInformeCtx +
+        '\n- Instrucción: ' + (instruccion || (ultimoInformeCtx ? 'correo de seguimiento personalizado tras la última visita, basándote en el informe adjunto' : 'correo de contacto genérico presentando Ferroplast GPF'));
       try {
         var Data = window.Data;
         if (!Data || !Data.callGAS) throw new Error('Data.callGAS no disponible');

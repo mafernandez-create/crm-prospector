@@ -310,6 +310,34 @@
     return '';
   }
 
+  /* Jina.ai reader — renderiza JavaScript/React/Vue y devuelve markdown.
+     No requiere CORS proxy (Jina lo gestiona). Gratuito y sin auth.
+     Ideal para páginas SPA que devuelven sólo el shell HTML con los proxies
+     normales. El timeout es mayor porque Jina renderiza el JS en servidor. */
+  async function _fetchTextoJina(url, maxChars, timeoutMs) {
+    maxChars = maxChars || 3500;
+    timeoutMs = timeoutMs || 13000;
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(function () { ctrl.abort(); }, timeoutMs);
+      const r = await fetch('https://r.jina.ai/' + url, {
+        signal: ctrl.signal,
+        headers: { 'Accept': 'text/plain' },
+      });
+      clearTimeout(t);
+      if (!r.ok) return '';
+      const text = await r.text();
+      // Jina añade cabeceras informativas al principio — limpiarlas
+      const clean = text
+        .replace(/^Title:.*\n?/gm, '')
+        .replace(/^URL Source:.*\n?/gm, '')
+        .replace(/^Markdown Content:\s*\n?/gm, '')
+        .replace(/^Published Time:.*\n?/gm, '')
+        .trim();
+      return clean.length > 100 ? clean.substring(0, maxChars) : '';
+    } catch (_) { return ''; }
+  }
+
   /* Extrae emails y teléfonos españoles de un texto plano. */
   function _extractEmails(text) {
     var found = text.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g) || [];
@@ -353,8 +381,8 @@
       { label: 'equipo', path: '/nuestro-equipo' },
     ];
 
-    // Portada + subpáginas en paralelo (timeout corto por página)
-    var allTasks = [
+    // Grupo A: portada + subpáginas con proxies CORS estándar (HTML)
+    var standardTasks = [
       _fetchTextoWeb(baseUrl, 2500, 9000).then(function (t) {
         return t.length > 80 ? { label: 'portada', text: t } : null;
       })
@@ -364,9 +392,48 @@
       });
     }));
 
-    var settled = await Promise.allSettled(allTasks);
+    // Grupo B: Jina.ai — renderiza JS en servidor, ideal para SPAs.
+    // Corre en paralelo con el grupo A para no añadir latencia en HTML estático.
+    // Si la portada tiene contenido, extrae links de contacto y los fetchea también.
+    var jinaTask = _fetchTextoJina(baseUrl, 4000, 13000).then(async function (jinaText) {
+      var jinaPages = [];
+      if (!jinaText || jinaText.length < 200) return jinaPages;
+      jinaPages.push({ label: 'portada-jina', text: jinaText });
+      // Extraer hrefs del markdown renderizado que parezcan páginas de contacto
+      var re = /\]\(((?:https?:\/\/[^\)\s<]+|\/[^\)\s<]+))\)/g;
+      var m;
+      var contactUrls = [];
+      var hrefSeen = {};
+      while ((m = re.exec(jinaText)) !== null) {
+        var href = m[1];
+        if (/contact|contacto|donde|aviso-legal|info\b/i.test(href) && !hrefSeen[href]) {
+          hrefSeen[href] = true;
+          if (href.charAt(0) === '/') href = origin + href;
+          if (/^https?:\/\//.test(href)) contactUrls.push(href);
+        }
+      }
+      // Fetch hasta 1 página de contacto vía Jina (la primera que encontremos)
+      if (contactUrls.length) {
+        var ctcText = await _fetchTextoJina(contactUrls[0], 3000, 10000);
+        if (ctcText.length > 200) jinaPages.push({ label: 'contacto-jina', text: ctcText });
+      }
+      return jinaPages;
+    });
+
+    // Esperar ambos grupos en paralelo
+    var settled, jinaResults;
+    try {
+      var both = await Promise.all([Promise.allSettled(standardTasks), jinaTask]);
+      settled    = both[0];
+      jinaResults = both[1];
+    } catch (_) {
+      settled    = await Promise.allSettled(standardTasks);
+      jinaResults = [];
+    }
+
     var pages = [];
     settled.forEach(function (r) { if (r.status === 'fulfilled' && r.value) pages.push(r.value); });
+    (jinaResults || []).forEach(function (p) { if (p) pages.push(p); });
     if (!pages.length) return null;
 
     // Consolidar: sólo la primera página que devuelva algo por sección
