@@ -297,6 +297,84 @@
     } catch (_) { return ''; }
   }
 
+  /* Extrae emails y teléfonos españoles de un texto plano. */
+  function _extractEmails(text) {
+    var found = text.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g) || [];
+    return Array.from(new Set(found)).filter(function (e) {
+      return !/(example\.|wixpress|sentry|adobe|schema\.org|w3\.org|openxmlformats)/i.test(e);
+    }).slice(0, 6);
+  }
+  function _extractPhones(text) {
+    var found = text.match(/(?:\+34[\s.\-]?)?(?:[679]\d{2}[\s.\-]?\d{3}[\s.\-]?\d{3})/g) || [];
+    return Array.from(new Set(found.map(function (p) { return p.replace(/[\s.\-]/g, ''); }))).slice(0, 5);
+  }
+
+  /* Escaneo multi-página de la web del cliente: además de la portada
+     intenta obtener la página de contacto, el "sobre nosotros" y el equipo.
+     Devuelve { text, emails, phones } con todo combinado, o null si no hay URL. */
+  async function _deepScanWeb(baseUrl) {
+    var origin;
+    try { origin = new URL(baseUrl).origin; } catch (_) { return null; }
+
+    var subpages = [
+      // contacto
+      { label: 'contacto', path: '/contacto' },
+      { label: 'contacto', path: '/contact' },
+      { label: 'contacto', path: '/contactanos' },
+      { label: 'contacto', path: '/donde-estamos' },
+      { label: 'contacto', path: '/info' },
+      { label: 'contacto', path: '/aviso-legal' },
+      // sobre nosotros / estudio
+      { label: 'about', path: '/sobre-nosotros' },
+      { label: 'about', path: '/estudio' },
+      { label: 'about', path: '/quienes-somos' },
+      { label: 'about', path: '/about' },
+      { label: 'about', path: '/la-firma' },
+      { label: 'about', path: '/nosotros' },
+      { label: 'about', path: '/empresa' },
+      // equipo
+      { label: 'equipo', path: '/equipo' },
+      { label: 'equipo', path: '/team' },
+      { label: 'equipo', path: '/socios' },
+      { label: 'equipo', path: '/profesionales' },
+      { label: 'equipo', path: '/nuestro-equipo' },
+    ];
+
+    // Portada + subpáginas en paralelo (timeout corto por página)
+    var allTasks = [
+      _fetchTextoWeb(baseUrl, 2500, 9000).then(function (t) {
+        return t.length > 80 ? { label: 'portada', text: t } : null;
+      })
+    ].concat(subpages.map(function (sp) {
+      return _fetchTextoWeb(origin + sp.path, 1800, 6000).then(function (t) {
+        return t.length > 100 ? { label: sp.label, text: t } : null;
+      });
+    }));
+
+    var settled = await Promise.allSettled(allTasks);
+    var pages = [];
+    settled.forEach(function (r) { if (r.status === 'fulfilled' && r.value) pages.push(r.value); });
+    if (!pages.length) return null;
+
+    // Consolidar: sólo la primera página que devuelva algo por sección
+    var seen = {};
+    var uniq = [];
+    pages.forEach(function (p) {
+      if (!seen[p.label]) { seen[p.label] = true; uniq.push(p); }
+    });
+
+    var combined = uniq.map(function (p) {
+      return '=== ' + p.label.toUpperCase() + ' ===\n' + p.text;
+    }).join('\n\n');
+
+    return {
+      text: combined,
+      emails: _extractEmails(combined),
+      phones: _extractPhones(combined),
+      pageCount: uniq.length,
+    };
+  }
+
   /* Llama a DuckDuckGo Instant Answer API (devuelve JSON, sin CORS).
      No siempre devuelve contenido — depende de la query. Best-effort. */
   async function _searchDuckDuckGo(query) {
@@ -318,9 +396,13 @@
     } catch (_) { return ''; }
   }
 
-  /* Recopila contexto web para el briefing. Ejecuta varias búsquedas
-     en paralelo con timeouts. Devuelve un string markdown listo para
-     inyectar en el user prompt, o '' si nada funcionó. */
+  /* Recopila contexto web. Para briefings y para enrichStudio.
+     Estrategia combinada:
+       A) Si hay URL → deep scan multi-página (portada + contacto + about + equipo)
+       B) DuckDuckGo general + contacto específico
+       C) Páginas Amarillas
+       D) Búsquedas sectoriales (si tipo + provincia conocidos)
+     Devuelve string markdown listo para inyectar en Claude, o '' si vacío. */
   async function _gatherWebContext(studio) {
     const startTs = Date.now();
     const sources = [];
@@ -332,36 +414,56 @@
     const contact = (studio.data && studio.data.contact) || {};
     const webUrl = _val(contact.web);
 
-    // Lanzamos todas en paralelo y filtramos las que devuelvan algo
     const tasks = [];
 
-    // 1. Web propia del cliente
+    // A. Deep scan multi-página del sitio del cliente
     if (webUrl && /^https?:\/\//i.test(webUrl)) {
       tasks.push(
-        _fetchTextoWeb(webUrl, 2500, 8000).then(function (t) {
-          return t.length > 80 ? { label: 'Web del cliente · ' + webUrl, text: t } : null;
+        _deepScanWeb(webUrl).then(function (scan) {
+          if (!scan) return null;
+          var header = '### Web cliente (' + scan.pageCount + ' páginas) · ' + webUrl;
+          var meta = '';
+          if (scan.emails.length) meta += '\nEMAILS ENCONTRADOS: ' + scan.emails.join(' | ');
+          if (scan.phones.length) meta += '\nTELÉFONOS ENCONTRADOS: ' + scan.phones.join(' | ');
+          return { label: 'Web cliente · ' + webUrl, text: (meta ? meta + '\n\n' : '') + scan.text };
         })
       );
     }
 
-    // 2. DuckDuckGo del cliente (info general)
-    const qCliente = studioName + (city ? ' ' + city : '');
+    // B1. DuckDuckGo general
+    const qCliente = studioName + (city ? ' ' + city : '') + (province ? ' ' + province : '');
     tasks.push(
       _searchDuckDuckGo(qCliente).then(function (t) {
-        return t ? { label: 'Buscador · ' + qCliente, text: t } : null;
+        return t ? { label: 'Buscador general · ' + qCliente, text: t } : null;
       })
     );
 
-    // 3. Páginas Amarillas (datos contacto / categoría)
+    // B2. DuckDuckGo específico de contacto (teléfono / email)
+    const qContacto = '"' + studioName + '" ' + (province || city) + ' teléfono email contacto';
+    tasks.push(
+      _searchDuckDuckGo(qContacto).then(function (t) {
+        return t ? { label: 'Buscador contacto · ' + studioName, text: t } : null;
+      })
+    );
+
+    // C. Páginas Amarillas
     const normalSlug = studioName.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9\s]/g, '').trim();
     if (normalSlug.length > 3) {
       tasks.push(
-        _fetchTextoWeb('https://www.paginasamarillas.es/search/' + encodeURIComponent(normalSlug) + '/all-spain/', 1500, 6000)
-          .then(function (t) { return t.length > 100 ? { label: 'Páginas Amarillas', text: t } : null; })
+        _fetchTextoWeb('https://www.paginasamarillas.es/search/' + encodeURIComponent(normalSlug) + '/all-spain/', 1800, 7000)
+          .then(function (t) {
+            if (t.length < 100) return null;
+            var emails = _extractEmails(t);
+            var phones = _extractPhones(t);
+            var meta = '';
+            if (emails.length) meta += 'EMAILS PA: ' + emails.join(' | ') + '\n';
+            if (phones.length) meta += 'TELÉFONOS PA: ' + phones.join(' | ') + '\n';
+            return { label: 'Páginas Amarillas', text: (meta || '') + t };
+          })
       );
     }
 
-    // 4. Búsquedas sectoriales según tipo + provincia
+    // D. Búsquedas sectoriales según tipo + provincia
     const getQueries = QUERIES_SECTORIALES[tipo];
     if (getQueries && province) {
       const queries = getQueries(province);
@@ -374,10 +476,10 @@
       });
     }
 
-    // Limit total time: 25s
+    // Timeout global 35s (deep scan puede tardar si hay muchas subpáginas)
     const results = await Promise.race([
       Promise.all(tasks),
-      new Promise(function (resolve) { setTimeout(function () { resolve([]); }, 25000); }),
+      new Promise(function (resolve) { setTimeout(function () { resolve([]); }, 35000); }),
     ]);
 
     (results || []).forEach(function (r) { if (r) sources.push(r); });
@@ -387,7 +489,7 @@
     const duration = ((Date.now() - startTs) / 1000).toFixed(1);
     console.info('[redesign/data] contexto web recopilado · ' + sources.length + ' fuentes · ' + duration + 's');
 
-    return '\n## CONTEXTO WEB RECOPILADO (' + new Date().toISOString().slice(0, 10) + ')\n\n' +
+    return '\n## CONTEXTO WEB (' + new Date().toISOString().slice(0, 10) + ')\n\n' +
       sources.map(function (s) {
         return '### ' + s.label + '\n' + s.text + '\n';
       }).join('\n');
@@ -735,14 +837,18 @@
 
   /* ============================================================
      ENRICH STUDIO — investigación web + IA para rellenar ficha
-     Llama a _gatherWebContext y pide a Claude que extraiga datos
-     estructurados (contacto, descripción, equipo). Solo sobreescribe
-     campos vacíos para no borrar lo que el usuario ya rellenó.
+     Análisis enriquecido: deep scan web (multi-página) + 2 búsquedas DDG
+     + Páginas Amarillas + Claude IA para estructurar. Solo sobreescribe
+     campos vacíos. Muestra toasts de progreso.
      ============================================================ */
   async function enrichStudio(studioId) {
     const State = window.State;
     const studio = State && State.studiosById && State.studiosById[studioId];
     if (!studio) throw new Error('Studio ' + studioId + ' no encontrado en State');
+
+    const notif = window.showNotification || function () {};
+
+    notif('🔍 Analizando "' + (studio.name || studioId) + '"…', 'info');
 
     let webContext = '';
     try {
@@ -750,27 +856,39 @@
     } catch (e) {
       console.warn('[enrichStudio] _gatherWebContext falló:', e.message);
     }
+
     if (!webContext || webContext.trim().length < 80) {
+      notif('⚠️ No se encontró información web para "' + (studio.name || studioId) + '"', 'warning');
       throw new Error('No se encontró información web suficiente sobre "' + (studio.name || studioId) + '"');
     }
 
+    // Extracción directa de emails y teléfonos del contexto (sin esperar a Claude)
+    const directEmails = _extractEmails(webContext);
+    const directPhones = _extractPhones(webContext);
+
+    notif('🤖 Consultando IA para estructurar los datos…', 'info');
+
     const systemPrompt =
-      'Eres un extractor de datos de empresas españolas. ' +
-      'A partir del contexto web, extrae los datos de la empresa. ' +
+      'Eres un extractor de datos de empresas y organismos españoles. ' +
+      'A partir del contexto web, extrae los datos de la organización. ' +
       'Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin texto extra) con esta estructura:\n' +
       '{"city":"","province":"","type":"","description":"","contact":{"address":"","phone":"","email":"","web":""},' +
       '"team":[{"name":"","role":"","phone":"","email":""}]}\n' +
-      'Para type usa uno de: Arquitectura, Ingeniería, C.R. Regantes, Ciclo del agua, ' +
+      'Para type usa exactamente uno de: Arquitectura, Ingeniería, C.R. Regantes, Ciclo del agua, ' +
       'Promotora · Constructora, Administración pública, Hotel / Hostelería, Hospital, Distribuidor, Otros. ' +
-      'Usa cadena vacía "" para campos no encontrados. team puede ser array vacío [].';
+      'Para entidades públicas (ayuntamientos, diputaciones, consorcios, mancomunidades): usa "Administración pública". ' +
+      'description: 2-3 frases resumiendo actividad principal. ' +
+      'Usa cadena vacía "" para campos no encontrados. team puede ser array vacío []. ' +
+      'IMPORTANTE: Los emails y teléfonos ya aparecen destacados en el contexto con el prefijo EMAILS/TELÉFONOS — ' +
+      'úsalos preferentemente para rellenar contact.email y contact.phone.';
 
     const userMsg =
-      'Empresa: ' + (studio.name || '') + '\n' +
+      'Empresa/organismo: ' + (studio.name || '') + '\n' +
       'Ciudad actual: ' + (_val(studio.city) || '—') + '\n' +
       'Provincia actual: ' + (_val(studio.province) || '—') + '\n\n' +
-      'Contexto web:\n' + webContext.slice(0, 4500);
+      'Contexto web:\n' + webContext.slice(0, 8000);
 
-    const raw = await _claudeCall(systemPrompt, userMsg, 1024);
+    const raw = await _claudeCall(systemPrompt, userMsg, 1500);
 
     let parsed;
     try {
@@ -782,7 +900,7 @@
       throw new Error('La IA no devolvió JSON válido. Respuesta: ' + raw.slice(0, 120));
     }
 
-    // Solo actualizar campos que el studio NO tiene ya rellenos
+    // Solo actualizar campos vacíos
     const patch = {};
     const _empty = function (v) { return !v || (typeof v === 'string' && !v.trim()) || (typeof v === 'object' && !_val(v)); };
 
@@ -793,9 +911,18 @@
     const ctcOrig = (studio.data && studio.data.contact) ? Object.assign({}, studio.data.contact) : {};
     const ctcNew  = parsed.contact || {};
     let ctcChanged = false;
+
+    // Fusión: primero lo que dice Claude, luego los extraídos directamente como fallback
     ['address', 'phone', 'email', 'web'].forEach(function (k) {
       if (ctcNew[k] && _empty(ctcOrig[k])) { ctcOrig[k] = ctcNew[k]; ctcChanged = true; }
     });
+    // Fallback: email/teléfono extraídos directamente si Claude no los encontró
+    if (_empty(ctcOrig.email) && directEmails.length) {
+      ctcOrig.email = directEmails[0]; ctcChanged = true;
+    }
+    if (_empty(ctcOrig.phone) && directPhones.length) {
+      ctcOrig.phone = directPhones[0]; ctcChanged = true;
+    }
     if (ctcChanged) patch['data.contact'] = ctcOrig;
 
     if (parsed.description && _empty(studio.data && studio.data.description)) {
@@ -809,11 +936,24 @@
     }
 
     if (Object.keys(patch).length === 0) {
+      notif('ℹ️ Ya tenía todos los datos, no se actualizó nada', 'info');
       return { fieldsUpdated: 0, message: 'Ya tenía todos los datos; no se sobrescribió nada.' };
     }
 
     await _routePatchDoc('studios/' + studioId, patch);
-    Object.assign(State.studiosById[studioId], patch);
+    // Actualizar State local
+    if (!State.studiosById[studioId].data) State.studiosById[studioId].data = {};
+    Object.keys(patch).forEach(function (k) {
+      if (k.startsWith('data.')) {
+        var subk = k.slice(5);
+        State.studiosById[studioId].data[subk] = patch[k];
+      } else {
+        State.studiosById[studioId][k] = patch[k];
+      }
+    });
+
+    const fieldNames = Object.keys(patch).map(function (k) { return k.replace('data.', ''); }).join(', ');
+    notif('✅ Empresa enriquecida — ' + Object.keys(patch).length + ' campos: ' + fieldNames, 'success');
 
     return { fieldsUpdated: Object.keys(patch).length, patch: patch };
   }
