@@ -452,6 +452,84 @@
   }
 
   /* ============================================================
+     PEDIR CLIENT ID (overlay inline cuando no está configurado)
+     ============================================================ */
+  function _pedirClientId(onSave) {
+    // Eliminar overlay previo si existe
+    var prev = document.getElementById('_client-id-overlay');
+    if (prev) prev.remove();
+
+    var overlay = document.createElement('div');
+    overlay.id = '_client-id-overlay';
+    overlay.style.cssText = [
+      'position:fixed', 'inset:0', 'z-index:9999',
+      'background:rgba(0,0,0,.55)', 'display:flex',
+      'align-items:center', 'justify-content:center',
+    ].join(';');
+
+    overlay.innerHTML = [
+      '<div style="background:var(--bg-card,#1e2130);border:1px solid var(--border,#2d3148);',
+        'border-radius:12px;padding:28px 32px;max-width:480px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.5)">',
+        '<h3 style="margin:0 0 8px;font-size:16px;color:var(--fg,#e2e8f0)">🔑 Client ID de Google OAuth</h3>',
+        '<p style="margin:0 0 16px;font-size:13px;color:var(--fg-2,#94a3b8);line-height:1.5">',
+          'Para sincronizar con Google Calendar y la hoja del jefe necesitas un ',
+          '<strong>Client ID</strong> de Google Cloud Console. ',
+          'Puedes encontrarlo en <em>APIs &amp; Services → Credentials</em> de tu proyecto.',
+        '</p>',
+        '<input id="_client-id-input" type="text" placeholder="xxxxxx.apps.googleusercontent.com"',
+          ' style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;',
+          'border:1px solid var(--border,#2d3148);background:var(--bg,#151728);',
+          'color:var(--fg,#e2e8f0);font-size:13px;font-family:var(--font-mono,monospace);',
+          'outline:none;margin-bottom:16px"/>',
+        '<div style="display:flex;gap:10px;justify-content:flex-end">',
+          '<button onclick="document.getElementById(\'_client-id-overlay\').remove()"',
+            ' style="padding:8px 16px;border-radius:8px;border:1px solid var(--border,#2d3148);',
+            'background:transparent;color:var(--fg-2,#94a3b8);cursor:pointer;font-size:13px">',
+            'Cancelar',
+          '</button>',
+          '<button id="_client-id-confirm"',
+            ' style="padding:8px 18px;border-radius:8px;border:none;',
+            'background:var(--accent,#6366f1);color:#fff;cursor:pointer;font-size:13px;font-weight:600">',
+            'Guardar y continuar',
+          '</button>',
+        '</div>',
+      '</div>',
+    ].join('');
+
+    document.body.appendChild(overlay);
+
+    // Pre-rellenar si ya hay algo guardado
+    var existing = '';
+    try {
+      var cs = JSON.parse(localStorage.getItem('ferroplast_test_calendar_settings') || '{}');
+      existing = cs.clientId || cs.client_id || '';
+    } catch (e) { /* ignore */ }
+    var input = document.getElementById('_client-id-input');
+    if (existing) input.value = existing;
+    input.focus();
+
+    document.getElementById('_client-id-confirm').addEventListener('click', function () {
+      var val = (document.getElementById('_client-id-input').value || '').trim();
+      if (!val) {
+        document.getElementById('_client-id-input').style.borderColor = '#ef4444';
+        return;
+      }
+      // Guardar en calendar_settings y también en sheets_settings por si acaso
+      var cs = {};
+      try { cs = JSON.parse(localStorage.getItem('ferroplast_test_calendar_settings') || '{}'); } catch (e) { cs = {}; }
+      cs.clientId = val;
+      localStorage.setItem('ferroplast_test_calendar_settings', JSON.stringify(cs));
+      overlay.remove();
+      onSave(val);
+    });
+
+    // Confirmar con Enter
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') document.getElementById('_client-id-confirm').click();
+    });
+  }
+
+  /* ============================================================
      SUBIR VISITAS AL SHEET DEL JEFE
      Porta exactamente la función subirVisitasSheet() del legacy.
      ============================================================ */
@@ -509,7 +587,7 @@
       try { calSettings = JSON.parse(localStorage.getItem('ferroplast_test_calendar_settings') || '{}'); } catch (e) { calSettings = {}; }
       const clientId = calSettings.clientId || calSettings.client_id || '';
       if (!clientId) {
-        window.showNotification('⚠️ Configura el Client ID de Google en Configuración y vuelve a intentarlo.', 'warning');
+        _pedirClientId(function (id) { subirVisitasSheet(); });
         return;
       }
       const redirectUri = window.location.href.split('?')[0].split('#')[0];
@@ -671,7 +749,7 @@
     if (!tokenValido) {
       const clientId = calSettings.clientId || calSettings.client_id || '';
       if (!clientId) {
-        window.showNotification('⚠️ Configura el Client ID de Google en Configuración antes de usar Calendar.', 'warning');
+        _pedirClientId(function (id) { subirCalendario(); });
         return;
       }
       const redirectUri = window.location.href.split('?')[0].split('#')[0];
