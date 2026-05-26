@@ -209,7 +209,7 @@
 
   function buildAcciones() {
     return [
-      { key: 'a:nuevo',     icon: I.Plus(),       title: 'Nuevo análisis',                trail: 'N', kbd: true, onExecute: function () { alert('TODO: nuevo análisis (Fase G)'); } },
+      { key: 'a:nuevo',     icon: I.Plus(),       title: 'Nuevo análisis',                trail: 'N', kbd: true, onExecute: function () { Cmdk.close(); openNuevoAnalisis(); } },
       { key: 'a:informe',   icon: I.Edit(),       title: 'Redactar informe de visita (tras la visita)', trail: 'R', kbd: true, onExecute: function () { if (State.currentStudioId) window.showView('informe', { studioId: State.currentStudioId }); else alert('Selecciona primero un cliente'); } },
       { key: 'a:briefing',  icon: I.FileText(),   title: 'Abrir briefing pre-visita',      trail: 'B', kbd: true, onExecute: function () { if (State.currentStudioId) window.showView('briefing', { studioId: State.currentStudioId }); else alert('Selecciona primero un cliente'); } },
       { key: 'a:briefing-gen', icon: I.Plus(),    title: 'Generar nuevo briefing con IA',  trail: '✨', kbd: true, onExecute: function () {
