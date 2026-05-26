@@ -228,6 +228,9 @@
       console.warn('[redesign] Shell.render no disponible. Asegúrate de cargar shell.js antes de app.js');
     }
 
+    // Procesar OAuth callback de Google (Sheets / Calendar) si hay access_token en el hash
+    _handleOAuthCallback();
+
     // Cargar datos (Fase G — todavía no hace nada real, solo placeholder)
     if (window.Data && typeof window.Data.loadAll === 'function') {
       window.Data.loadAll().then(function () {
@@ -251,6 +254,54 @@
   function hideLoader() {
     const loader = document.getElementById('app-loader');
     if (loader) loader.classList.add('hidden');
+  }
+
+  /* ============================================================
+     OAUTH CALLBACK (Google Sheets / Calendar)
+     Procesa el fragment #access_token=... que Google devuelve
+     tras el redirect implicit flow.
+     ============================================================ */
+  function _handleOAuthCallback() {
+    const hash = window.location.hash;
+    if (!hash || !hash.includes('access_token')) return;
+    try {
+      const params = new URLSearchParams(hash.substring(1));
+      const accessToken = params.get('access_token');
+      const state      = params.get('state');
+      const expiresIn  = parseInt(params.get('expires_in') || '3600', 10);
+      if (!accessToken) return;
+
+      if (state === 'sheets_auth') {
+        const s = JSON.parse(localStorage.getItem('ferroplast_sheets_settings') || '{}');
+        s.accessToken  = accessToken;
+        s.tokenExpiry  = Date.now() + expiresIn * 1000;
+        localStorage.setItem('ferroplast_sheets_settings', JSON.stringify(s));
+        history.replaceState(null, '', window.location.pathname);
+        // Notificar una vez que el DOM esté listo
+        setTimeout(function () {
+          if (window.showNotification) {
+            window.showNotification('✅ Conectado a Google Sheets. Vuelve a pulsar "☁️ Sheet Jefe" para subir las visitas.', 'success');
+          }
+          // Re-render planificador si está activo
+          if (State.currentView === 'planificador' && window.Screens.planificador) {
+            window.Screens.planificador.render();
+          }
+        }, 600);
+      } else if (state === 'gcal_auth') {
+        const c = JSON.parse(localStorage.getItem('ferroplast_test_calendar_settings') || '{}');
+        c.accessToken  = accessToken;
+        c.tokenExpiry  = Date.now() + expiresIn * 1000;
+        localStorage.setItem('ferroplast_test_calendar_settings', JSON.stringify(c));
+        history.replaceState(null, '', window.location.pathname);
+        setTimeout(function () {
+          if (window.showNotification) {
+            window.showNotification('✅ Conectado a Google Calendar.', 'success');
+          }
+        }, 600);
+      }
+    } catch (e) {
+      console.warn('[app] OAuth callback parse error:', e);
+    }
   }
 
   if (document.readyState === 'loading') {
