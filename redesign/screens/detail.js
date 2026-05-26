@@ -1294,18 +1294,21 @@
     var web       = ((document.getElementById('ef-web')      || {}).value || '').trim();
     if (web && !/^https?:\/\//i.test(web)) web = 'https://' + web;
 
+    // Construir data JSONB completo para no machacar campos existentes
+    var s = State.studiosById && State.studiosById[studioId];
+    var currentData = Object.assign({}, (s && s.data) || {});
+    var ctc = Object.assign({}, currentData.contact || {});
+    if (tel)   ctc.phone = tel;
+    if (email) ctc.email = email;
+    if (web)   ctc.web   = web;
+    currentData.contact = ctc;
+
     var patch = {
       name: nombre, type: tipo, status: status,
       province: provincia, city: ciudad,
       score: score, priority: prioridad,
+      data: currentData,
     };
-    // Actualizar contacto sin borrar campos que no están en el form
-    var s = State.studiosById && State.studiosById[studioId];
-    var ctc = (s && s.data && s.data.contact) ? Object.assign({}, s.data.contact) : {};
-    if (tel)   ctc.phone = tel;
-    if (email) ctc.email = email;
-    if (web)   ctc.web   = web;
-    patch['data.contact'] = ctc;
 
     try {
       await saveTopFields(studioId, patch);
