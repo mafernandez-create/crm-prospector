@@ -1,5 +1,4 @@
-# Deploy to GitHub Pages via Actions (reemplaza el legacy builder)
-# Retrigger: 2026-05-26
+# Sincroniza main → gh-pages para desplegar en GitHub Pages (legacy builder)
 name: Deploy Pages
 
 on:
@@ -8,25 +7,18 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
+  contents: write
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
-      - uses: actions/deploy-pages@v4
-        id: deployment
+          fetch-depth: 0
+
+      - name: Push main → gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git push origin HEAD:gh-pages --force
