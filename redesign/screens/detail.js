@@ -1193,25 +1193,6 @@
       '&body=' + encodeURIComponent(body);
   }
 
-  /* Abre Mail.app usando un anchor oculto + click programático.
-   * Es el método más fiable en Chrome/Safari/Mac — window.location.href = mailto:
-   * no siempre dispara el cliente de correo en contextos PWA o Chrome moderno. */
-  function _abrirMail(toEmail, subject, body) {
-    if (!toEmail) {
-      window.showNotification && window.showNotification('Sin email registrado para este cliente', 'warning');
-      return;
-    }
-    var url = _mailtoUrl(toEmail, subject, body);
-    var a = document.createElement('a');
-    a.href = url;
-    a.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;pointer-events:none;';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function () { if (a.parentNode) a.parentNode.removeChild(a); }, 500);
-    window.showNotification && window.showNotification('📧 Abriendo Mail…', 'info');
-  }
-  window._abrirMail = _abrirMail;   // exponer para los onclick del sheet
-
   /* Renderiza el sheet completo y lo mete en #sheet-content */
   function _renderEmailSheet(studio, activeIdx, iaSubject, iaBody) {
     var email     = studio.email || '';
@@ -1291,19 +1272,22 @@
       );
     }
 
-    // Botones de acción inferiores
+    // Botones de acción — <a href="mailto:"> nativo para que Chrome lo honre siempre
     var tieneTexto = !!(subject || body);
     var copyText = subject + (subject && body ? '\n\n' : '') + body;
+    var mailtoHref = (email && tieneTexto) ? escape(_mailtoUrl(email, subject, body)) : '';
     var actionBtns = (
       '<div style="display:flex; gap:10px;">' +
         (email && tieneTexto
-          ? '<button class="btn btn-primary" style="flex:1;" ' +
-              'onclick="window._abrirMail(' + JSON.stringify(email) + ',' + JSON.stringify(subject) + ',' + JSON.stringify(body) + ')">' +
+          ? '<a href="' + mailtoHref + '" ' +
+              'style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; ' +
+              'background:var(--gpf-blue-700); color:#fff; border-radius:8px; padding:10px 16px; ' +
+              'font-size:14px; font-weight:600; text-decoration:none; cursor:pointer;">' +
               I.Mail() + ' Abrir en Mail' +
-            '</button>'
+            '</a>'
           : (email
-              ? '<button class="btn btn-primary" style="flex:1; opacity:.5;" disabled>' + I.Mail() + ' Abrir en Mail</button>'
-              : '<button class="btn btn-primary" style="flex:1; opacity:.5;" disabled>Sin email registrado</button>')) +
+              ? '<span class="btn btn-primary" style="flex:1; opacity:.5; text-align:center;">Sin plantilla seleccionada</span>'
+              : '<span class="btn btn-primary" style="flex:1; opacity:.5; text-align:center;">Sin email registrado</span>')) +
         (tieneTexto
           ? '<button class="btn btn-ghost" style="flex:0 0 auto;" ' +
               'onclick="navigator.clipboard && navigator.clipboard.writeText(' + JSON.stringify(copyText).replace(/"/g, '&quot;') + ').then(function(){window.showNotification(\'📋 Texto copiado\', \'success\')})">' +
@@ -1313,37 +1297,45 @@
       '</div>'
     );
 
+    // Layout flex: cabecera fija + cuerpo scrollable + botones siempre visibles abajo
     var content = document.getElementById('sheet-content');
     if (!content) return;
+    content.style.cssText = 'display:flex; flex-direction:column; height:100%; overflow:hidden; padding:0;';
     content.innerHTML = (
-      '<div class="handle"></div>' +
-      // Cabecera
-      '<div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:14px;">' +
-        '<div>' +
-          '<div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-3);">Correo electrónico</div>' +
-          '<div style="font-size:18px; font-weight:700; color:var(--fg-1); margin-top:2px;">' + escape(studio.name) + '</div>' +
-          (email
-            ? '<div style="font-size:13px; color:var(--gpf-blue-700); margin-top:1px;">' + escape(email) + '</div>'
-            : '<div style="font-size:13px; color:var(--fg-3);">Sin email registrado</div>') +
+      // Cabecera fija
+      '<div style="flex-shrink:0; padding:16px 20px 12px; border-bottom:1px solid var(--line);">' +
+        '<div style="display:flex; align-items:flex-start; justify-content:space-between;">' +
+          '<div>' +
+            '<div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-3);">Correo electrónico</div>' +
+            '<div style="font-size:18px; font-weight:700; color:var(--fg-1); margin-top:2px;">' + escape(studio.name) + '</div>' +
+            (email
+              ? '<div style="font-size:13px; color:var(--gpf-blue-700); margin-top:1px;">' + escape(email) + '</div>'
+              : '<div style="font-size:13px; color:var(--fg-3);">Sin email registrado</div>') +
+          '</div>' +
+          '<button onclick="window.closeSheet()" style="background:none; border:none; cursor:pointer; font-size:22px; color:var(--fg-3); padding:4px; margin-top:-4px;">✕</button>' +
         '</div>' +
-        '<button onclick="window.closeSheet()" style="background:none; border:none; cursor:pointer; font-size:22px; color:var(--fg-3); padding:4px; margin-top:-4px;">✕</button>' +
       '</div>' +
-      // Historial
-      '<div style="margin-bottom:18px;">' +
-        '<div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-3); margin-bottom:6px;">📬 Historial</div>' +
-        histHtml +
+      // Cuerpo scrollable
+      '<div style="flex:1; overflow-y:auto; padding:16px 20px; min-height:0;">' +
+        // Historial
+        '<div style="margin-bottom:16px;">' +
+          '<div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-3); margin-bottom:6px;">📬 Historial</div>' +
+          histHtml +
+        '</div>' +
+        // Chips de plantilla
+        '<div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-3); margin-bottom:8px;">✍️ Plantilla</div>' +
+        '<div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px;">' +
+          templates.map(function (t, i) {
+            return '<button style="' + chip(i === activeIdx) + '" onclick="window.Screens.detail._emailChip(' + i + ')">' + t.icon + ' ' + escape(t.label) + '</button>';
+          }).join('') +
+        '</div>' +
+        // Preview / zona IA
+        previewZone +
       '</div>' +
-      // Chips de plantilla
-      '<div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-3); margin-bottom:8px;">✍️ Plantilla</div>' +
-      '<div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px;">' +
-        templates.map(function (t, i) {
-          return '<button style="' + chip(i === activeIdx) + '" onclick="window.Screens.detail._emailChip(' + i + ')">' + t.icon + ' ' + escape(t.label) + '</button>';
-        }).join('') +
-      '</div>' +
-      // Preview / zona IA
-      previewZone +
-      // Acciones
-      actionBtns
+      // Botones — siempre visibles, pegados al fondo
+      '<div style="flex-shrink:0; padding:12px 20px 16px; border-top:1px solid var(--line);">' +
+        actionBtns +
+      '</div>'
     );
   }
 
