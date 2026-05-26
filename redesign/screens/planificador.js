@@ -194,6 +194,9 @@
         '<button class="btn btn-ghost" onclick="window.Screens.planificador.subirSheet()" ' +
           'title="Subir visitas al Google Sheet del jefe" ' +
           'style="font-family:var(--font-mono); font-size:12px; color:var(--fg-2);">☁️ Sheet Jefe</button>' +
+        '<button class="btn btn-ghost" onclick="window.Screens.planificador.subirCalendario()" ' +
+          'title="Exportar visitas a Google Calendar" ' +
+          'style="font-family:var(--font-mono); font-size:12px; color:var(--fg-2);">📅 Calendario</button>' +
       '</div>'
     );
   }
@@ -646,6 +649,152 @@
   }
 
   /* ============================================================
+     EXPORTAR VISITAS A GOOGLE CALENDAR
+     ============================================================ */
+  async function subirCalendario() {
+    const schedule = Local.schedule || {};
+    const hoyISO = new Date().toISOString().slice(0, 10);
+    const days = Object.keys(schedule).filter(function (d) {
+      return d >= hoyISO && (schedule[d] || []).some(function (s) { return !s.reserva; });
+    }).sort();
+
+    if (!days.length) {
+      window.showNotification('⚠️ No hay visitas futuras para exportar al calendario', 'warning');
+      return;
+    }
+
+    // 1. Comprobar token Calendar
+    let calSettings;
+    try { calSettings = JSON.parse(localStorage.getItem('ferroplast_test_calendar_settings') || '{}'); } catch (e) { calSettings = {}; }
+    const tokenValido = calSettings.accessToken && calSettings.tokenExpiry > Date.now();
+
+    if (!tokenValido) {
+      const clientId = calSettings.clientId || calSettings.client_id || '';
+      if (!clientId) {
+        window.showNotification('⚠️ Configura el Client ID de Google en Configuración antes de usar Calendar.', 'warning');
+        return;
+      }
+      const redirectUri = window.location.href.split('?')[0].split('#')[0];
+      const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' +
+        'client_id=' + encodeURIComponent(clientId) +
+        '&redirect_uri=' + encodeURIComponent(redirectUri) +
+        '&response_type=token' +
+        '&scope=' + encodeURIComponent('https://www.googleapis.com/auth/calendar.events') +
+        '&state=gcal_auth' +
+        '&prompt=consent';
+      window.location.href = authUrl;
+      return;
+    }
+
+    // 2. Construir mapa id→studio para obtener contacto
+    const allStudios = State.studios || [];
+    const byId = {};
+    allStudios.forEach(function (s) { if (s.id != null) byId[String(s.id)] = s; });
+
+    function _rf(v) {
+      if (!v) return '';
+      if (typeof v === 'object') return v.valor || '';
+      return String(v);
+    }
+
+    const calendarId = calSettings.calendarId || 'primary';
+    const total = days.reduce(function (n, d) {
+      return n + (schedule[d] || []).filter(function (s) { return !s.reserva; }).length;
+    }, 0);
+
+    window.showNotification('📅 Exportando ' + total + ' visitas a Google Calendar…', 'info');
+
+    let created = 0; let errors = 0;
+
+    for (const dateStr of days) {
+      const visits = (schedule[dateStr] || []).filter(function (v) { return !v.reserva; });
+      for (const v of visits) {
+        const sid    = String(v.id || '');
+        const s      = byId[sid] || {};
+        const ctc    = (s.data && s.data.contact) || {};
+        const addr   = _rf(ctc.address);
+        const phone  = _rf(ctc.phone);
+        const email  = _rf(ctc.email);
+        const web    = _rf(ctc.web);
+        const city   = v.city  || _rf(s.city)     || '';
+        const prov   = v.province || _rf(s.province) || '';
+        const hora   = (v.data && v.data.hora) || '09:00';
+        const notas  = (v.data && v.data.notas) || '';
+        const nombre = v.name || s.name || sid;
+
+        // Hora fin +60 min
+        const [hh, mm] = hora.split(':').map(Number);
+        const endTot   = hh * 60 + mm + 60;
+        const endHora  = String(Math.floor(endTot / 60)).padStart(2, '0') + ':' + String(endTot % 60).padStart(2, '0');
+
+        const location = addr || [city, prov].filter(Boolean).join(', ');
+        const crmLink  = 'https://mafernandez-create.github.io/crm-prospector/#studio/' + sid;
+
+        let desc = '🏢 ' + nombre + '\n📍 ' + (location || '—');
+        if (phone)  desc += '\n📞 ' + phone;
+        if (email)  desc += '\n📧 ' + email;
+        if (web)    desc += '\n🌐 ' + web;
+        if (notas)  desc += '\n\n📝 ' + notas;
+        desc += '\n\n🔗 Ver en CRM:\n' + crmLink;
+        desc += '\n\n🎯 Ferroplast CRM – Ferroplast/GPF';
+
+        const event = {
+          summary:     '🏢 Visita · ' + nombre,
+          location:    location,
+          description: desc,
+          start: { dateTime: dateStr + 'T' + hora   + ':00', timeZone: 'Europe/Madrid' },
+          end:   { dateTime: dateStr + 'T' + endHora + ':00', timeZone: 'Europe/Madrid' },
+          reminders: {
+            useDefault: false,
+            overrides: [
+              { method: 'popup', minutes: 60 },
+              { method: 'popup', minutes: 15 },
+            ],
+          },
+        };
+
+        try {
+          const resp = await fetch(
+            'https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(calendarId) + '/events',
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': 'Bearer ' + calSettings.accessToken,
+                'Content-Type':  'application/json',
+              },
+              body: JSON.stringify(event),
+            }
+          );
+          if (resp.status === 401) {
+            // Token expirado durante la operación
+            calSettings.accessToken = null; calSettings.tokenExpiry = 0;
+            localStorage.setItem('ferroplast_test_calendar_settings', JSON.stringify(calSettings));
+            throw new Error('Token expirado. Vuelve a pulsar 📅 Calendario para reautenticar.');
+          }
+          if (!resp.ok) {
+            const err = await resp.json();
+            throw new Error((err.error && err.error.message) || resp.statusText);
+          }
+          created++;
+        } catch (e) {
+          console.error('[planificador] calendar error:', nombre, e.message);
+          errors++;
+          if (e.message && e.message.includes('Token expirado')) {
+            window.showNotification('⚠️ ' + e.message, 'warning');
+            return;
+          }
+        }
+      }
+    }
+
+    if (errors) {
+      window.showNotification('⚠️ ' + created + ' eventos creados, ' + errors + ' con error. Revisa la consola.', 'warning');
+    } else {
+      window.showNotification('✅ ' + created + ' visitas añadidas a Google Calendar', 'success');
+    }
+  }
+
+  /* ============================================================
      GUARDAR
      ============================================================ */
   async function guardar() {
@@ -698,5 +847,6 @@
     confirmarGuardarModal: confirmarGuardarModal,
     confirmarBorrar: confirmarBorrar,
     subirSheet: subirVisitasSheet,
+    subirCalendario: subirCalendario,
   };
 })();
