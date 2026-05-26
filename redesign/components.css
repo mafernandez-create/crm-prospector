@@ -596,12 +596,13 @@ body {
   background: var(--bg-card);
   border-top-left-radius: 24px;
   border-top-right-radius: 24px;
-  padding: 12px var(--sp-5) calc(var(--safe-bot) + var(--sp-4));
   box-shadow: 0 -10px 40px rgba(0,0,0,.25);
   transform: translateY(20px);
   transition: transform .2s ease;
   max-height: 80vh;
-  overflow-y: auto;
+  overflow: hidden;          /* el scroll lo gestiona el hijo interno */
+  display: flex;
+  flex-direction: column;
 }
 .crm-root .sheet-overlay.open .sheet { transform: translateY(0); }
 .crm-root .sheet .handle {
