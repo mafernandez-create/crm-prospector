@@ -85,7 +85,7 @@
             '<span class="kbd">⌘K</span>' +
           '</div>' +
           '<div class="actions">' +
-            '<button class="btn btn-ghost">' + I.Calendar() + ' Calendario</button>' +
+            '<button class="btn btn-ghost" onclick="window.Screens && window.Screens.planificador ? window.Screens.planificador.subirCalendario() : (window.showView && window.showView(\'planificador\'))">' + I.Calendar() + ' Calendario</button>' +
             '<button class="btn btn-primary" onclick="openNuevoAnalisis()">' + I.Plus() + ' Nuevo análisis</button>' +
             '<button class="icon-btn" aria-label="Notificaciones" ' +
               'onclick="window.showNotification && window.showNotification(\'Sin notificaciones pendientes\', \'info\')">' +
