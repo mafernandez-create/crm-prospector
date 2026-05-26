@@ -537,13 +537,19 @@
         s.tokenExpiry  = Date.now() + expiresIn * 1000;
         localStorage.setItem('ferroplast_sheets_settings', JSON.stringify(s));
         history.replaceState(null, '', window.location.pathname);
-        // Notificar una vez que el DOM esté listo
+
+        // Si estamos en un popup OAuth, notificar al opener y cerrar
+        if (window.opener && !window.opener.closed) {
+          try { window.opener.postMessage({ type: 'crm_oauth_done', state: 'sheets_auth' }, '*'); } catch (_) {}
+          setTimeout(function () { window.close(); }, 150);
+          return;
+        }
+        // Flujo redirect normal (fallback)
         setTimeout(function () {
           if (window.showNotification) {
             window.showNotification('✅ Conectado a Google Sheets. Vuelve a pulsar "☁️ Sheet Jefe" para subir las visitas.', 'success');
           }
-          // Re-render planificador si está activo
-          if (State.currentView === 'planificador' && window.Screens.planificador) {
+          if (State.currentView === 'planificador' && window.Screens && window.Screens.planificador) {
             window.Screens.planificador.render();
           }
         }, 600);
@@ -553,9 +559,17 @@
         c.tokenExpiry  = Date.now() + expiresIn * 1000;
         localStorage.setItem('ferroplast_test_calendar_settings', JSON.stringify(c));
         history.replaceState(null, '', window.location.pathname);
+
+        // Si estamos en un popup OAuth, notificar al opener y cerrar
+        if (window.opener && !window.opener.closed) {
+          try { window.opener.postMessage({ type: 'crm_oauth_done', state: 'gcal_auth' }, '*'); } catch (_) {}
+          setTimeout(function () { window.close(); }, 150);
+          return;
+        }
+        // Flujo redirect normal (fallback)
         setTimeout(function () {
           if (window.showNotification) {
-            window.showNotification('✅ Conectado a Google Calendar.', 'success');
+            window.showNotification('✅ Conectado a Google Calendar. Vuelve a pulsar "📅 Calendario" para exportar las visitas.', 'success');
           }
         }, 600);
       }

@@ -537,6 +537,49 @@
   const _SHEET_NAME     = 'CALENDARIO 2026 MANOLO';
   const _COL_LETTERS    = ['C', 'H', 'M'];
 
+  /* ============================================================
+     HELPER: OAuth popup (evita redirect completo de página)
+     Abre una ventana popup hacia Google OAuth. Cuando Google
+     redirige de vuelta al CRM, app.js detecta window.opener y
+     envía postMessage({type:'crm_oauth_done', state}) → el popup
+     se cierra y aquí llamamos onSuccess() para continuar.
+     Si el navegador bloquea el popup, cae en redirect normal.
+     ============================================================ */
+  function _abrirOAuthPopup(authUrl, onSuccess) {
+    var w = 520, h = 660;
+    var left = Math.max(0, Math.round((screen.width  - w) / 2));
+    var top  = Math.max(0, Math.round((screen.height - h) / 2));
+    var popup = window.open(
+      authUrl, 'crm_oauth',
+      'width=' + w + ',height=' + h + ',left=' + left + ',top=' + top +
+      ',toolbar=no,menubar=no,location=no,status=no,scrollbars=yes'
+    );
+
+    if (!popup || popup.closed) {
+      // Popup bloqueado por el navegador → fallback a redirect completo
+      window.location.href = authUrl;
+      return;
+    }
+
+    // Escuchar el mensaje del popup cuando termine la auth
+    function onMsg(evt) {
+      if (!evt.data || evt.data.type !== 'crm_oauth_done') return;
+      window.removeEventListener('message', onMsg);
+      clearInterval(pollClosed);
+      try { if (popup && !popup.closed) popup.close(); } catch (_) {}
+      setTimeout(onSuccess, 250);
+    }
+    window.addEventListener('message', onMsg);
+
+    // Limpiar si el usuario cierra el popup manualmente
+    var pollClosed = setInterval(function () {
+      if (popup.closed) {
+        clearInterval(pollClosed);
+        window.removeEventListener('message', onMsg);
+      }
+    }, 800);
+  }
+
   function _getCellRef(dateStr) {
     const parts = dateStr.split('-').map(Number);
     const year = parts[0]; const month = parts[1]; const day = parts[2];
@@ -599,7 +642,7 @@
         '&scope=' + encodeURIComponent(scope) +
         '&state=sheets_auth' +
         '&prompt=consent';
-      window.location.href = authUrl;
+      _abrirOAuthPopup(authUrl, function () { subirVisitasSheet(); });
       return;
     }
 
@@ -760,7 +803,7 @@
         '&scope=' + encodeURIComponent('https://www.googleapis.com/auth/calendar.events') +
         '&state=gcal_auth' +
         '&prompt=consent';
-      window.location.href = authUrl;
+      _abrirOAuthPopup(authUrl, function () { subirCalendario(); });
       return;
     }
 
