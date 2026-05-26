@@ -342,6 +342,22 @@
   /* ============================================================
      Export
      ============================================================ */
+  async function deleteDoc(path) {
+    const parts = path.split('/');
+    if (parts[0] === 'studios' && parts[1] && parts.length === 2) {
+      const r = await sbFetch('/studios?id=eq.' + encodeURIComponent(parts[1]), {
+        method: 'DELETE',
+        headers: { 'Prefer': 'return=minimal' },
+      });
+      if (!r.ok) {
+        const txt = await r.text().catch(function () { return ''; });
+        throw new Error('Supabase DELETE ' + r.status + ' ' + txt.slice(0, 200));
+      }
+      return true;
+    }
+    throw new Error('deleteDoc: ruta no soportada: ' + path);
+  }
+
   window.DataSupabase = {
     SUPABASE_URL: SUPABASE_URL,
     REST_BASE: REST_BASE,
@@ -349,6 +365,7 @@
     getDoc: getDoc,
     listCollection: listCollection,
     patchDoc: patchDoc,
+    deleteDoc: deleteDoc,
     getBriefingItems: getBriefingItems,
     savePlanificador: savePlanificador,
     // Helpers para tests / debugging

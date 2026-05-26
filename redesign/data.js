@@ -713,6 +713,111 @@
     return { success: true, report: report, persisted: true };
   }
 
+  /* ============================================================
+     DELETE DOC
+     ============================================================ */
+  async function _deleteDocFirestore(path) {
+    const url = new URL(REST_BASE + '/' + path);
+    url.searchParams.set('key', API_KEY);
+    const res = await fetch(url, { method: 'DELETE' });
+    // 404 = ya no existe, se acepta como éxito
+    if (!res.ok && res.status !== 404) {
+      const txt = await res.text().catch(function () { return ''; });
+      throw new Error('Firestore DELETE ' + res.status + ' ' + res.statusText + ' (' + path + ') ' + txt.slice(0, 200));
+    }
+    return true;
+  }
+
+  function _routeDeleteDoc(path) {
+    if (_useSupabase()) return _sb().deleteDoc(path);
+    return _deleteDocFirestore(path);
+  }
+
+  /* ============================================================
+     ENRICH STUDIO — investigación web + IA para rellenar ficha
+     Llama a _gatherWebContext y pide a Claude que extraiga datos
+     estructurados (contacto, descripción, equipo). Solo sobreescribe
+     campos vacíos para no borrar lo que el usuario ya rellenó.
+     ============================================================ */
+  async function enrichStudio(studioId) {
+    const State = window.State;
+    const studio = State && State.studiosById && State.studiosById[studioId];
+    if (!studio) throw new Error('Studio ' + studioId + ' no encontrado en State');
+
+    let webContext = '';
+    try {
+      webContext = await _gatherWebContext(studio);
+    } catch (e) {
+      console.warn('[enrichStudio] _gatherWebContext falló:', e.message);
+    }
+    if (!webContext || webContext.trim().length < 80) {
+      throw new Error('No se encontró información web suficiente sobre "' + (studio.name || studioId) + '"');
+    }
+
+    const systemPrompt =
+      'Eres un extractor de datos de empresas españolas. ' +
+      'A partir del contexto web, extrae los datos de la empresa. ' +
+      'Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin texto extra) con esta estructura:\n' +
+      '{"city":"","province":"","type":"","description":"","contact":{"address":"","phone":"","email":"","web":""},' +
+      '"team":[{"name":"","role":"","phone":"","email":""}]}\n' +
+      'Para type usa uno de: Arquitectura, Ingeniería, C.R. Regantes, Ciclo del agua, ' +
+      'Promotora · Constructora, Administración pública, Hotel / Hostelería, Hospital, Distribuidor, Otros. ' +
+      'Usa cadena vacía "" para campos no encontrados. team puede ser array vacío [].';
+
+    const userMsg =
+      'Empresa: ' + (studio.name || '') + '\n' +
+      'Ciudad actual: ' + (_val(studio.city) || '—') + '\n' +
+      'Provincia actual: ' + (_val(studio.province) || '—') + '\n\n' +
+      'Contexto web:\n' + webContext.slice(0, 4500);
+
+    const raw = await _claudeCall(systemPrompt, userMsg, 1024);
+
+    let parsed;
+    try {
+      const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+      const s = cleaned.indexOf('{');
+      const e = cleaned.lastIndexOf('}');
+      parsed = JSON.parse(s >= 0 && e > s ? cleaned.slice(s, e + 1) : cleaned);
+    } catch (_) {
+      throw new Error('La IA no devolvió JSON válido. Respuesta: ' + raw.slice(0, 120));
+    }
+
+    // Solo actualizar campos que el studio NO tiene ya rellenos
+    const patch = {};
+    const _empty = function (v) { return !v || (typeof v === 'string' && !v.trim()) || (typeof v === 'object' && !_val(v)); };
+
+    if (parsed.city     && _empty(studio.city))     patch.city     = parsed.city;
+    if (parsed.province && _empty(studio.province)) patch.province = parsed.province;
+    if (parsed.type     && _empty(studio.type))     patch.type     = parsed.type;
+
+    const ctcOrig = (studio.data && studio.data.contact) ? Object.assign({}, studio.data.contact) : {};
+    const ctcNew  = parsed.contact || {};
+    let ctcChanged = false;
+    ['address', 'phone', 'email', 'web'].forEach(function (k) {
+      if (ctcNew[k] && _empty(ctcOrig[k])) { ctcOrig[k] = ctcNew[k]; ctcChanged = true; }
+    });
+    if (ctcChanged) patch['data.contact'] = ctcOrig;
+
+    if (parsed.description && _empty(studio.data && studio.data.description)) {
+      patch['data.description'] = parsed.description;
+    }
+    if (Array.isArray(parsed.team) && parsed.team.length > 0) {
+      const teamOrig = (studio.data && studio.data.team) || [];
+      if (!teamOrig.length) {
+        patch['data.team'] = parsed.team.filter(function (t) { return t && t.name; });
+      }
+    }
+
+    if (Object.keys(patch).length === 0) {
+      return { fieldsUpdated: 0, message: 'Ya tenía todos los datos; no se sobrescribió nada.' };
+    }
+
+    await _routePatchDoc('studios/' + studioId, patch);
+    Object.assign(State.studiosById[studioId], patch);
+
+    return { fieldsUpdated: Object.keys(patch).length, patch: patch };
+  }
+
   /* Guarda _meta/planificador con el schedule pasado. Reemplaza el documento
      entero porque planificador se trata como una unidad atómica. */
   async function savePlanificador(schedule) {
@@ -930,6 +1035,8 @@
     getDoc: _routeGetDoc,
     listCollection: _routeListCollection,
     patchDoc: _routePatchDoc,
+    deleteDoc: _routeDeleteDoc,
+    enrichStudio: enrichStudio,
     callGAS: callGAS,
     generateBriefing: generateBriefing,
     generateReport: generateReport,
