@@ -275,26 +275,39 @@
 
   /* Fetch genérico vía allorigins.win con timeout. Devuelve texto plano
      limpio del HTML o '' si falla. */
+  /* Proxies CORS por orden de preferencia.
+     allorigins.win dejó de funcionar ~2026-05-26 (HTTP 500).
+     corsproxy.io devuelve HTML raw directamente.
+     api.codetabs.com también devuelve HTML raw. */
+  var _CORS_PROXIES = [
+    function (u) { return 'https://corsproxy.io/?' + encodeURIComponent(u); },
+    function (u) { return 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u); },
+  ];
+
+  function _stripHtml(html) {
+    html = html.replace(/<(script|style|nav|footer|header|aside|form|button)[\s\S]*?<\/\1>/gi, ' ');
+    html = html.replace(/<[^>]+>/g, ' ');
+    html = html.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+    return html.replace(/\s+/g, ' ').trim();
+  }
+
   async function _fetchTextoWeb(url, maxChars, timeoutMs) {
     maxChars = maxChars || 2000;
-    timeoutMs = timeoutMs || 7000;
-    try {
-      const ctrl = new AbortController();
-      const t = setTimeout(function () { ctrl.abort(); }, timeoutMs);
-      const r = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(url),
-        { signal: ctrl.signal });
-      clearTimeout(t);
-      if (!r.ok) return '';
-      const d = await r.json();
-      if (!d.contents) return '';
-      // Limpiar HTML básico (sin DOMParser para ser portable)
-      let html = d.contents;
-      html = html.replace(/<(script|style|nav|footer|header|aside|form|button)[\s\S]*?<\/\1>/gi, ' ');
-      html = html.replace(/<[^>]+>/g, ' ');
-      html = html.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-      html = html.replace(/\s+/g, ' ').trim();
-      return html.substring(0, maxChars);
-    } catch (_) { return ''; }
+    timeoutMs = timeoutMs || 9000;
+    for (var pi = 0; pi < _CORS_PROXIES.length; pi++) {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(function () { ctrl.abort(); }, timeoutMs);
+        const r = await fetch(_CORS_PROXIES[pi](url), { signal: ctrl.signal });
+        clearTimeout(t);
+        if (!r.ok) continue;
+        const raw = await r.text();
+        // corsproxy y codetabs devuelven HTML directo (no JSON wrapper)
+        const html = _stripHtml(raw);
+        if (html.length > 50) return html.substring(0, maxChars);
+      } catch (_) { /* intentar siguiente proxy */ }
+    }
+    return '';
   }
 
   /* Extrae emails y teléfonos españoles de un texto plano. */
