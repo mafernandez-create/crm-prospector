@@ -1,4 +1,5 @@
 # Deploy to GitHub Pages via Actions (reemplaza el legacy builder)
+# Retrigger: 2026-05-26
 name: Deploy Pages
 
 on:
