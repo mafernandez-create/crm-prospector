@@ -653,9 +653,11 @@
     allStudios.forEach(function (s) {
       if (s.id == null) return;
       const sid = String(s.id);
-      const web = (s.data && s.data.contact && s.data.contact.web) || '';
+      const webRaw = (s.data && s.data.contact && s.data.contact.web) || '';
+      const web = typeof webRaw === 'object' ? (webRaw.valor || '') : String(webRaw || '');
       if (web) studioUrlMap[sid] = web.startsWith('http') ? web : 'https://' + web;
-      studioProvMap[sid] = s.province || '';
+      const provRaw = s.province || '';
+      studioProvMap[sid] = typeof provRaw === 'object' ? (provRaw.valor || '') : String(provRaw || '');
     });
 
     // 3. Construir texto + hipervínculos por día
@@ -665,9 +667,10 @@
       if (!studios.length) return;
       const byProv = {};
       studios.forEach(function (s) {
-        const prov = s.province || studioProvMap[String(s.id || '')] || 'Sin provincia';
+        function _str(v) { return v && typeof v === 'object' ? (v.valor || '') : String(v || ''); }
+        const prov = _str(s.province) || studioProvMap[String(s.id || '')] || 'Sin provincia';
         if (!byProv[prov]) byProv[prov] = [];
-        byProv[prov].push({ name: s.name || '', url: studioUrlMap[String(s.id || '')] || '' });
+        byProv[prov].push({ name: _str(s.name), url: studioUrlMap[String(s.id || '')] || '' });
       });
       let text = '';
       const links = [];
