@@ -527,7 +527,9 @@
     const types = Array.isArray(studio.type) ? studio.type : [studio.type || ''];
     const tipo = types[0];
     const contact = (studio.data && studio.data.contact) || {};
-    const webUrl = _val(contact.web);
+    // Buscar URL de web en varias ubicaciones posibles (data.contact.web, studio.web, studio._data.contact.web)
+    const webUrl = _val(contact.web) || _val(studio.web) ||
+      (studio._data && studio._data.contact && _val(studio._data.contact.web)) || '';
 
     const tasks = [];
 
@@ -981,10 +983,14 @@
       console.warn('[enrichStudio] _gatherWebContext falló:', e.message);
     }
 
-    if (!webContext || webContext.trim().length < 80) {
-      notif('⚠️ No se encontró información web para "' + (studio.name || studioId) + '"', 'warning');
-      throw new Error('No se encontró información web suficiente sobre "' + (studio.name || studioId) + '"');
+    // Umbral mínimo muy bajo (10 chars) para no bloquear cuando Nominatim
+    // devuelve sólo la dirección pero DuckDuckGo/web/PA no encontraron nada.
+    if (!webContext || webContext.trim().length < 10) {
+      notif('⚠️ No se encontró información para "' + (studio.name || studioId) + '" — prueba a añadir la URL de su web', 'warning');
+      throw new Error('Sin contexto web para "' + (studio.name || studioId) + '". Añade la URL de su web y vuelve a intentarlo.');
     }
+
+    console.info('[enrichStudio] contexto recopilado: ' + webContext.trim().length + ' chars');
 
     // Extracción directa de emails, teléfonos y dirección del contexto
     const directEmails = _extractEmails(webContext);
