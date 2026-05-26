@@ -388,6 +388,41 @@
     };
   }
 
+  /* Consulta Nominatim (OpenStreetMap) para obtener dirección postal
+     estructurada de una entidad. Gratuito, CORS nativo, sin proxy.
+     Retorna string con los datos formateados para Claude, o '' si no hay. */
+  async function _queryNominatim(name, city, province) {
+    try {
+      var q = name + (city ? ' ' + city : '') + (province ? ' ' + province : '') + ' España';
+      var ctrl = new AbortController();
+      var t = setTimeout(function () { ctrl.abort(); }, 6000);
+      var r = await fetch(
+        'https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(q) +
+        '&format=json&addressdetails=1&limit=3&countrycodes=es',
+        { signal: ctrl.signal, headers: { 'Accept-Language': 'es', 'User-Agent': 'CRM-Prospector/1.0' } }
+      );
+      clearTimeout(t);
+      if (!r.ok) return '';
+      var results = await r.json();
+      if (!Array.isArray(results) || !results.length) return '';
+      // Tomar el primer resultado relevante (preferir amenity=townhall, offices, etc.)
+      var best = results.find(function (res) {
+        var t = (res.type || '').toLowerCase();
+        return t === 'townhall' || t === 'administrative' || t === 'office' || t === 'government';
+      }) || results[0];
+      var addr = best.address || {};
+      var parts = [];
+      if (addr.road) parts.push(addr.road + (addr.house_number ? ' ' + addr.house_number : ''));
+      if (addr.postcode) parts.push('CP ' + addr.postcode);
+      if (addr.village || addr.town || addr.city) parts.push(addr.village || addr.town || addr.city);
+      if (addr.province || addr.state) parts.push(addr.province || addr.state);
+      if (!parts.length) return '';
+      return 'DIRECCIÓN (OpenStreetMap): ' + parts.join(', ') +
+             '\nNOMBRE OSM: ' + (best.display_name || '').split(',')[0] +
+             '\nCOORDENADAS: ' + best.lat + ',' + best.lon;
+    } catch (_) { return ''; }
+  }
+
   /* Llama a DuckDuckGo Instant Answer API (devuelve JSON, sin CORS).
      No siempre devuelve contenido — depende de la query. Best-effort. */
   async function _searchDuckDuckGo(query) {
@@ -456,6 +491,15 @@
     tasks.push(
       _searchDuckDuckGo(qContacto).then(function (t) {
         return t ? { label: 'Buscador contacto · ' + studioName, text: t } : null;
+      })
+    );
+
+    // B3. Nominatim (OpenStreetMap) — dirección postal estructurada.
+    // Especialmente útil para ayuntamientos, hospitales, entidades públicas
+    // cuyas webs son SPAs que no se pueden scrappear.
+    tasks.push(
+      _queryNominatim(studioName, city, province).then(function (t) {
+        return t ? { label: 'OpenStreetMap · ' + studioName, text: t } : null;
       })
     );
 
@@ -875,9 +919,12 @@
       throw new Error('No se encontró información web suficiente sobre "' + (studio.name || studioId) + '"');
     }
 
-    // Extracción directa de emails y teléfonos del contexto (sin esperar a Claude)
+    // Extracción directa de emails, teléfonos y dirección del contexto
     const directEmails = _extractEmails(webContext);
     const directPhones = _extractPhones(webContext);
+    // Extraer dirección directamente de la sección Nominatim si existe
+    const osmMatch = webContext.match(/DIRECCIÓN \(OpenStreetMap\): ([^\n]+)/);
+    const directAddress = osmMatch ? osmMatch[1].trim() : '';
 
     notif('🤖 Consultando IA para estructurar los datos…', 'info');
 
@@ -929,12 +976,16 @@
     ['address', 'phone', 'email', 'web'].forEach(function (k) {
       if (ctcNew[k] && _empty(ctcOrig[k])) { ctcOrig[k] = ctcNew[k]; ctcChanged = true; }
     });
-    // Fallback: email/teléfono extraídos directamente si Claude no los encontró
+    // Fallback: email/teléfono/dirección extraídos directamente si Claude no los encontró
     if (_empty(ctcOrig.email) && directEmails.length) {
       ctcOrig.email = directEmails[0]; ctcChanged = true;
     }
     if (_empty(ctcOrig.phone) && directPhones.length) {
       ctcOrig.phone = directPhones[0]; ctcChanged = true;
+    }
+    // Dirección de Nominatim (muy fiable para entidades públicas)
+    if (_empty(ctcOrig.address) && directAddress) {
+      ctcOrig.address = directAddress; ctcChanged = true;
     }
     if (ctcChanged) patch['data.contact'] = ctcOrig;
 
