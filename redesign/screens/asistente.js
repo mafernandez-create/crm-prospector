@@ -57,9 +57,16 @@
     var studios = State.studios || [];
     var hoy = new Date().toISOString().slice(0, 10);
 
-    // Top 120 por score (suficiente para el contexto sin exceder tokens)
+    // Top 150 por score + todos los que tienen status=reunion/contactado (pueden tener score null)
+    // para que clientes activos siempre estén en el contexto aunque tengan score bajo o nulo.
     var sorted = studios.slice().sort(function (a, b) { return (b.score || 0) - (a.score || 0); });
-    var top = sorted.slice(0, 120);
+    var top150 = sorted.slice(0, 150);
+    var activos = studios.filter(function (s) {
+      var st = (s.status || '').toLowerCase();
+      return (st === 'reunion' || st === 'contactado' || st === 'ganado') &&
+             !top150.some(function (t) { return t.id === s.id; });
+    });
+    var top = top150.concat(activos);
 
     var lines = top.map(function (s) {
       var prov = s.province; if (prov && typeof prov === 'object') prov = prov.valor || '';
@@ -130,6 +137,12 @@
       '- Si el usuario quiere añadir empresas al planificador, incluye en tu respuesta una lista de JSON como esta:\n' +
         '  [[PLANIFICADOR:{"ids":["3001","3002"],"fecha":"2026-06-02"}]]\n' +
         '  con los IDs de la cartera y la fecha ISO sugerida.\n' +
+      '- BÚSQUEDA DE NOMBRES: Si el usuario menciona el nombre de un cliente y no encuentras una coincidencia exacta ' +
+        'en la cartera, busca el más parecido (ignorando tildes, mayúsculas, siglas y palabras genéricas como ' +
+        '"arquitectos", "ingeniería", "S.L.", etc.). Por ejemplo: "INGOAD" puede ser "Ingoad Ingenieros"; ' +
+        '"Hombre de piedra" puede ser "Hombre de Piedra Arquitectos". ' +
+        'Si encuentras un parecido razonable, úsalo y menciona al usuario qué nombre exact tienes en el CRM. ' +
+        'Solo di "no encontrado" si no hay ningún parecido razonable.\n' +
       '- Sé conciso y práctico. Evita preambles largos.\n\n' +
       'DATOS ACTUALIZADOS A ' + new Date().toISOString().slice(0, 10) + ':\n\n' +
       _buildContext()

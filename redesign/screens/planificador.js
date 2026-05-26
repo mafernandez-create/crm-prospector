@@ -41,6 +41,54 @@
   };
 
   /* ============================================================
+     BÚSQUEDA DIFUSA DE STUDIO POR NOMBRE
+     Orden de preferencia:
+       1. Exacto (case-insensitive, sin acentos)
+       2. El CRM empieza por la query  (ej: "GTA" → "GTA INGENIERÍA")
+       3. La query empieza por el CRM  (ej: "INGOAD – Ingeniería" → query "Ingoad")
+       4. Contiene la query completa
+       5. Overlap de palabras ≥ 50 %  (ej: "Hombre Piedra" → "Hombre de Piedra Arquitectos")
+     Devuelve el studio con mejor puntuación o null.
+     ============================================================ */
+  function _normalize(s) {
+    return (s || '').toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')  // quita acentos
+      .replace(/[^a-z0-9\s]/g, ' ')           // elimina puntuación
+      .replace(/\s+/g, ' ').trim();
+  }
+
+  function _fuzzyFindStudio(query, studios) {
+    if (!query || !studios.length) return null;
+    var q = _normalize(query);
+    var qWords = q.split(' ').filter(function (w) { return w.length > 2; });
+
+    var best = null;
+    var bestScore = -1;
+
+    studios.forEach(function (s) {
+      var n = _normalize(s.name || '');
+      var score = 0;
+
+      if (n === q)                        score = 100;  // 1. exacto
+      else if (n.startsWith(q))           score = 80;   // 2. CRM empieza por query
+      else if (q.startsWith(n))           score = 75;   // 3. query empieza por CRM
+      else if (n.includes(q))             score = 60;   // 4. CRM contiene query
+      else if (q.includes(n) && n.length > 4) score = 55; // query contiene CRM
+      else if (qWords.length) {
+        // 5. overlap de palabras
+        var nWords = n.split(' ').filter(function (w) { return w.length > 2; });
+        var hits = qWords.filter(function (w) { return nWords.some(function (nw) { return nw.startsWith(w) || w.startsWith(nw); }); }).length;
+        var overlap = hits / Math.max(qWords.length, 1);
+        if (overlap >= 0.5) score = Math.round(40 * overlap);
+      }
+
+      if (score > bestScore) { bestScore = score; best = s; }
+    });
+
+    return bestScore > 0 ? best : null;
+  }
+
+  /* ============================================================
      UTILIDADES DE FECHA
      ============================================================ */
   function lunesDe(date) {
@@ -369,11 +417,12 @@
       return;
     }
     // Intentar localizar studio por nombre para enlazar id/provincia
+    // Usa matching difuso: exacto → empieza por → contiene → primera palabra clave
     let id = opts.visita.id || '';
     let province = opts.visita.province || '';
     let cityFinal = city.trim();
     if (!id) {
-      const match = (State.studios || []).find(function (s) { return (s.name || '').toLowerCase() === name.trim().toLowerCase(); });
+      const match = _fuzzyFindStudio(name.trim(), State.studios || []);
       if (match) {
         id = match.id;
         if (!cityFinal) cityFinal = match.city || '';
