@@ -1268,6 +1268,22 @@
     return { success: true, markdown: markdown, persisted: true };
   }
 
+  /**
+   * generateReport(studioId, payload)
+   *
+   * Genera un informe de visita coaching en markdown (formato informe_v2).
+   * Análisis SPIN + señales lingüísticas + coaching + guión próxima visita.
+   *
+   * payload: {
+   *   modalidad:          'real' | 'ficticia'  (default: 'real')
+   *   fecha:              'YYYY-MM-DD'          (default: hoy)
+   *   comercial:          string                (default: 'Manolo Fernández')
+   *   prescripcion:       boolean
+   *   notes:              string                notas libres o transcripción (con timestamps si hay)
+   *   cargoInterlocutor:  string                clave de CARGOS_POR_TIPO (opcional pero recomendado)
+   *   tipoVisita:         string                'primera-frio'|'primera-con-cita'|'seguimiento'|...
+   * }
+   */
   async function generateReport(studioId, payload) {
     payload = payload || {};
     const studio = await _getStudio(studioId);
@@ -1278,6 +1294,8 @@
     const comercial = payload.comercial || 'Manolo Fernández';
     const prescripcion = !!payload.prescripcion;
     const notas = payload.notes || payload.notas || '';
+    const cargoInterlocutor = payload.cargoInterlocutor || '';
+    const tipoVisita = payload.tipoVisita || 'seguimiento';
 
     if (modalidad === 'real' && !notas.trim()) {
       throw new Error('Necesitas escribir las notas de la visita antes de generar el informe.');
@@ -1287,62 +1305,249 @@
     const province = _val(studio.province) || '';
     const city = _val(studio.city) || province;
     const contact = (studio.data && studio.data.contact) || {};
+    const types = Array.isArray(studio.type) ? studio.type : [studio.type || 'ING'];
+    const tipoPrincipal = types[0];
+    const team = (studio.data && studio.data.team) || [];
+    const activities = (studio.data && studio.data.activities) || [];
+    const reports = (studio.data && studio.data.reports) || [];
+
+    // Historial reciente (últimas 5 visitas/actividades)
+    const lastEvents = [].concat(reports, activities)
+      .filter(function (e) { return e && (e.date || e.createdAt); })
+      .sort(function (a, b) {
+        return new Date(b.date || b.createdAt || 0).getTime() -
+               new Date(a.date || a.createdAt || 0).getTime();
+      }).slice(0, 5);
+
+    // Compromisos abiertos
+    const propuestasPendientes = [];
+    activities.forEach(function (a) {
+      const ps = (a && a.registroVisita && a.registroVisita.actualizaciones_propuestas) || [];
+      ps.forEach(function (p) {
+        if (!p.decision || p.decision === 'pending') propuestasPendientes.push(p);
+      });
+    });
+
+    // Overlay de cargo para el informe
+    const overlay = cargoInterlocutor ? getCargoOverlay(tipoPrincipal, cargoInterlocutor) : null;
+    const overlayBlock = overlay
+      ? '## OVERLAY DEL INTERLOCUTOR — ' + tipoPrincipal + ' × ' + cargoInterlocutor + '\n' +
+        'Alias: ' + overlay.alias + '\n' +
+        'Productos prioritarios GPF para este perfil: ' + overlay.prioritarios.join(', ') + '\n' +
+        'Productos que NO aplican: ' + (overlay.evitar.length ? overlay.evitar.join(', ') : 'ninguno específico') + '\n' +
+        'Ángulo argumental: ' + overlay.angulo + '\n' +
+        'Discovery clave (preguntas que debería haber hecho):\n' +
+          overlay.discovery_clave.map(function (q, i) { return (i + 1) + '. ' + q; }).join('\n') + '\n'
+      : (cargoInterlocutor
+          ? '## OVERLAY\nPerfil (' + tipoPrincipal + ' × ' + cargoInterlocutor + ') no mapeado. Usa el catálogo base del tipo ' + tipoPrincipal + '.\n'
+          : '## OVERLAY\nCargo del interlocutor no especificado. Análisis basado en tipo de empresa: ' + tipoPrincipal + '.\n');
 
     const crmCtx = [
-      'EMPRESA: ' + studioName,
-      'CIUDAD: ' + (city || '—') + ' · PROVINCIA: ' + (province || '—'),
-      _val(contact.phone) ? 'TEL: ' + _val(contact.phone) : null,
-      _val(contact.email) ? 'EMAIL: ' + _val(contact.email) : null,
-      _val(contact.web) ? 'WEB: ' + _val(contact.web) : null,
-      studio.priorityQuadrant ? 'CUADRANTE: Q' + studio.priorityQuadrant : null,
-      studio.score ? 'SCORE: ' + studio.score : null,
+      '## DATOS DEL CLIENTE (CRM)',
+      'Empresa: ' + studioName,
+      'Ciudad / Provincia: ' + (city || '—') + ' / ' + (province || '—'),
+      'Tipo: ' + types.join(', '),
+      studio.priorityQuadrant ? 'Cuadrante: Q' + studio.priorityQuadrant : null,
+      studio.score ? 'Score: ' + studio.score : null,
+      _val(contact.phone) ? 'Tel: ' + _val(contact.phone) : null,
+      _val(contact.email) ? 'Email: ' + _val(contact.email) : null,
+      _val(contact.web) ? 'Web: ' + _val(contact.web) : null,
+      team.length ? 'Equipo conocido: ' + team.map(function (m) {
+        return m.name + (m.role ? ' (' + m.role + ')' : '') + (m.isDecisionMaker ? ' ⭐' : '');
+      }).join(', ') : null,
     ].filter(Boolean).join('\n');
 
-    const systemPrompt = 'Eres el asistente de informes de visitas comerciales de Manuel Fernández (Manolo), prescriptor de Grupo Plásticos Ferro (GPF) en Andalucía/Extremadura/Levante.\n\n' +
-      'Misión: convertir las notas en bruto de una visita en un informe estructurado, conciso y accionable.\n\n' +
-      'REGLAS:\n' +
-      '- Tono profesional pero ameno, primera persona ("estuve con…", "me comentaron que…").\n' +
-      '- Sintetiza, no copies literal. Detecta compromisos, acciones siguientes y oportunidades.\n' +
-      '- Devuelve ÚNICAMENTE el JSON con las claves exactas, sin texto extra.';
+    const histCtx = lastEvents.length === 0
+      ? 'Primera visita — cliente nuevo, sin histórico previo en el CRM.'
+      : lastEvents.map(function (v, i) {
+          const d = (v.date || v.createdAt || '').slice(0, 10);
+          const t = v.title || v.type || 'evento';
+          const n = (v.notes || '').slice(0, 300);
+          return (i + 1) + '. [' + d + '] ' + t + (n ? '\n   Notas: ' + n : '');
+        }).join('\n');
 
-    const userMsg = 'Genera un informe de visita.\n\n' +
-      'DATOS EMPRESA:\n' + crmCtx + '\n' +
-      '\nFECHA VISITA: ' + fecha + '\nCOMERCIAL: ' + comercial + '\nMODALIDAD: ' + modalidad +
-      (prescripcion ? ' (visita de prescripción)' : '') + '\n' +
-      '\nNOTAS EN BRUTO DEL COMERCIAL:\n' + notas + '\n\n' +
-      'Devuelve ÚNICAMENTE este JSON:\n' +
+    const compromisosCtx = propuestasPendientes.length === 0
+      ? 'Sin compromisos abiertos pendientes.'
+      : propuestasPendientes.map(function (p) {
+          return '- ' + (p.tipo || 'propuesta') + ': ' + (p.propuesta || '');
+        }).join('\n');
+
+    /* SYSTEM PROMPT — rol + metodología + reglas. Sin plantilla de output.
+       La plantilla va en el user message para evitar que Claude la devuelva literal. */
+    const systemPrompt =
+      'Eres el analista y coach comercial de Manuel Fernández (Manolo), prescriptor de Grupo Plásticos Ferro (GPF) en Andalucía/Extremadura/Levante. GPF fabrica sistemas de tubería y saneamiento: BIOPIPE PVC-O, ecoSAN, PE 100, CONDUSAN, MUTE, EUME, PVC presión. Plantas en Atarfe (Granada) y Chilches (Valencia).\n\n' +
+      'El objetivo de Manolo NO es vender directamente: es que el proyectista especifique la marca GPF en el pliego técnico antes de que salga a concurso. La venta ocurre después, por otro canal.\n\n' +
+      '## Metodología SPIN (Neil Rackham)\n' +
+      'Mix ideal para 30-45 min con proyectista: 1-2 Situación / 3-4 Problema / 4-6 Implicación / 2-3 Need-payoff.\n' +
+      '- Las S establecen contexto pero no crean valor percibido.\n' +
+      '- Las I y N son las que mueven el deal en prescripción B2B compleja.\n' +
+      '- Minimizar S porque todo lo que se puede investigar se investiga antes.\n\n' +
+      '## Advance vs Continuation\n' +
+      'Un advance es un compromiso concreto que mueve el deal: fecha de entrega de material, proyecto específico acordado, reunión con técnico fijada. Una continuation es "llamamos cuando haya algo" — se acepta pero no se celebra.\n\n' +
+      '## Tu rol en este informe\n' +
+      'Transforma las notas o transcripción de la visita en un documento que sirve a la vez como:\n' +
+      '(a) registro comercial fiel a lo ocurrido,\n' +
+      '(b) diagnóstico SPIN honesto (sin suavizar los fallos),\n' +
+      '(c) herramienta de coaching con ejercicios basados en situaciones reales de esta visita,\n' +
+      '(d) guía accionable para las próximas 2 semanas.\n\n' +
+      '## Reglas absolutas\n' +
+      '- Devuelve ÚNICAMENTE el markdown del informe. Sin preámbulo, sin texto introductorio, sin explicaciones.\n' +
+      '- No inventes datos que no estén en las notas. Si algo no se puede extraer, usa [SIN DATO] o simplemente no lo pongas.\n' +
+      '- Los timestamps [MM:SS] solo aparecen si están en el input. No inventes minutos.\n' +
+      '- Las citas del cliente van siempre entre comillas y en cursiva cuando son literales.\n' +
+      '- Los ejercicios de práctica son siempre específicos de esta visita, nunca genéricos.\n' +
+      '- El guión para la próxima visita contiene preguntas LITERALES entre comillas, no descripciones de preguntas.\n' +
+      '- El JSON de métricas cierra el informe y es siempre válido.\n' +
+      '- Tono: analítico, directo, sin condescendencia. Primera persona para la actuación de Manolo. Tercera para el cliente.';
+
+    const tipoVisitaLabel = {
+      'primera-frio': 'Primera visita en frío',
+      'primera-con-cita': 'Primera visita con cita previa',
+      'seguimiento': 'Visita de seguimiento',
+      'presentacion-producto': 'Presentación de producto',
+      'visita-tecnica-proyecto': 'Visita técnica de proyecto',
+      'post-licitacion': 'Post-licitación',
+    }[tipoVisita] || tipoVisita;
+
+    const userMsg =
+      'Genera el informe completo de esta visita.\n\n' +
+      crmCtx + '\n\n' +
+      'FECHA: ' + fecha + '\n' +
+      'COMERCIAL: ' + comercial + '\n' +
+      'TIPO DE VISITA: ' + tipoVisitaLabel + '\n' +
+      'MODALIDAD: ' + modalidad + (prescripcion ? ' (visita de prescripción)' : '') + '\n' +
+      (cargoInterlocutor ? 'CARGO DEL INTERLOCUTOR: ' + cargoInterlocutor + '\n' : '') +
+      '\n' + overlayBlock + '\n' +
+      '## HISTÓRICO DE VISITAS ANTERIORES\n' + histCtx + '\n\n' +
+      '## COMPROMISOS PENDIENTES DEL CRM\n' + compromisosCtx + '\n\n' +
+      '## NOTAS / TRANSCRIPCIÓN DE LA VISITA\n' + notas + '\n\n' +
+      '---\n\n' +
+      'Produce el informe con la siguiente estructura EXACTA. Las instrucciones entre paréntesis son para ti — ejecútalas y no las incluyas en el output.\n\n' +
+      '# Informe de visita — ' + studioName + '\n\n' +
+      '**Fecha:** ' + fecha + '\n' +
+      '**Interlocutor:** (nombre y cargo extraído de las notas; o [SIN DATO])\n' +
+      '**Tipo:** ' + tipoVisitaLabel + '\n' +
+      '**Duración:** (estima si hay timestamps o lo mencionan; omite la línea si no hay dato)\n\n' +
+      '---\n\n' +
+      '## Resumen ejecutivo\n\n' +
+      '(2-3 párrafos: contexto del cliente, productos GPF más pertinentes para su perfil, resultado real como advance/continuation, y el dato más importante que Manolo debe recordar mañana)\n\n' +
+      '---\n\n' +
+      '## Contexto del cliente\n\n' +
+      '(bullets: especialidades declaradas, herramientas —BC3/Presto/BIM/IFC—, clientes o contratantes mencionados, proyectos activos, volumen estimado, si prescriben o compran directamente)\n\n' +
+      '---\n\n' +
+      '## Temas tratados\n\n' +
+      '(lista numerada cronológica; incluye timestamps [MM:SS–MM:SS] solo si están en el input)\n\n' +
+      '---\n\n' +
+      '## Productos GPF presentados\n\n' +
+      '(tabla: Producto | Cómo se presentó | Pertinencia según overlay ✅ prioritario / ⚠️ secundario / ❌ no aplica)\n\n' +
+      '(párrafo de evaluación: ¿productos correctos para el perfil? ¿presentados de forma narrativa sobre necesidades o como catálogo lineal?)\n\n' +
+      '---\n\n' +
+      '## Señales del cliente\n\n' +
+      '**Intereses confirmados (con cita):**\n' +
+      '(bullet por cada interés claro; cita literal en cursiva y timestamp si disponible)\n\n' +
+      '**Dolores insinuados (implícitos, no desarrollados):**\n' +
+      '(bullet por dolor detectado pero no profundizado; o "Sin dolores detectados." si no hay)\n\n' +
+      '**Engagement:** (nivel: alto/moderado/bajo y justificación breve)\n\n' +
+      '**Objeciones:** (si ninguna: "Ninguna explícita.")\n\n' +
+      '---\n\n' +
+      '## 🔍 Señales lingüísticas detectadas\n\n' +
+      '### Evitación o esquiva\n' +
+      '(casos concretos con cita; si datos insuficientes: "Sin patrones claros con las notas disponibles.")\n\n' +
+      '### Lenguaje de incertidumbre (hedging)\n' +
+      '(casos concretos; número de ocurrencias)\n\n' +
+      '### Repeticiones temáticas\n' +
+      '(qué temas nombró el cliente más de una vez y su significado operativo)\n\n' +
+      '### Momentos de alto engagement\n' +
+      '(momentos en que el cliente se activó espontáneamente)\n\n' +
+      '---\n\n' +
+      '## Análisis SPIN\n\n' +
+      '(tabla: Tipo | Cantidad | Ejemplos con cita literal)\n\n' +
+      '(diagnóstico en 3-4 líneas: mix real vs ideal 1-2S/3-4P/4-6I/2-3N, dónde falló el balance)\n\n' +
+      '---\n\n' +
+      '## Mi desempeño como prescriptor\n\n' +
+      '### Aciertos\n\n' +
+      '(bullets numerados)\n\n' +
+      '### Áreas de mejora\n\n' +
+      '(bullets numerados; concretos y directos, sin suavizar)\n\n' +
+      '### Momentos perdidos\n\n' +
+      '(para cada momento: qué dijo el cliente, en qué punto, qué no preguntó Manolo, qué pregunta habría valido)\n\n' +
+      '---\n\n' +
+      '## Cierre — ¿advance o continuation?\n\n' +
+      '**Resultado:** (advance firme / soft advance / continuation — elige con criterio SPIN)\n\n' +
+      '(párrafo: por qué es ese resultado, qué lo confirma, cuál es el riesgo real si no hay seguimiento activo)\n\n' +
+      '---\n\n' +
+      '## Acciones de seguimiento\n\n' +
+      '(lista de 3-5 acciones concretas con prioridad y fecha límite; formato: **Prioridad N — [cuándo]:** acción accionable)\n\n' +
+      '---\n\n' +
+      '## 🎯 Guión para la próxima visita\n\n' +
+      '(contexto de 1 línea: qué se envió antes, qué ancla usar)\n\n' +
+      '**Preguntas de Problema** (dolores insinuados pero no desarrollados):\n\n' +
+      '(3-4 preguntas LITERALES en cursiva y comillas, con referencia al momento de la visita que las justifica)\n\n' +
+      '**Preguntas de Implicación** (cuantificar el coste del problema):\n\n' +
+      '(3-4 preguntas LITERALES en cursiva y comillas)\n\n' +
+      '**Preguntas de Need-payoff** (que el cliente verbalice el valor):\n\n' +
+      '(2-3 preguntas LITERALES en cursiva y comillas)\n\n' +
+      '**Material a llevar:**\n\n' +
+      '(lista numerada con formato específico del material según lo que pidió o necesita el cliente)\n\n' +
+      '**Objetivo de advance concreto:**\n\n' +
+      '*(una frase en cursiva con el avance medible que se busca conseguir en la próxima visita, con fecha objetivo)*\n\n' +
+      '---\n\n' +
+      '## 💪 Ejercicios de práctica esta semana\n\n' +
+      '(3 ejercicios específicos de esta visita; cada uno con: nombre, objetivo, instrucciones paso a paso, duración estimada entre paréntesis y criterio de éxito)\n\n' +
+      '---\n\n' +
+      '## Métricas\n\n' +
+      '```json\n' +
       '{\n' +
-      '  "resumen": "1-2 párrafos sintetizando la reunión",\n' +
-      '  "interlocutores": ["Nombre 1 — cargo", "Nombre 2 — cargo"],\n' +
-      '  "temas_tratados": ["Tema 1", "Tema 2", "Tema 3"],\n' +
-      '  "compromisos": [{"que":"Qué hacer", "quien":"Quién", "cuando":"Cuándo"}],\n' +
-      '  "oportunidades_detectadas": ["Producto/proyecto identificado"],\n' +
-      '  "proxima_accion": "La acción más concreta para mover el deal",\n' +
-      '  "nivel_interes": "alto|medio|bajo",\n' +
-      '  "notas_adicionales": "Cualquier cosa relevante que no encaje arriba"\n' +
-      '}';
+      '  "duracion_min": (número o null),\n' +
+      '  "ratio_habla_manolo": (decimal 0-1, estimado; o null),\n' +
+      '  "preguntas_situacion": (número),\n' +
+      '  "preguntas_problema": (número),\n' +
+      '  "preguntas_implicacion": (número),\n' +
+      '  "preguntas_need_payoff": (número),\n' +
+      '  "productos_gpf_mencionados": ["array"],\n' +
+      '  "competencia_mencionada": ["array"],\n' +
+      '  "objeciones_cliente": ["array"],\n' +
+      '  "casos_referencia_citados": ["array"],\n' +
+      '  "n_senales_evitacion": (número),\n' +
+      '  "n_lenguaje_hedging": (número),\n' +
+      '  "n_momentos_engagement": (número),\n' +
+      '  "calidad_discovery": (1-5),\n' +
+      '  "calidad_pitch": (1-5),\n' +
+      '  "calidad_cierre": (1-5),\n' +
+      '  "tipo_advance": "firme|soft|continuation",\n' +
+      '  "personalizacion_pitch": (1-5),\n' +
+      '  "nivel_interes_cliente": (1-5),\n' +
+      '  "siguiente_paso_acordado": "descripción o null"\n' +
+      '}\n' +
+      '```';
 
-    const raw = await _claudeCall(systemPrompt, userMsg, 4096);
-    const report = _parseJSON(raw);
+    const markdown = (await _claudeCall(systemPrompt, userMsg, 8192))
+      .replace(/^\s*```(?:markdown)?\s*\n?/, '')
+      .replace(/\s*```\s*$/, '')
+      .trim();
 
-    // Persistir como un report más en el studio
+    // Persistir como informe_v2 en data.reports[] del studio
     const isoDate = new Date().toISOString().replace(/[:.]/g, '-');
     try {
       await _patchDocActive('studios/' + studioId + '/reports/' + isoDate, {
+        iso_date: isoDate,
         date: fecha,
         generated_at: new Date().toISOString(),
         modalidad: modalidad,
         comercial: comercial,
         prescripcion: prescripcion,
         notes_raw: notas,
-        report: report,
+        markdown: markdown,
+        formato: 'informe_v2',
+        cargo_interlocutor: cargoInterlocutor || null,
+        tipo_visita: tipoVisita || null,
         title: 'Visita ' + fecha + ' · ' + comercial,
       });
     } catch (e) {
       console.warn('[redesign/data] persistencia report falló:', e.message);
     }
 
-    return { success: true, report: report, persisted: true };
+    return { success: true, markdown: markdown, persisted: true };
   }
 
   /* ============================================================
