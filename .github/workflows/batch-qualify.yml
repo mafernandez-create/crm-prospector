@@ -1,28 +1,19 @@
 # ============================================================
-# CRM GPF — Batch Qualify Scheduler
+# CRM GPF — Batch Qualify Scheduler (GAS/Firestore)
 # Fase E del Método Unificado v1.1 (§15.3)
 #
-# ESTADO: ACTIVO — endpoint GAS configurado en gas-batch-qualify.gs
-#
-# Llamado cada noche a las 02:00 UTC. Procesa hasta `limite` studios
-# de Firestore: recalcula scoring v2 y escribe los cambios. Idempotente
-# (no reescribe si no hay cambio de cuadrante o candidato nuevo).
-#
-# Setup inicial (una sola vez):
-#   - Ver SETUP_BATCH_QUALIFY.md en raíz del repo
-#   - Secrets de repo necesarios: BATCH_ENDPOINT, BATCH_API_KEY
-#
-# Alternativa manual: ejecutar la cualificación desde el CRM con
-# el botón "🤖 Cualificar Lote" en el menú lateral.
+# ESTADO: DESACTIVADO (2026-05-27)
+#   Sustituido por batch-qualify-node.yml que escribe en Supabase
+#   (backend activo desde migración de mayo 2026).
+#   El endpoint GAS devuelve {} vacío porque Firestore ya no tiene datos.
+#   Mantener solo para referencia histórica / rollback de emergencia.
 # ============================================================
 
 name: Batch Qualify Studios
 
 on:
-  schedule:
-    # Todos los días a las 02:00 UTC (04:00 hora España verano, 03:00 invierno)
-    - cron: '0 2 * * *'
-  workflow_dispatch:          # Lanzamiento manual desde GitHub Actions UI
+  # schedule desactivado — usar batch-qualify-node.yml en su lugar
+  workflow_dispatch:          # Solo manual si se necesita por emergencia
     inputs:
       filtro:
         description: 'Filtro de estudios (sin_cuadrante | todos | ARQ | ING | OCV | AAPP | CCRR | CICA)'
