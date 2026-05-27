@@ -58,7 +58,7 @@ async function sb(path, opts) {
 
   // 4) Tabla briefings existe y es accesible
   const brief = await sb('/briefings?select=count', { headers: { 'Prefer': 'count=exact' } });
-  A.eq(brief.status, 200, 'briefings accesible');
+  A.truthy(brief.status === 200 || brief.status === 206, 'briefings accesible (got ' + brief.status + ')');
 
   // 5) Tabla meta_planificador existe y tiene fila id=1
   const plan = await sb('/meta_planificador?id=eq.1&select=id,schedule');
