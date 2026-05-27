@@ -90,7 +90,30 @@
       altoPotencialVirgen: pickAltoPotencialVirgen(),
       visitasFallidas: pickVisitasFallidas(),
       refCruz: _getRefCruz(false),
+      placspAlerts: pickPlacspAlerts(),
     };
+  }
+
+  function pickPlacspAlerts() {
+    if (!State.studios) return [];
+    var out = [];
+    for (var i = 0; i < State.studios.length; i++) {
+      var s = State.studios[i];
+      if (!(s.data && s.data.tieneAlertaPlacsp)) continue;
+      var adj = s.data.ultima_adjudicacion_placsp || {};
+      out.push({
+        studioId: s.id,
+        name: s.name || s.id,
+        titulo: adj.titulo || '',
+        organismo: adj.organismo || '',
+        fecha: adj.fecha || '',
+        importe: adj.importe || null,
+        lugar: adj.lugar || '',
+        url: adj.url || '',
+      });
+    }
+    out.sort(function (a, b) { return (b.fecha || '') > (a.fecha || '') ? 1 : -1; });
+    return out;
   }
 
   function pickEnfriandose() {
@@ -321,7 +344,11 @@
       enfriandose: [],
       altoPotencialVirgen: [],
       visitasFallidas: [],
+<<<<<<< HEAD
       refCruz: [],
+=======
+      placspAlerts: [],
+>>>>>>> f200553 (feat(ui): mostrar alertas PLACSP en Dashboard y Bandeja)
     };
   }
 
@@ -340,6 +367,7 @@
       '<div style="max-width:1180px; margin:0 auto;">' +
         header(d) +
         (d.sinCuadrante > 0 ? bannerSinCuadrante(d.sinCuadrante) : '') +
+        (d.placspAlerts && d.placspAlerts.length ? placspSection(d.placspAlerts) : '') +
         matrizCuadrantes(d.cuadrantes) +
         twoColumnGrid(d) +
         accionesPendientesSection() +
@@ -463,6 +491,51 @@
     _accionesLoading = false;
     window.showNotification && window.showNotification('🔄 Re-procesando informes…', 'info');
     _loadAcciones(true);
+  }
+
+  function placspSection(rows) {
+    return (
+      '<div style="background:#fffbeb; border:1px solid #fcd34d; border-left:4px solid #f59e0b; ' +
+        'border-radius:8px; padding:14px 16px; margin-bottom:20px;">' +
+        '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">' +
+          '<div style="display:flex; align-items:center; gap:8px;">' +
+            '<span style="font-size:18px;">🏆</span>' +
+            '<div>' +
+              '<div style="font-size:14px; font-weight:700; color:#78350f;">Contratos públicos recientes</div>' +
+              '<div style="font-size:12px; color:#92400e;">Empresas de tu cartera que han ganado licitaciones públicas (PLACSP)</div>' +
+            '</div>' +
+          '</div>' +
+          '<span style="background:#fef3c7; color:#92400e; font-size:12px; font-weight:700; ' +
+            'padding:3px 10px; border-radius:12px; font-family:var(--font-mono);">' + rows.length + ' alerta' + (rows.length === 1 ? '' : 's') + '</span>' +
+        '</div>' +
+        '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:8px;">' +
+          rows.map(function (r) {
+            var importeStr = r.importe ? ' · ' + Math.round(r.importe / 1000) + 'k€' : '';
+            var titleShort = (r.titulo || '').length > 70 ? r.titulo.slice(0, 70) + '…' : r.titulo;
+            return (
+              '<div style="background:#fff; border:1px solid #fcd34d; border-radius:6px; padding:10px 12px; ' +
+                'cursor:pointer; transition:box-shadow .15s;" ' +
+                'onclick="showView(\'detail\', { studioId: \'' + escape(r.studioId) + '\' })" ' +
+                'onmouseover="this.style.boxShadow=\'0 2px 8px rgba(245,158,11,.25)\'" ' +
+                'onmouseout="this.style.boxShadow=\'none\'">' +
+                '<div style="font-size:14px; font-weight:600; color:var(--fg-1); margin-bottom:3px;">' +
+                  escape(r.name) +
+                '</div>' +
+                '<div style="font-size:12px; color:var(--fg-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" ' +
+                  'title="' + escape(r.titulo) + '">' +
+                  escape(titleShort || r.organismo) +
+                '</div>' +
+                '<div style="display:flex; gap:8px; margin-top:6px; font-size:11px; font-family:var(--font-mono);">' +
+                  (r.fecha ? '<span style="color:var(--fg-3);">' + escape(r.fecha) + '</span>' : '') +
+                  (importeStr ? '<span style="color:#d97706; font-weight:600;">' + escape(importeStr.replace(' · ', '')) + '</span>' : '') +
+                  (r.lugar ? '<span style="color:var(--fg-3);">· ' + escape(r.lugar) + '</span>' : '') +
+                '</div>' +
+              '</div>'
+            );
+          }).join('') +
+        '</div>' +
+      '</div>'
+    );
   }
 
   function bannerSinCuadrante(n) {

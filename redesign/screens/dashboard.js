@@ -78,7 +78,29 @@
       ],
       proximaVisita: proxima,
       atrasados: atrasados,
+      placspAlerts: pickPlacspAlerts(),
     };
+  }
+
+  function pickPlacspAlerts() {
+    if (!State.studios) return [];
+    var out = [];
+    for (var i = 0; i < State.studios.length; i++) {
+      var s = State.studios[i];
+      if (!(s.data && s.data.tieneAlertaPlacsp)) continue;
+      var adj = s.data.ultima_adjudicacion_placsp || {};
+      out.push({
+        studioId: s.id,
+        name: s.name || s.id,
+        titulo: adj.titulo || '',
+        organismo: adj.organismo || '',
+        fecha: adj.fecha || '',
+        importe: adj.importe || null,
+        lugar: adj.lugar || '',
+      });
+    }
+    out.sort(function (a, b) { return (b.fecha || '') > (a.fecha || '') ? 1 : -1; });
+    return out.slice(0, 10);
   }
 
   function pickProximaVisita() {
@@ -140,6 +162,8 @@
         { l: 'Catálogo MUTE',         current: '—', target: '1 entregable', peso: '30%', tag: 'Pendiente', color: 'rojo-dark' },
         { l: 'Soporte técnico',       current: 0,   target: 'registros',     peso: '30%', tag: '0',         color: 'gris' },
       ],
+
+      placspAlerts: [],
 
       proximaVisita: {
         studioId: '3012',
@@ -288,6 +312,7 @@
         '<div style="display:flex; flex-direction:column; gap:14px;">' +
           proximaVisitaCard(m.proximaVisita) +
           atrasosCard(m.atrasados) +
+          (m.placspAlerts && m.placspAlerts.length ? placspCard(m.placspAlerts) : '') +
         '</div>' +
       '</div>'
     );
@@ -404,6 +429,44 @@
               '<span style="font-size:12px; color:var(--mute-red-dark); font-family:var(--font-mono); font-weight:600;">' +
                 escape(r.diasLabel) +
               '</span>' +
+            '</div>'
+          );
+        }).join('') +
+      '</div>'
+    );
+  }
+
+  function placspCard(rows) {
+    return (
+      '<div class="card" style="padding:14px 16px; border-left:3px solid #f59e0b;">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">' +
+          '<div style="display:flex; align-items:center; gap:8px;">' +
+            '<span style="font-size:16px;">🏆</span>' +
+            '<span style="font-size:14px; font-weight:600; color:var(--fg-1);">Contratos públicos recientes</span>' +
+          '</div>' +
+          '<span class="chip" style="background:#fef3c7; color:#92400e; font-weight:700;">' + rows.length + '</span>' +
+        '</div>' +
+        '<p style="font-size:12px; color:var(--fg-3); margin:0 0 10px;">Empresas de tu cartera que han ganado licitaciones (PLACSP).</p>' +
+        rows.map(function (r, i) {
+          var importeStr = r.importe ? ' · ' + Math.round(r.importe / 1000) + 'k€' : '';
+          var titleShort = (r.titulo || '').length > 55 ? r.titulo.slice(0, 55) + '…' : r.titulo;
+          return (
+            '<div style="display:flex; justify-content:space-between; align-items:flex-start; padding:9px 0; ' +
+              (i > 0 ? 'border-top:1px solid var(--line);' : '') + ' cursor:pointer;" ' +
+              'onclick="showView(\'detail\', { studioId: \'' + escape(r.studioId) + '\' })">' +
+              '<div style="min-width:0; flex:1;">' +
+                '<div style="font-size:13px; font-weight:600; color:var(--fg-1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' +
+                  escape(r.name) +
+                '</div>' +
+                '<div style="font-size:11px; color:var(--fg-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" ' +
+                  'title="' + escape(r.titulo) + '">' +
+                  escape(titleShort || r.organismo) +
+                '</div>' +
+              '</div>' +
+              '<div style="text-align:right; flex:0 0 auto; margin-left:8px;">' +
+                '<div style="font-size:11px; color:var(--fg-3); font-family:var(--font-mono);">' + escape(r.fecha) + '</div>' +
+                (importeStr ? '<div style="font-size:11px; color:#d97706; font-family:var(--font-mono); font-weight:600;">' + escape(importeStr.replace(' · ', '')) + '</div>' : '') +
+              '</div>' +
             '</div>'
           );
         }).join('') +
