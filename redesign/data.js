@@ -1243,9 +1243,6 @@
       .replace(/\s*```\s*$/, '')
       .trim();
 
-    // DEBUG TEMPORAL — eliminar tras validar
-    console.log('[briefing DEBUG] primeros 600 chars generados:\n', markdown.slice(0, 600));
-
     // Persistir en el backend activo
     const isoDate = new Date().toISOString().replace(/[:.]/g, '-');
     try {
