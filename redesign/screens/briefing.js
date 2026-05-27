@@ -117,14 +117,14 @@
     const studioLabel = (State.studiosById[id] && State.studiosById[id].name) || ('Estudio ' + id);
     const fechaLabel = U.formatDateES(latest.id) || U.formatDateES(latest.updatedAt) || U.formatDateES(new Date());
 
-    // ── v2 markdown ──────────────────────────────────────────────
-    if (latest.formato === 'markdown_v2' && latest.markdown) {
+    // ── markdown (v2 o v3) ───────────────────────────────────────
+    if (latest.markdown) {
       return {
         studio: studioLabel,
         fecha: fechaLabel,
         keyFacts: keyFactsFromStudio(id),
         markdown: latest.markdown,
-        formato: 'markdown_v2',
+        formato: latest.formato || 'markdown_v2',
       };
     }
 
