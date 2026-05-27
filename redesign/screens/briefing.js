@@ -262,7 +262,7 @@
 
   function bodyContent(b) {
     // v2: markdown directo. v1: secciones por clave.
-    if (b.formato === 'markdown_v2' && b.markdown) {
+    if (b.markdown) {
       return md2html(b.markdown);
     }
     return seccionesBlock(b.secciones);
