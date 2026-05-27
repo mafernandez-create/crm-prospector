@@ -344,11 +344,8 @@
       enfriandose: [],
       altoPotencialVirgen: [],
       visitasFallidas: [],
-<<<<<<< HEAD
       refCruz: [],
-=======
       placspAlerts: [],
->>>>>>> f200553 (feat(ui): mostrar alertas PLACSP en Dashboard y Bandeja)
     };
   }
 

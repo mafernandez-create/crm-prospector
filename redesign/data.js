@@ -661,6 +661,310 @@
     'AAPP': 'Admin. pública → según el tipo de obra: BIOPIPE/PE 100 para abastecimiento; ECOSAN/CONDUSAN para saneamiento; MUTE para reformas en edificios públicos.',
   };
 
+  /* Matriz cruzada cargo × tipo de empresa — se superpone a CATALOGO_POR_TIPO */
+  const CARGOS_POR_TIPO = {
+    ARQ: {
+      default: 'arquitecto',
+      perfiles: {
+        arquitecto: {
+          alias: 'Arquitecto firmante / responsable de proyecto',
+          prioritarios: ['MUTE', 'EUME', 'PVC presión', 'PE multilayer'],
+          evitar: ['BIOPIPE PVC-O', 'ecoSAN', 'CONDUSAN', 'PE 100 obra civil'],
+          angulo: 'Acústica DB-HR, DAP y BIM compatibles con Revit/Archicad, fichas estéticas para defender ante cliente final, soluciones para rehabilitación.',
+          discovery_clave: [
+            'Tipología de proyectos: residencial / hotelero / terciario.',
+            'Volumen de proyectos al año.',
+            'Si tienen proveedor de referencia para drenaje y canalones.',
+            'Quién decide marca: arquitecto firmante o constructora.',
+          ],
+        },
+        'jefe-de-estudio': {
+          alias: 'Jefe de estudio / socio del despacho',
+          prioritarios: ['MUTE', 'EUME', 'PVC presión'],
+          evitar: ['BIOPIPE PVC-O', 'ecoSAN', 'CONDUSAN'],
+          angulo: 'Capacidad técnica del proveedor, soporte BIM, casos de referencia con otros estudios premium. Eficiencia operativa: menos consultas al fabricante por obra.',
+          discovery_clave: [
+            'Estructura del despacho y reparto de roles entre arquitectos.',
+            'Marca de tubería estándar en pliegos actuales.',
+            'Tiempo medio que dedican a especificación técnica.',
+          ],
+        },
+        'director-tecnico-estudio': {
+          alias: 'Director técnico de estudio',
+          prioritarios: ['MUTE', 'EUME', 'PVC presión', 'PE multilayer'],
+          evitar: ['BIOPIPE PVC-O', 'ecoSAN', 'CONDUSAN'],
+          angulo: 'Resolver dolores técnicos concretos: acústica en plurifamiliar, rehabilitación en cascos históricos, integración BIM real (IFC validado).',
+          discovery_clave: [
+            'Última obra con problema de acústica reportado por usuario final.',
+            'Cómo gestionan modificaciones de proyecto en obra.',
+            'Compatibilidad de la biblioteca BIM actual con su software.',
+          ],
+        },
+      },
+    },
+    ING: {
+      default: 'ingeniero-civil',
+      perfiles: {
+        'ingeniero-agronomico': {
+          alias: 'Ingeniero agronómico — proyectos de regadío',
+          prioritarios: ['BIOPIPE PVC-O', 'PE 100', 'PVC presión'],
+          evitar: ['MUTE', 'EUME', 'CONDUSAN drenaje urbano'],
+          angulo: 'Fichas BC3/Presto/CIP listas, BIM/IFC, casos GPF en comunidades de regantes andaluzas, soporte de cálculo en redacción, invitación a fábrica de Atarfe.',
+          discovery_clave: [
+            'Reparto España / Portugal en cartera.',
+            'Si dejan pliego abierto o cierran marca de referencia.',
+            'Proveedor de tubería estándar hoy.',
+            'Si tienen proyectos PERTE activos.',
+          ],
+        },
+        'ingeniero-civil': {
+          alias: 'Ingeniero de caminos / civil',
+          prioritarios: ['ecoSAN', 'CONDUSAN', 'PE 100', 'BIOPIPE PVC-O', 'PVC presión'],
+          evitar: ['MUTE', 'EUME'],
+          angulo: 'Comparativos técnicos verificados frente a Molecor/Adequa, fichas listas para memoria, certificación AENOR de reciclado en ecoSAN, BIM/IFC.',
+          discovery_clave: [
+            'Tipos de proyecto en cartera (saneamiento principal, secundario, abastecimiento).',
+            'Si reciben pliegos con marca cerrada o abierta.',
+            'Histórico de incidencias por tubería en obras recientes.',
+          ],
+        },
+        'ingeniero-industrial': {
+          alias: 'Ingeniero industrial',
+          prioritarios: ['PE 100', 'PVC presión', 'MUTE'],
+          evitar: ['BIOPIPE riego', 'ecoSAN', 'CONDUSAN'],
+          angulo: 'Especificación técnica, resistencia química y a temperatura, cálculo de dilataciones, MUTE solo si la planta tiene zona de oficinas.',
+          discovery_clave: [
+            'Tipo de procesos de la planta (químico, alimentario, energético).',
+            'Marca de tubería actual y motivo de elección.',
+            'Tiempo de parada admisible por avería.',
+          ],
+        },
+        proyectista: {
+          alias: 'Proyectista / técnico redactor',
+          prioritarios: ['Depende de la especialidad del estudio'],
+          evitar: ['Catálogo completo a la primera'],
+          angulo: 'Soporte técnico ágil, fichas en su formato (BC3/Presto/CIP), capacidad de respuesta en redacción de pliegos.',
+          discovery_clave: [
+            'Especialidad real del estudio (agronómico / civil / industrial).',
+            'Cómo gestionan modificados en obra.',
+            'Si delegan especificación de marca al cliente final.',
+          ],
+        },
+        'jefe-de-proyecto': {
+          alias: 'Jefe de proyecto en ingeniería',
+          prioritarios: ['Catálogo según especialidad del estudio'],
+          evitar: ['Argumentación puramente técnica si no hay tiempo'],
+          angulo: 'Rentabilidad, plazo, riesgo. Plazos de entrega garantizados (planta Atarfe / Chilches), soporte en obra ante incidencias, banco precios CIP actualizado.',
+          discovery_clave: [
+            'Volumen de obra al año.',
+            'Margen objetivo en obras tipo.',
+            'Penalizaciones SLA típicas en sus contratos.',
+          ],
+        },
+        'director-tecnico': {
+          alias: 'Director técnico de ingeniería',
+          prioritarios: ['Catálogo según especialidad del estudio'],
+          evitar: [],
+          angulo: 'Estabilidad del proveedor, capacidad de soporte a su equipo de proyectistas, valor añadido en candidaturas PERTE y europeas.',
+          discovery_clave: [
+            'Estructura del equipo técnico bajo su mando.',
+            'Cómo decide la marca de tubería en sus pliegos.',
+            'Si tienen acuerdos marco con fabricantes.',
+          ],
+        },
+      },
+    },
+    CCRR: {
+      default: 'gerente',
+      perfiles: {
+        gerente: {
+          alias: 'Gerente de Comunidad de Regantes',
+          prioritarios: ['BIOPIPE PVC-O', 'PE 100', 'PVC presión'],
+          evitar: ['MUTE', 'EUME', 'CONDUSAN drenaje urbano'],
+          angulo: 'Fiabilidad operativa (sin averías en campaña), fondos PERTE Digitalización del Ciclo del Agua, sostenibilidad, casos GPF en CRs cercanas (efecto red comarcal).',
+          discovery_clave: [
+            'Hectáreas regadas y tipo de cultivo.',
+            'Estado de modernización (red existente vs. nueva).',
+            'Si están en candidatura PERTE.',
+            'Frecuencia de averías en redes actuales.',
+            'Quién decide marca: gerencia, técnico interno o ingeniería externa.',
+          ],
+        },
+        presidente: {
+          alias: 'Presidente de la Junta',
+          prioritarios: ['BIOPIPE PVC-O', 'PE 100'],
+          evitar: ['Detalles técnicos demasiado profundos'],
+          angulo: 'Visión institucional: empleo local andaluz, garantía con organismos públicos, comparativas frente a otras CRs ya modernizadas.',
+          discovery_clave: [
+            'Composición de la junta y peso del presidente en decisión técnica.',
+            'Estado de relación con la ingeniería externa contratada.',
+            'Prioridades estratégicas declaradas en la junta.',
+          ],
+        },
+        'tecnico-externo': {
+          alias: 'Técnico/ingeniero externo contratado por la CR',
+          prioritarios: ['BIOPIPE PVC-O', 'PE 100', 'PVC presión'],
+          evitar: ['MUTE', 'EUME'],
+          angulo: 'Funciona como ingeniero del subcaso ING: BC3/Presto/CIP, BIM/IFC, soporte de cálculo, fábrica Atarfe. Es el que firma el pliego.',
+          discovery_clave: [
+            'Si trabaja para varias CRs o solo para esta.',
+            'Marca de tubería habitual en sus pliegos.',
+            'Si reabre comparativas o cierra siempre la misma referencia.',
+          ],
+        },
+        guarda: {
+          alias: 'Guarda / responsable operativo de la CR',
+          prioritarios: ['Ninguno directamente — es alianza operativa'],
+          evitar: ['Todo el catálogo: no decide'],
+          angulo: 'Información operativa: dónde se rompe la red, qué tramos preocupan, qué demanda el regante. Aliado clave para entender el problema real.',
+          discovery_clave: [
+            'Tramos de red que dan más problemas operativos.',
+            'Quejas recurrentes de los comuneros.',
+            'Quién toma decisiones cuando hay una rotura.',
+          ],
+        },
+      },
+    },
+    OCV: {
+      default: 'jefe-de-obra',
+      perfiles: {
+        'jefe-de-obra': {
+          alias: 'Jefe de obra en constructora',
+          prioritarios: ['Según obra adjudicada: BIOPIPE, ecoSAN, CONDUSAN, PE 100, MUTE'],
+          evitar: ['Argumentación puramente técnica sin coste/plazo'],
+          angulo: 'Plazo de suministro garantizado, planta cercana (Atarfe / Chilches), soporte en obra ante incidencias, comparativos para sustituir marca prescrita en pliego.',
+          discovery_clave: [
+            'Obras adjudicadas y plazos pactados.',
+            'Incidencias recientes con proveedor de tubería actual.',
+            'Penalizaciones por retraso de suministro.',
+          ],
+        },
+        'jefe-de-compras': {
+          alias: 'Jefe de compras en constructora',
+          prioritarios: ['Catálogo completo según pipeline de obras'],
+          evitar: ['Argumentos puramente técnicos sin precio'],
+          angulo: 'Comparativos técnicos para sustitución de marca prescrita, condiciones comerciales (volumen, plazo de pago), informe de equivalencia técnica como entregable.',
+          discovery_clave: [
+            'Frecuencia de necesidad de sustituir marca prescrita.',
+            'Volumen anual estimado por familia de producto.',
+            'Acuerdos marco vigentes con otros fabricantes.',
+          ],
+        },
+        'director-tecnico': {
+          alias: 'Director técnico de constructora',
+          prioritarios: ['Catálogo completo según obras tipo'],
+          evitar: [],
+          angulo: 'Estabilidad del proveedor, capacidad de informes técnicos para defender ante propiedad y dirección facultativa, banco CIP actualizado.',
+          discovery_clave: [
+            'Tipos de obra dominantes en cartera.',
+            'Frecuencia de modificaciones técnicas en obra.',
+            'Si reciben pliegos con marca cerrada por defecto.',
+          ],
+        },
+        comercial: {
+          alias: 'Comercial / prescriptor interno en constructora',
+          prioritarios: ['Material para apoyar su prescripción interna'],
+          evitar: ['Saturarle con catálogo'],
+          angulo: 'Aliado interno: necesita material liviano para defender la marca frente a su propio equipo técnico.',
+          discovery_clave: [
+            'Quién decide finalmente la marca en obra: jefe de obra o director técnico.',
+            'Qué le pediría como material para defender la opción GPF.',
+          ],
+        },
+      },
+    },
+    CICA: {
+      default: 'tecnico-investigacion',
+      perfiles: {
+        'tecnico-investigacion': {
+          alias: 'Técnico de centro de investigación / universidad',
+          prioritarios: ['Ninguno directo — alianza institucional'],
+          evitar: ['Hablar como si fueran a comprar'],
+          angulo: 'Colaboración técnica: ensayos comparativos, publicaciones, casos de estudio. Relación a medio plazo, no venta.',
+          discovery_clave: [
+            'Líneas de investigación activas y posibles puntos de encaje.',
+            'Convenios vigentes con otros fabricantes.',
+            'Disponibilidad para tutorar TFGs o ensayos.',
+          ],
+        },
+        'director-asociacion': {
+          alias: 'Director de asociación sectorial (FERAGUA, COA, CIAC...)',
+          prioritarios: ['Catálogo según foco de la asociación'],
+          evitar: ['Venta directa'],
+          angulo: 'Eventos sectoriales conjuntos, ponencias técnicas, presencia en publicaciones de la asociación, acceso a sus asociados como red de prescripción.',
+          discovery_clave: [
+            'Calendario de eventos del año.',
+            'Qué fabricantes patrocinan habitualmente.',
+            'Composición y peso de sus asociados en la zona.',
+          ],
+        },
+      },
+    },
+    AAPP: {
+      default: 'tecnico-municipal',
+      perfiles: {
+        'tecnico-municipal': {
+          alias: 'Técnico municipal',
+          prioritarios: ['PE 100', 'ecoSAN', 'CONDUSAN', 'BIOPIPE PVC-O si riego municipal'],
+          evitar: ['MUTE', 'EUME'],
+          angulo: 'Fabricante andaluz (empleo local pesa muchísimo en municipios rurales), fondos PERTE Ciclo del Agua, criterios sostenibles (DAP, AENOR reciclado), casos de referencia en administraciones cercanas.',
+          discovery_clave: [
+            'Tamaño del municipio y estado de la red.',
+            'Si están en candidatura PERTE o tienen fondos asignados.',
+            'Quién redacta los proyectos (técnico propio o ingeniería externa).',
+            'Si están en zona protegida (Parque Natural, etc.).',
+          ],
+        },
+        'ingeniero-diputacion': {
+          alias: 'Ingeniero de Diputación / Mancomunidad',
+          prioritarios: ['PE 100', 'ecoSAN', 'CONDUSAN'],
+          evitar: ['MUTE', 'EUME'],
+          angulo: 'Estandarización por cuenca, criterios técnicos uniformes para múltiples municipios, soporte para pliegos modelo.',
+          discovery_clave: [
+            'Municipios bajo su ámbito.',
+            'Pliegos modelo que mantienen y marcas que listan.',
+            'Próximas convocatorias de obra hidráulica.',
+          ],
+        },
+        'alcalde-concejal': {
+          alias: 'Alcalde / Concejal de Obras',
+          prioritarios: ['Visión: empleo local + sostenibilidad + fondos europeos'],
+          evitar: ['Detalle técnico profundo'],
+          angulo: 'Mensaje político: empleo andaluz, sostenibilidad demostrable, alineación con fondos europeos, casos de éxito en otros municipios.',
+          discovery_clave: [
+            'Prioridades de mandato declaradas.',
+            'Relación con la Diputación / Mancomunidad provincial.',
+            'Pliegos en marcha que dependen de su firma.',
+          ],
+        },
+        secretario: {
+          alias: 'Secretario municipal',
+          prioritarios: ['Ninguno — es el filtro normativo'],
+          evitar: ['Argumentos políticos o comerciales'],
+          angulo: 'Cumplimiento normativo: validez de pliegos, documentación técnica para auditorías, AENOR, DAP, garantías legales del fabricante.',
+          discovery_clave: [
+            'Última auditoría municipal y hallazgos.',
+            'Criterios de evaluación que aplican en concursos.',
+          ],
+        },
+      },
+    },
+  };
+
+  /**
+   * Devuelve el perfil de cargo cruzado con tipo de empresa.
+   * Si el cargo exacto no existe, cae al perfil default del tipo.
+   * @param {string} type - Tipo de empresa (ARQ, ING, CCRR, OCV, CICA, AAPP).
+   * @param {string} cargo - Cargo del interlocutor (ej: 'ingeniero-agronomico').
+   * @returns {Object|null} Perfil de cargo o null si el tipo no está mapeado.
+   */
+  function getCargoOverlay(type, cargo) {
+    var block = CARGOS_POR_TIPO[type];
+    if (!block) return null;
+    var perfil = block.perfiles[cargo] || block.perfiles[block.default];
+    return perfil || null;
+  }
+
   /* Mapa de fuentes sectoriales por tipo (§18.5 + sección 8 doc metodología) */
   const FUENTES_SECTORIALES = {
     'ING': ['SEIASA (modernización regadíos)', 'Plan PARRA Andalucía (agua regenerada)', 'PERTE digitalización ciclo del agua', 'TED Europa / PLACSP', 'BOE (CCRR)', 'FERAGUA'],
@@ -691,7 +995,23 @@
     'Descarta resultados de homónimos en otros países (caso clásico: empresas con mismo nombre en LatAm).',
   ];
 
-  async function generateBriefing(studioId, fechaISO, contextoExtra) {
+  /**
+   * Genera un briefing pre-visita con IA para el studio indicado.
+   * @param {string} studioId - ID del studio en la base de datos.
+   * @param {string} fechaISO - Fecha de la visita en formato YYYY-MM-DD.
+   * @param {Object} opts - Opciones.
+   * @param {string} opts.cargoInterlocutor - Cargo del interlocutor previsto (ej: 'ingeniero-agronomico').
+   * @param {string} opts.tipoVisita - Tipo de visita: 'primera-frio' | 'primera-con-cita' | 'seguimiento' |
+   *   'presentacion-producto' | 'visita-tecnica-proyecto' | 'post-licitacion'.
+   * @param {string} [opts.contextoExtra] - Contexto adicional opcional indicado por Manolo.
+   */
+  async function generateBriefing(studioId, fechaISO, opts) {
+    opts = opts || {};
+    var cargoInterlocutor = opts.cargoInterlocutor;
+    var tipoVisita = opts.tipoVisita;
+    var contextoExtra = opts.contextoExtra || '';
+    if (!cargoInterlocutor || !tipoVisita) throw new Error('cargoInterlocutor y tipoVisita son obligatorios');
+
     const studio = await _getStudio(studioId);
     if (!studio) throw new Error('Estudio ' + studioId + ' no encontrado');
 
@@ -708,6 +1028,7 @@
     const contact = (studio.data && studio.data.contact) || {};
     const reports = (studio.data && studio.data.reports) || [];
     const activities = (studio.data && studio.data.activities) || [];
+    const team = (studio.data && studio.data.team) || [];
     const lastEvents = [].concat(reports, activities)
       .filter(function (e) { return e && (e.date || e.createdAt); })
       .sort(function (a, b) {
@@ -724,6 +1045,10 @@
         if (!p.decision || p.decision === 'pending') propuestasPendientes.push(p);
       });
     });
+
+    // Alerta PLACSP
+    const tieneAlertaPlacsp = !!(studio.data && studio.data.tieneAlertaPlacsp);
+    const adjPlacsp = (studio.data && studio.data.ultima_adjudicacion_placsp) || null;
 
     // Red de conexiones
     const sameProvince = studios.filter(function (s) {
@@ -757,6 +1082,8 @@
       _val(contact.address) ? 'Dirección: ' + _val(contact.address) : null,
       studio.data && studio.data.description ? 'Descripción: ' + studio.data.description.slice(0, 500) : null,
       studio.data && studio.data.studio && studio.data.studio.employees ? 'Empleados: ' + _val(studio.data.studio.employees) : null,
+      tieneAlertaPlacsp && adjPlacsp ? 'ALERTA PLACSP: adjudicación reciente — "' + (adjPlacsp.titulo || '') + '" por ' + (adjPlacsp.organismo || '') + ', importe ' + (adjPlacsp.importe || 'n/d') + ', fecha ' + (adjPlacsp.fecha || '') : null,
+      team.length ? 'Equipo conocido: ' + team.map(function (m) { return m.name + (m.role ? ' (' + m.role + ')' : '') + (m.isDecisionMaker ? ' ⭐' : ''); }).join(', ') : null,
     ].filter(Boolean).join('\n');
 
     const histCtx = esClienteNuevo
@@ -783,8 +1110,18 @@
     const catalogoSugerido = CATALOGO_POR_TIPO[tipoPrincipal] || 'Catálogo GPF: elegir 3-4 productos según el perfil técnico del cliente.';
     const fuentesSugeridas = (FUENTES_SECTORIALES[tipoPrincipal] || []).join(', ');
 
-    /* Fase B: recopilar contexto web ANTES de llamar a Claude.
-       Esto suma 10-25s pero garantiza datos verificables con URL. */
+    // Overlay de cargo
+    const overlay = getCargoOverlay(tipoPrincipal, cargoInterlocutor);
+    const overlayBlock = overlay
+      ? '## MATRIZ CRUZADA — ' + tipoPrincipal + ' × ' + cargoInterlocutor + '\n' +
+        '**Alias del perfil**: ' + overlay.alias + '\n' +
+        '**Productos prioritarios**: ' + overlay.prioritarios.join(', ') + '\n' +
+        '**Productos a evitar mencionar**: ' + (overlay.evitar.length ? overlay.evitar.join(', ') : 'ninguno específico') + '\n' +
+        '**Ángulo argumental**: ' + overlay.angulo + '\n' +
+        '**Discovery clave**:\n' + overlay.discovery_clave.map(function (q, i) { return (i + 1) + '. ' + q; }).join('\n') + '\n'
+      : '## MATRIZ CRUZADA\nPerfil (' + tipoPrincipal + ' × ' + cargoInterlocutor + ') no contemplado en CARGOS_POR_TIPO. Usar CATALOGO_POR_TIPO base y marcar en sección 4: "Perfil no mapeado en matriz; usando catálogo general de ' + tipoPrincipal + '".\n';
+
+    /* Fase B: recopilar contexto web ANTES de llamar a Claude. */
     let webContext = '';
     try {
       webContext = await _gatherWebContext(studio);
@@ -793,34 +1130,55 @@
     }
     const tieneWeb = !!webContext;
 
-    /* SYSTEM PROMPT — perfil del agente + reglas duras */
+    /* SYSTEM PROMPT v2 — rol, metodología y reglas. Sin plantilla: la plantilla va en el user message
+       para evitar que Claude devuelva los placeholders literalmente. */
     const systemPrompt =
-      'Eres el asistente comercial estratégico de Manuel Fernández (Manolo), prescriptor de Grupo Plásticos Ferro (GPF) en Andalucía, Extremadura y Levante. Trabajas bajo la metodología SPIN de Neil Rackham aplicada a prescripción técnica B2B en construcción/agua.\n\n' +
-      'MISIÓN: generar un briefing pre-visita ACCIONABLE en formato markdown, siguiendo la estructura del Modo Briefing §19.2 del CRM. NO un informe genérico: un documento de 2-4 páginas que prepare a Manolo para entrar a la visita con un PLAN claro y salir con un ADVANCE concreto.\n\n' +
-      'PRODUCTOS GPF (catálogo de referencia):\n' +
-      '- MUTE: saneamiento insonorizado PVC tricapa, requisito DB-HR edificación residencial.\n' +
+      'Eres un coach comercial sénior especializado en venta por prescripción de materiales de construcción e infraestructura en España. Asesoras a Manolo Fernández, prescriptor de GPF (Grupo Plásticos Ferro) zona sur. Su rol NO es vender directamente sino lograr que los productos GPF (marcas Tuyper, Ferroplast, BIOPIPE PVC-O) se incorporen a las memorias de proyecto antes de que salgan a concurso.\n\n' +
+      'Recibes datos estructurados del CRM y una MATRIZ DE PRESCRIPCIÓN CRUZADA por tipo de empresa × cargo del interlocutor. Produces un BRIEFING OPERATIVO listo para que Manolo lo lea en el coche antes de entrar al cliente.\n\n' +
+      '## Metodología\n\n' +
+      '- **SPIN Selling (Rackham)**: mix orientativo en 30 min → 1-2 Situación, 3-4 Problema, 4-6 Implicación, 2-3 Need-payoff. Minimizar Situación porque lo que se puede investigar se investiga antes.\n' +
+      '- **Advance vs Continuation**: el objetivo de cada visita es un Advance concreto (entregable + fecha), nunca una Continuation disfrazada de éxito.\n' +
+      '- **Tono**: directo, sin adulación, sin relleno motivacional. Si la visita no tiene valor real, dilo. Cero "interesante oportunidad".\n\n' +
+      '## Productos GPF (referencia)\n\n' +
+      '- MUTE: saneamiento insonorizado PVC tricapa, requisito DB-HR.\n' +
       '- EUME: canalón de aluminio extruido.\n' +
-      '- ECOSAN: saneamiento enterrado PVC corrugado.\n' +
-      '- CONDUSAN: tubería saneamiento de gran diámetro.\n' +
+      '- ecoSAN / CONDUSAN: saneamiento enterrado PVC corrugado / gran diámetro.\n' +
       '- BIOPIPE PVC-O: tubería a presión orientada (regadío + abastecimiento).\n' +
       '- PE 100: polietileno alta densidad para presión.\n' +
-      '- TUYPER: marca hermana, gama conducción.\n\n' +
-      'USO DEL CONTEXTO WEB:\n' +
+      '- TUYPER: gama conducción.\n\n' +
       (tieneWeb
-        ? 'El user prompt incluye un bloque "## CONTEXTO WEB RECOPILADO" con fuentes reales (web del cliente, buscador, prensa sectorial). REGLAS PARA USARLO:\n' +
-          '- Cualquier CIFRA que cites en la sección 5 (Señales de mercado) DEBE venir de ese bloque, indicando la fuente (nombre o URL).\n' +
-          '- Si una señal no la encuentras en el bloque web, NO la inventes. Es mejor decir "sin cifra verificable, comprobar antes de la visita" que inventar un dato.\n' +
-          '- Cita la fuente como `(según paginasamarillas.es)`, `(según iAgua)`, `(según noticia del [medio])`, etc.\n' +
-          '- Si el bloque web te aporta datos NUEVOS del cliente (proyectos verificados, equipo, premios, web propia), úsalos en la sección 2 (Contexto del cliente) con la misma regla de citación.\n'
-        : 'NO se ha recopilado contexto web (fuentes inalcanzables o cliente sin web). REGLA: en la sección 5 (Señales de mercado), si citas cifras concretas, marca explícitamente "estimación orientativa basada en conocimiento sectorial" o "comprobar antes de la visita". Mejor pocos datos verificables que muchos inventados.\n') +
-      '\nREGLAS DURAS (cumplir TODAS):\n' +
-      REGLAS_IMPLICITAS.map(function (r, i) { return (i + 1) + '. ' + r; }).join('\n') + '\n\n' +
-      'FORMATO DE OUTPUT: markdown directo, con headings ## para cada sección. SIN frontmatter YAML. SIN texto antes ni después del markdown. Las secciones DEBEN ser exactamente las 10 listadas en el user prompt, en ese orden.';
+        ? 'El user message incluye un bloque "## CONTEXTO WEB". Úsalo para destilar las secciones 1, 2, 5 y 10. NO lo incluyas literal. Cita la fuente cuando uses una cifra: "según iAgua [fecha]", "web corporativa", etc.\n\n'
+        : 'No hay contexto web disponible. Si citas cifras concretas, márcalas como [ESTIMADO] o "comprobar antes de la visita".\n\n') +
+      '## Reglas duras\n\n' +
+      '1. Etiqueta cada cifra o afirmación fuerte: [VERIFICADO], [ESTIMADO] o [INFERIDO].\n' +
+      '2. No inventes proyectos, personas ni cifras. Si una sección no tiene datos, escribe: "Sin datos suficientes — confirmar en visita".\n' +
+      '3. Máximo 3-4 productos GPF por briefing.\n' +
+      '4. Nunca menciones al cliente el scoring interno ni el cuadrante.\n' +
+      '5. Si el contexto apunta a Continuation disfrazada, márcalo en sección 11 y reformula Plan A.\n' +
+      '6. Si hay compromisos abiertos, el Plan A debe partir de cerrarlos.\n' +
+      '7. Tipo de visita gobierna el tono: primera-frio → descubrimiento; primera-con-cita → concreto; seguimiento → arranca por compromiso anterior; post-licitacion → aprender, no defenderse.\n' +
+      '8. Cargo del interlocutor gobierna la matriz. Si no encaja, usa el default del tipo y avísalo en el Aviso de marco.\n' +
+      '9. Markdown puro. Sin emojis decorativos (excepto 🔄 para preguntas SPIN que cierran compromisos).\n' +
+      '10. Longitud: que quepa en pantalla de iPhone con scroll cómodo. Recorta si una sección se infla.\n' +
+      '11. Idioma: español peninsular. Tecnicismos sin traducir (BC3, IFC, AENOR, DAP, BIOPIPE, PE 100, MUTE, EUME, PERTE, SEIASA, PLACSP).\n\n' +
+      overlayBlock;
 
-    /* USER PROMPT — datos concretos + plantilla */
+    // Nombre del contacto principal si existe en el equipo
+    const contactoPrincipal = team.find(function (m) {
+      return m.role && m.role.toLowerCase().includes(cargoInterlocutor.toLowerCase().split('-')[0]);
+    }) || (team.length ? team[0] : null);
+    const nombreContacto = contactoPrincipal ? ' (' + contactoPrincipal.name + ')' : '';
+    const quadrantInfo = studio.priorityQuadrant
+      ? 'Q' + studio.priorityQuadrant + (studio.priorityQuadrantName ? ' — ' + studio.priorityQuadrantName : '') + ' · score ' + (studio.score || '?') + '/10'
+      : 'sin clasificar';
+    const teamList = team.length
+      ? team.map(function (m) { return m.name + (m.role ? ' (' + m.role + ')' : '') + (m.isDecisionMaker ? ' ⭐decisor' : ''); }).join(', ')
+      : 'sin equipo registrado en el CRM';
+
+    /* USER PROMPT — datos reales del cliente + scaffolding de las 13 secciones.
+       La plantilla va aquí (no en el system prompt) para que Claude la rellene con contenido real. */
     const userMsg =
-      'Genera el briefing pre-visita para esta visita.\n\n' +
-      '## FECHA DE VISITA\n' + fecha + '\n\n' +
+      'Genera el briefing pre-visita con contenido REAL para cada sección. No repitas las instrucciones entre paréntesis: son guías para ti, no texto de salida.\n\n' +
       crmCtx + '\n\n' +
       '## HISTÓRICO RECIENTE (últimas 5 entradas)\n' + histCtx + '\n\n' +
       '## COMPROMISOS ABIERTOS\n' + compromisosCtx + '\n\n' +
@@ -828,35 +1186,54 @@
       (contextoExtra ? '## CONTEXTO EXTRA INDICADO POR MANOLO\n' + contextoExtra + '\n\n' : '') +
       '## ORIENTACIÓN SECTORIAL\n' +
       'Tipo principal: ' + tipoPrincipal + '\n' +
-      'Fuentes sectoriales habituales: ' + (fuentesSugeridas || '(no mapeado)') + '\n' +
-      'Catálogo GPF sugerido para este tipo:\n' + catalogoSugerido + '\n' +
+      'Fuentes habituales: ' + (fuentesSugeridas || '(no mapeado)') + '\n' +
+      'Catálogo GPF base:\n' + catalogoSugerido + '\n\n' +
       webContext + '\n' +
       '---\n\n' +
-      'Genera el briefing en MARKDOWN con EXACTAMENTE estas 10 secciones, en este orden:\n\n' +
-      '# Briefing pre-visita — ' + studioName + '\n\n' +
-      '> (línea de aviso si procede: si la cartera es escasa, decir "perfil reconstruido desde el CRM' +
-      (tieneWeb ? ' + búsqueda web del ' + new Date().toISOString().slice(0,10) : '') +
-      ', nivel single_source")\n\n' +
-      '## 1. Resumen ejecutivo\n' +
-      '(3-5 líneas: quién es, dónde está en cartera, por qué se le visita AHORA — específico, no genérico. Si es cliente nuevo, mencionar que el objetivo no es vender sino posicionarse como interlocutor técnico)\n\n' +
-      '## 2. Contexto del cliente\n' +
-      '(actividad, estructura, proyectos verificados, perfil; bloque al final "lo que NO se sabe y conviene verificar en visita")\n\n' +
-      '## 3. Histórico reciente\n' +
-      '(' + (esClienteNuevo ? 'declarar explícitamente: PRIMERA VISITA, sin histórico' : 'resumir últimas 3-5 interacciones con fecha + insight') + ')\n\n' +
-      '## 4. Compromisos abiertos\n' +
-      '(' + (propuestasPendientes.length === 0 ? 'declarar: ninguno por ' + (esClienteNuevo ? 'no haber relación previa' : 'estar al día') : 'listar compromisos con qué/quién/cuándo') + ')\n\n' +
-      '## 5. Señales de mercado relevantes\n' +
-      '(adjudicaciones públicas recientes y noticias del sector ' + tipoPrincipal + ' en ' + province + '. Cada señal con cifra concreta + fuente. Cerrar con "Lectura para la visita")\n\n' +
-      '## 6. Red y conexiones\n' +
-      '(prescriptores puente, clientes referenciables en la zona, ecosistema natural donde el cliente opera)\n\n' +
-      '## 7. Sugerencia SPIN para esta visita\n' +
-      '(apertura breve + Situación 1-2 preguntas + Problema 3-4 preguntas + Implicación 4-6 preguntas + Need-payoff 2-3 preguntas. Particulariza las preguntas al cliente concreto, no plantillas)\n\n' +
-      '## 8. Catálogo GPF prioritario para esta visita\n' +
-      '(3-4 productos relevantes, NO el catálogo entero. Para cada producto, una línea de POR QUÉ encaja con ESTE cliente)\n\n' +
-      '## 9. Cosas a evitar mencionar\n' +
-      '(3-5 cosas concretas: origen del descubrimiento, scoring, posicionarse como comercial puro, presionar para cierre, etc.)\n\n' +
-      '## 10. Objetivo de advance para esta visita\n' +
-      '(2-3 opciones realistas de compromiso entregable + fecha; advertencia sobre continuation; cómo cerrar la reunión sin caer en "ya hablaremos")';
+      '# Briefing — ' + studioName + '\n\n' +
+      '**Fecha:** ' + fecha + '\n' +
+      '**Tipo de visita:** ' + tipoVisita + '\n' +
+      '**Interlocutor previsto:** ' + cargoInterlocutor + nombreContacto + '\n' +
+      '**Cuadrante estratégico:** ' + quadrantInfo + '\n\n' +
+      '> **Aviso de marco**: (escribe aquí una frase que oriente el tono de la visita — ej: "prescripción pura, no venta directa", "cliente puente para la zona", "post-licitación, objetivo aprender")\n\n' +
+      '---\n\n' +
+      '## 1. Quién es ' + studioName + ' y por qué importa\n' +
+      '(3-5 párrafos: identidad, actividad, tamaño, track record verificable, geografía. Etiqueta cada afirmación [VERIFICADO], [ESTIMADO] o [INFERIDO])\n\n' +
+      '## 2. Por qué esta visita es estratégica (o no)\n' +
+      '(Análisis honesto del cuadrante ' + quadrantInfo + '. ' +
+      (tieneAlertaPlacsp && adjPlacsp ? 'Hay alerta PLACSP: adjudicación "' + (adjPlacsp.titulo || '') + '" — cómo cambia la conversación.' : 'Sin alerta PLACSP.') + ')\n\n' +
+      '## 3. Persona(s) de contacto\n' +
+      '(Equipo conocido: ' + teamList + '. Si ' + cargoInterlocutor + ' no aparece, añade: "Pedir por ' + cargoInterlocutor + ' en recepción" + script de 1 línea)\n\n' +
+      '## 4. Productos GPF prescribibles aquí\n' +
+      '(Máximo 3-4 productos según la MATRIZ CRUZADA del system prompt. 1 frase de justificación por producto. Sub-sección obligatoria: **No mencionar en esta visita:**)\n\n' +
+      '## 5. Ángulo argumental\n' +
+      '(3-5 bullets usando el ángulo de la MATRIZ para cargo "' + cargoInterlocutor + '" en empresa tipo ' + tipoPrincipal + ')\n\n' +
+      '## 6. Cómo concertar / qué decir al entrar\n' +
+      '(Adapta al tipo "' + tipoVisita + '": guion de apertura, qué carpeta llevas, qué NO sueltas todavía)\n\n' +
+      '## 7. Preguntas SPIN específicas para esta visita\n\n' +
+      '### Situación (1-2 preguntas — solo lo que no se puede investigar antes)\n\n' +
+      '### Problema (3-4 preguntas — dolores reales del perfil ' + cargoInterlocutor + ')\n\n' +
+      '### Implicación (4-6 preguntas — cuantifica consecuencias; es la sección más rentable)\n\n' +
+      '### Need-payoff (2-3 preguntas — que el cliente verbalice el valor)\n\n' +
+      (propuestasPendientes.length ? '(Añade 1-2 preguntas 🔄 para cerrar los compromisos abiertos)\n\n' : '') +
+      '## 8. Material a llevar\n' +
+      '(Lista priorizada, máximo 5-6 elementos relevantes para ' + cargoInterlocutor + '. Sub-sección obligatoria: **No llevar:**)\n\n' +
+      '## 9. Objetivo de Advance, por preferencia\n\n' +
+      '### Plan A — el más potente\n' +
+      '(Frase literal lista para soltar: entregable concreto + fecha + siguiente paso. ' +
+      (propuestasPendientes.length ? 'Debe cerrar un compromiso abierto.' : '') + ')\n\n' +
+      '### Plan B — conservador\n' +
+      '(Frase literal. Patrón "das tú, no pides".)\n\n' +
+      '### Plan C — mínimo aceptable\n' +
+      '(Frase literal. Siempre TÚ entregas algo.)\n\n' +
+      '## 10. Detalles tácticos\n' +
+      '(3-5 puntos específicos: cultura del sector, riesgos relacionales, palancas únicas — fabricante andaluz, fábrica Atarfe, PERTE — proyectos del cliente que esperará que conozcas)\n\n' +
+      '## 11. Lo que esta visita puede valer\n' +
+      '(Retorno esperado si va bien: qué decisiones, qué proyectos, efecto red, plazo. Si la visita NO tiene valor real, dilo aquí sin rodeos)\n\n' +
+      '## 12. Checklist pre-visita\n' +
+      '(Lista con - [ ] específica para ' + studioName + ')\n\n' +
+      '## 13. Checklist post-visita (en el coche, los 10 minutos siguientes)\n' +
+      '(Lista con - [ ] de preguntas que Manolo debe poder contestar nada más salir: pliego abierto o cerrado, quién decide marca, qué prometí y cuándo, siguiente acción con fecha, referencias cruzadas detectadas)';
 
     const raw = await _claudeCall(systemPrompt, userMsg, 8192);
 
@@ -866,6 +1243,9 @@
       .replace(/\s*```\s*$/, '')
       .trim();
 
+    // DEBUG TEMPORAL — eliminar tras validar
+    console.log('[briefing DEBUG] primeros 600 chars generados:\n', markdown.slice(0, 600));
+
     // Persistir en el backend activo
     const isoDate = new Date().toISOString().replace(/[:.]/g, '-');
     try {
@@ -873,8 +1253,10 @@
         fecha_visita: fecha,
         generated_at: new Date().toISOString(),
         contexto_extra: contextoExtra || null,
+        cargo_interlocutor: cargoInterlocutor,
+        tipo_visita: tipoVisita,
         markdown: markdown,
-        formato: 'markdown_v2',
+        formato: 'markdown_v3',
         studio_snapshot: {
           name: studioName,
           province: province,
@@ -1346,6 +1728,8 @@
     enrichStudio: enrichStudio,
     callGAS: callGAS,
     generateBriefing: generateBriefing,
+    CARGOS_POR_TIPO: CARGOS_POR_TIPO,
+    getCargoOverlay: getCargoOverlay,
     generateReport: generateReport,
     getBriefingItems: getBriefingItems,
     savePlanificador: savePlanificador,

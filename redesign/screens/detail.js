@@ -190,6 +190,30 @@
     State.currentStudioId = studio.id;
     v.innerHTML = renderFull(studio);
     wireCTAs(studio);
+
+    // Carga asíncrona del briefing más reciente para actualizar la preview
+    if (window.Data && window.Data.getBriefingItems) {
+      var _renderedId = id;
+      window.Data.getBriefingItems(_renderedId, 1).then(function (items) {
+        // Verificar que el usuario sigue en la misma ficha
+        if (State.currentStudioId !== _renderedId) return;
+        if (!items || !items.length) return;
+        var latest = items[0];
+        if (!latest.markdown && !(latest.briefing && typeof latest.briefing === 'object')) return;
+        var previewEl = document.getElementById('detail-briefing-preview');
+        var fechaEl = document.getElementById('detail-briefing-fecha');
+        if (previewEl) {
+          var previewText = latest.markdown
+            ? latest.markdown.replace(/^#+\s*/mg, '').replace(/\*\*/g, '').replace(/\n+/g, ' ').slice(0, 220).trim() + '…'
+            : 'Briefing disponible';
+          previewEl.innerHTML = '<span style="color:var(--fg-2);">' + previewText + '</span>';
+        }
+        if (fechaEl && (latest.generated_at || latest.fecha_visita)) {
+          var d = latest.generated_at || latest.fecha_visita;
+          fechaEl.textContent = 'Generado ' + (typeof U !== 'undefined' ? U.formatDateES(d) : d.slice(0, 10));
+        }
+      }).catch(function () {});
+    }
   }
 
   function renderFull(s) {
@@ -441,10 +465,12 @@
       '<section style="margin-bottom:16px;">' +
         '<div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px;">' +
           '<span class="eyebrow">Briefing pre-visita</span>' +
-          (s.briefingFecha ? '<span style="font-size:12px; color:var(--fg-3); font-family:var(--font-mono);">Generado ' + escape(s.briefingFecha) + '</span>' : '') +
+          '<span id="detail-briefing-fecha" style="font-size:12px; color:var(--fg-3); font-family:var(--font-mono);">' +
+            (s.briefingFecha ? 'Generado ' + escape(s.briefingFecha) : '') +
+          '</span>' +
         '</div>' +
         '<div class="card" style="padding:16px;">' +
-          '<div style="font-size:14px; line-height:1.5; color:var(--fg-2); margin-bottom:12px;">' +
+          '<div id="detail-briefing-preview" style="font-size:14px; line-height:1.5; color:var(--fg-2); margin-bottom:12px;">' +
             (s.briefingPreview || '<span style="color:var(--fg-3);">Sin briefing previo. Genera uno con IA antes de visitar este cliente.</span>') +
           '</div>' +
           '<div style="display:grid; grid-template-columns:1fr auto; gap:8px;">' +
@@ -1678,36 +1704,154 @@
   /* ============================================================
      GENERACIÓN BRIEFING IA
      ============================================================ */
-  async function regenerarBriefingIA(studio) {
+  function regenerarBriefingIA(studio) {
     if (!window.Data || !window.Data.generateBriefing) { alert('Capa de datos no disponible.'); return; }
-    const fecha = prompt('Fecha de la visita (YYYY-MM-DD):', new Date().toISOString().slice(0, 10));
-    if (!fecha) return;
-    const contexto = prompt('Contexto extra (opcional):', '') || '';
-    if (window.States && window.States.showLoading) {
-      window.States.showLoading('view-detail', {
-        title: 'Generando briefing con IA',
-        sub: 'Analizando licitaciones, red profesional y compromisos…',
-      });
-    }
-    try {
-      const res = await window.Data.generateBriefing(studio.id, fecha, contexto);
-      if (res && (res.success || res.ok || res.briefing)) {
-        render({ studioId: studio.id });
-        setTimeout(function () { window.showView('briefing', { studioId: studio.id }); }, 300);
-      } else {
-        throw new Error((res && (res.error || res.message)) || 'Respuesta no reconocida');
+
+    // Construir opciones de cargo según tipo del studio
+    var tipoPrincipal = Array.isArray(studio.type) ? studio.type[0] : (studio.type || 'ARQ');
+    var cargosPorTipo = (window.Data.CARGOS_POR_TIPO && window.Data.CARGOS_POR_TIPO[tipoPrincipal]) || null;
+    var perfilesDelTipo = cargosPorTipo ? Object.keys(cargosPorTipo.perfiles) : [];
+    var defaultCargo = cargosPorTipo ? cargosPorTipo.default : '';
+
+    // Roles del equipo conocido (sugerir primero)
+    var teamRoles = [];
+    var team = (studio.data && studio.data.team) || [];
+    team.forEach(function (m) {
+      if (m.role && teamRoles.indexOf(m.role) === -1) teamRoles.push(m.role);
+    });
+
+    // Construir <option> para cargo
+    function buildCargoOptions() {
+      var html = '<option value="">— seleccionar cargo —</option>';
+      if (teamRoles.length) {
+        html += '<optgroup label="Equipo conocido del cliente">';
+        teamRoles.forEach(function (r) {
+          html += '<option value="' + r + '">' + r + '</option>';
+        });
+        html += '</optgroup>';
       }
-    } catch (e) {
-      console.error('[redesign/detail] error briefing:', e);
-      if (window.States && window.States.showError) {
-        window.States.showError('view-detail', {
-          title: 'No se pudo generar el briefing',
-          body: 'El servidor no respondió. Inténtalo de nuevo.',
-          detail: (e.message || '').slice(0, 200),
-          ctas: [{ label: 'Volver', onclick: 'window.Screens.detail.render({ studioId: \'' + studio.id + '\' })' }],
+      if (perfilesDelTipo.length) {
+        html += '<optgroup label="Perfiles ' + tipoPrincipal + ' (matriz GPF)">';
+        perfilesDelTipo.forEach(function (k) {
+          var perfil = cargosPorTipo.perfiles[k];
+          var label = perfil ? perfil.alias : k;
+          var sel = k === defaultCargo ? ' selected' : '';
+          html += '<option value="' + k + '"' + sel + '>' + label + '</option>';
+        });
+        html += '</optgroup>';
+      }
+      if (!perfilesDelTipo.length && !teamRoles.length) {
+        html += '<option value="otro">Otro / no especificado</option>';
+      }
+      return html;
+    }
+
+    var today = new Date().toISOString().slice(0, 10);
+    var modalId = 'modal-briefing-gen';
+
+    // Eliminar modal previo si existe
+    var prev = document.getElementById(modalId);
+    if (prev) prev.remove();
+
+    var modalHtml =
+      '<div id="' + modalId + '" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);" onclick="if(event.target===this){this.remove()}">' +
+        '<div style="background:var(--surface,#fff);border-radius:16px;padding:28px 24px;width:min(440px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.3);" onclick="event.stopPropagation()">' +
+          '<div style="font-size:17px;font-weight:700;margin-bottom:4px;">Generar briefing con IA</div>' +
+          '<div style="font-size:13px;color:var(--fg-2,#666);margin-bottom:20px;">' + (studio.name || studio.id) + '</div>' +
+
+          '<label style="display:block;margin-bottom:12px;">' +
+            '<span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--fg-2,#888);display:block;margin-bottom:4px;">Cargo del interlocutor *</span>' +
+            '<select id="brief-gen-cargo" style="width:100%;padding:9px 12px;border:1px solid var(--border,#e5e7eb);border-radius:8px;font-size:14px;background:var(--surface,#fff)">' +
+              buildCargoOptions() +
+            '</select>' +
+          '</label>' +
+
+          '<label style="display:block;margin-bottom:12px;">' +
+            '<span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--fg-2,#888);display:block;margin-bottom:4px;">Tipo de visita *</span>' +
+            '<select id="brief-gen-tipo" style="width:100%;padding:9px 12px;border:1px solid var(--border,#e5e7eb);border-radius:8px;font-size:14px;background:var(--surface,#fff)">' +
+              '<option value="">— seleccionar —</option>' +
+              '<option value="primera-frio">Primera visita (en frío)</option>' +
+              '<option value="primera-con-cita">Primera visita (con cita)</option>' +
+              '<option value="seguimiento" selected>Seguimiento</option>' +
+              '<option value="visita-tecnica-proyecto">Visita técnica de proyecto</option>' +
+              '<option value="presentacion-producto">Presentación de producto</option>' +
+              '<option value="post-licitacion">Post-licitación</option>' +
+            '</select>' +
+          '</label>' +
+
+          '<label style="display:block;margin-bottom:12px;">' +
+            '<span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--fg-2,#888);display:block;margin-bottom:4px;">Fecha de visita</span>' +
+            '<input id="brief-gen-fecha" type="date" value="' + today + '" style="width:100%;padding:9px 12px;border:1px solid var(--border,#e5e7eb);border-radius:8px;font-size:14px;background:var(--surface,#fff);box-sizing:border-box">' +
+          '</label>' +
+
+          '<label style="display:block;margin-bottom:20px;">' +
+            '<span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--fg-2,#888);display:block;margin-bottom:4px;">Contexto extra (opcional)</span>' +
+            '<textarea id="brief-gen-ctx" rows="2" placeholder="Ej: llevan 6 meses sin comprar, proyecto en fase anteproyecto…" style="width:100%;padding:9px 12px;border:1px solid var(--border,#e5e7eb);border-radius:8px;font-size:14px;background:var(--surface,#fff);resize:vertical;box-sizing:border-box"></textarea>' +
+          '</label>' +
+
+          '<div id="brief-gen-error" style="display:none;font-size:13px;color:#ef4444;margin-bottom:12px;padding:8px 12px;background:#fef2f2;border-radius:8px;"></div>' +
+
+          '<div style="display:flex;gap:10px;justify-content:flex-end;">' +
+            '<button onclick="document.getElementById(\'' + modalId + '\').remove()" style="padding:9px 18px;border:1px solid var(--border,#e5e7eb);border-radius:8px;background:transparent;font-size:14px;cursor:pointer">Cancelar</button>' +
+            '<button id="brief-gen-submit" style="padding:9px 18px;border:none;border-radius:8px;background:var(--accent,#2563eb);color:#fff;font-size:14px;font-weight:600;cursor:pointer">Generar briefing</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    document.getElementById('brief-gen-submit').addEventListener('click', function () {
+      var cargo = document.getElementById('brief-gen-cargo').value.trim();
+      var tipo = document.getElementById('brief-gen-tipo').value;
+      var fecha = document.getElementById('brief-gen-fecha').value || today;
+      var ctx = (document.getElementById('brief-gen-ctx').value || '').trim();
+      var errEl = document.getElementById('brief-gen-error');
+
+      if (!cargo) {
+        errEl.textContent = 'Selecciona el cargo del interlocutor.';
+        errEl.style.display = 'block';
+        return;
+      }
+      if (!tipo) {
+        errEl.textContent = 'Selecciona el tipo de visita.';
+        errEl.style.display = 'block';
+        return;
+      }
+      errEl.style.display = 'none';
+
+      var modal = document.getElementById(modalId);
+      if (modal) modal.remove();
+
+      if (window.States && window.States.showLoading) {
+        window.States.showLoading('view-detail', {
+          title: 'Generando briefing con IA',
+          sub: 'Analizando licitaciones, red profesional y compromisos…',
         });
       }
-    }
+
+      window.Data.generateBriefing(studio.id, fecha, {
+        cargoInterlocutor: cargo,
+        tipoVisita: tipo,
+        contextoExtra: ctx,
+      }).then(function (res) {
+        if (res && (res.success || res.ok || res.briefing)) {
+          render({ studioId: studio.id });
+          setTimeout(function () { window.showView('briefing', { studioId: studio.id }); }, 300);
+        } else {
+          throw new Error((res && (res.error || res.message)) || 'Respuesta no reconocida');
+        }
+      }).catch(function (e) {
+        console.error('[redesign/detail] error briefing:', e);
+        if (window.States && window.States.showError) {
+          window.States.showError('view-detail', {
+            title: 'No se pudo generar el briefing',
+            body: 'El servidor no respondió. Inténtalo de nuevo.',
+            detail: (e.message || '').slice(0, 200),
+            ctas: [{ label: 'Volver', onclick: 'window.Screens.detail.render({ studioId: \'' + studio.id + '\' })' }],
+          });
+        }
+      });
+    });
   }
 
   /* ============================================================
