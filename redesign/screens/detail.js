@@ -190,6 +190,30 @@
     State.currentStudioId = studio.id;
     v.innerHTML = renderFull(studio);
     wireCTAs(studio);
+
+    // Carga asíncrona del briefing más reciente para actualizar la preview
+    if (window.Data && window.Data.getBriefingItems) {
+      var _renderedId = id;
+      window.Data.getBriefingItems(_renderedId, 1).then(function (items) {
+        // Verificar que el usuario sigue en la misma ficha
+        if (State.currentStudioId !== _renderedId) return;
+        if (!items || !items.length) return;
+        var latest = items[0];
+        if (!latest.markdown && !(latest.briefing && typeof latest.briefing === 'object')) return;
+        var previewEl = document.getElementById('detail-briefing-preview');
+        var fechaEl = document.getElementById('detail-briefing-fecha');
+        if (previewEl) {
+          var previewText = latest.markdown
+            ? latest.markdown.replace(/^#+\s*/mg, '').replace(/\*\*/g, '').replace(/\n+/g, ' ').slice(0, 220).trim() + '…'
+            : 'Briefing disponible';
+          previewEl.innerHTML = '<span style="color:var(--fg-2);">' + previewText + '</span>';
+        }
+        if (fechaEl && (latest.generated_at || latest.fecha_visita)) {
+          var d = latest.generated_at || latest.fecha_visita;
+          fechaEl.textContent = 'Generado ' + (typeof U !== 'undefined' ? U.formatDateES(d) : d.slice(0, 10));
+        }
+      }).catch(function () {});
+    }
   }
 
   function renderFull(s) {
@@ -441,10 +465,12 @@
       '<section style="margin-bottom:16px;">' +
         '<div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px;">' +
           '<span class="eyebrow">Briefing pre-visita</span>' +
-          (s.briefingFecha ? '<span style="font-size:12px; color:var(--fg-3); font-family:var(--font-mono);">Generado ' + escape(s.briefingFecha) + '</span>' : '') +
+          '<span id="detail-briefing-fecha" style="font-size:12px; color:var(--fg-3); font-family:var(--font-mono);">' +
+            (s.briefingFecha ? 'Generado ' + escape(s.briefingFecha) : '') +
+          '</span>' +
         '</div>' +
         '<div class="card" style="padding:16px;">' +
-          '<div style="font-size:14px; line-height:1.5; color:var(--fg-2); margin-bottom:12px;">' +
+          '<div id="detail-briefing-preview" style="font-size:14px; line-height:1.5; color:var(--fg-2); margin-bottom:12px;">' +
             (s.briefingPreview || '<span style="color:var(--fg-3);">Sin briefing previo. Genera uno con IA antes de visitar este cliente.</span>') +
           '</div>' +
           '<div style="display:grid; grid-template-columns:1fr auto; gap:8px;">' +
