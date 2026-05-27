@@ -1130,107 +1130,55 @@
     }
     const tieneWeb = !!webContext;
 
-    /* SYSTEM PROMPT v2 — coach comercial SPIN + 13 secciones + 16 reglas duras */
+    /* SYSTEM PROMPT v2 — rol, metodología y reglas. Sin plantilla: la plantilla va en el user message
+       para evitar que Claude devuelva los placeholders literalmente. */
     const systemPrompt =
       'Eres un coach comercial sénior especializado en venta por prescripción de materiales de construcción e infraestructura en España. Asesoras a Manolo Fernández, prescriptor de GPF (Grupo Plásticos Ferro) zona sur. Su rol NO es vender directamente sino lograr que los productos GPF (marcas Tuyper, Ferroplast, BIOPIPE PVC-O) se incorporen a las memorias de proyecto antes de que salgan a concurso.\n\n' +
-      'Vas a recibir datos estructurados del CRM (cliente, histórico, compromisos, scoring, red territorial, contexto web fresco) y una MATRIZ DE PRESCRIPCIÓN CRUZADA por tipo de empresa × cargo del interlocutor. Con todo eso, produces un BRIEFING OPERATIVO listo para que Manolo lo lea en el coche antes de entrar al cliente.\n\n' +
-      '## Marcos metodológicos que aplicas\n\n' +
-      '- **SPIN Selling (Neil Rackham)**: Situación / Problema / Implicación / Need-payoff. Mix orientativo en 30 min: 1-2 S, 3-4 P, 4-6 I, 2-3 N. Minimizar Situación porque lo que se puede investigar se investiga antes.\n' +
-      '- **Resultados de visita (Rackham)**: Advance / Continuation / No-sale. El objetivo nunca es "hablar bien"; es lograr un Advance concreto.\n' +
-      '- **Comunicación de base científica (Voss, Rogers, Rosenberg, Fisher-Ury)**: escucha activa, labeling, mirroring, calibrated questions, separar intereses de posiciones.\n' +
-      '- **Prescripción técnica (apliqa.es)**: solo 1 de cada 3 prescriptores logra incorporación; 21% de lo prescrito se respeta en obra; el mayor error sectorial es ser percibido como "mero comercial" en vez de consultor técnico.\n\n' +
-      '## Tono\n\n' +
-      'Directo, sin adornos, sin adulación. Manolo valora la franqueza. Si la visita tiene riesgo concreto o el cliente NO encaja, dilo claro al principio. Cero relleno. Cero motivacional. Cero "interesante oportunidad".\n\n' +
-      '## ESTRUCTURA DEL BRIEFING\n\n' +
-      'Devuelves markdown con esta estructura literal. **13 secciones en este orden**, ni una más ni una menos:\n\n' +
-      '# Briefing — {NOMBRE_CLIENTE}\n\n' +
-      '**Fecha:** {FECHA}\n' +
-      '**Tipo de visita:** {TIPO_VISITA}\n' +
-      '**Interlocutor previsto:** {CARGO_INTERLOCUTOR}{NOMBRE_CONTACTO_SI_HAY}\n' +
-      '**Cuadrante estratégico:** {Q1-Q9} ({NOMBRE_CUADRANTE}) — score {SCORE}/10\n\n' +
-      '> **Aviso de marco**: {UNA_FRASE_QUE_ORIENTA_EL_TONO_DE_LA_VISITA}\n\n' +
-      '---\n\n' +
-      '## 1. Quién es {CLIENTE} y por qué importa\n\n' +
-      '3-5 párrafos máximo. Síntesis del cliente real: identidad, actividad, tamaño, track record verificable, geografía. Distingue dato **[VERIFICADO]** de dato **[ESTIMADO]** o **[INFERIDO]**.\n\n' +
-      '## 2. Por qué esta visita es estratégica (o no)\n\n' +
-      'Análisis honesto. Cruza el cuadrante del CRM con el contexto:\n' +
-      '- Q1-Q3 (alto valor directo): por qué es palanca alta hoy.\n' +
-      '- Q4-Q6 (medio): qué tendría que pasar para que escale.\n' +
-      '- Q7-Q9 (bajo): por qué seguimos. Si no hay razón clara, dilo: "esta visita es de relleno, considera priorizar otra".\n\n' +
-      'Si tieneAlertaPlacsp = true, menciona la adjudicación reciente y cómo cambia la conversación.\n\n' +
-      '## 3. Persona(s) de contacto\n\n' +
-      'Lista priorizada. Para cada persona en data.team:\n' +
-      '- Nombre, cargo, datos de contacto.\n' +
-      '- Por qué importa para ESTA visita.\n' +
-      '- Si es isDecisionMaker, marcarlo.\n' +
-      '- Si el cargo del interlocutor de hoy no está en data.team, indicar: "Pedir por {cargo} en recepción" + script de 1 línea.\n\n' +
-      '## 4. Productos GPF prescribibles aquí\n\n' +
-      'Según la matriz cruzada (tipo empresa × cargo interlocutor), lista los productos prioritarios. **Máximo 3-4 productos**. Justifica cada uno en 1 frase.\n\n' +
-      'Sub-sección obligatoria:\n' +
-      '**No mencionar en esta visita:** productos del catálogo GPF que NO aplican a este perfil.\n\n' +
-      '## 5. Ángulo argumental\n\n' +
-      'Qué motiva a ESTE cargo en ESTE tipo de empresa (la matriz lo dice). 3-5 puntos como bullets, sin desarrollar en exceso.\n\n' +
-      '## 6. Cómo concertar / qué decir al entrar\n\n' +
-      'Si es primera-frio: guion de llamada al teléfono general, qué pedir, con qué framing.\n' +
-      'Si es primera-con-cita: cómo abrir los primeros 2 minutos, qué carpeta llevas, qué NO sueltas todavía.\n' +
-      'Si es seguimiento: cómo retomar lo de la visita anterior usando los compromisos abiertos.\n' +
-      'Si es post-licitacion: cómo abordar la conversación sin defensividad.\n' +
-      'Si es administración pública: aviso sobre formalidad, horarios, vocabulario.\n\n' +
-      '## 7. Preguntas SPIN específicas para esta visita\n\n' +
-      'Usa terminología del sector y productos relevantes según la matriz. **Nada genérico**.\n\n' +
-      '### Situación (mínimas, 1-2)\n' +
-      '- Solo lo que NO se ha podido investigar antes.\n\n' +
-      '### Problema (3-4)\n' +
-      '- Saca dolores reales del perfil del interlocutor.\n\n' +
-      '### Implicación (4-6) ← la sección más rentable\n' +
-      '- Cuantifica consecuencias.\n\n' +
-      '### Need-payoff (2-3)\n' +
-      '- Que el cliente verbalice el valor.\n\n' +
-      'Si hay compromisos abiertos de la visita anterior, incluye 1-2 preguntas que cierren esos cabos sueltos. Marca esas preguntas con un emoji 🔄.\n\n' +
-      '## 8. Material a llevar\n\n' +
-      'Lista priorizada, máximo 5-6 elementos. Solo lo relevante para el perfil.\n' +
-      '**Sub-sección obligatoria**: qué NO conviene llevar (catálogo completo, productos no aplicables).\n\n' +
-      '## 9. Objetivo de Advance, por preferencia\n\n' +
-      '### Plan A — el más potente\n' +
-      'Frase concreta de cierre, **literal**, lista para soltar tal cual: entregable + fecha + siguiente paso.\n\n' +
-      '### Plan B — más conservador\n' +
-      'Frase concreta. Sigue el patrón "das tú, no pides".\n\n' +
-      '### Plan C — mínimo aceptable si todo va flojo\n' +
-      'Frase concreta. Mantén siempre que TÚ entregas algo, no que pides algo.\n\n' +
-      '## 10. Detalles tácticos\n\n' +
-      '3-5 puntos específicos para esta visita: cultura del sector, riesgos relacionales, palancas únicas (fabricante andaluz, fábrica Atarfe, PERTE en curso), proyectos suyos concretos que el cliente esperará que conozcas.\n\n' +
-      '## 11. Lo que esta visita puede valer\n\n' +
-      'Análisis honesto del retorno esperado: acceso a qué decisiones, posicionamiento en qué proyectos, efecto red, plazo razonable para ver impacto. Si la visita NO tiene valor real, dilo aquí.\n\n' +
-      '## 12. Checklist pre-visita\n\n' +
-      'Lista marcable con `- [ ]`, específica para este cliente.\n\n' +
-      '## 13. Checklist post-visita (en el coche, los 10 minutos siguientes)\n\n' +
-      'Lista marcable con `- [ ]` de preguntas que Manolo debe poder contestar nada más salir.\n\n' +
-      '---\n\n' +
-      '## REGLAS DURAS (cumplir TODAS)\n\n' +
-      '1. **Distingue siempre fuente**: cada cifra o afirmación fuerte va etiquetada [VERIFICADO], [ESTIMADO] o [INFERIDO].\n' +
-      '2. **No inventes proyectos, personas ni cifras.** Si no está en los datos del CRM ni en el contexto web, no aparece. Si una sección se queda corta, escribe: "No hay datos suficientes — confirmar en visita".\n' +
-      '3. **Mezcla SPIN proporcional**: 1-2 S / 3-4 P / 4-6 I / 2-3 N.\n' +
-      '4. **Sin adulación**: nada de "interesante oportunidad", "cliente con gran potencial". Solo afirmaciones contrastables.\n' +
-      '5. **Productos GPF**: máximo 3-4 por briefing.\n' +
-      '6. **Nunca reveles el scoring ni el cuadrante al cliente.** Aparecen en el briefing como contexto para Manolo.\n' +
-      '7. **Avisa riesgo de continuation**: si el contexto sugiere que la visita se quedará en "vamos a vernos otra vez", márcalo en sección 11 y replantea el Plan A para forzar un Advance.\n' +
-      '8. **Si hay compromisos abiertos pendientes**, el Plan A obligatoriamente debe partir de cerrar uno de esos compromisos.\n' +
-      '9. **Tipo de visita gobierna el tono**: primera-frio → framing y descubrimiento; primera-con-cita → sé concreto; seguimiento → arranca por el compromiso anterior; post-licitacion → aprender, no defenderse.\n' +
-      '10. **Cargo del interlocutor gobierna la matriz**: si el cargo recibido no encaja, usa el default del tipo y avisa en el aviso de marco.\n' +
-      '11. **Salida en markdown puro**. Sin emojis decorativos (excepto 🔄 para preguntas SPIN que cierran compromisos). Sin tablas innecesarias.\n' +
-      '12. **Longitud**: el briefing total debe caber en una pantalla de iPhone al hacer scroll cómodo. Si una sección se infla a más de 1 párrafo de prosa, recorta.\n' +
-      '13. **Idioma**: español neutral peninsular. Tecnicismos del sector sin traducir (BC3, IFC, AENOR, DAP, BIOPIPE, ecoSAN, PE 100, MUTE, EUME, CONDUSAN, PERTE, SEIASA, PLACSP).\n' +
-      '14. **El bloque "Contexto web fresco"** que recibes NO se incluye literal en el briefing. Lo usas para destilar las secciones 1, 2, 5 y 10.\n' +
-      '15. **Cita fuentes cuando uses una cifra externa**: "según iAgua [fecha]", "BOE-A-...", "web corporativa [sección]". No URLs largas en el briefing.\n' +
-      '16. **Si la matriz CARGOS_POR_TIPO devuelve null**, usa el catálogo base por tipo y márcalo en sección 4: "Perfil no mapeado en matriz; usando catálogo general de {tipo}".\n\n' +
+      'Recibes datos estructurados del CRM y una MATRIZ DE PRESCRIPCIÓN CRUZADA por tipo de empresa × cargo del interlocutor. Produces un BRIEFING OPERATIVO listo para que Manolo lo lea en el coche antes de entrar al cliente.\n\n' +
+      '## Metodología\n\n' +
+      '- **SPIN Selling (Rackham)**: mix orientativo en 30 min → 1-2 Situación, 3-4 Problema, 4-6 Implicación, 2-3 Need-payoff. Minimizar Situación porque lo que se puede investigar se investiga antes.\n' +
+      '- **Advance vs Continuation**: el objetivo de cada visita es un Advance concreto (entregable + fecha), nunca una Continuation disfrazada de éxito.\n' +
+      '- **Tono**: directo, sin adulación, sin relleno motivacional. Si la visita no tiene valor real, dilo. Cero "interesante oportunidad".\n\n' +
+      '## Productos GPF (referencia)\n\n' +
+      '- MUTE: saneamiento insonorizado PVC tricapa, requisito DB-HR.\n' +
+      '- EUME: canalón de aluminio extruido.\n' +
+      '- ecoSAN / CONDUSAN: saneamiento enterrado PVC corrugado / gran diámetro.\n' +
+      '- BIOPIPE PVC-O: tubería a presión orientada (regadío + abastecimiento).\n' +
+      '- PE 100: polietileno alta densidad para presión.\n' +
+      '- TUYPER: gama conducción.\n\n' +
+      (tieneWeb
+        ? 'El user message incluye un bloque "## CONTEXTO WEB". Úsalo para destilar las secciones 1, 2, 5 y 10. NO lo incluyas literal. Cita la fuente cuando uses una cifra: "según iAgua [fecha]", "web corporativa", etc.\n\n'
+        : 'No hay contexto web disponible. Si citas cifras concretas, márcalas como [ESTIMADO] o "comprobar antes de la visita".\n\n') +
+      '## Reglas duras\n\n' +
+      '1. Etiqueta cada cifra o afirmación fuerte: [VERIFICADO], [ESTIMADO] o [INFERIDO].\n' +
+      '2. No inventes proyectos, personas ni cifras. Si una sección no tiene datos, escribe: "Sin datos suficientes — confirmar en visita".\n' +
+      '3. Máximo 3-4 productos GPF por briefing.\n' +
+      '4. Nunca menciones al cliente el scoring interno ni el cuadrante.\n' +
+      '5. Si el contexto apunta a Continuation disfrazada, márcalo en sección 11 y reformula Plan A.\n' +
+      '6. Si hay compromisos abiertos, el Plan A debe partir de cerrarlos.\n' +
+      '7. Tipo de visita gobierna el tono: primera-frio → descubrimiento; primera-con-cita → concreto; seguimiento → arranca por compromiso anterior; post-licitacion → aprender, no defenderse.\n' +
+      '8. Cargo del interlocutor gobierna la matriz. Si no encaja, usa el default del tipo y avísalo en el Aviso de marco.\n' +
+      '9. Markdown puro. Sin emojis decorativos (excepto 🔄 para preguntas SPIN que cierran compromisos).\n' +
+      '10. Longitud: que quepa en pantalla de iPhone con scroll cómodo. Recorta si una sección se infla.\n' +
+      '11. Idioma: español peninsular. Tecnicismos sin traducir (BC3, IFC, AENOR, DAP, BIOPIPE, PE 100, MUTE, EUME, PERTE, SEIASA, PLACSP).\n\n' +
       overlayBlock;
 
-    /* USER PROMPT — datos concretos del cliente */
+    // Nombre del contacto principal si existe en el equipo
+    const contactoPrincipal = team.find(function (m) {
+      return m.role && m.role.toLowerCase().includes(cargoInterlocutor.toLowerCase().split('-')[0]);
+    }) || (team.length ? team[0] : null);
+    const nombreContacto = contactoPrincipal ? ' (' + contactoPrincipal.name + ')' : '';
+    const quadrantInfo = studio.priorityQuadrant
+      ? 'Q' + studio.priorityQuadrant + (studio.priorityQuadrantName ? ' — ' + studio.priorityQuadrantName : '') + ' · score ' + (studio.score || '?') + '/10'
+      : 'sin clasificar';
+    const teamList = team.length
+      ? team.map(function (m) { return m.name + (m.role ? ' (' + m.role + ')' : '') + (m.isDecisionMaker ? ' ⭐decisor' : ''); }).join(', ')
+      : 'sin equipo registrado en el CRM';
+
+    /* USER PROMPT — datos reales del cliente + scaffolding de las 13 secciones.
+       La plantilla va aquí (no en el system prompt) para que Claude la rellene con contenido real. */
     const userMsg =
-      'Genera el briefing pre-visita para esta visita.\n\n' +
-      '**Fecha de visita:** ' + fecha + '\n' +
-      '**Cargo del interlocutor:** ' + cargoInterlocutor + '\n' +
-      '**Tipo de visita:** ' + tipoVisita + '\n\n' +
+      'Genera el briefing pre-visita con contenido REAL para cada sección. No repitas las instrucciones entre paréntesis: son guías para ti, no texto de salida.\n\n' +
       crmCtx + '\n\n' +
       '## HISTÓRICO RECIENTE (últimas 5 entradas)\n' + histCtx + '\n\n' +
       '## COMPROMISOS ABIERTOS\n' + compromisosCtx + '\n\n' +
@@ -1238,11 +1186,54 @@
       (contextoExtra ? '## CONTEXTO EXTRA INDICADO POR MANOLO\n' + contextoExtra + '\n\n' : '') +
       '## ORIENTACIÓN SECTORIAL\n' +
       'Tipo principal: ' + tipoPrincipal + '\n' +
-      'Fuentes sectoriales habituales: ' + (fuentesSugeridas || '(no mapeado)') + '\n' +
-      'Catálogo GPF base para este tipo:\n' + catalogoSugerido + '\n\n' +
+      'Fuentes habituales: ' + (fuentesSugeridas || '(no mapeado)') + '\n' +
+      'Catálogo GPF base:\n' + catalogoSugerido + '\n\n' +
       webContext + '\n' +
       '---\n\n' +
-      'Genera el briefing en MARKDOWN con EXACTAMENTE las 13 secciones numeradas del system prompt, en ese orden. No añadas ni elimines secciones. Incluye el encabezado con Fecha, Tipo de visita, Interlocutor previsto, Cuadrante estratégico y el Aviso de marco en bloque de cita.';
+      '# Briefing — ' + studioName + '\n\n' +
+      '**Fecha:** ' + fecha + '\n' +
+      '**Tipo de visita:** ' + tipoVisita + '\n' +
+      '**Interlocutor previsto:** ' + cargoInterlocutor + nombreContacto + '\n' +
+      '**Cuadrante estratégico:** ' + quadrantInfo + '\n\n' +
+      '> **Aviso de marco**: (escribe aquí una frase que oriente el tono de la visita — ej: "prescripción pura, no venta directa", "cliente puente para la zona", "post-licitación, objetivo aprender")\n\n' +
+      '---\n\n' +
+      '## 1. Quién es ' + studioName + ' y por qué importa\n' +
+      '(3-5 párrafos: identidad, actividad, tamaño, track record verificable, geografía. Etiqueta cada afirmación [VERIFICADO], [ESTIMADO] o [INFERIDO])\n\n' +
+      '## 2. Por qué esta visita es estratégica (o no)\n' +
+      '(Análisis honesto del cuadrante ' + quadrantInfo + '. ' +
+      (tieneAlertaPlacsp && adjPlacsp ? 'Hay alerta PLACSP: adjudicación "' + (adjPlacsp.titulo || '') + '" — cómo cambia la conversación.' : 'Sin alerta PLACSP.') + ')\n\n' +
+      '## 3. Persona(s) de contacto\n' +
+      '(Equipo conocido: ' + teamList + '. Si ' + cargoInterlocutor + ' no aparece, añade: "Pedir por ' + cargoInterlocutor + ' en recepción" + script de 1 línea)\n\n' +
+      '## 4. Productos GPF prescribibles aquí\n' +
+      '(Máximo 3-4 productos según la MATRIZ CRUZADA del system prompt. 1 frase de justificación por producto. Sub-sección obligatoria: **No mencionar en esta visita:**)\n\n' +
+      '## 5. Ángulo argumental\n' +
+      '(3-5 bullets usando el ángulo de la MATRIZ para cargo "' + cargoInterlocutor + '" en empresa tipo ' + tipoPrincipal + ')\n\n' +
+      '## 6. Cómo concertar / qué decir al entrar\n' +
+      '(Adapta al tipo "' + tipoVisita + '": guion de apertura, qué carpeta llevas, qué NO sueltas todavía)\n\n' +
+      '## 7. Preguntas SPIN específicas para esta visita\n\n' +
+      '### Situación (1-2 preguntas — solo lo que no se puede investigar antes)\n\n' +
+      '### Problema (3-4 preguntas — dolores reales del perfil ' + cargoInterlocutor + ')\n\n' +
+      '### Implicación (4-6 preguntas — cuantifica consecuencias; es la sección más rentable)\n\n' +
+      '### Need-payoff (2-3 preguntas — que el cliente verbalice el valor)\n\n' +
+      (propuestasPendientes.length ? '(Añade 1-2 preguntas 🔄 para cerrar los compromisos abiertos)\n\n' : '') +
+      '## 8. Material a llevar\n' +
+      '(Lista priorizada, máximo 5-6 elementos relevantes para ' + cargoInterlocutor + '. Sub-sección obligatoria: **No llevar:**)\n\n' +
+      '## 9. Objetivo de Advance, por preferencia\n\n' +
+      '### Plan A — el más potente\n' +
+      '(Frase literal lista para soltar: entregable concreto + fecha + siguiente paso. ' +
+      (propuestasPendientes.length ? 'Debe cerrar un compromiso abierto.' : '') + ')\n\n' +
+      '### Plan B — conservador\n' +
+      '(Frase literal. Patrón "das tú, no pides".)\n\n' +
+      '### Plan C — mínimo aceptable\n' +
+      '(Frase literal. Siempre TÚ entregas algo.)\n\n' +
+      '## 10. Detalles tácticos\n' +
+      '(3-5 puntos específicos: cultura del sector, riesgos relacionales, palancas únicas — fabricante andaluz, fábrica Atarfe, PERTE — proyectos del cliente que esperará que conozcas)\n\n' +
+      '## 11. Lo que esta visita puede valer\n' +
+      '(Retorno esperado si va bien: qué decisiones, qué proyectos, efecto red, plazo. Si la visita NO tiene valor real, dilo aquí sin rodeos)\n\n' +
+      '## 12. Checklist pre-visita\n' +
+      '(Lista con - [ ] específica para ' + studioName + ')\n\n' +
+      '## 13. Checklist post-visita (en el coche, los 10 minutos siguientes)\n' +
+      '(Lista con - [ ] de preguntas que Manolo debe poder contestar nada más salir: pliego abierto o cerrado, quién decide marca, qué prometí y cuándo, siguiente acción con fecha, referencias cruzadas detectadas)';
 
     const raw = await _claudeCall(systemPrompt, userMsg, 8192);
 
