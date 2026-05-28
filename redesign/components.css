@@ -954,6 +954,10 @@ body {
   .crm-root .shell > .main > .topbar { display: none; }
   .crm-root .shell > .main > .content { padding: 0; }
   .crm-root .kpi-grid-5 { grid-template-columns: 1fr 1fr; }
+  /* Respetar el Dynamic Island / notch en el top */
+  .crm-root .shell > .main > .content {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
   /* Espacio en el fondo para que el contenido no quede bajo la tab bar global */
   .crm-root .view.active {
     padding-bottom: calc(83px + env(safe-area-inset-bottom, 0px));
@@ -962,6 +966,12 @@ body {
   #view-briefing.active,
   #view-informe.active {
     padding-bottom: 0;
+  }
+  /* El header sticky del briefing/informe debe respetar el safe area para
+     no quedar bajo el Dynamic Island cuando el usuario hace scroll */
+  .crm-root .iphone-frame .briefing-sticky-header {
+    top: 0; /* fallback — sobreescrito por la regla de abajo */
+    top: env(safe-area-inset-top, 0px);
   }
   /* Touch polish global */
   .crm-root * {

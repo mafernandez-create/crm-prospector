@@ -302,8 +302,9 @@
       '<div class="iphone-frame">' +
         statusBar() +
 
-        // Header sticky paper-warm
-        '<div style="position:sticky; top:0; padding:14px var(--sp-4); background:var(--paper-warm); ' +
+        // Header sticky paper-warm — clase para que CSS aplique safe-area-inset-top
+        '<div class="briefing-sticky-header" style="position:sticky; top:0; top:env(safe-area-inset-top,0px); ' +
+          'padding:14px var(--sp-4); background:var(--paper-warm); ' +
           'border-bottom:1px solid var(--line); flex:0 0 auto; z-index:5;">' +
           headerActions(id) +
           headerTitle(b) +
