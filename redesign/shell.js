@@ -95,7 +95,6 @@
         '</header>' +
 
         '<div class="content">' +
-          // Vistas — vacías por defecto, las pantallas se renderizan en sus archivos
           '<section class="view active" id="view-inicio"></section>' +
           '<section class="view" id="view-studios"></section>' +
           '<section class="view" id="view-detail"></section>' +
@@ -108,8 +107,62 @@
           '<section class="view" id="view-importar"></section>' +
           '<section class="view" id="view-asistente"></section>' +
         '</div>' +
+
+        /* Tab bar global móvil — visible < 700px */
+        mobileTabBar() +
+
+        /* FAB de voz — visible < 700px en vistas seleccionadas */
+        voiceFab() +
+
       '</div>' +
       '</div>'  // cierre .shell
+    );
+  }
+
+  /* ============================================================
+     MOBILE TAB BAR GLOBAL (Opción B)
+     4 pestañas: Hoy · Empresas · Visitas · Bandeja
+     showView() actualiza las clases .active de forma dinámica.
+     ============================================================ */
+  function mobileTabBar() {
+    var tabs = [
+      { id: 'inicio',       label: 'Hoy',      icon: I.Home() },
+      { id: 'studios',      label: 'Empresas',  icon: I.Building() },
+      { id: 'planificador', label: 'Visitas',   icon: I.Calendar() },
+      { id: 'bandeja',      label: 'Bandeja',   icon: I.Layers() },
+    ];
+    return (
+      '<nav class="mobile-tabbar" id="mobile-tabbar" role="tablist">' +
+        tabs.map(function (t) {
+          return (
+            '<a class="m-tab" id="mobile-tab-' + t.id + '" role="tab" ' +
+              'href="#' + t.id + '" ' +
+              'onclick="event.preventDefault(); showView(\'' + t.id + '\')">' +
+              '<span class="m-icon">' + t.icon + '</span>' +
+              '<span class="m-lbl">' + t.label + '</span>' +
+            '</a>'
+          );
+        }).join('') +
+      '</nav>'
+    );
+  }
+
+  /* ============================================================
+     VOICE FAB (Opción D)
+     Botón micrófono flotante — lógica en voice.js.
+     ============================================================ */
+  function voiceFab() {
+    return (
+      '<button class="voice-fab hidden" id="voice-fab" ' +
+        'aria-label="Nota de voz" ' +
+        'onclick="window.VoiceFab && window.VoiceFab.open()">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+          '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>' +
+          '<path d="M19 10v2a7 7 0 0 1-14 0v-2"/>' +
+          '<line x1="12" y1="19" x2="12" y2="22"/>' +
+          '<line x1="8" y1="22" x2="16" y2="22"/>' +
+        '</svg>' +
+      '</button>'
     );
   }
 

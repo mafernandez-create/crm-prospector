@@ -217,6 +217,7 @@
   }
 
   function renderFull(s) {
+    const isMobile = window.innerWidth < 700;
     return (
       '<div style="max-width:720px; margin:0 auto; padding-bottom:60px;">' +
         headerBlock(s) +
@@ -224,6 +225,27 @@
         '<div id="detail-panel" style="margin-top:16px;">' +
           renderPanel(s, _tab) +
         '</div>' +
+      '</div>' +
+      /* Barra de acción sticky — sólo en móvil (<700px) */
+      (isMobile ? stickyActionBar(s) : '')
+    );
+  }
+
+  /* Barra fija con las 3 acciones más usadas en campo */
+  function stickyActionBar(s) {
+    const phone = s.phone ? s.phone.replace(/[^\d+]/g, '') : '';
+    const I = window.Icon;
+    return (
+      '<div class="detail-action-bar">' +
+        (phone
+          ? '<a class="dab-btn" href="tel:' + escape(phone) + '">' + I.Phone() + ' Llamar</a>'
+          : '<button class="dab-btn" style="opacity:.4" disabled>' + I.Phone() + ' Llamar</button>') +
+        '<button class="dab-btn" onclick="showView(\'briefing\', {studioId:\'' + escape(s.id) + '\'})">' +
+          I.Sparkles() + ' Briefing' +
+        '</button>' +
+        '<button class="dab-btn primary" onclick="showView(\'informe\', {studioId:\'' + escape(s.id) + '\'})">' +
+          I.FileText() + ' Informe' +
+        '</button>' +
       '</div>'
     );
   }

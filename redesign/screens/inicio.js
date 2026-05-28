@@ -30,17 +30,71 @@
     if (!hasReal) return mockData();
 
     return {
+      visitasHoy:   computeVisitasHoy(),
       proximaVisita: computeProximaVisita(),
       tareas: computeTareas(),
       objetivos: computeObjetivos(),
     };
   }
 
+  /* Todas las visitas programadas para HOY */
+  function computeVisitasHoy() {
+    if (!State.planificador || !State.planificador.schedule) return [];
+    const hoyISO = State.today.toISOString().slice(0, 10);
+    const arr = State.planificador.schedule[hoyISO] || [];
+    return arr.map(function (v) {
+      const studio = State.studiosById[v.id];
+      return {
+        studioId: v.id,
+        name:  v.name  || (studio && studio.name)  || ('Estudio ' + v.id),
+        hora:  (v.data && v.data.hora) || '',
+        notas: (v.data && v.data.notas) || '',
+        city:  v.city  || (studio && studio.city)  || '',
+        done: _visitaRealizada(v.id, hoyISO),
+      };
+    });
+  }
+
+  /* Heurística: si hay un informe con fecha de hoy para ese studio, la visita está realizada */
+  function _visitaRealizada(studioId, fechaISO) {
+    const s = State.studiosById[studioId];
+    if (!s) return false;
+    return (U.reports(s) || []).some(function (r) {
+      return r && r.date && r.date.slice(0, 10) === fechaISO;
+    });
+  }
+
   function computeProximaVisita() {
     if (!State.planificador || !State.planificador.schedule) return null;
     const sched = State.planificador.schedule || {};
     const hoyISO = State.today.toISOString().slice(0, 10);
-    const fechas = Object.keys(sched).filter(function (f) { return f >= hoyISO; }).sort();
+    const ahora = State.today.getHours() * 60 + State.today.getMinutes();
+
+    // 1. Buscar próxima visita de HOY que no haya pasado aún
+    const hoy = sched[hoyISO] || [];
+    for (const v of hoy) {
+      const hora = (v.data && v.data.hora) || '';
+      const [hh, mm] = hora.split(':').map(Number);
+      const minutos = (isNaN(hh) ? 0 : hh * 60) + (isNaN(mm) ? 0 : mm);
+      if (minutos >= ahora - 30) { // margen de 30 min para visitas "en curso"
+        const studio = State.studiosById[v.id];
+        const contact = (studio && studio.data && studio.data.contact) || {};
+        const addr = U.readField(contact.address) || '';
+        return {
+          studioId: v.id,
+          name: v.name || (studio && studio.name) || ('Estudio ' + v.id),
+          hora: hora,
+          tipo: 'Reunión',
+          location: [addr || v.city || (studio && studio.city) || '',
+                     v.province || (studio && studio.province) || ''].filter(Boolean).join(' · '),
+          fecha: hoyISO,
+          enMinutos: null,
+        };
+      }
+    }
+
+    // 2. Sin visitas pendientes hoy: buscar la próxima fecha futura
+    const fechas = Object.keys(sched).filter(function (f) { return f > hoyISO; }).sort();
     for (const f of fechas) {
       const arr = sched[f] || [];
       if (arr.length) {
@@ -53,10 +107,10 @@
           name: v.name || (studio && studio.name) || ('Estudio ' + v.id),
           hora: (v.data && v.data.hora) || '',
           tipo: 'Reunión',
-          location: [addr || (v.city || (studio && studio.city) || ''),
+          location: [addr || v.city || (studio && studio.city) || '',
                      v.province || (studio && studio.province) || ''].filter(Boolean).join(' · '),
           fecha: f,
-          enMinutos: null,  // sin estimación de ETA todavía
+          enMinutos: null,
         };
       }
     }
@@ -109,18 +163,24 @@
 
   function mockData() {
     return {
+      visitasHoy: [
+        { studioId: '3013', name: 'INGOAD – Ingeniería y Montaje',            hora: '09:30', city: 'Alcalá de Guadaíra', done: false },
+        { studioId: '3012', name: 'J. Huesa Water Technology',                hora: '10:30', city: 'Bollullos',          done: false },
+        { studioId: '149',  name: 'Antonio Donaire López (GIA Arquitectos)',   hora: '12:30', city: 'Sevilla',            done: false },
+      ],
       proximaVisita: {
-        studioId: '3012',
-        name: 'J. Huesa Water Technology',
-        hora: '10:30',
+        studioId: '3013',
+        name: 'INGOAD – Ingeniería y Montaje',
+        hora: '09:30',
         tipo: 'Reunión',
-        location: 'Av. Valencina 25 · Bollullos',
+        location: 'PI Cabeza Hermosa · Alcalá de Guadaíra',
         enMinutos: 47,
+        fecha: State.today.toISOString().slice(0, 10),
       },
       tareas: [
-        { studioId: '2435', empresa: 'ARRAM Consultores',         tarea: 'Conexión LinkedIn',        atrasada: true,  hora: '12:00–14:00' },
-        { studioId: '13',   empresa: 'SINGULAB Arq. e Ing.',      tarea: 'Email seguimiento',         atrasada: false, hora: 'Hoy' },
-        { studioId: '3027', empresa: 'Estudio Córdoba Levante',   tarea: 'Llamar a Rafael Amador',    atrasada: false, hora: '16:00' },
+        { studioId: '2435', empresa: 'ARRAM Consultores',         tarea: 'Conexión LinkedIn',     atrasada: true,  hora: '12:00–14:00' },
+        { studioId: '13',   empresa: 'SINGULAB Arq. e Ing.',      tarea: 'Email seguimiento',     atrasada: false, hora: 'Hoy' },
+        { studioId: '3027', empresa: 'Estudio Córdoba Levante',   tarea: 'Llamar a Rafael Amador', atrasada: false, hora: '16:00' },
       ],
       objetivos: [
         { label: 'Visitas presenciales', actual: 109, objetivo: 140, color: 'azul' },
@@ -135,23 +195,128 @@
   function render() {
     const v = document.getElementById('view-inicio');
     if (!v) return;
-    document.getElementById('topbar-current').textContent = 'Hoy';
+    const tc = document.getElementById('topbar-current');
+    if (tc) tc.textContent = 'Hoy';
 
     const data = getData();
-    const isMobile = window.innerWidth < 768;
+    const isMobile = window.innerWidth < 700;
 
     v.innerHTML = isMobile
-      ? renderMobile(data)
-      : renderDesktopColumn(data);
+      ? renderMobileNative(data)
+      : renderDesktopDemo(data);
 
-    // Wire CTAs
     wireCTAs(data);
   }
 
   /* ============================================================
-     RENDER MOBILE (iPhone-first, exacto al prototipo)
+     RENDER MOBILE NATIVO (< 700px)
+     Sin iphone-frame: usa el tab bar global del shell.
+     Tarjeta contextual según hora del día.
      ============================================================ */
-  function renderMobile(data) {
+  function renderMobileNative(data) {
+    const hora = State.today.getHours();
+    // Antes de las 9h → modo agenda completa del día
+    // 9-18h → hero próxima visita + resto del día
+    // Después de 18h → resumen del día
+    const modo = hora < 9 ? 'agenda' : hora >= 18 ? 'resumen' : 'campo';
+
+    return (
+      '<div style="padding: env(safe-area-inset-top, 12px) var(--sp-5) var(--sp-4); display:flex; flex-direction:column; gap:var(--sp-4);">' +
+        mobileHeader(data.visitasHoy) +
+        contextualCard(data, modo) +
+        visitasHoySection(data.visitasHoy, data.proximaVisita) +
+        tareasSection(data.tareas) +
+        objetivosSection(data.objetivos) +
+      '</div>'
+    );
+  }
+
+  /* Header compacto mobile: fecha + saludo contextual */
+  function mobileHeader(visitasHoy) {
+    const fecha = State.today.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' });
+    const fechaCap = fecha.charAt(0).toUpperCase() + fecha.slice(1);
+    const n = visitasHoy ? visitasHoy.length : 0;
+    const subtitulo = n > 0
+      ? n + ' visita' + (n === 1 ? '' : 's') + ' hoy'
+      : 'Sin visitas programadas';
+    return (
+      '<div style="display:flex; justify-content:space-between; align-items:flex-start; padding-top:8px;">' +
+        '<div>' +
+          '<div style="font-size:12px; color:var(--fg-3); font-weight:500; text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">' +
+            escape(fechaCap) +
+          '</div>' +
+          '<div style="font-size:26px; font-weight:800; letter-spacing:-.01em; color:var(--fg-1);">Hoy</div>' +
+          '<div style="font-size:13px; color:var(--fg-3); margin-top:1px;">' + escape(subtitulo) + '</div>' +
+        '</div>' +
+        '<div style="width:38px; height:38px; border-radius:50%; background:var(--gpf-blue-900); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px;">' +
+          escape(State.user.initials) +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  /* Tarjeta contextual según hora del día */
+  function contextualCard(data, modo) {
+    if (modo === 'resumen') {
+      // Después de las 18h: cuántas visitas hice hoy
+      const total = (data.visitasHoy || []).length;
+      const hechas = (data.visitasHoy || []).filter(function (v) { return v.done; }).length;
+      return (
+        '<div class="card" style="padding:16px; background:var(--gpf-blue-900); color:#fff; border-radius:16px;">' +
+          '<div style="font-size:11px; text-transform:uppercase; letter-spacing:.06em; opacity:.7; margin-bottom:6px;">Resumen de hoy</div>' +
+          '<div style="font-size:28px; font-weight:800;">' + hechas + '<span style="font-size:16px; opacity:.7;"> / ' + total + '</span></div>' +
+          '<div style="font-size:13px; opacity:.8; margin-top:4px;">visitas registradas</div>' +
+        '</div>'
+      );
+    }
+    // Modo agenda (< 9h) o campo (9-18h): mostrar próxima visita hero
+    return heroBlock(data.proximaVisita);
+  }
+
+  /* Lista completa de visitas de HOY */
+  function visitasHoySection(visitasHoy, proximaVisita) {
+    if (!visitasHoy || visitasHoy.length <= 1) return ''; // hero ya cubre si sólo hay 1
+    // Si estamos en campo, el resto (excepto la primera pendiente) va en lista compacta
+    const proxId = proximaVisita && proximaVisita.studioId;
+    const resto = visitasHoy.filter(function (v) {
+      return v.studioId !== proxId;
+    });
+    if (!resto.length) return '';
+    const cards = resto.map(function (v) {
+      const alpha = v.done ? '0.45' : '1';
+      return (
+        '<div onclick="showView(\'detail\', {studioId:\'' + escape(v.studioId) + '\'})" ' +
+          'style="display:flex; align-items:center; gap:12px; padding:12px; ' +
+          'background:var(--bg-card); border-radius:12px; cursor:pointer; opacity:' + alpha + ';">' +
+          '<div style="min-width:40px; text-align:center;">' +
+            '<div style="font-size:15px; font-weight:700; color:var(--gpf-blue-700); font-family:var(--font-mono);">' +
+              (v.hora || '—') +
+            '</div>' +
+          '</div>' +
+          '<div style="flex:1; min-width:0;">' +
+            '<div style="font-size:14px; font-weight:600; color:var(--fg-1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' +
+              escape(v.name) +
+            '</div>' +
+            (v.city ? '<div style="font-size:12px; color:var(--fg-3); margin-top:2px;">' + escape(v.city) + '</div>' : '') +
+          '</div>' +
+          (v.done
+            ? '<span style="font-size:18px;">✅</span>'
+            : '<span style="color:var(--fg-3);">' + I.ChevronRight() + '</span>') +
+        '</div>'
+      );
+    }).join('');
+    return (
+      '<section>' +
+        '<div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--fg-3); margin-bottom:8px;">Resto del día</div>' +
+        '<div style="display:flex; flex-direction:column; gap:6px;">' + cards + '</div>' +
+      '</section>'
+    );
+  }
+
+  /* ============================================================
+     RENDER DESKTOP DEMO (≥ 700px — con iphone-frame como prototipo)
+     ============================================================ */
+  function renderDesktopDemo(data) {
     return (
       '<div class="iphone-frame">' +
         statusBar() +
@@ -160,29 +325,12 @@
         '</div>' +
         '<div style="flex:1; overflow:auto; padding:0 var(--sp-5) 100px; display:flex; flex-direction:column; gap:var(--sp-4);">' +
           heroBlock(data.proximaVisita) +
+          visitasHoySection(data.visitasHoy, data.proximaVisita) +
           tareasSection(data.tareas) +
           objetivosSection(data.objetivos) +
         '</div>' +
         tabBar() +
         '<div class="home-indicator"></div>' +
-      '</div>'
-    );
-  }
-
-  /* ============================================================
-     RENDER DESKTOP (mismo contenido, columna centrada sin chrome iPhone)
-     ============================================================ */
-  function renderDesktopColumn(data) {
-    return (
-      '<div style="max-width:560px; margin:0 auto;">' +
-        '<div style="margin-bottom:var(--sp-5);">' +
-          headerRow() +
-        '</div>' +
-        '<div style="display:flex; flex-direction:column; gap:var(--sp-4);">' +
-          heroBlock(data.proximaVisita) +
-          tareasSection(data.tareas) +
-          objetivosSection(data.objetivos) +
-        '</div>' +
       '</div>'
     );
   }

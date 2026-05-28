@@ -954,6 +954,178 @@ body {
   .crm-root .shell > .main > .topbar { display: none; }
   .crm-root .shell > .main > .content { padding: 0; }
   .crm-root .kpi-grid-5 { grid-template-columns: 1fr 1fr; }
+  /* Espacio en el fondo para que el contenido no quede bajo la tab bar global */
+  .crm-root .view.active {
+    padding-bottom: calc(83px + env(safe-area-inset-bottom, 0px));
+  }
+  /* Excepciones: briefing e informe ocupan pantalla completa */
+  #view-briefing.active,
+  #view-informe.active {
+    padding-bottom: 0;
+  }
+  /* Touch polish global */
+  .crm-root * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  .crm-root button,
+  .crm-root a,
+  .crm-root [role="button"] {
+    touch-action: manipulation;
+  }
+  /* Inputs: evitar zoom automático iOS (requiere font-size ≥ 16px) */
+  .crm-root input,
+  .crm-root select,
+  .crm-root textarea {
+    font-size: max(16px, 1rem) !important;
+  }
+}
+
+/* Overscroll: evita el rebote de página en standalone */
+@media (display-mode: standalone) {
+  html, body { overscroll-behavior: none; }
+  .crm-root .iphone-frame { overscroll-behavior-y: contain; }
+}
+
+/* ============================================================
+   MOBILE TAB BAR GLOBAL (Opción B)
+   Reemplaza el tabbar interno del iphone-frame.
+   Sólo visible en móvil real (< 700px).
+   ============================================================ */
+.mobile-tabbar {
+  display: none; /* oculto en desktop */
+}
+
+@media (max-width: 700px) {
+  .mobile-tabbar {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0; right: 0;
+    z-index: 100;
+    justify-content: space-around;
+    align-items: flex-start;
+    padding-top: 8px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    background: rgba(255,255,255,.88);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+    backdrop-filter: saturate(180%) blur(24px);
+    border-top: 0.5px solid rgba(0,0,0,.12);
+  }
+  .mobile-tabbar .m-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 64px;
+    padding: 4px 8px 2px;
+    color: var(--fg-3);
+    cursor: pointer;
+    text-decoration: none;
+    background: transparent;
+    border: 0;
+    font-family: var(--font-body);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .mobile-tabbar .m-tab .m-icon { width: 24px; height: 24px; }
+  .mobile-tabbar .m-tab .m-lbl {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+  }
+  .mobile-tabbar .m-tab.active { color: var(--gpf-blue-700); }
+  .mobile-tabbar .m-tab.active .m-lbl { font-weight: 700; }
+  /* El tabbar interno del iphone-frame no se muestra en móvil real */
+  .crm-root .tabbar { display: none; }
+}
+
+/* ============================================================
+   VOICE FAB (Opción D)
+   Botón de micrófono flotante — sólo en móvil.
+   ============================================================ */
+.voice-fab {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .voice-fab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    right: 18px;
+    bottom: calc(83px + env(safe-area-inset-bottom, 0px) + 14px);
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--gpf-blue-700);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    z-index: 99;
+    box-shadow: 0 4px 16px rgba(29,78,216,.4);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .voice-fab:active {
+    transform: scale(.93);
+    box-shadow: 0 2px 8px rgba(29,78,216,.3);
+  }
+  .voice-fab svg { width: 22px; height: 22px; }
+  /* Ocultar en pantallas donde no tiene sentido */
+  .voice-fab.hidden { display: none !important; }
+}
+
+/* ============================================================
+   DETAIL STICKY ACTION BAR (barra fija en ficha de empresa)
+   ============================================================ */
+.detail-action-bar {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .detail-action-bar {
+    display: flex;
+    position: fixed;
+    left: 0; right: 0;
+    bottom: calc(83px + env(safe-area-inset-bottom, 0px));
+    z-index: 90;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(255,255,255,.92);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    border-top: 0.5px solid rgba(0,0,0,.1);
+  }
+  .detail-action-bar .dab-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 42px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    text-decoration: none;
+    border: 1px solid var(--line);
+    background: var(--bg-card);
+    color: var(--fg-1);
+  }
+  .detail-action-bar .dab-btn.primary {
+    background: var(--gpf-blue-700);
+    color: #fff;
+    border-color: transparent;
+  }
+  .detail-action-bar .dab-btn svg { width: 15px; height: 15px; }
+  /* Ajuste de padding extra para que el contenido no quede bajo la barra doble */
+  #view-detail.active {
+    padding-bottom: calc(83px + env(safe-area-inset-bottom, 0px) + 62px);
+  }
 }
 
 /* Vistas */
