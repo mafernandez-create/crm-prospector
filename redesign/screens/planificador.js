@@ -132,10 +132,22 @@
     if (!v) return;
     document.getElementById('topbar-current').textContent = 'Planificador';
 
-    // Cargar schedule del State si no se ha cargado todavía
-    if (!Local.schedule) {
+    // Cargar schedule del State.
+    // Reglas:
+    //   · Si hay cambios locales sin guardar (dirty), respetar Local.schedule.
+    //   · Si no hay datos todavía (cargando), no inicializar: evita sobreescribir
+    //     con {} en caso de race condition al abrir la pantalla antes de que
+    //     loadAll() complete.
+    //   · En cualquier otro caso, refrescar desde State para recoger cambios
+    //     hechos desde otra sesión/dispositivo.
+    if (!Local.dirty) {
+      if (State.loading) {
+        // Datos aún en vuelo: mostrar skeleton y salir sin tocar Local.schedule
+        v.innerHTML = '<div style="padding:40px; text-align:center; color:var(--fg-3);">Cargando planificador…</div>';
+        return;
+      }
       const plan = State.planificador && State.planificador.schedule;
-      Local.schedule = plan ? deepClone(plan) : {};
+      Local.schedule = plan ? deepClone(plan) : (Local.schedule || {});
     }
 
     const dias = [];
@@ -923,6 +935,22 @@
      ============================================================ */
   async function guardar() {
     if (!Local.dirty || Local.guardando) return;
+
+    // Protección anti-borrado accidental: no guardar un schedule vacío si
+    // el servidor tiene datos. Esto evita sobreescribir con {} en caso de
+    // race condition (datos aún cargando cuando se abrió la pantalla).
+    const localCount = Object.keys(Local.schedule || {}).length;
+    const serverCount = Object.keys(
+      (State.planificador && State.planificador.schedule) || {}
+    ).length;
+    if (localCount === 0 && serverCount > 0) {
+      console.warn('[planificador] Guardado bloqueado: schedule local vacío pero servidor tiene ' + serverCount + ' fechas. Posible race condition.');
+      Local.dirty = false;
+      Local.schedule = deepClone(State.planificador.schedule);
+      render();
+      return;
+    }
+
     Local.guardando = true;
     render();
     try {
