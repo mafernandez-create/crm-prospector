@@ -1844,6 +1844,10 @@
       var modal = document.getElementById(modalId);
       if (modal) modal.remove();
 
+      // Scroll al top para que el indicador de carga sea visible
+      var _content = document.querySelector('.crm-root .content');
+      if (_content) _content.scrollTop = 0;
+
       if (window.States && window.States.showLoading) {
         window.States.showLoading('view-detail', {
           title: 'Generando briefing con IA',

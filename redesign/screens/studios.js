@@ -174,6 +174,66 @@
         '</div>'
       );
     }
+    // En móvil (<700px) usamos tarjetas compactas; en desktop la tabla completa
+    if (window.innerWidth < 700) {
+      return tablaMovil(rows);
+    }
+    return tablaDesktop(rows);
+  }
+
+  /* Tarjetas compactas para móvil — 2 líneas por empresa */
+  function tablaMovil(rows) {
+    return (
+      '<div class="card" style="padding:0; overflow:hidden;">' +
+        rows.map(function (s, i) {
+          const last = i === rows.length - 1;
+          const lastDate = U.lastInteraction(s);
+          const dias = lastDate ? U.diasDesde(lastDate) : null;
+          const diasLabel = dias === null ? '—' : (dias > 365 ? '+1a' : dias + 'd');
+          const diasColor = dias === null ? 'var(--fg-3)'
+                           : dias > 45 ? '#dc2626'
+                           : dias > 14 ? 'var(--ink-700)'
+                           : 'var(--fg-2)';
+          const score = s.score || 0;
+          const scoreColor = score >= 8 ? 'var(--gpf-blue-700)'
+                            : score >= 5 ? 'var(--ink-700)'
+                            : 'var(--fg-3)';
+          const tipo = TIPO_LABELS[s.type] || s.type || '';
+          return (
+            '<div data-studio-id="' + escape(s.id) + '" ' +
+              'style="display:flex; justify-content:space-between; align-items:center; ' +
+              'padding:12px 14px; gap:10px; cursor:pointer; ' +
+              (last ? '' : 'border-bottom:1px solid var(--line);') + '" ' +
+              'onclick="showView(\'detail\', { studioId: \'' + escape(s.id) + '\' })">' +
+              // Izquierda: nombre + tipo · provincia
+              '<div style="flex:1; min-width:0;">' +
+                '<div style="font-weight:600; font-size:14px; color:var(--fg-1); ' +
+                  'overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' +
+                  escape(s.name || '—') +
+                '</div>' +
+                '<div style="font-size:12px; color:var(--fg-3); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' +
+                  (tipo ? escape(tipo) + ' · ' : '') + escape(s.province || s.city || '—') +
+                '</div>' +
+              '</div>' +
+              // Derecha: días + score
+              '<div style="display:flex; gap:10px; align-items:center; flex-shrink:0;">' +
+                '<span style="font-family:var(--font-mono); font-size:12px; font-weight:600; color:' + diasColor + ';">' +
+                  escape(diasLabel) +
+                '</span>' +
+                '<span style="font-family:var(--font-mono); font-size:13px; font-weight:700; color:' + scoreColor + '; ' +
+                  'min-width:22px; text-align:right;">' +
+                  (score || '—') +
+                '</span>' +
+              '</div>' +
+            '</div>'
+          );
+        }).join('') +
+      '</div>'
+    );
+  }
+
+  /* Tabla completa para desktop */
+  function tablaDesktop(rows) {
     return (
       '<div class="card" style="padding:0; overflow:hidden;">' +
         // Header
