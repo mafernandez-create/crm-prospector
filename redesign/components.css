@@ -1037,6 +1037,9 @@ body {
   .mobile-tabbar .m-tab.active .m-lbl { font-weight: 700; }
   /* El tabbar interno del iphone-frame no se muestra en móvil real */
   .crm-root .tabbar { display: none; }
+  /* La statusbar simulada (9:41, wifi, batería) no se muestra en móvil real:
+     en iPhone la barra de estado nativa ya está arriba */
+  .crm-root .iphone-frame .statusbar { display: none; }
 }
 
 /* ============================================================
