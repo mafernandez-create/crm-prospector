@@ -48,6 +48,11 @@
   /* ============================================================
      ROUTER
      ============================================================ */
+  /* Vistas que muestran el Voice FAB */
+  const VOICE_FAB_VIEWS = { inicio: true, studios: true, detail: true, bandeja: true };
+  /* Vistas que ocultan la tab bar global (pantalla completa) */
+  const FULLSCREEN_VIEWS = { briefing: true, informe: true };
+
   function showView(name, params) {
     params = params || {};
     State.currentView = name;
@@ -58,11 +63,26 @@
       el.classList.toggle('active', el.id === 'view-' + name);
     });
 
-    // Marcar nav-item activo
+    // Marcar nav-item activo (sidebar desktop)
     document.querySelectorAll('.nav-item').forEach(function (el) {
       const v = el.getAttribute('data-view');
       el.classList.toggle('active', v === name);
     });
+
+    // Sincronizar tab bar global móvil
+    var tabMap = { inicio: true, studios: true, planificador: true, bandeja: true };
+    document.querySelectorAll('.mobile-tabbar .m-tab').forEach(function (el) {
+      var tid = el.id.replace('mobile-tab-', '');
+      el.classList.toggle('active', tid === name);
+    });
+
+    // Mostrar/ocultar tab bar en vistas fullscreen
+    var tabbar = document.getElementById('mobile-tabbar');
+    if (tabbar) tabbar.style.display = FULLSCREEN_VIEWS[name] ? 'none' : '';
+
+    // Mostrar/ocultar Voice FAB
+    var fab = document.getElementById('voice-fab');
+    if (fab) fab.classList.toggle('hidden', !VOICE_FAB_VIEWS[name]);
 
     // Render
     const screen = window.Screens[name];
@@ -79,7 +99,6 @@
     // Hash sync
     const hash = name + (params.studioId ? '/' + params.studioId : '');
     if (location.hash.slice(1) !== hash) {
-      // Evita disparar hashchange en bucle
       history.replaceState(null, '', '#' + hash);
     }
   }
