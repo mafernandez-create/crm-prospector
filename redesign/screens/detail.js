@@ -2269,7 +2269,7 @@
 
     var html = (
       '<div class="handle"></div>' +
-      '<div style="padding:0 16px 32px;">' +
+      '<div style="padding:0 16px 32px; flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;">' +
 
         /* Cabecera */
         '<div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:4px;">' +
