@@ -108,19 +108,22 @@
     for (const [pg, js] of STUDIO_FLAT_MAP) {
       if (obj[js] != null) row[pg] = obj[js];
     }
-    // El resto va al JSONB data. Preferimos obj.data si lo trae
-    // (escenario "el screen pasa el studio entero"). Si no, construimos
-    // un data sólo con los campos no planos.
-    if (obj.data && typeof obj.data === 'object') {
-      row.data = obj.data;
-    } else {
-      const data = Object.assign({}, obj);
-      const stripKeys = ['id','name','type','city','province','score','priority','status',
-        'es_cliente_puente','fuente_descubrimiento','data',
-        ...STUDIO_FLAT_MAP.map(p => p[1])];
-      for (const k of stripKeys) delete data[k];
-      row.data = data;
+    // JSONB data: SOLO se incluye si obj.data viene explícito.
+    // Si el caller no manda data (ej. saveTopFields solo manda status/score),
+    // NO incluimos data en el row — así el merge de Supabase no toca el campo
+    // y no sobreescribe datos existentes con {}.
+    // Escenario "studio entero": obj.data existe → se usa directamente.
+    // Escenario "campos planos extra": data objeto vacío → se calcula.
+    if ('data' in obj) {
+      if (obj.data && typeof obj.data === 'object') {
+        row.data = obj.data;
+      } else {
+        // data explícito pero no es objeto (raro) → vaciar sin perder la key
+        row.data = {};
+      }
     }
+    // Si 'data' NO está en obj, row.data queda undefined → JSON.stringify lo omite
+    // → Supabase merge-duplicates NO toca la columna data. ✓
     return row;
   }
 
