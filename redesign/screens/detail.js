@@ -765,6 +765,8 @@
             (isImported
               ? '<button onclick="window.Screens.detail.openReportSheet(\'' + escape(studioId) + '\',' + idx + ')" ' +
                   'style="background:var(--gpf-blue-100); border:none; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; color:var(--gpf-blue-700); font-weight:600; white-space:nowrap;">👁 Ver</button>' +
+                '<button onclick="window.Screens.detail.openEditReportModal(\'' + escape(studioId) + '\',' + idx + ')" ' +
+                  'style="background:#fef9c3; border:none; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; color:#854d0e; font-weight:600; white-space:nowrap;">✏️ Editar</button>' +
                 '<button onclick="window.Screens.detail.downloadReportWord(\'' + escape(studioId) + '\',' + idx + ')" ' +
                   'style="background:#f0fdf4; border:none; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; color:#16a34a; font-weight:600; white-space:nowrap;">📄 Word</button>'
               : '') +
@@ -2722,6 +2724,155 @@
   }
 
   /* ============================================================
+     EDITAR INFORME IMPORTADO
+     ============================================================ */
+  function openEditReportModal(studioId, idx) {
+    var raw = State.studiosById && State.studiosById[studioId];
+    if (!raw) return;
+    var reports = arr((raw.data && raw.data.reports) || []);
+    var r = reports[idx];
+    if (!r) return;
+
+    var spin = r.spin || {};
+    var fld = 'width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:8px; ' +
+              'background:var(--bg-input,var(--bg-card)); color:var(--fg-1); font-size:13px; box-sizing:border-box;';
+    var lbl = 'display:block; font-size:11px; font-weight:700; text-transform:uppercase; ' +
+              'letter-spacing:.05em; color:var(--fg-3); margin-bottom:4px;';
+
+    function field(id, labelText, value, rows) {
+      var tag = rows ? 'textarea' : 'input';
+      var extra = rows ? ' rows="' + rows + '" style="' + fld + ' resize:vertical;"' : ' style="' + fld + '"';
+      return '<label style="display:block; margin-bottom:12px;">' +
+        '<span style="' + lbl + '">' + labelText + '</span>' +
+        '<' + tag + ' id="er-' + id + '"' + extra + '>' +
+        (rows ? escape(value || '') + '</' + tag + '>' : '') +
+        (rows ? '' : ' value="' + (value || '').toString().replace(/"/g, '&quot;') + '">') +
+      '</label>';
+    }
+
+    var puntosTxt = arr(r.puntos_clave).filter(Boolean).join('\n');
+    var TIPO_L = { primera_visita:'Primera visita', seguimiento:'Seguimiento', demo:'Demo',
+      propuesta:'Propuesta', negociacion:'Negociación', cierre:'Cierre', postventa:'Postventa' };
+
+    showModal(
+      '<div style="background:var(--bg-card); border-radius:14px; padding:24px; width:100%; ' +
+        'max-width:560px; max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.3);">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">' +
+          '<h3 style="margin:0; font-family:var(--font-display); font-size:18px; font-weight:700;">✏️ Editar visita</h3>' +
+          '<button onclick="window.Screens.detail.closeModal()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--fg-3);">✕</button>' +
+        '</div>' +
+
+        /* Metadatos básicos */
+        '<div style="display:grid; grid-template-columns:1fr 1fr; gap:0 14px;">' +
+          field('fecha', 'Fecha', r.date || '') +
+          field('duracion', 'Duración (min)', r.duracion_minutos || '') +
+          field('tipo', 'Tipo de visita', TIPO_L[r.tipo_visita] || r.tipo_visita || '') +
+          field('temperatura', 'Temperatura (1–10)', r.temperatura != null ? r.temperatura : '') +
+        '</div>' +
+        field('interlocutor', 'Interlocutor · Cargo', (r.interlocutor_nombre || '') + (r.cargo_interlocutor ? ' · ' + r.cargo_interlocutor : '')) +
+
+        /* Resumen */
+        field('resumen', 'Resumen ejecutivo', r.resumen_ejecutivo || '', 4) +
+
+        /* Puntos clave */
+        '<label style="display:block; margin-bottom:12px;">' +
+          '<span style="' + lbl + '">Puntos clave (uno por línea)</span>' +
+          '<textarea id="er-puntos" rows="3" style="' + fld + ' resize:vertical;">' + escape(puntosTxt) + '</textarea>' +
+        '</label>' +
+
+        /* SPIN */
+        '<div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--fg-3); margin:4px 0 10px;">Análisis SPIN</div>' +
+        field('spin-s', 'Situación', spin.situacion || '', 2) +
+        field('spin-p', 'Problema', spin.problema || '', 2) +
+        field('spin-i', 'Implicación', spin.implicacion || '', 2) +
+        field('spin-n', 'Beneficio reconocido', spin.necesidad_beneficio || '', 2) +
+
+        /* Próxima acción */
+        '<div style="display:grid; grid-template-columns:1fr 1fr; gap:0 14px;">' +
+          field('proxima-accion', 'Próxima acción', r.proxima_accion || '') +
+          field('proxima-fecha', 'Fecha próxima visita', r.fecha_proxima_visita || '') +
+        '</div>' +
+
+        /* Notas libres */
+        field('notas', 'Notas adicionales', r.notas_libres || '', 2) +
+
+        '<div id="edit-report-error" style="display:none; color:#dc2626; font-size:13px; margin-bottom:8px; ' +
+          'padding:8px; background:#fef2f2; border-radius:6px;"></div>' +
+
+        '<div style="display:flex; gap:8px;">' +
+          '<button id="btn-save-report" class="btn btn-primary" style="flex:1;" ' +
+            'onclick="window.Screens.detail.saveEditReport(\'' + escape(studioId) + '\',' + idx + ')">Guardar cambios</button>' +
+          '<button class="btn btn-ghost" onclick="window.Screens.detail.closeModal()">Cancelar</button>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  async function saveEditReport(studioId, idx) {
+    var raw = State.studiosById && State.studiosById[studioId];
+    if (!raw) return;
+    var reports = arr((raw.data && raw.data.reports) || []).slice();
+    var r = Object.assign({}, reports[idx]);
+    if (!r) return;
+
+    var btn = document.getElementById('btn-save-report');
+    var errEl = document.getElementById('edit-report-error');
+    if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+
+    function gv(id) {
+      var el = document.getElementById('er-' + id);
+      return el ? el.value.trim() : null;
+    }
+
+    // Validar temperatura
+    var tempRaw = gv('temperatura');
+    var tempVal = tempRaw !== '' && tempRaw !== null ? Number(tempRaw) : null;
+    if (tempVal !== null && (isNaN(tempVal) || tempVal < 1 || tempVal > 10)) {
+      if (errEl) { errEl.style.display = 'block'; errEl.textContent = 'La temperatura debe ser un número entre 1 y 10.'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Guardar cambios'; }
+      return;
+    }
+
+    // Actualizar campos del informe
+    var resumen = gv('resumen');
+    if (resumen !== null) r.resumen_ejecutivo = resumen;
+
+    var puntosTxt = gv('puntos');
+    if (puntosTxt !== null) r.puntos_clave = puntosTxt ? puntosTxt.split('\n').map(function(l){ return l.trim(); }).filter(Boolean) : [];
+
+    r.spin = Object.assign({}, r.spin || {}, {
+      situacion:          gv('spin-s') || r.spin && r.spin.situacion || null,
+      problema:           gv('spin-p') || r.spin && r.spin.problema || null,
+      implicacion:        gv('spin-i') || r.spin && r.spin.implicacion || null,
+      necesidad_beneficio: gv('spin-n') || r.spin && r.spin.necesidad_beneficio || null,
+    });
+
+    var proximaAccion = gv('proxima-accion');
+    if (proximaAccion !== null) r.proxima_accion = proximaAccion || null;
+
+    var proximaFecha = gv('proxima-fecha');
+    if (proximaFecha !== null) r.fecha_proxima_visita = proximaFecha || null;
+
+    if (tempVal !== null) r.temperatura = tempVal;
+    else if (tempRaw === '') r.temperatura = null;
+
+    var notas = gv('notas');
+    if (notas !== null) r.notas_libres = notas || null;
+
+    reports[idx] = r;
+
+    try {
+      await saveDataField(studioId, 'reports', reports);
+      closeModal();
+      notif('Informe actualizado', 'success');
+      render({ studioId: studioId, tab: 'informes' });
+    } catch (e) {
+      if (errEl) { errEl.style.display = 'block'; errEl.textContent = 'Error al guardar: ' + (e.message || e); }
+      if (btn) { btn.disabled = false; btn.textContent = 'Guardar cambios'; }
+    }
+  }
+
+  /* ============================================================
      FIN BLOQUE IMPORTAR VISITA
      ============================================================ */
 
@@ -2990,8 +3141,10 @@
     // Importar visita .yaml
     openImportarVisitaModal: openImportarVisitaModal,
     _confirmarImportarVisita: _confirmarImportarVisita,
-    // Ver y descargar informe importado
+    // Ver, editar y descargar informe importado
     openReportSheet: openReportSheet,
+    openEditReportModal: openEditReportModal,
+    saveEditReport: saveEditReport,
     downloadReportWord: downloadReportWord,
     // Contacto
     openEditContact: openEditContact,
