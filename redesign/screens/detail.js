@@ -2353,7 +2353,8 @@
   }
 
   /* ============================================================
-     VER INFORME IMPORTADO — sheet con contenido completo
+     VER INFORME IMPORTADO — sheet con las 8 secciones del formato real
+     Sin SPIN, sin citas, sin autoevaluación. Igual que los informes anteriores.
      ============================================================ */
   function openReportSheet(studioId, idx) {
     var raw = State.studiosById && State.studiosById[studioId];
@@ -2366,190 +2367,181 @@
     function sv(v) { return (v === null || v === undefined || v === '' || v === 'N/A') ? null : v; }
     function arrF(v) { return Array.isArray(v) ? v : []; }
 
-    var spin       = r.spin || {};
+    var spin     = r.spin || {};
+    var puntos   = arrF(r.puntos_clave).filter(Boolean);
+    var comprNos = arrF(r.compromisos && r.compromisos.por_nuestra_parte).filter(function(c) { return c && sv(c.accion); });
+    var comprCli = arrF(r.compromisos && r.compromisos.por_parte_del_cliente).filter(function(c) { return c && sv(c.accion); });
+    var proyectos = arrF(r.oportunidades_detectadas && r.oportunidades_detectadas.proyectos).filter(function(p) { return p && sv(p.nombre); });
+    var competid  = arrF(r.intel_competitiva && r.intel_competitiva.competidores).filter(function(c) { return c && sv(c.nombre); });
     var objeciones = arrF(r.objeciones).filter(function(o) { return o && sv(o.objecion); });
-    var senales    = arrF(r.senales_de_compra).filter(Boolean);
-    var puntos     = arrF(r.puntos_clave).filter(Boolean);
-    var comprNos   = arrF(r.compromisos && r.compromisos.por_nuestra_parte).filter(function(c) { return c && sv(c.accion); });
-    var comprCli   = arrF(r.compromisos && r.compromisos.por_parte_del_cliente).filter(function(c) { return c && sv(c.accion); });
-    var proyectos  = arrF(r.oportunidades_detectadas && r.oportunidades_detectadas.proyectos).filter(function(p) { return p && sv(p.nombre); });
-    var competid   = arrF(r.intel_competitiva && r.intel_competitiva.competidores).filter(function(c) { return c && sv(c.nombre); });
-    var autoeval   = r.autoevaluacion || {};
 
-    var TIPO_L = { primera_visita:'Primera visita', seguimiento:'Seguimiento', demo:'Demo',
+    var TIPO_L  = { primera_visita:'Primera visita', seguimiento:'Seguimiento', demo:'Demo',
       propuesta:'Propuesta', negociacion:'Negociación', cierre:'Cierre', postventa:'Postventa' };
-    var tempN   = r.temperatura != null ? Number(r.temperatura) : null;
-    var tempStr = tempN != null ? (tempN >= 8 ? '🔥' : tempN >= 5 ? '🌤️' : '❄️') + ' ' + tempN + '/10' : null;
+    var STATUS_L = { nuevo:'Nuevo', contactado:'Contactado', reunion:'Reunión',
+      propuesta:'Propuesta', negociacion:'Negociación', ganado:'Ganado', perdido:'Perdido', dormido:'Dormido' };
 
-    function sec(emoji, title) {
-      return '<div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; ' +
-        'color:var(--fg-3); margin:18px 0 8px; display:flex; align-items:center; gap:6px;">' +
-        emoji + ' ' + title + '</div>';
+    var tempN = r.temperatura != null ? Number(r.temperatura) : null;
+    var interes = tempN != null ? (tempN >= 8 ? 'Alto' : tempN >= 5 ? 'Medio' : 'Bajo') : '—';
+
+    function sec(title) {
+      return '<div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; ' +
+        'color:#fff; background:var(--gpf-blue-900); padding:5px 10px; margin:18px 0 8px; border-radius:4px;">' +
+        title + '</div>';
     }
     function pill(text, bg, color) {
       return '<span style="display:inline-flex; font-size:11px; padding:2px 9px; border-radius:10px; ' +
         'background:' + bg + '; color:' + color + '; font-weight:600; margin:2px;">' + escape(text) + '</span>';
     }
-    function spinRow(label, text) {
-      if (!sv(text)) return '';
-      return '<div style="margin-bottom:10px;">' +
-        '<div style="font-size:11px; font-weight:700; color:var(--fg-3); text-transform:uppercase; ' +
-          'letter-spacing:.05em; margin-bottom:3px;">' + label + '</div>' +
-        '<p style="font-size:13px; color:var(--fg-1); margin:0; line-height:1.5; padding:8px 10px; ' +
-          'background:var(--bg-2); border-radius:6px;">' + escape(text) + '</p>' +
-      '</div>';
+    function tRow(label, value) {
+      if (!sv(value)) return '';
+      return '<tr><td style="font-size:12px; color:var(--fg-3); font-weight:600; padding:3px 8px 3px 0; white-space:nowrap; vertical-align:top;">' +
+        label + '</td><td style="font-size:13px; color:var(--fg-1); padding:3px 0;">' + escape(String(value)) + '</td></tr>';
     }
+
+    /* Desarrollo: resumen + puntos clave + contexto (de spin.situacion) */
+    var desarrolloHtml = '';
+    if (sv(r.resumen_ejecutivo)) {
+      desarrolloHtml += '<p style="font-size:13px; color:var(--fg-1); line-height:1.6; margin:0 0 8px;">' + escape(r.resumen_ejecutivo) + '</p>';
+    }
+    if (sv(spin.situacion)) {
+      desarrolloHtml += '<p style="font-size:13px; color:var(--fg-1); line-height:1.6; margin:0 0 8px;">' + escape(spin.situacion) + '</p>';
+    }
+    if (sv(spin.problema)) {
+      desarrolloHtml += '<p style="font-size:13px; color:var(--fg-1); line-height:1.6; margin:0 0 8px;">' + escape(spin.problema) + '</p>';
+    }
+    if (sv(spin.implicacion) || sv(spin.necesidad_beneficio)) {
+      desarrolloHtml += '<p style="font-size:13px; color:var(--fg-1); line-height:1.6; margin:0;">' +
+        escape([sv(spin.implicacion), sv(spin.necesidad_beneficio)].filter(Boolean).join(' ')) + '</p>';
+    }
+
+    /* Observaciones: objeciones + intel competitiva como bullets */
+    var obsItems = [];
+    objeciones.forEach(function(o) {
+      var txt = '— ' + o.objecion;
+      if (sv(o.respuesta_dada)) txt += '. ' + o.respuesta_dada;
+      obsItems.push(txt);
+    });
+    competid.forEach(function(c) {
+      var txt = '— ' + c.nombre;
+      if (sv(c.producto)) txt += ' (' + c.producto + ')';
+      if (sv(c.fortaleza)) txt += '. Fortaleza: ' + c.fortaleza;
+      if (sv(c.debilidad))  txt += '. Debilidad: '  + c.debilidad;
+      obsItems.push(txt);
+    });
+    if (sv(r.plazo_estimado)) obsItems.push('— Plazo estimado: ' + r.plazo_estimado);
+    if (r.importe_estimado_eur) obsItems.push('— Importe estimado: ' + (r.importe_estimado_eur/1000).toFixed(0) + ' k€');
 
     var html = (
       '<div class="handle"></div>' +
       '<div style="padding:0 16px 32px; flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;">' +
 
         /* Cabecera */
-        '<div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:4px;">' +
+        '<div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:8px;">' +
           '<div style="flex:1; min-width:0;">' +
-            '<div style="font-size:11px; color:var(--fg-3); font-weight:600; text-transform:uppercase; letter-spacing:.05em;">' +
-              escape(TIPO_L[r.tipo_visita] || r.tipo_visita || 'Visita importada') + ' · ' + escape(r.date || '') +
-              (r.duracion_minutos ? ' · ' + r.duracion_minutos + ' min' : '') +
-            '</div>' +
-            '<h3 style="font-family:var(--font-display); font-size:18px; font-weight:700; margin:3px 0 6px; color:var(--fg-1); line-height:1.2;">' +
-              escape(studio ? studio.name : studioId) +
-            '</h3>' +
+            '<div style="font-size:11px; color:var(--fg-3); font-weight:600; text-transform:uppercase; letter-spacing:.05em;">Informe de visita</div>' +
+            '<h3 style="font-family:var(--font-display); font-size:18px; font-weight:700; margin:2px 0 4px; color:var(--fg-1);">' +
+              escape(studio ? studio.name : studioId) + '</h3>' +
+            '<div style="font-size:12px; color:var(--fg-3);">Manuel Fernández · Prescriptor GPF · Ferroplast & Tuyper</div>' +
           '</div>' +
           '<button onclick="window.closeSheet()" style="background:none; border:none; cursor:pointer; font-size:20px; color:var(--fg-3); padding:4px; flex-shrink:0;">✕</button>' +
         '</div>' +
 
-        /* Meta chips */
-        '<div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;">' +
-          (r.interlocutor_nombre ? pill(r.interlocutor_nombre + (r.cargo_interlocutor ? ' · ' + r.cargo_interlocutor : '') + (r.es_decision_maker ? ' ✅' : ''), 'var(--gpf-blue-100)', 'var(--gpf-blue-700)') : '') +
-          (tempStr ? pill(tempStr, '#fef9c3', '#854d0e') : '') +
-          (r.modalidad ? pill(r.modalidad, 'var(--bg-2)', 'var(--fg-2)') : '') +
-          (r.importe_estimado_eur ? pill('~' + (r.importe_estimado_eur/1000).toFixed(0) + ' k€', '#f0fdf4', '#16a34a') : '') +
-        '</div>' +
-
-        /* Botón descarga Word */
+        /* Botón descarga */
         '<button onclick="window.Screens.detail.downloadReportWord(\'' + escape(studioId) + '\',' + idx + '); window.closeSheet();" ' +
-          'class="btn btn-ghost" style="width:100%; margin-bottom:16px; font-size:13px;">📄 Descargar como Word</button>' +
+          'class="btn btn-ghost" style="width:100%; margin-bottom:14px; font-size:13px;">📄 Descargar como Word</button>' +
 
-        /* Resumen ejecutivo */
-        (sv(r.resumen_ejecutivo)
-          ? sec('📋', 'Resumen ejecutivo') +
-            '<div style="background:var(--gpf-blue-100); border-left:3px solid var(--gpf-blue-500); ' +
-              'padding:10px 12px; border-radius:0 8px 8px 0;">' +
-              '<p style="font-size:14px; color:var(--fg-1); margin:0; line-height:1.6;">' + escape(r.resumen_ejecutivo) + '</p>' +
-            '</div>'
+        /* 1. Datos generales */
+        sec('1. Datos generales') +
+        '<table style="width:100%; border-collapse:collapse;">' +
+          tRow('Empresa', studioName(studio, studioId)) +
+          tRow('Tipo', studio && studio.type ? (studio.type) : null) +
+          tRow('Fecha', r.date) +
+          tRow('Hora', r.hora_inicio) +
+          tRow('Duración', r.duracion_minutos ? r.duracion_minutos + ' min' : null) +
+          tRow('Tipo de visita', TIPO_L[r.tipo_visita] || r.tipo_visita) +
+          tRow('Modalidad', r.modalidad) +
+          tRow('Estado tras visita', STATUS_L[r.nuevo_status] || r.nuevo_status) +
+        '</table>' +
+
+        /* 2. Personas contactadas */
+        (sv(r.interlocutor_nombre)
+          ? sec('2. Personas contactadas') +
+            '<table style="width:100%; border-collapse:collapse;">' +
+              '<tr style="border-bottom:1px solid var(--border-1);">' +
+                '<td style="font-size:12px; font-weight:700; color:var(--fg-3); padding:4px 0;">Nombre</td>' +
+                '<td style="font-size:12px; font-weight:700; color:var(--fg-3); padding:4px 8px;">Cargo</td>' +
+                '<td style="font-size:12px; font-weight:700; color:var(--fg-3); padding:4px 0;">Obs.</td>' +
+              '</tr>' +
+              '<tr>' +
+                '<td style="font-size:13px; padding:5px 0;">' + escape(r.interlocutor_nombre || '—') + (r.es_decision_maker ? ' ⭐' : '') + '</td>' +
+                '<td style="font-size:13px; padding:5px 8px;">' + escape(r.cargo_interlocutor || '—') + '</td>' +
+                '<td style="font-size:13px; padding:5px 0;">' + escape(r.modalidad || '') + '</td>' +
+              '</tr>' +
+            '</table>'
           : '') +
 
-        /* Puntos clave */
+        /* 3. Desarrollo */
+        (desarrolloHtml
+          ? sec('3. Desarrollo de la visita') + desarrolloHtml
+          : '') +
+
+        /* 4. Contexto estratégico — puntos clave */
         (puntos.length
-          ? sec('•', 'Puntos clave') +
+          ? sec('4. Contexto estratégico') +
             '<ul style="margin:0; padding-left:18px;">' +
-              puntos.map(function(p) { return '<li style="font-size:13px; color:var(--fg-1); margin-bottom:4px; line-height:1.4;">' + escape(p) + '</li>'; }).join('') +
+              puntos.map(function(p) { return '<li style="font-size:13px; color:var(--fg-1); margin-bottom:4px; line-height:1.4;">— ' + escape(p) + '</li>'; }).join('') +
             '</ul>'
           : '') +
 
-        /* SPIN */
-        (sv(spin.situacion) || sv(spin.problema) || sv(spin.implicacion) || sv(spin.necesidad_beneficio)
-          ? sec('🔄', 'Análisis SPIN') +
-            spinRow('Situación', spin.situacion) +
-            spinRow('Problema', spin.problema) +
-            spinRow('Implicación', spin.implicacion) +
-            spinRow('Beneficio reconocido', spin.necesidad_beneficio)
-          : '') +
-
-        /* Señales de compra */
-        (senales.length
-          ? sec('🟢', 'Señales de compra') +
-            '<div style="display:flex; flex-direction:column; gap:5px;">' +
-              senales.map(function(s) {
-                return '<div style="font-size:13px; color:var(--fg-1); padding:7px 10px; background:#f0fdf4; border-left:3px solid #22c55e; border-radius:0 6px 6px 0;">' + escape(s) + '</div>';
-              }).join('') +
-            '</div>'
-          : '') +
-
-        /* Objeciones */
-        (objeciones.length
-          ? sec('💬', 'Objeciones') +
-            '<div style="display:flex; flex-direction:column; gap:6px;">' +
-              objeciones.map(function(o) {
-                return '<div style="background:var(--bg-2); border-radius:8px; padding:9px 11px;">' +
-                  '<div style="font-size:13px; font-weight:600; color:var(--fg-1);">' + escape(o.objecion) + '</div>' +
-                  (sv(o.respuesta_dada) ? '<div style="font-size:12px; color:var(--fg-3); margin-top:3px;">↳ ' + escape(o.respuesta_dada) + '</div>' : '') +
-                  (o.resuelta != null ? '<div style="font-size:11px; margin-top:3px;">' + (o.resuelta === true ? '✅ Resuelta' : o.resuelta === 'parcialmente' ? '⚠️ Parcialmente' : '❌ No resuelta') + '</div>' : '') +
-                '</div>';
-              }).join('') +
-            '</div>'
-          : '') +
-
-        /* Compromisos */
-        (comprNos.length
-          ? sec('✅', 'Nuestros compromisos') +
-            '<div style="display:flex; flex-direction:column; gap:4px;">' +
-              comprNos.map(function(c) {
-                return '<div style="font-size:13px; color:var(--fg-1); padding:6px 0; border-bottom:1px solid var(--border-1);">' +
-                  '☐ ' + escape(c.accion) +
-                  (sv(c.plazo) ? ' <span style="color:var(--fg-3); font-size:12px;">· ' + escape(c.plazo) + '</span>' : '') +
-                '</div>';
-              }).join('') +
-            '</div>'
-          : '') +
-        (comprCli.length
-          ? sec('📬', 'Pendiente del cliente') +
-            '<div style="display:flex; flex-direction:column; gap:4px;">' +
-              comprCli.map(function(c) {
-                return '<div style="font-size:13px; color:var(--fg-1); padding:6px 0; border-bottom:1px solid var(--border-1);">' +
-                  '⏳ ' + escape(c.accion) +
-                  (sv(c.plazo) ? ' <span style="color:var(--fg-3); font-size:12px;">· ' + escape(c.plazo) + '</span>' : '') +
-                '</div>';
-              }).join('') +
-            '</div>'
-          : '') +
-
-        /* Oportunidades */
+        /* 5. Oportunidades */
         (proyectos.length
-          ? sec('🏗', 'Oportunidades detectadas') +
-            proyectos.map(function(p) {
-              return '<div style="background:var(--bg-2); border-radius:8px; padding:9px 11px; margin-bottom:6px;">' +
-                '<div style="font-size:13px; font-weight:600; color:var(--fg-1);">' + escape(p.nombre) + '</div>' +
-                '<div style="font-size:11px; color:var(--fg-3); margin-top:2px;">' +
-                  [sv(p.tipo), sv(p.fase_actual), p.importe_estimado ? (p.importe_estimado/1000).toFixed(0) + ' k€' : null].filter(Boolean).join(' · ') +
-                '</div>' +
-              '</div>';
+          ? sec('5. Oportunidades detectadas') +
+            '<ol style="margin:0; padding-left:18px;">' +
+              proyectos.map(function(p, i) {
+                var sub = [sv(p.tipo), sv(p.fase_actual), p.importe_estimado ? (p.importe_estimado/1000).toFixed(0) + ' k€' : null].filter(Boolean).join(' · ');
+                return '<li style="font-size:13px; color:var(--fg-1); margin-bottom:5px;">' +
+                  '<strong>' + escape(p.nombre) + '</strong>' + (sub ? '<br><span style="color:var(--fg-3); font-size:12px;">' + escape(sub) + '</span>' : '') + '</li>';
+              }).join('') +
+            '</ol>'
+          : '') +
+
+        /* 6. Compromisos */
+        (comprNos.length || comprCli.length || sv(r.proxima_accion)
+          ? sec('6. Compromisos y próximos pasos') +
+            '<ol style="margin:0; padding-left:18px;">' +
+              comprNos.map(function(c) {
+                return '<li style="font-size:13px; color:var(--fg-1); margin-bottom:4px;">' + escape(c.accion) +
+                  (sv(c.plazo) ? ' <span style="color:var(--fg-3); font-size:12px;">— ' + escape(c.plazo) + '</span>' : '') + '</li>';
+              }).join('') +
+              comprCli.map(function(c) {
+                return '<li style="font-size:13px; color:var(--fg-1); margin-bottom:4px;">' +
+                  '<em>(Pendiente cliente)</em> ' + escape(c.accion) +
+                  (sv(c.plazo) ? ' <span style="color:var(--fg-3); font-size:12px;">— ' + escape(c.plazo) + '</span>' : '') + '</li>';
+              }).join('') +
+              (sv(r.proxima_accion)
+                ? '<li style="font-size:13px; color:var(--fg-1); margin-bottom:4px;"><strong>' + escape(r.proxima_accion) + '</strong>' +
+                  (sv(r.fecha_proxima_visita) ? ' — ' + escape(r.fecha_proxima_visita) : '') + '</li>'
+                : '') +
+            '</ol>'
+          : '') +
+
+        /* 7. Observaciones */
+        (obsItems.length
+          ? sec('7. Observaciones adicionales') +
+            obsItems.map(function(o) {
+              return '<p style="font-size:13px; color:var(--fg-1); margin:3px 0; line-height:1.4;">' + escape(o) + '</p>';
             }).join('')
           : '') +
 
-        /* Intel competitiva */
-        (competid.length
-          ? sec('🎯', 'Intel competitiva') +
-            competid.map(function(c) {
-              return '<div style="background:var(--bg-2); border-radius:8px; padding:9px 11px; margin-bottom:6px;">' +
-                '<div style="font-size:13px; font-weight:600; color:var(--fg-1);">' + escape(c.nombre) + (sv(c.producto) ? ' · <span style="font-weight:400;">' + escape(c.producto) + '</span>' : '') + '</div>' +
-                (sv(c.fortaleza) ? '<div style="font-size:12px; color:#16a34a; margin-top:2px;">✓ ' + escape(c.fortaleza) + '</div>' : '') +
-                (sv(c.debilidad)  ? '<div style="font-size:12px; color:#dc2626; margin-top:2px;">✗ ' + escape(c.debilidad)  + '</div>' : '') +
-              '</div>';
-            }).join('')
-          : '') +
-
-        /* Próxima acción */
-        (sv(r.proxima_accion) || sv(r.fecha_proxima_visita)
-          ? sec('🎯', 'Próxima acción') +
-            '<div style="background:#eff6ff; border-left:3px solid var(--gpf-blue-500); border-radius:0 8px 8px 0; padding:10px 12px;">' +
-              (sv(r.proxima_accion) ? '<p style="font-size:14px; font-weight:600; color:var(--fg-1); margin:0 0 4px;">' + escape(r.proxima_accion) + '</p>' : '') +
-              (sv(r.fecha_proxima_visita) ? '<div style="font-size:12px; color:var(--gpf-blue-700);">📅 ' + escape(r.fecha_proxima_visita) + '</div>' : '') +
-            '</div>'
-          : '') +
-
-        /* Autoevaluación */
-        (sv(autoeval.que_salio_bien) || sv(autoeval.que_mejorar)
-          ? sec('🪞', 'Autoevaluación') +
-            (arrF(autoeval.que_salio_bien).length
-              ? '<div style="font-size:12px; color:var(--fg-3); margin-bottom:4px; font-weight:600;">✅ Qué salió bien</div>' +
-                '<ul style="margin:0 0 8px; padding-left:16px;">' + arrF(autoeval.que_salio_bien).map(function(x) { return '<li style="font-size:13px; color:var(--fg-1);">' + escape(x) + '</li>'; }).join('') + '</ul>'
-              : '') +
-            (arrF(autoeval.que_mejorar).length
-              ? '<div style="font-size:12px; color:var(--fg-3); margin-bottom:4px; font-weight:600;">🔧 Qué mejorar</div>' +
-                '<ul style="margin:0; padding-left:16px;">' + arrF(autoeval.que_mejorar).map(function(x) { return '<li style="font-size:13px; color:var(--fg-1);">' + escape(x) + '</li>'; }).join('') + '</ul>'
-              : '')
-          : '') +
+        /* 8. Evaluación */
+        sec('8. Evaluación general') +
+        '<table style="width:100%; border-collapse:collapse;">' +
+          tRow('Nivel de interés', interes) +
+          tRow('Potencial', r.probabilidad_cierre_pct != null ? r.probabilidad_cierre_pct + '% probabilidad' : null) +
+          tRow('Importe estimado', r.importe_estimado_eur ? (r.importe_estimado_eur/1000).toFixed(0) + ' k€' : null) +
+          tRow('Plazo estimado', r.plazo_estimado) +
+          tRow('Estado de la cuenta', STATUS_L[r.nuevo_status] || r.nuevo_status) +
+        '</table>' +
 
         '<button onclick="window.closeSheet()" class="btn btn-ghost btn-block" style="margin-top:20px;">Cerrar</button>' +
       '</div>'
@@ -2558,10 +2550,12 @@
     if (window.openSheet) window.openSheet(html);
   }
 
+  function studioName(studio, id) { return studio ? studio.name : id; }
+
   /* ============================================================
      DESCARGAR INFORME IMPORTADO COMO WORD (.doc)
-     Mismo truco HTML-con-namespace que usa briefing.js.
-     Word lo abre directamente y permite guardar como .docx.
+     Formato idéntico a los informes anteriores: 8 secciones, prosa
+     narrativa, sin SPIN, sin citas, sin autoevaluación.
      ============================================================ */
   function downloadReportWord(studioId, idx) {
     var raw = State.studiosById && State.studiosById[studioId];
@@ -2570,144 +2564,189 @@
     var r = reports[idx];
     if (!r) return;
     var studio = getStudio(studioId);
-    var studioName = (studio && studio.name) || studioId;
+    var sName = (studio && studio.name) || studioId;
 
     function sv(v) { return (v === null || v === undefined || v === '' || v === 'N/A') ? null : v; }
     function arrF(v) { return Array.isArray(v) ? v : []; }
     function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-    var TIPO_L = { primera_visita:'Primera visita', seguimiento:'Seguimiento', demo:'Demo',
+    var TIPO_L   = { primera_visita:'Primera visita', seguimiento:'Seguimiento', demo:'Demo',
       propuesta:'Propuesta', negociacion:'Negociación', cierre:'Cierre', postventa:'Postventa' };
-    var tempN = r.temperatura != null ? Number(r.temperatura) : null;
-    var tempStr = tempN != null ? (tempN >= 8 ? '🔥' : tempN >= 5 ? '🌤️' : '❄️') + ' ' + tempN + '/10' : '—';
+    var STATUS_L = { nuevo:'Nuevo', contactado:'Contactado', reunion:'Reunión',
+      propuesta:'Propuesta', negociacion:'Negociación', ganado:'🟢 ACTIVO · GANADO',
+      perdido:'🔻 PERDIDO', dormido:'🟡 ACTIVO · DORMIDO' };
 
     var spin     = r.spin || {};
-    var objs     = arrF(r.objeciones).filter(function(o) { return o && sv(o.objecion); });
-    var senales  = arrF(r.senales_de_compra).filter(Boolean);
     var puntos   = arrF(r.puntos_clave).filter(Boolean);
     var comprNos = arrF(r.compromisos && r.compromisos.por_nuestra_parte).filter(function(c) { return c && sv(c.accion); });
     var comprCli = arrF(r.compromisos && r.compromisos.por_parte_del_cliente).filter(function(c) { return c && sv(c.accion); });
     var proyect  = arrF(r.oportunidades_detectadas && r.oportunidades_detectadas.proyectos).filter(function(p) { return p && sv(p.nombre); });
     var compet   = arrF(r.intel_competitiva && r.intel_competitiva.competidores).filter(function(c) { return c && sv(c.nombre); });
-    var autoeval = r.autoevaluacion || {};
+    var objs     = arrF(r.objeciones).filter(function(o) { return o && sv(o.objecion); });
+
+    var tempN  = r.temperatura != null ? Number(r.temperatura) : null;
+    var interes = tempN != null ? (tempN >= 8 ? 'Alto' : tempN >= 5 ? 'Medio' : 'Bajo') : '—';
+    var estado  = STATUS_L[r.nuevo_status] || r.nuevo_status || '—';
 
     function h2(t) { return '<h2>' + t + '</h2>'; }
-    function h3(t) { return '<h3>' + t + '</h3>'; }
-    function p(t)  { return t ? '<p>' + esc(t) + '</p>' : ''; }
-    function ul(items) {
-      if (!items.length) return '';
-      return '<ul>' + items.map(function(i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ul>';
+    function td(label, val) {
+      if (!sv(val)) return '';
+      return '<tr><td class="lbl">' + label + '</td><td>' + esc(String(val)) + '</td></tr>';
     }
-    function spinBlock(label, text) {
-      if (!sv(text)) return '';
-      return '<p><strong>' + label + ':</strong><br>' + esc(text) + '</p>';
-    }
+    function li(text) { return '<li>' + esc(text) + '</li>'; }
+
+    /* §3 Desarrollo — prosa continua sin labels SPIN */
+    var desarrollo = [
+      sv(r.resumen_ejecutivo),
+      sv(spin.situacion),
+      sv(spin.problema),
+      [sv(spin.implicacion), sv(spin.necesidad_beneficio)].filter(Boolean).join(' ') || null,
+    ].filter(Boolean);
+
+    /* §7 Observaciones — bullets sin mencionar de dónde vienen */
+    var obs = [];
+    objs.forEach(function(o) {
+      var t = '— ' + o.objecion;
+      if (sv(o.respuesta_dada)) t += '. ' + o.respuesta_dada;
+      obs.push(t);
+    });
+    compet.forEach(function(c) {
+      var t = '— ' + c.nombre;
+      if (sv(c.producto)) t += ' (' + c.producto + ')';
+      if (sv(c.fortaleza)) t += '. Punto fuerte: ' + c.fortaleza;
+      if (sv(c.debilidad))  t += '. Punto débil: '  + c.debilidad;
+      obs.push(t);
+    });
+    if (sv(r.plazo_estimado))      obs.push('— Plazo de decisión estimado: ' + r.plazo_estimado);
+    if (r.importe_estimado_eur)    obs.push('— Volumen estimado de negocio: ' + (r.importe_estimado_eur/1000).toFixed(0) + ' k€');
+    if (r.probabilidad_cierre_pct) obs.push('— Probabilidad de cierre: ' + r.probabilidad_cierre_pct + '%');
+
+    var hoy = new Date().toLocaleDateString('es-ES');
+    var ciudad = (studio && studio.city) ? ', ' + studio.city : '';
+    var studioTipo = (studio && studio.type) || '';
 
     var body =
-      /* Portada */
-      '<table style="width:100%; background:#0a2d52; color:white; padding:10pt 12pt; margin-bottom:4pt;">' +
-        '<tr>' +
-          '<td style="color:#aed6f1; font-size:9pt; letter-spacing:0.08em; font-weight:700;">FERROPLAST · TUYPER</td>' +
-          '<td style="text-align:right; font-size:10pt; font-weight:600; text-transform:uppercase;">Informe de visita</td>' +
-        '</tr>' +
-      '</table>' +
-      '<h1 style="color:#0a2d52; font-family:Calibri,sans-serif; font-size:20pt; font-weight:700; margin:10pt 0 2pt;">' + esc(studioName) + '</h1>' +
-      '<table style="width:100%; border-bottom:2pt solid #0a2d52; margin-bottom:14pt; font-size:10pt; color:#555;">' +
-        '<tr>' +
-          '<td style="padding:4pt 0;"><strong>Fecha:</strong> ' + esc(r.date || '—') + '</td>' +
-          '<td style="padding:4pt 0;"><strong>Tipo:</strong> ' + esc(TIPO_L[r.tipo_visita] || r.tipo_visita || '—') + '</td>' +
-          '<td style="padding:4pt 0;"><strong>Duración:</strong> ' + esc(r.duracion_minutos ? r.duracion_minutos + ' min' : '—') + '</td>' +
-        '</tr>' +
-        '<tr>' +
-          '<td style="padding:4pt 0;"><strong>Interlocutor:</strong> ' + esc((r.interlocutor_nombre || '—') + (r.cargo_interlocutor ? ' · ' + r.cargo_interlocutor : '')) + '</td>' +
-          '<td style="padding:4pt 0;"><strong>Temperatura:</strong> ' + esc(tempStr) + '</td>' +
-          '<td style="padding:4pt 0;"><strong>Modalidad:</strong> ' + esc(r.modalidad || '—') + '</td>' +
-        '</tr>' +
-      '</table>' +
+      /* Banda de cabecera */
+      '<table class="header-band"><tr>' +
+        '<td style="color:#aed6f1; font-size:9pt; letter-spacing:0.08em; font-weight:700;">FERROPLAST · TUYPER</td>' +
+        '<td style="text-align:right; font-size:10pt; font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">Informe de Visita</td>' +
+      '</tr></table>' +
 
-      /* Resumen */
-      (sv(r.resumen_ejecutivo) ? h2('Resumen ejecutivo') + p(r.resumen_ejecutivo) : '') +
+      '<h1>' + esc(sName) + '</h1>' +
+      '<p class="subtitle">Manuel Fernández · Prescriptor GPF · Ferroplast &amp; Tuyper' + esc(ciudad) + ' · ' + esc(r.date || hoy) + '</p>' +
+      '<hr>' +
 
-      /* Puntos clave */
-      (puntos.length ? h2('Puntos clave') + ul(puntos) : '') +
+      /* §1 Datos generales */
+      h2('1. Datos generales') +
+      '<table class="data-table"><tbody>' +
+        td('Empresa', sName) +
+        td('Tipo', studioTipo) +
+        (studio && studio.address ? td('Sede', studio.address + (ciudad ? ciudad : '')) : '') +
+        (studio && studio.phone ? td('Teléfono', studio.phone) : '') +
+        (studio && studio.web ? td('Web', studio.web) : '') +
+        td('Fecha de visita', r.date) +
+        td('Hora', r.hora_inicio) +
+        td('Duración', r.duracion_minutos ? r.duracion_minutos + ' minutos' : null) +
+        td('Tipo de visita', TIPO_L[r.tipo_visita] || r.tipo_visita) +
+        td('Estado tras visita', estado) +
+      '</tbody></table>' +
 
-      /* SPIN */
-      (sv(spin.situacion) || sv(spin.problema) || sv(spin.implicacion) || sv(spin.necesidad_beneficio)
-        ? h2('Análisis SPIN') +
-          spinBlock('Situación', spin.situacion) +
-          spinBlock('Problema', spin.problema) +
-          spinBlock('Implicación', spin.implicacion) +
-          spinBlock('Beneficio reconocido', spin.necesidad_beneficio)
+      /* §2 Personas contactadas */
+      (sv(r.interlocutor_nombre)
+        ? h2('2. Personas contactadas') +
+          '<table class="contacts-table"><thead><tr>' +
+            '<th>Nombre</th><th>Cargo</th><th>Observaciones</th>' +
+          '</tr></thead><tbody>' +
+            '<tr>' +
+              '<td>' + esc(r.interlocutor_nombre) + (r.es_decision_maker ? ' ⭐' : '') + '</td>' +
+              '<td>' + esc(r.cargo_interlocutor || '—') + '</td>' +
+              '<td>' + esc(r.modalidad || '') + '</td>' +
+            '</tr>' +
+          '</tbody></table>'
         : '') +
 
-      /* Señales de compra */
-      (senales.length ? h2('Señales de compra') + ul(senales) : '') +
-
-      /* Objeciones */
-      (objs.length
-        ? h2('Objeciones') + objs.map(function(o) {
-            return '<p><strong>' + esc(o.objecion) + '</strong>' +
-              (sv(o.respuesta_dada) ? '<br>Respuesta: ' + esc(o.respuesta_dada) : '') +
-              (o.resuelta != null ? '<br><em>' + (o.resuelta === true ? '✅ Resuelta' : o.resuelta === 'parcialmente' ? '⚠️ Parcialmente' : '❌ No resuelta') + '</em>' : '') +
-            '</p>';
-          }).join('')
+      /* §3 Desarrollo — prosa narrativa sin mencionar SPIN ni transcripción */
+      (desarrollo.length
+        ? h2('3. Desarrollo de la visita') +
+          desarrollo.map(function(p) { return '<p>' + esc(p) + '</p>'; }).join('')
         : '') +
 
-      /* Compromisos */
-      (comprNos.length
-        ? h2('Nuestros compromisos') +
-          '<ul>' + comprNos.map(function(c) { return '<li>' + esc(c.accion) + (sv(c.plazo) ? ' — Plazo: <em>' + esc(c.plazo) + '</em>' : '') + '</li>'; }).join('') + '</ul>'
-        : '') +
-      (comprCli.length
-        ? h2('Pendiente del cliente') +
-          '<ul>' + comprCli.map(function(c) { return '<li>' + esc(c.accion) + (sv(c.plazo) ? ' — Plazo: <em>' + esc(c.plazo) + '</em>' : '') + '</li>'; }).join('') + '</ul>'
+      /* §4 Contexto estratégico — puntos clave */
+      (puntos.length
+        ? h2('4. Contexto estratégico') +
+          '<ul>' + puntos.map(li).join('') + '</ul>'
         : '') +
 
-      /* Próxima acción */
-      (sv(r.proxima_accion) || sv(r.fecha_proxima_visita)
-        ? h2('Próxima acción') +
-          (sv(r.proxima_accion) ? '<p><strong>' + esc(r.proxima_accion) + '</strong></p>' : '') +
-          (sv(r.fecha_proxima_visita) ? '<p>Fecha propuesta: ' + esc(r.fecha_proxima_visita) + '</p>' : '')
-        : '') +
-
-      /* Oportunidades */
+      /* §5 Oportunidades detectadas */
       (proyect.length
-        ? h2('Oportunidades detectadas') + proyect.map(function(p) {
-            return '<p><strong>' + esc(p.nombre) + '</strong>' +
-              [sv(p.tipo), sv(p.fase_actual), p.importe_estimado ? (p.importe_estimado/1000).toFixed(0) + ' k€' : null].filter(Boolean).map(function(x){ return '<br>' + esc(x); }).join('') +
-            '</p>';
-          }).join('')
+        ? h2('5. Oportunidades detectadas') +
+          '<ol>' + proyect.map(function(p) {
+            var sub = [sv(p.tipo), sv(p.fase_actual), p.importe_estimado ? (p.importe_estimado/1000).toFixed(0) + ' k€' : null].filter(Boolean).join(', ');
+            return '<li><strong>' + esc(p.nombre) + '</strong>' + (sub ? ' — ' + esc(sub) : '') + '</li>';
+          }).join('') + '</ol>'
         : '') +
 
-      /* Intel competitiva */
-      (compet.length
-        ? h2('Intel competitiva') + compet.map(function(c) {
-            return '<p><strong>' + esc(c.nombre) + '</strong>' +
-              (sv(c.producto) ? ' · ' + esc(c.producto) : '') +
-              (sv(c.fortaleza) ? '<br>✓ ' + esc(c.fortaleza) : '') +
-              (sv(c.debilidad)  ? '<br>✗ ' + esc(c.debilidad) : '') +
-            '</p>';
-          }).join('')
+      /* §6 Compromisos y próximos pasos */
+      (comprNos.length || comprCli.length || sv(r.proxima_accion)
+        ? h2('6. Compromisos y próximos pasos') +
+          '<ol>' +
+            comprNos.map(function(c) {
+              return '<li>' + esc(c.accion) + (sv(c.plazo) ? ' — <em>' + esc(c.plazo) + '</em>' : '') + '</li>';
+            }).join('') +
+            comprCli.map(function(c) {
+              return '<li><em>(Por parte del cliente)</em> ' + esc(c.accion) + (sv(c.plazo) ? ' — <em>' + esc(c.plazo) + '</em>' : '') + '</li>';
+            }).join('') +
+            (sv(r.proxima_accion)
+              ? '<li><strong>' + esc(r.proxima_accion) + '</strong>' + (sv(r.fecha_proxima_visita) ? ' — ' + esc(r.fecha_proxima_visita) : '') + '</li>'
+              : '') +
+          '</ol>'
         : '') +
 
-      /* Autoevaluación */
-      (arrF(autoeval.que_salio_bien).length || arrF(autoeval.que_mejorar).length
-        ? h2('Autoevaluación') +
-          (arrF(autoeval.que_salio_bien).length ? h3('✅ Qué salió bien') + ul(arrF(autoeval.que_salio_bien)) : '') +
-          (arrF(autoeval.que_mejorar).length    ? h3('🔧 Qué mejorar')   + ul(arrF(autoeval.que_mejorar))    : '')
+      /* §7 Observaciones adicionales */
+      (obs.length
+        ? h2('7. Observaciones adicionales') +
+          obs.map(function(o) { return '<p>' + esc(o) + '</p>'; }).join('')
+        : '') +
+
+      /* §8 Evaluación general */
+      h2('8. Evaluación general') +
+      '<table class="eval-table"><tbody>' +
+        td('Nivel de interés', interes) +
+        td('Potencial del cliente', r.probabilidad_cierre_pct ? 'Probabilidad de cierre: ' + r.probabilidad_cierre_pct + '%' : null) +
+        td('Plazo estimado', r.plazo_estimado) +
+        td('Productos prioritarios', (function() {
+          var prods = proyect.map(function(p) { return p.nombre; }).join(', ');
+          return prods || null;
+        })()) +
+        td('Estado de la cuenta', estado) +
+      '</tbody></table>' +
+      (sv(r.proxima_accion)
+        ? '<p><strong>Prioridad: ' + esc(r.proxima_accion) + (sv(r.fecha_proxima_visita) ? ' — ' + esc(r.fecha_proxima_visita) : '') + '</strong></p>'
         : '');
 
     var wordHTML =
       '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
             'xmlns:w="urn:schemas-microsoft-com:office:word" ' +
             'xmlns="http://www.w3.org/TR/REC-html40">' +
-        '<head><meta charset="utf-8"><title>' + esc(studioName) + '</title>' +
+        '<head><meta charset="utf-8"><title>Informe Visita · ' + esc(sName) + '</title>' +
         '<style>' +
-          'body{font-family:Calibri,Arial,sans-serif;font-size:10.5pt;line-height:1.5;color:#222;}' +
-          'h1{color:#0a2d52;font-family:Calibri,sans-serif;}' +
-          'h2{background:#1f3a5a;color:white;padding:6pt 12pt;font-family:Calibri,sans-serif;font-size:13pt;font-weight:600;margin:14pt 0 6pt;}' +
-          'h3{color:#1f3a5a;font-size:11pt;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:10pt 0 4pt;padding-left:10pt;border-left:3pt solid #2e6da4;}' +
-          'p{margin:3pt 0;}ul{margin:4pt 0 6pt 22pt;}li{margin:2pt 0;}strong{color:#0a2d52;font-weight:600;}' +
+          'body{font-family:Calibri,Arial,sans-serif;font-size:10.5pt;line-height:1.5;color:#222;margin:0;}' +
+          'h1{color:#0a2d52;font-size:20pt;font-weight:700;margin:10pt 0 2pt;font-family:Calibri,sans-serif;}' +
+          '.subtitle{color:#666;font-size:9.5pt;margin:0 0 6pt;}' +
+          'hr{border:0;border-top:1.5pt solid #0a2d52;margin:8pt 0 14pt;}' +
+          'h2{background:#1f3a5a;color:white;padding:5pt 10pt;font-size:12pt;font-weight:600;margin:14pt 0 6pt;font-family:Calibri,sans-serif;}' +
+          '.header-band{width:100%;background:#0a2d52;color:white;padding:8pt 12pt;margin-bottom:4pt;}' +
+          '.data-table{width:100%;border-collapse:collapse;font-size:10pt;margin-bottom:6pt;}' +
+          '.data-table .lbl{color:#555;font-weight:600;padding:3pt 10pt 3pt 0;white-space:nowrap;width:30%;}' +
+          '.data-table td{padding:3pt 0;border-bottom:0.5pt solid #e8e8e8;}' +
+          '.contacts-table{width:100%;border-collapse:collapse;font-size:10pt;}' +
+          '.contacts-table th{background:#e8eff8;color:#0a2d52;font-weight:700;padding:4pt 8pt;text-align:left;font-size:10pt;}' +
+          '.contacts-table td{padding:4pt 8pt;border-bottom:0.5pt solid #e8e8e8;}' +
+          '.eval-table{width:100%;border-collapse:collapse;font-size:10pt;}' +
+          '.eval-table .lbl{color:#555;font-weight:600;padding:3pt 10pt 3pt 0;white-space:nowrap;width:35%;}' +
+          '.eval-table td{padding:3pt 0;border-bottom:0.5pt solid #e8e8e8;}' +
+          'p{margin:3pt 0 6pt;}ul,ol{margin:4pt 0 6pt 22pt;}li{margin:2pt 0;}' +
+          'strong{color:#0a2d52;font-weight:600;}em{color:#555;}' +
         '</style></head>' +
         '<body>' + body + '</body>' +
       '</html>';
