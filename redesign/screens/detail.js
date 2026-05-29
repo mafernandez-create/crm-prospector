@@ -19,6 +19,10 @@
      ============================================================ */
   let _tab = 'resumen';
   let _studioId = null;
+  let _importState = null; // { yaml, fileName, validationErrors, warnings }
+
+  var TIPOS_VISITA_VALIDOS = ['primera_visita','seguimiento','demo','propuesta','negociacion','cierre','postventa'];
+  var ESTADOS_VALIDOS = ['nuevo','contactado','reunion','propuesta','negociacion','ganado','perdido','dormido'];
 
   /* ============================================================
      MOCK CATALOG (fallback cuando no hay datos reales)
@@ -686,9 +690,20 @@
     return (
       '<section>' +
         /* CTAs principales */
-        '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">' +
+        '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">' +
           actionTile('📋', 'Briefing IA', 'Dossier estratégico pre-visita', 'var(--gpf-blue-700)', 'open-briefing') +
           actionTile('✍️', 'Informe IA', 'Notas → informe estructurado', '#7c3aed', 'open-informe') +
+        '</div>' +
+        /* Botón importar visita .yaml */
+        '<div data-action="importar-visita" style="border:1.5px dashed var(--border-2); border-radius:10px; ' +
+          'padding:12px 14px; cursor:pointer; display:flex; align-items:center; gap:12px; ' +
+          'margin-bottom:16px; background:var(--bg-1); transition:background .15s;" ' +
+          'onmouseenter="this.style.background=\'var(--bg-2)\'" onmouseleave="this.style.background=\'var(--bg-1)\'">' +
+          '<div style="font-size:1.5rem; flex:0 0 auto;">📥</div>' +
+          '<div>' +
+            '<div style="font-size:13px; font-weight:600; color:var(--fg-1);">Importar visita desde archivo</div>' +
+            '<div style="font-size:11px; color:var(--fg-3); margin-top:1px;">Sube un .yaml generado por la app de transcripción</div>' +
+          '</div>' +
         '</div>' +
         /* Lista */
         '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">' +
@@ -697,7 +712,7 @@
         '</div>' +
         (reps.length === 0
           ? emptyCard('Sin informes', 'Usa "Informe IA" para generar el primero.')
-          : reps.map(function (r, idx) { return reportCard(r, idx, s.id); }).join('')
+          : reps.slice().reverse().map(function (r, idx) { return reportCard(r, reps.length - 1 - idx, s.id); }).join('')
         ) +
       '</section>'
     );
@@ -714,15 +729,36 @@
   }
 
   function reportCard(r, idx, studioId) {
+    const isImported = r.formato === 'visita_importada';
+    const borderColor = isImported ? '#f59e0b' : 'var(--gpf-blue-500)';
+    const tipo_labels = { primera_visita:'Primera visita', seguimiento:'Seguimiento', demo:'Demo',
+      propuesta:'Propuesta', negociacion:'Negociación', cierre:'Cierre', postventa:'Postventa' };
+    const tempIco = r.temperatura != null
+      ? (r.temperatura >= 8 ? '🔥' : r.temperatura >= 5 ? '🌤️' : '❄️') + ' ' + r.temperatura
+      : null;
     return (
-      '<div class="card" style="padding:14px; margin-bottom:10px; border-left:4px solid var(--gpf-blue-500);">' +
+      '<div class="card" style="padding:14px; margin-bottom:10px; border-left:4px solid ' + borderColor + ';">' +
         '<div style="display:flex; gap:12px; align-items:flex-start;">' +
-          '<div style="font-size:2rem; flex:0 0 auto;">' + fileIcon(r.fileName) + '</div>' +
+          '<div style="font-size:2rem; flex:0 0 auto;">' + (isImported ? '📥' : fileIcon(r.fileName)) + '</div>' +
           '<div style="flex:1; min-width:0;">' +
             '<div style="font-size:14px; font-weight:600; color:var(--fg-1); margin-bottom:3px;">' + escape(r.title || 'Informe') + '</div>' +
-            '<div style="font-size:12px; color:var(--fg-3);">📅 ' + escape(U.formatDateES(r.date) || '—') + '</div>' +
-            (r.aiGenerated ? '<span style="display:inline-block; margin-top:4px; font-size:11px; padding:2px 8px; border-radius:8px; background:rgba(124,58,237,.15); color:#a78bfa;">✍️ IA</span>' : '') +
-            (r.notes ? '<p style="font-size:12px; color:var(--fg-3); margin:6px 0 0; padding:6px; background:var(--gpf-blue-100); border-radius:6px;">' + escape(r.notes) + '</p>' : '') +
+            '<div style="font-size:12px; color:var(--fg-3); display:flex; gap:8px; flex-wrap:wrap; align-items:center;">' +
+              '📅 ' + escape(U.formatDateES(r.date) || '—') +
+              (r.duracion_minutos ? ' · ⏱ ' + r.duracion_minutos + ' min' : '') +
+            '</div>' +
+            '<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:5px;">' +
+              (isImported ? '<span style="font-size:11px; padding:2px 8px; border-radius:8px; background:#fef9c3; color:#854d0e; font-weight:600;">📥 Importada</span>' : '') +
+              (r.aiGenerated ? '<span style="font-size:11px; padding:2px 8px; border-radius:8px; background:rgba(124,58,237,.15); color:#a78bfa;">✍️ IA</span>' : '') +
+              (r.tipo_visita ? '<span style="font-size:11px; padding:2px 8px; border-radius:8px; background:var(--bg-2); color:var(--fg-3);">' + escape(tipo_labels[r.tipo_visita] || r.tipo_visita) + '</span>' : '') +
+              (tempIco ? '<span style="font-size:11px; padding:2px 8px; border-radius:8px; background:var(--bg-2); color:var(--fg-2); font-family:var(--font-mono);">' + tempIco + '</span>' : '') +
+            '</div>' +
+            (r.resumen_ejecutivo
+              ? '<p style="font-size:12px; color:var(--fg-2); margin:6px 0 0; padding:7px 8px; ' +
+                  'background:var(--gpf-blue-100); border-radius:6px; line-height:1.4; ' +
+                  'display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">' +
+                  escape(r.resumen_ejecutivo) +
+                '</p>'
+              : (r.notes ? '<p style="font-size:12px; color:var(--fg-3); margin:6px 0 0; padding:6px; background:var(--gpf-blue-100); border-radius:6px;">' + escape(r.notes) + '</p>' : '')) +
           '</div>' +
           '<button onclick="window.Screens.detail.deleteReport(\'' + escape(studioId) + '\',' + idx + ')" ' +
             'style="background:none; border:1px solid #fecaca; border-radius:6px; padding:4px 8px; cursor:pointer; font-size:12px; color:#dc2626; flex:0 0 auto;">🗑️</button>' +
@@ -1673,6 +1709,485 @@
     _renderEmailSheet(studio, 0, '', '');
   }
 
+  /* ============================================================
+     IMPORTAR VISITA DESDE .YAML (app de transcripción)
+     ============================================================ */
+
+  /* --- Carga diferida de js-yaml (igual que XLSX) --- */
+  function _loadYamlLib(cb) {
+    if (typeof jsyaml !== 'undefined') { cb(); return; }
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js';
+    s.onload = cb;
+    s.onerror = function () {
+      alert('No se pudo cargar el parser YAML. Comprueba la conexión e inténtalo de nuevo.');
+    };
+    document.head.appendChild(s);
+  }
+
+  /* --- Abre el modal inicial con dropzone --- */
+  function openImportarVisitaModal(studio) {
+    _importState = null;
+    showModal(
+      '<div style="background:var(--bg-card); border-radius:14px; padding:24px; width:100%; ' +
+        'max-width:540px; max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.3);">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">' +
+          '<h3 style="margin:0; font-family:var(--font-display); font-size:20px; font-weight:700;">📥 Importar visita</h3>' +
+          '<button onclick="window.Screens.detail.closeModal()" ' +
+            'style="background:none; border:none; cursor:pointer; font-size:20px; color:var(--fg-3); padding:0;">✕</button>' +
+        '</div>' +
+        '<p style="font-size:13px; color:var(--fg-3); margin:0 0 14px;">' +
+          'Se asociará al estudio actualmente seleccionado: <strong>' + escape(studio.name) + '</strong>' +
+        '</p>' +
+        '<div id="yaml-dropzone" style="border:2px dashed var(--border-2); border-radius:8px; padding:32px; ' +
+          'text-align:center; cursor:pointer; background:var(--bg-1); transition:background .2s;">' +
+          '<div style="font-size:2.5rem; line-height:1; margin-bottom:8px;">📂</div>' +
+          '<div style="font-weight:600; font-size:14px;">Arrastra el archivo .yaml aquí</div>' +
+          '<div style="font-size:12px; color:var(--fg-3); margin-top:4px;">o pulsa para abrir el selector</div>' +
+          '<input id="yaml-input" type="file" accept=".yaml,.yml" style="display:none;">' +
+        '</div>' +
+        '<div id="yaml-validation-msg" style="margin-top:10px;"></div>' +
+      '</div>'
+    );
+    // Wire dropzone
+    setTimeout(function () {
+      var dz  = document.getElementById('yaml-dropzone');
+      var inp = document.getElementById('yaml-input');
+      if (!dz || !inp) return;
+      dz.onclick  = function () { inp.click(); };
+      dz.ondragover  = function (e) { e.preventDefault(); dz.style.background = 'rgba(10,45,82,.05)'; };
+      dz.ondragleave = function ()  { dz.style.background = 'var(--bg-1)'; };
+      dz.ondrop = function (e) {
+        e.preventDefault(); dz.style.background = 'var(--bg-1)';
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) _procesarArchivoYaml(e.dataTransfer.files[0], studio);
+      };
+      inp.onchange = function (e) {
+        if (e.target.files && e.target.files[0]) _procesarArchivoYaml(e.target.files[0], studio);
+      };
+    }, 50);
+    // Pre-carga silenciosa del parser
+    _loadYamlLib(function () {});
+  }
+
+  /* --- Valida y parsea el archivo seleccionado --- */
+  function _procesarArchivoYaml(file, studio) {
+    if (!file.name.match(/\.(yaml|yml)$/i)) {
+      var msg = document.getElementById('yaml-validation-msg');
+      if (msg) msg.innerHTML = '<div style="color:#dc2626; font-size:13px; padding:8px; ' +
+        'background:#fef2f2; border-radius:6px;">⚠️ Solo se aceptan archivos .yaml o .yml</div>';
+      return;
+    }
+    _loadYamlLib(function () {
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var yaml;
+        try { yaml = jsyaml.load(e.target.result); }
+        catch (err) {
+          var msg = document.getElementById('yaml-validation-msg');
+          if (msg) msg.innerHTML = '<div style="color:#dc2626; font-size:13px; padding:8px; ' +
+            'background:#fef2f2; border-radius:6px;">⚠️ YAML inválido: ' + escape(err.message) + '</div>';
+          return;
+        }
+
+        var errors   = [];
+        var warnings = [];
+
+        // Schema version
+        var sv = yaml && yaml._meta && yaml._meta.schema_version;
+        if (!sv)           warnings.push('No se encontró _meta.schema_version en el archivo');
+        else if (sv !== '1.0.0') warnings.push('Schema version ' + sv + ' ≠ 1.0.0 — puede haber campos incompatibles');
+
+        // Campos requeridos
+        var v    = yaml && yaml.visita;
+        var inter = yaml && yaml.interlocutores && yaml.interlocutores.principal;
+        var dev  = yaml && yaml.desarrollo;
+        var ev   = yaml && yaml.evaluacion;
+
+        function req(val, label) {
+          if (!val && val !== 0) errors.push(label + ' es obligatorio');
+        }
+        req(v && v.fecha,                          'visita.fecha');
+        req(v && v.duracion_minutos != null ? true : null, 'visita.duracion_minutos');
+        req(v && v.tipo_visita,                    'visita.tipo_visita');
+        req(inter && inter.nombre,                 'interlocutores.principal.nombre');
+        req(inter && inter.cargo,                  'interlocutores.principal.cargo');
+        req(dev && dev.resumen_ejecutivo,           'desarrollo.resumen_ejecutivo');
+        req(ev && ev.temperatura != null ? true : null, 'evaluacion.temperatura');
+        req(ev && ev.nuevo_status,                 'evaluacion.nuevo_status');
+
+        // Enums
+        if (v && v.tipo_visita && TIPOS_VISITA_VALIDOS.indexOf(v.tipo_visita) === -1)
+          errors.push('visita.tipo_visita "' + v.tipo_visita + '" no es válido. Valores: ' + TIPOS_VISITA_VALIDOS.join(', '));
+        if (ev && ev.nuevo_status && ESTADOS_VALIDOS.indexOf(ev.nuevo_status) === -1)
+          errors.push('evaluacion.nuevo_status "' + ev.nuevo_status + '" no es válido. Valores: ' + ESTADOS_VALIDOS.join(', '));
+
+        // Temperatura en rango
+        if (ev && ev.temperatura != null) {
+          var t = Number(ev.temperatura);
+          if (isNaN(t) || t < 1 || t > 10) warnings.push('evaluacion.temperatura (' + ev.temperatura + ') debería estar entre 1 y 10');
+        }
+
+        // Idempotencia
+        var existingReps = (studio.reports || []);
+        var dup = existingReps.find(function (r) { return r.imported_from === file.name; });
+        if (dup) warnings.push('⚠️ Ya hay una visita importada desde "' + file.name + '" (' + (dup.date || dup.imported_at || '') + '). Si continúas se creará un duplicado');
+
+        _importState = { yaml: yaml, fileName: file.name, validationErrors: errors, warnings: warnings };
+        _mostrarPreviewImport(studio);
+      };
+      reader.readAsText(file, 'UTF-8');
+    });
+  }
+
+  /* --- Renderiza la previsualización dentro del modal --- */
+  function _mostrarPreviewImport(studio) {
+    if (!_importState) return;
+    var ov = document.getElementById('detail-modal-ov');
+    if (!ov) return;
+
+    var st   = _importState;
+    var yaml = st.yaml;
+    var v    = yaml.visita || {};
+    var inter = (yaml.interlocutores && yaml.interlocutores.principal) || {};
+    var dev  = yaml.desarrollo || {};
+    var ev   = yaml.evaluacion || {};
+    var comprNos    = arr((dev.compromisos && dev.compromisos.por_nuestra_parte) || []).filter(function(c) { return c && c.accion; });
+    var comprClient = arr((dev.compromisos && dev.compromisos.por_parte_del_cliente) || []).filter(function(c) { return c && c.accion; });
+    var nObjeciones  = arr(dev.objeciones || []).filter(function(o) { return o && o.objecion; }).length;
+    var nProyectos   = arr((yaml.oportunidades_detectadas && yaml.oportunidades_detectadas.proyectos) || []).filter(function(p) { return p && p.nombre; }).length;
+    var nCompetid    = arr((yaml.intel_competitiva && yaml.intel_competitiva.competidores) || []).filter(function(c) { return c && c.nombre; }).length;
+    var contextExt   = yaml.contexto_extra_ia;
+
+    var TIPO_L  = { primera_visita:'Primera visita', seguimiento:'Seguimiento', demo:'Demo',
+      propuesta:'Propuesta', negociacion:'Negociación', cierre:'Cierre', postventa:'Postventa' };
+    var MODAL_L = { presencial:'Presencial', videollamada:'Videollamada', telefonica:'Telefónica' };
+
+    // Bloques de errores y advertencias
+    var errBlock = '';
+    if (st.validationErrors.length) {
+      errBlock = '<div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:12px; margin-bottom:12px;">' +
+        '<div style="font-weight:600; color:#dc2626; font-size:13px; margin-bottom:6px;">⛔ El archivo tiene errores bloqueantes (' + st.validationErrors.length + ')</div>' +
+        st.validationErrors.map(function(e) { return '<div style="font-size:12px; color:#dc2626; margin-bottom:2px;">• ' + escape(e) + '</div>'; }).join('') +
+      '</div>';
+    }
+    var warnBlock = '';
+    if (st.warnings.length) {
+      warnBlock = '<div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:10px; margin-bottom:12px;">' +
+        '<div style="font-weight:600; color:#b45309; font-size:13px; margin-bottom:4px;">⚠ Advertencias</div>' +
+        st.warnings.map(function(w) { return '<div style="font-size:12px; color:#92400e; margin-bottom:2px;">• ' + escape(w) + '</div>'; }).join('') +
+      '</div>';
+    }
+
+    // Previsualización (solo si no hay errores bloqueantes)
+    var previewBlock = '';
+    if (!st.validationErrors.length) {
+      var tempN   = ev.temperatura != null ? Number(ev.temperatura) : null;
+      var tempIco = tempN != null ? (tempN >= 8 ? '🔥' : tempN >= 5 ? '🌤️' : '❄️') + ' ' + tempN + '/10' : '—';
+      var statusL = STATUS_LABELS[ev.nuevo_status] || ev.nuevo_status || '—';
+      var dmText  = inter.es_decision_maker === true ? ' · ✅ DM' : inter.es_decision_maker === false ? ' · ❌ no DM' : '';
+
+      function row(label, val) {
+        if (!val && val !== 0) return '';
+        return '<div style="display:flex; flex-direction:column; gap:1px;">' +
+          '<span style="font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--fg-3);">' + label + '</span>' +
+          '<span style="font-size:13px; color:var(--fg-1);">' + val + '</span>' +
+        '</div>';
+      }
+
+      previewBlock = (
+        '<div style="background:var(--bg-2); border-radius:10px; padding:14px; margin-bottom:12px;">' +
+          '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; margin-bottom:12px;">' +
+            row('Fecha', escape(v.fecha || '—')) +
+            row('Duración', v.duracion_minutos ? v.duracion_minutos + ' min' : '—') +
+            row('Tipo de visita', escape(TIPO_L[v.tipo_visita] || v.tipo_visita || '—')) +
+            row('Modalidad', escape(MODAL_L[v.modalidad] || v.modalidad || '—')) +
+            row('Interlocutor', escape((inter.nombre || '—') + ' · ' + (inter.cargo || '—') + dmText)) +
+            row('Temperatura', tempIco) +
+            row('Estado tras visita', escape(statusL)) +
+            (comprNos.length + comprClient.length ? row('Compromisos', (comprNos.length + comprClient.length) + ' (' + comprNos.length + ' nuestros, ' + comprClient.length + ' del cliente)') : '') +
+            (nObjeciones ? row('Objeciones', nObjeciones + '') : '') +
+            (nProyectos  ? row('Oportunidades', nProyectos + '') : '') +
+            (nCompetid   ? row('Competidores', nCompetid + '') : '') +
+          '</div>' +
+          /* Resumen ejecutivo */
+          '<div style="background:var(--gpf-blue-100); border-left:3px solid var(--gpf-blue-500); ' +
+            'padding:10px 12px; border-radius:0 6px 6px 0;">' +
+            '<div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; ' +
+              'color:var(--gpf-blue-700); margin-bottom:4px;">Resumen ejecutivo</div>' +
+            '<p style="font-size:13px; color:var(--fg-1); margin:0; line-height:1.5;">' +
+              escape(dev.resumen_ejecutivo || '') +
+            '</p>' +
+          '</div>' +
+          /* Nota IA si viene */
+          (contextExt && contextExt !== null && String(contextExt).trim() !== ''
+            ? '<div style="margin-top:10px; background:#fefce8; border-left:3px solid #eab308; ' +
+                'padding:10px 12px; border-radius:0 6px 6px 0;">' +
+                '<div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; ' +
+                  'color:#854d0e; margin-bottom:4px;">💡 Nota IA</div>' +
+                '<p style="font-size:12px; color:#713f12; margin:0; line-height:1.5;">' + escape(String(contextExt)) + '</p>' +
+              '</div>'
+            : '') +
+        '</div>'
+      );
+    }
+
+    var actionHtml = st.validationErrors.length
+      ? '<button class="btn btn-ghost btn-block" onclick="window.Screens.detail.closeModal()">Cerrar</button>'
+      : '<div style="display:flex; gap:8px;">' +
+          '<button id="btn-confirmar-import" class="btn btn-primary" style="flex:1;" ' +
+            'onclick="window.Screens.detail._confirmarImportarVisita(\'' + escape(studio.id) + '\')">' +
+            '✅ Confirmar e importar' +
+          '</button>' +
+          '<button class="btn btn-ghost" onclick="window.Screens.detail.closeModal()">Cancelar</button>' +
+        '</div>';
+
+    ov.innerHTML = (
+      '<div style="background:var(--bg-card); border-radius:14px; padding:24px; width:100%; ' +
+        'max-width:540px; max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.3);">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">' +
+          '<h3 style="margin:0; font-family:var(--font-display); font-size:18px; font-weight:700; ' +
+            'overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:88%;">' +
+            '📥 ' + escape(st.fileName) +
+          '</h3>' +
+          '<button onclick="window.Screens.detail.closeModal()" ' +
+            'style="background:none; border:none; cursor:pointer; font-size:20px; color:var(--fg-3); padding:0; flex-shrink:0;">✕</button>' +
+        '</div>' +
+        '<p style="font-size:13px; color:var(--fg-3); margin:0 0 14px;">' +
+          'Asociado a: <strong>' + escape(studio.name) + '</strong>' +
+        '</p>' +
+        errBlock + warnBlock + previewBlock +
+        '<div id="import-error-block"></div>' +
+        '<div style="margin-top:14px;">' + actionHtml + '</div>' +
+      '</div>'
+    );
+  }
+
+  /* --- Ejecuta la importación tras confirmación del usuario --- */
+  async function _confirmarImportarVisita(studioId) {
+    if (!_importState || _importState.validationErrors.length) return;
+    var st     = _importState;
+    var studio = getStudio(studioId);
+    if (!studio) { notif('Studio no encontrado', 'error'); return; }
+
+    var btn = document.getElementById('btn-confirmar-import');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Importando…'; }
+
+    try {
+      var result = await _ejecutarImportacion(studioId, st.yaml, st.fileName);
+      closeModal();
+      _importState = null;
+
+      // Toast detallado
+      var parts = ['✅ Visita importada'];
+      if (result.newContacts) parts.push(result.newContacts + ' contacto' + (result.newContacts > 1 ? 's' : '') + ' nuevo' + (result.newContacts > 1 ? 's' : ''));
+      if (result.activities)  parts.push(result.activities + ' tarea' + (result.activities > 1 ? 's' : '') + ' creada' + (result.activities > 1 ? 's' : ''));
+      if (result.projects)    parts.push(result.projects + ' oportunidad' + (result.projects > 1 ? 'es' : '') + ' añadida' + (result.projects > 1 ? 's' : ''));
+      notif(parts.join(' · '), 'success');
+
+      render({ studioId: studioId, tab: 'informes' });
+    } catch (e) {
+      var errBlock = document.getElementById('import-error-block');
+      var msg = '⛔ Error al importar: ' + (e.message || 'Error desconocido');
+      if (errBlock) errBlock.innerHTML = '<div style="margin-top:8px; color:#dc2626; font-size:13px; ' +
+        'padding:8px; background:#fef2f2; border-radius:6px;">' + escape(msg) + '</div>';
+      if (btn) { btn.disabled = false; btn.textContent = '✅ Confirmar e importar'; }
+    }
+  }
+
+  /* --- Lógica central de importación (escritura a Supabase) ---
+   *
+   * ATOMICIDAD: todos los arrays (reports, activities, projects, team, notes)
+   * se fusionan en memoria y se envían en una sola llamada patchDoc, que en
+   * Supabase se traduce a un único UPSERT. Solo si esa llamada falla, nada se
+   * persiste. Una segunda llamada (saveTopFields) actualiza status/score/priority;
+   * si falla, únicamente esos 3 campos quedan sin actualizar (impacto menor).
+   */
+  async function _ejecutarImportacion(studioId, yaml, fileName) {
+    var v    = yaml.visita  || {};
+    var inter = (yaml.interlocutores && yaml.interlocutores.principal) || {};
+    var dev  = yaml.desarrollo || {};
+    var ev   = yaml.evaluacion || {};
+    var actEmp = yaml.actualizacion_empresa || {};
+    var today  = new Date().toISOString().slice(0, 10);
+    var isoTs  = new Date().toISOString().replace(/[:.]/g, '-');
+
+    function sv(val) { // solo valores reales (no null, "", "N/A")
+      if (val === null || val === undefined || val === '' || val === 'N/A') return null;
+      return val;
+    }
+
+    // --- Leer estado actual del studio ---
+    var raw = State.studiosById && State.studiosById[studioId];
+    if (!raw) throw new Error('Studio no disponible en State');
+    var curData = Object.assign({}, raw.data || {});
+
+    // ------ 1. Registro de la visita → reports[] ------
+    var reportEntry = {
+      iso_date:            isoTs,
+      date:                sv(v.fecha) || today,
+      generated_at:        new Date().toISOString(),
+      imported_at:         new Date().toISOString(),
+      imported_from:       fileName,
+      formato:             'visita_importada',
+      title:               'Visita ' + (sv(v.fecha) || today) + ' · ' + (sv(inter.nombre) || 'Interlocutor'),
+      tipo_visita:         sv(v.tipo_visita),
+      modalidad:           sv(v.modalidad),
+      duracion_minutos:    v.duracion_minutos != null ? Number(v.duracion_minutos) : null,
+      hora_inicio:         sv(v.hora_inicio),
+      hora_fin:            sv(v.hora_fin),
+      lugar:               sv(v.lugar),
+      ciudad:              sv(v.ciudad),
+      cargo_interlocutor:  sv(inter.cargo),
+      interlocutor_nombre: sv(inter.nombre),
+      es_decision_maker:   inter.es_decision_maker != null ? inter.es_decision_maker : null,
+      resumen_ejecutivo:   sv(dev.resumen_ejecutivo),
+      puntos_clave:        arr(dev.puntos_clave),
+      spin:                dev.spin || null,
+      senales_de_compra:   arr(dev.senales_de_compra),
+      objeciones:          arr(dev.objeciones).filter(function(o) { return o && sv(o.objecion); }),
+      compromisos:         dev.compromisos || null,
+      proxima_accion:      sv(dev.proxima_accion),
+      fecha_proxima_visita: sv(dev.fecha_proxima_visita),
+      temperatura:         ev.temperatura != null ? Number(ev.temperatura) : null,
+      probabilidad_cierre_pct: ev.probabilidad_cierre_pct != null ? ev.probabilidad_cierre_pct : null,
+      importe_estimado_eur:    ev.importe_estimado_eur != null ? ev.importe_estimado_eur : null,
+      plazo_estimado:      sv(ev.plazo_estimado),
+      nuevo_status:        sv(ev.nuevo_status),
+      autoevaluacion:      yaml.autoevaluacion || null,
+      intel_competitiva:   yaml.intel_competitiva || null,
+      raw_yaml:            yaml,   // audit trail completo
+    };
+    var reports = arr(curData.reports).slice();
+    reports.push(reportEntry);
+    curData.reports = reports;
+
+    // ------ 2. Compromisos → activities[] ------
+    var comprNos    = arr(dev.compromisos && dev.compromisos.por_nuestra_parte).filter(function(c) { return c && sv(c.accion); });
+    var comprClient = arr(dev.compromisos && dev.compromisos.por_parte_del_cliente).filter(function(c) { return c && sv(c.accion); });
+    var activities  = arr(curData.activities).slice();
+    var newActivities = 0;
+    comprNos.forEach(function(c) {
+      activities.push({
+        type: 'tarea', date: today,
+        title: c.accion,
+        notes: 'Plazo: ' + (sv(c.plazo) || 'no especificado') + (sv(c.responsable) ? ' · Responsable: ' + c.responsable : ''),
+        source_yaml: fileName,
+      });
+      newActivities++;
+    });
+    comprClient.forEach(function(c) {
+      activities.push({
+        type: 'tarea', date: today,
+        title: 'Esperar: ' + c.accion + (sv(c.contacto) ? ' de ' + c.contacto : ''),
+        notes: 'Compromiso del cliente. Plazo: ' + (sv(c.plazo) || 'no especificado'),
+        source_yaml: fileName,
+      });
+      newActivities++;
+    });
+    // Próxima visita como evento (si es fecha ISO estricta)
+    if (sv(dev.fecha_proxima_visita) && /^\d{4}-\d{2}-\d{2}$/.test(dev.fecha_proxima_visita)) {
+      activities.push({
+        type: 'evento', date: dev.fecha_proxima_visita,
+        title: 'Próxima visita (importada: ' + fileName + ')',
+        notes: sv(dev.proxima_accion) || '',
+        source_yaml: fileName,
+      });
+    }
+    curData.activities = activities;
+
+    // ------ 3. Oportunidades → projects[] ------
+    var proyectos = arr(yaml.oportunidades_detectadas && yaml.oportunidades_detectadas.proyectos)
+      .filter(function(p) { return p && sv(p.nombre); });
+    var projects  = arr(curData.projects).slice();
+    var newProjects = 0;
+    proyectos.forEach(function(p) {
+      projects.push({
+        name:     p.nombre,
+        status:   sv(p.fase_actual)  || 'En preparación',
+        type:     sv(p.tipo)         || '',
+        promotor: sv(p.promotor)     || '',
+        importe:  p.importe_estimado || null,
+        adjudicacion: sv(p.adjudicacion_prevista) || '',
+        productos: arr(p.productos_relevantes),
+        fuente:   sv(p.fuente) || 'Visita importada',
+        source_yaml: fileName,
+      });
+      newProjects++;
+    });
+    curData.projects = projects;
+
+    // ------ 4. Nuevos contactos → team[] ------
+    var team      = arr(curData.team).slice();
+    var teamNames = team.map(function(m) { return (m.name || '').toLowerCase(); });
+    var otrosAsist   = arr(yaml.interlocutores && yaml.interlocutores.otros_asistentes);
+    var nuevosCont   = arr(actEmp.nuevos_contactos);
+    var addedContacts = 0;
+    otrosAsist.concat(nuevosCont).forEach(function(c) {
+      if (!c || !sv(c.nombre)) return;
+      if (teamNames.indexOf(c.nombre.toLowerCase()) !== -1) return; // ya existe
+      team.push({ name: c.nombre, role: sv(c.cargo) || '', phone: sv(c.telefono) || '', email: sv(c.email) || '', source_yaml: fileName });
+      teamNames.push(c.nombre.toLowerCase());
+      addedContacts++;
+    });
+    curData.team = team;
+
+    // ------ 5. Intel competitiva → notes (append) ------
+    var competidores = arr(yaml.intel_competitiva && yaml.intel_competitiva.competidores)
+      .filter(function(c) { return c && sv(c.nombre); });
+    if (competidores.length) {
+      var intelLines = ['--- Intel competitiva (visita ' + (sv(v.fecha) || today) + ' · ' + fileName + ') ---'];
+      competidores.forEach(function(c) {
+        var line = '• ' + c.nombre;
+        if (sv(c.producto))   line += ' · ' + c.producto;
+        if (sv(c.fortaleza))  line += ' [✓ ' + c.fortaleza + ']';
+        if (sv(c.debilidad))  line += ' [✗ ' + c.debilidad + ']';
+        intelLines.push(line);
+      });
+      curData.notes = ((curData.notes || '').trim() + '\n\n' + intelLines.join('\n')).trim();
+    }
+
+    // ------ 6. Actualización datos empresa ------
+    if (!curData.studio) curData.studio = {};
+    if (sv(actEmp.num_empleados)   != null) curData.studio.num_empleados   = actEmp.num_empleados;
+    if (sv(actEmp.facturacion_anual))        curData.studio.facturacion_anual = actEmp.facturacion_anual;
+    if (actEmp.usa_bim != null)              curData.studio.usa_bim          = actEmp.usa_bim;
+    if (sv(actEmp.proceso_compra) && !curData.studio.proceso_compra)
+      curData.studio.proceso_compra = actEmp.proceso_compra;
+    if (arr(actEmp.tipos_de_proyecto).length) {
+      var tipos = arr(curData.studio.tipos_de_proyecto);
+      arr(actEmp.tipos_de_proyecto).forEach(function(t) { if (t && tipos.indexOf(t) === -1) tipos.push(t); });
+      curData.studio.tipos_de_proyecto = tipos;
+    }
+    if (arr(actEmp.zona_de_actuacion).length) {
+      var zonas = arr(curData.studio.zona_de_actuacion);
+      arr(actEmp.zona_de_actuacion).forEach(function(z) { if (z && zonas.indexOf(z) === -1) zonas.push(z); });
+      curData.studio.zona_de_actuacion = zonas;
+    }
+    if (sv(actEmp.notas_empresa)) {
+      var notaActual = (curData.studio.notas_empresa || '').trim();
+      curData.studio.notas_empresa = (notaActual + '\n\n[' + today + '] ' + actEmp.notas_empresa).trim();
+    }
+
+    // ------ ESCRITURA PRINCIPAL (un solo UPSERT) ------
+    await window.Data.patchDoc('studios/' + studioId, { data: curData });
+    // Actualizar State local
+    raw.data = curData;
+    if (State.studiosById) State.studiosById[studioId] = raw;
+
+    // ------ CAMPOS TOP-LEVEL (segunda llamada, impacto menor si falla) ------
+    var topPatch = {};
+    if (sv(ev.nuevo_status))  topPatch.status   = ev.nuevo_status;
+    if (sv(ev.nueva_prioridad)) topPatch.priority = ev.nueva_prioridad;
+    if (ev.nuevo_score != null && !isNaN(Number(ev.nuevo_score))) topPatch.score = Number(ev.nuevo_score);
+    if (Object.keys(topPatch).length) await saveTopFields(studioId, topPatch);
+
+    return { newContacts: addedContacts, activities: newActivities, projects: newProjects };
+  }
+
+  /* ============================================================
+     FIN BLOQUE IMPORTAR VISITA
+     ============================================================ */
+
   function wireCTAs(studio) {
     const v = document.getElementById('view-detail');
     if (!v) return;
@@ -1698,6 +2213,8 @@
           _tab = 'pipeline';
         } else if (action === 'enrich') {
           _enrichStudioUI(el, studio);
+        } else if (action === 'importar-visita') {
+          openImportarVisitaModal(studio);
         }
       });
     });
@@ -1929,6 +2446,9 @@
     deleteProject: deleteProject,
     // Informes
     deleteReport: deleteReport,
+    // Importar visita .yaml
+    openImportarVisitaModal: openImportarVisitaModal,
+    _confirmarImportarVisita: _confirmarImportarVisita,
     // Contacto
     openEditContact: openEditContact,
     saveContact: saveContact,
