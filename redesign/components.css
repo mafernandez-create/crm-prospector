@@ -948,6 +948,31 @@ body {
   .crm-root .topbar { padding: 0 16px; }
 }
 
+/* ≥ 701px: desktop — neutralizar iphone-frame (max-width, chrome, scroll anidado)
+   Los screens que usan iphone-frame en móvil (briefing, informe) tienen su propio
+   renderDesktopColumn sin iphone-frame en ≥768px. Esta regla actúa como red de
+   seguridad para cualquier residuo y gestiona el layout del inicio.js. */
+@media (min-width: 701px) {
+  .crm-root .iphone-frame {
+    max-width: none;
+    margin: 0;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .crm-root .iphone-frame .statusbar,
+  .crm-root .iphone-frame .home-indicator,
+  .crm-root .iphone-frame .tabbar {
+    display: none;
+  }
+  /* El scroll lo gestiona .shell > .main > .content; no scroll anidado */
+  .crm-root .iphone-frame .content {
+    overflow: visible;
+    padding-bottom: 0;
+    flex: none;
+  }
+}
+
 /* < 700px: vista mobile, sin sidebar */
 @media (max-width: 700px) {
   .crm-root .shell > .sidebar,

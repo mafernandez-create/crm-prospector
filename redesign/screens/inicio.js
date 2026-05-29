@@ -314,23 +314,29 @@
   }
 
   /* ============================================================
-     RENDER DESKTOP DEMO (≥ 700px — con iphone-frame como prototipo)
+     RENDER DESKTOP (≥ 700px) — layout real de 2 columnas
      ============================================================ */
   function renderDesktopDemo(data) {
     return (
-      '<div class="iphone-frame">' +
-        statusBar() +
-        '<div style="padding:8px var(--sp-5) var(--sp-4);">' +
+      '<div style="max-width:1100px;">' +
+        /* Cabecera */
+        '<div style="margin-bottom:24px;">' +
           headerRow() +
         '</div>' +
-        '<div style="flex:1; overflow:auto; padding:0 var(--sp-5) 100px; display:flex; flex-direction:column; gap:var(--sp-4);">' +
-          heroBlock(data.proximaVisita) +
-          visitasHoySection(data.visitasHoy, data.proximaVisita) +
-          tareasSection(data.tareas) +
+        /* Grid principal: hero (izq) + visitas/tareas (der) */
+        '<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;">' +
+          '<div>' +
+            heroBlock(data.proximaVisita) +
+          '</div>' +
+          '<div style="display:flex; flex-direction:column; gap:20px;">' +
+            visitasHoySection(data.visitasHoy, data.proximaVisita) +
+            tareasSection(data.tareas) +
+          '</div>' +
+        '</div>' +
+        /* Objetivos — ancho completo */
+        '<div style="margin-top:20px;">' +
           objetivosSection(data.objetivos) +
         '</div>' +
-        tabBar() +
-        '<div class="home-indicator"></div>' +
       '</div>'
     );
   }
