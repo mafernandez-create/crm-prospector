@@ -1985,6 +1985,8 @@
       notif(parts.join(' · '), 'success');
 
       render({ studioId: studioId, tab: 'informes' });
+      // Panel de acciones post-importación (500ms de delay para que el render termine)
+      setTimeout(function () { _openPostImportSheet(studioId, st.yaml); }, 500);
     } catch (e) {
       var errBlock = document.getElementById('import-error-block');
       var msg = '⛔ Error al importar: ' + (e.message || 'Error desconocido');
@@ -2122,9 +2124,31 @@
     var otrosAsist   = arr(yaml.interlocutores && yaml.interlocutores.otros_asistentes);
     var nuevosCont   = arr(actEmp.nuevos_contactos);
     var addedContacts = 0;
+
+    // 4a. Interlocutor principal — guardar tel/email/cargo en team si tiene datos
+    if (sv(inter.nombre)) {
+      var interIdx = teamNames.indexOf(inter.nombre.toLowerCase());
+      if (interIdx === -1) {
+        if (sv(inter.telefono) || sv(inter.email) || sv(inter.cargo)) {
+          team.push({ name: inter.nombre, role: sv(inter.cargo) || '', phone: sv(inter.telefono) || '', email: sv(inter.email) || '', source_yaml: fileName });
+          teamNames.push(inter.nombre.toLowerCase());
+          addedContacts++;
+        }
+      } else {
+        // Ya existe: completar campos vacíos
+        var tm = team[interIdx];
+        var tmChanged = false;
+        if (!tm.phone && sv(inter.telefono)) { tm.phone = inter.telefono; tmChanged = true; }
+        if (!tm.email && sv(inter.email))    { tm.email = inter.email;    tmChanged = true; }
+        if (!tm.role  && sv(inter.cargo))    { tm.role  = inter.cargo;    tmChanged = true; }
+        if (tmChanged) team[interIdx] = tm;
+      }
+    }
+
+    // 4b. Otros asistentes + contactos mencionados por el cliente
     otrosAsist.concat(nuevosCont).forEach(function(c) {
       if (!c || !sv(c.nombre)) return;
-      if (teamNames.indexOf(c.nombre.toLowerCase()) !== -1) return; // ya existe
+      if (teamNames.indexOf(c.nombre.toLowerCase()) !== -1) return;
       team.push({ name: c.nombre, role: sv(c.cargo) || '', phone: sv(c.telefono) || '', email: sv(c.email) || '', source_yaml: fileName });
       teamNames.push(c.nombre.toLowerCase());
       addedContacts++;
@@ -2182,6 +2206,139 @@
     if (Object.keys(topPatch).length) await saveTopFields(studioId, topPatch);
 
     return { newContacts: addedContacts, activities: newActivities, projects: newProjects };
+  }
+
+  /* --- Panel de acciones post-importación (bottom sheet) ---
+   * Se abre automáticamente después de una importación exitosa para
+   * que el comercial pueda actuar de inmediato sobre los datos de la visita.
+   */
+  function _openPostImportSheet(studioId, yaml) {
+    var studio = getStudio(studioId);
+    if (!studio) return;
+
+    var v     = (yaml && yaml.visita)  || {};
+    var inter = (yaml && yaml.interlocutores && yaml.interlocutores.principal) || {};
+    var dev   = (yaml && yaml.desarrollo) || {};
+    var ev    = (yaml && yaml.evaluacion) || {};
+
+    function sv(val) { return (val === null || val === undefined || val === '' || val === 'N/A') ? null : val; }
+    function ph(p)   { return p ? p.replace(/[^\d+]/g, '') : ''; }
+
+    var comprNos    = arr(dev.compromisos && dev.compromisos.por_nuestra_parte).filter(function(c) { return c && sv(c.accion); });
+    var comprClient = arr(dev.compromisos && dev.compromisos.por_parte_del_cliente).filter(function(c) { return c && sv(c.accion); });
+    var otrosAsist  = arr(yaml && yaml.interlocutores && yaml.interlocutores.otros_asistentes).filter(function(c) { return c && sv(c.nombre); });
+    var nuevosCont  = arr(yaml && yaml.actualizacion_empresa && yaml.actualizacion_empresa.nuevos_contactos).filter(function(c) { return c && sv(c.nombre); });
+    var proyectos   = arr(yaml && yaml.oportunidades_detectadas && yaml.oportunidades_detectadas.proyectos).filter(function(p) { return p && sv(p.nombre); });
+
+    /* ---- helpers UI ---- */
+    function sectionHead(emoji, title, count) {
+      return '<div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; ' +
+        'color:var(--fg-3); margin:16px 0 8px; display:flex; align-items:center; gap:6px;">' +
+        emoji + ' ' + title + (count ? ' <span style="background:var(--bg-2); border-radius:8px; padding:1px 6px; font-size:10px;">' + count + '</span>' : '') +
+      '</div>';
+    }
+
+    function contactCard(name, role, phone, email, tag) {
+      var tel = ph(phone);
+      return '<div style="background:var(--bg-2); border-radius:8px; padding:10px 12px; margin-bottom:7px; ' +
+        'display:flex; align-items:center; justify-content:space-between; gap:10px;">' +
+        '<div style="flex:1; min-width:0;">' +
+          '<div style="font-size:13px; font-weight:600; color:var(--fg-1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + escape(name) + '</div>' +
+          '<div style="font-size:11px; color:var(--fg-3);">' + escape(role || '—') + (tag ? ' · <span style="color:#854d0e;">' + tag + '</span>' : '') + '</div>' +
+        '</div>' +
+        '<div style="display:flex; gap:6px; flex-shrink:0;">' +
+          (tel ? '<a href="tel:' + tel + '" style="padding:5px 9px; border-radius:7px; background:var(--gpf-blue-100); color:var(--gpf-blue-700); font-size:12px; font-weight:600; text-decoration:none;">📞</a>' : '') +
+          (sv(email) ? '<a href="mailto:' + escape(email) + '" style="padding:5px 9px; border-radius:7px; background:#f0fdf4; color:#16a34a; font-size:12px; font-weight:600; text-decoration:none;">✉️</a>' : '') +
+        '</div>' +
+      '</div>';
+    }
+
+    function tareaRow(text, plazo, icono) {
+      return '<div style="display:flex; align-items:flex-start; gap:8px; padding:8px 0; border-bottom:1px solid var(--border-1);">' +
+        '<span style="flex-shrink:0; margin-top:1px;">' + icono + '</span>' +
+        '<div style="flex:1;">' +
+          '<div style="font-size:13px; color:var(--fg-1); line-height:1.4;">' + escape(text) + '</div>' +
+          (sv(plazo) ? '<div style="font-size:11px; color:var(--fg-3); margin-top:2px;">⏰ ' + escape(plazo) + '</div>' : '') +
+        '</div>' +
+      '</div>';
+    }
+
+    /* ---- construir HTML del sheet ---- */
+    var hasContacts = sv(inter.nombre) || otrosAsist.length || nuevosCont.length;
+    var hasProx     = sv(dev.proxima_accion) || sv(dev.fecha_proxima_visita);
+
+    var html = (
+      '<div class="handle"></div>' +
+      '<div style="padding:0 16px 32px;">' +
+
+        /* Cabecera */
+        '<div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:4px;">' +
+          '<div>' +
+            '<div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--fg-3);">Visita · ' + escape(v.fecha || 'hoy') + '</div>' +
+            '<h3 style="font-family:var(--font-display); font-size:20px; font-weight:700; margin:2px 0 0; color:var(--fg-1);">Qué hacer ahora</h3>' +
+          '</div>' +
+          '<button onclick="window.closeSheet()" style="background:none; border:none; cursor:pointer; font-size:20px; color:var(--fg-3); padding:4px; margin-top:2px;">✕</button>' +
+        '</div>' +
+        '<p style="font-size:13px; color:var(--fg-3); margin:0 0 4px;">' + escape(studio.name) + '</p>' +
+
+        /* ---- Próxima acción ---- */
+        (hasProx
+          ? sectionHead('🎯', 'Próxima acción', null) +
+            '<div style="background:#eff6ff; border-left:3px solid var(--gpf-blue-500); border-radius:0 8px 8px 0; padding:10px 12px; margin-bottom:4px;">' +
+              (sv(dev.proxima_accion) ? '<p style="font-size:14px; font-weight:600; color:var(--fg-1); margin:0 0 4px; line-height:1.4;">' + escape(dev.proxima_accion) + '</p>' : '') +
+              (sv(dev.fecha_proxima_visita) ? '<div style="font-size:12px; color:var(--gpf-blue-700); font-weight:600;">📅 ' + escape(dev.fecha_proxima_visita) + '</div>' : '') +
+            '</div>'
+          : '') +
+
+        /* ---- Contactos de la visita ---- */
+        (hasContacts
+          ? sectionHead('📞', 'Contactos de la visita', null) +
+            (sv(inter.nombre) ? contactCard(inter.nombre, sv(inter.cargo), sv(inter.telefono), sv(inter.email), inter.es_decision_maker ? 'Decisor' : null) : '') +
+            otrosAsist.map(function(c) { return contactCard(c.nombre, sv(c.cargo), sv(c.telefono), sv(c.email), 'Asistente'); }).join('') +
+            nuevosCont.map(function(c) { return contactCard(c.nombre, sv(c.cargo), sv(c.telefono), sv(c.email), 'Contacto sugerido'); }).join('') +
+            '<button onclick="window.Screens.detail.switchTab(\'equipo\',\'' + escape(studioId) + '\'); window.closeSheet();" ' +
+              'style="font-size:12px; color:var(--gpf-blue-700); background:none; border:none; cursor:pointer; padding:2px 0; margin-bottom:4px;">Ver todos en la pestaña Equipo →</button>'
+          : '') +
+
+        /* ---- Nuestros compromisos ---- */
+        (comprNos.length
+          ? sectionHead('✅', 'Nuestros compromisos', comprNos.length) +
+            '<div style="padding:0 2px;">' +
+              comprNos.map(function(c) { return tareaRow(c.accion, sv(c.plazo), '☐'); }).join('') +
+            '</div>'
+          : '') +
+
+        /* ---- Compromisos del cliente ---- */
+        (comprClient.length
+          ? sectionHead('📬', 'Pendiente del cliente', comprClient.length) +
+            '<div style="padding:0 2px;">' +
+              comprClient.map(function(c) {
+                var texto = c.accion + (sv(c.contacto) ? ' (' + c.contacto + ')' : '');
+                return tareaRow(texto, sv(c.plazo), '⏳');
+              }).join('') +
+            '</div>'
+          : '') +
+
+        /* ---- Oportunidades ---- */
+        (proyectos.length
+          ? sectionHead('🏗', 'Oportunidades detectadas', proyectos.length) +
+            proyectos.map(function(p) {
+              var sub = [sv(p.tipo), sv(p.fase_actual), p.importe_estimado ? (p.importe_estimado / 1000).toFixed(0) + ' k€' : null].filter(Boolean).join(' · ');
+              return '<div style="background:var(--bg-2); border-radius:8px; padding:10px 12px; margin-bottom:7px;">' +
+                '<div style="font-size:13px; font-weight:600; color:var(--fg-1);">' + escape(p.nombre) + '</div>' +
+                (sub ? '<div style="font-size:11px; color:var(--fg-3); margin-top:2px;">' + escape(sub) + '</div>' : '') +
+              '</div>';
+            }).join('') +
+            '<button onclick="window.Screens.detail.switchTab(\'proyectos\',\'' + escape(studioId) + '\'); window.closeSheet();" ' +
+              'style="font-size:12px; color:var(--gpf-blue-700); background:none; border:none; cursor:pointer; padding:2px 0; margin-bottom:4px;">Ver en pestaña Proyectos →</button>'
+          : '') +
+
+        /* ---- Botón cerrar ---- */
+        '<button onclick="window.closeSheet()" class="btn btn-ghost btn-block" style="margin-top:20px;">Cerrar</button>' +
+      '</div>'
+    );
+
+    if (window.openSheet) window.openSheet(html);
   }
 
   /* ============================================================
