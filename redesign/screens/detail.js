@@ -2033,6 +2033,12 @@
    * si falla, únicamente esos 3 campos quedan sin actualizar (impacto menor).
    */
   async function _ejecutarImportacion(studioId, yaml, fileName) {
+    // REGLA GLOBAL: ningún informe puede contener marcas de tiempo de la
+    // transcripción. Limpiamos el YAML completo antes de derivar campos, así
+    // reportEntry, raw_yaml y las actividades quedan sin timestamps.
+    if (window.Util && window.Util.stripTimestampsDeep) {
+      yaml = window.Util.stripTimestampsDeep(yaml);
+    }
     var v    = yaml.visita  || {};
     var inter = (yaml.interlocutores && yaml.interlocutores.principal) || {};
     var dev  = yaml.desarrollo || {};

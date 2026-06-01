@@ -1285,27 +1285,23 @@
    * }
    */
   /* Elimina cualquier marca de tiempo / timestamp del markdown del informe.
-     El informe es un registro comercial, NO una transcripción: no puede
-     parecer que proviene de una reunión grabada. Cubre formatos:
-       [01:47]  [01:47–02:34]  (01:47)  (1:02:33)  01:47–02:34 (rango suelto)
-     NO toca fechas tipo [2026-06-01] (sin ':') ni marcadores como [SIN DATO]. */
+     Regla global definida en window.Util.stripTimestamps (app.js) — una sola
+     fuente de verdad. Fallback local idéntico por si Util no estuviera cargado. */
   function _stripTimestamps(md) {
     if (!md) return md;
-    var TS = '\\d{1,2}:\\d{2}(?::\\d{2})?';                 // M:SS, MM:SS o H:MM:SS
+    if (window.Util && window.Util.stripTimestamps) return window.Util.stripTimestamps(md);
+    var TS = '\\d{1,2}:\\d{2}(?::\\d{2})?';
     var DASH = '\\s*[–—-]\\s*';
     return md
-      // [MM:SS] o [MM:SS–MM:SS]
       .replace(new RegExp('\\[\\s*' + TS + '(?:' + DASH + TS + ')?\\s*\\]', 'g'), '')
-      // (MM:SS) o (MM:SS–MM:SS)
       .replace(new RegExp('\\(\\s*' + TS + '(?:' + DASH + TS + ')?\\s*\\)', 'g'), '')
-      // rango suelto sin paréntesis: 01:47–02:34
       .replace(new RegExp('\\b' + TS + DASH + TS + '\\b', 'g'), '')
-      // limpieza de artefactos que deja el borrado
-      .replace(/[ \t]{2,}/g, ' ')                 // espacios dobles
-      .replace(/\(\s*\)/g, '')                    // paréntesis vacíos
-      .replace(/[ \t]+([,.;:)])/g, '$1')          // espacio antes de puntuación
-      .replace(/^(\s*(?:[-*•]|\d+\.)\s*)[–—-]\s+/gm, '$1') // viñeta con guion colgante
-      .replace(/[ \t]+$/gm, '');                  // espacios al final de línea
+      .replace(/[ \t]{2,}/g, ' ')
+      .replace(/\(\s*\)/g, '')
+      .replace(/[ \t]+([,.;:)])/g, '$1')
+      .replace(/^(\s*(?:[-*•]|\d+\.)\s*)[–—-]\s+/gm, '$1')
+      .replace(/[ \t]+$/gm, '')
+      .trim();
   }
 
   async function generateReport(studioId, payload) {

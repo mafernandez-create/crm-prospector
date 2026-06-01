@@ -4,6 +4,17 @@
 - La versión anterior (`index.html` + Firebase Firestore) **NO se toca** sin permiso explícito.
 - Si hay que modificar `index.html` o Firestore, pedir permiso antes de actuar.
 
+## Regla de informes (OBLIGATORIO)
+- **Ningún informe puede contener marcas de tiempo** de la transcripción del audio
+  (`[01:47]`, `[01:47–02:34]`, `(MM:SS)`, rangos `MM:SS–MM:SS`, etc.).
+  Un informe es un **registro comercial profesional**, NO una transcripción: nunca
+  puede parecer que proviene de una reunión grabada.
+- Regla centralizada en `window.Util.stripTimestamps` / `stripTimestampsDeep` (`redesign/app.js`).
+  Se aplica al **generar** informes (`Data.generateReport`, prompt + limpieza) y al
+  **importar** YAML de visita (`detail.js → _ejecutarImportacion`, limpia el YAML completo).
+- NO toca fechas `[YYYY-MM-DD]`, horas sueltas (`10:30`) ni marcadores `[SIN DATO]`.
+- Cualquier flujo nuevo que cree o muestre informes debe pasar por `stripTimestamps(Deep)`.
+
 ## Descripcion
 CRM B2B de ventas para prospección de estudios de arquitectura e ingeniería en España.
 Aplicación single-page (SPA) en un solo archivo HTML (~27.000 líneas, ~1.6 MB).

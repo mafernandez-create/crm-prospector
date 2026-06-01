@@ -483,6 +483,42 @@
     return String(v);
   }
 
+  /* ------------------------------------------------------------
+     REGLA GLOBAL: ningún informe puede contener marcas de tiempo.
+     Un informe es un registro comercial, NO una transcripción —
+     no puede parecer que proviene de una reunión grabada.
+     stripTimestamps limpia un string; stripTimestampsDeep recorre
+     recursivamente cualquier objeto/array (reports importados, YAML…).
+     Borra [MM:SS], [MM:SS–MM:SS], (MM:SS) y rangos sueltos MM:SS–MM:SS;
+     NO toca fechas [YYYY-MM-DD], horas sueltas (10:30) ni [SIN DATO].
+     ------------------------------------------------------------ */
+  var _TS = '\\d{1,2}:\\d{2}(?::\\d{2})?';
+  var _DASH = '\\s*[–—-]\\s*';
+  function stripTimestamps(str) {
+    if (typeof str !== 'string') return str;
+    return str
+      .replace(new RegExp('\\[\\s*' + _TS + '(?:' + _DASH + _TS + ')?\\s*\\]', 'g'), '')
+      .replace(new RegExp('\\(\\s*' + _TS + '(?:' + _DASH + _TS + ')?\\s*\\)', 'g'), '')
+      .replace(new RegExp('\\b' + _TS + _DASH + _TS + '\\b', 'g'), '')
+      .replace(/[ \t]{2,}/g, ' ')
+      .replace(/\(\s*\)/g, '')
+      .replace(/[ \t]+([,.;:)])/g, '$1')
+      .replace(/^(\s*(?:[-*•]|\d+\.)\s*)[–—-]\s+/gm, '$1')
+      .replace(/[ \t]+$/gm, '')
+      .trim();                                    // quita espacio/línea sobrante en los bordes
+  }
+  function stripTimestampsDeep(obj) {
+    if (obj == null) return obj;
+    if (typeof obj === 'string') return stripTimestamps(obj);
+    if (Array.isArray(obj)) return obj.map(stripTimestampsDeep);
+    if (typeof obj === 'object') {
+      var out = {};
+      for (var k in obj) { if (Object.prototype.hasOwnProperty.call(obj, k)) out[k] = stripTimestampsDeep(obj[k]); }
+      return out;
+    }
+    return obj;
+  }
+
   window.Util = {
     escapeHtml: escapeHtml,
     formatDateES: formatDateES,
@@ -492,6 +528,8 @@
     activities: activities,
     lastInteraction: lastInteraction,
     readField: readField,
+    stripTimestamps: stripTimestamps,
+    stripTimestampsDeep: stripTimestampsDeep,
   };
 
   /* ============================================================
