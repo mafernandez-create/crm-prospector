@@ -30,3 +30,6 @@ dunsSegmentacion_fix.js
 *.bak
 *.bak-*
 .reorg_backup_*/
+
+# Documentos con datos de clientes — solo local, nunca al repo público
+*.docx
