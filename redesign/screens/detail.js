@@ -2716,13 +2716,16 @@
     /* ── §3 Desarrollo — prosa narrativa en párrafos ── */
     var desarrolloParrafos = [];
     // Párrafo 1: apertura de visita con datos concretos
-    var aperturaPartes = ['Visita'];
-    if (sv(r.tipo_visita)) aperturaPartes.push('de ' + tipoVisita.toLowerCase());
-    if (sv(r.date)) aperturaPartes.push('el ' + (function() {
-      try { return new Date(r.date + 'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); } catch(e){ return r.date; }
-    })());
-    if (sv(r.hora_inicio)) aperturaPartes.push('a las ' + r.hora_inicio + ' h');
-    var aperturaTxt = aperturaPartes.join(' ') + '.';
+    /* Párrafo de apertura — SIN hora ni referencias de tiempo concretas */
+    var aperturaTxt = 'Visita';
+    if (sv(r.tipo_visita)) aperturaTxt += ' de ' + tipoVisita.toLowerCase();
+    if (sv(r.date)) {
+      aperturaTxt += ' el ' + (function() {
+        try { return new Date(r.date + 'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
+        catch(e){ return r.date; }
+      })();
+    }
+    aperturaTxt += '.';
     if (sv(r.interlocutor_nombre)) {
       aperturaTxt += ' Atendido por ' + r.interlocutor_nombre;
       if (sv(r.cargo_interlocutor)) aperturaTxt += ', ' + r.cargo_interlocutor;
@@ -2814,6 +2817,25 @@
         (sv(r.duracion_minutos) ? tdR('Duración', 'Aprox. ' + r.duracion_minutos + ' minutos') : '') +
         tdR('Tipo de visita', tipoVisita) +
         tdR('Estado tras visita', estado) +
+        /* Comercial y origen */
+        tdR('Comercial / Prescriptor', (function() {
+          var cb = sv(r.imported_by) || 'Manuel Fernández';
+          // Normalizar nombre si viene como email
+          if (cb && cb.indexOf('@') !== -1) cb = 'Manuel Fernández';
+          return cb + ' · Prescriptor GPF · Ferroplast & Tuyper';
+        })()) +
+        tdR('Origen de la visita', (function() {
+          var origenMap = {
+            primera_visita: 'Prospección directa — primera visita comercial',
+            seguimiento:    'Seguimiento a visita anterior',
+            demo:           'Demostración de producto GPF',
+            propuesta:      'Presentación de propuesta técnica',
+            negociacion:    'Visita de negociación',
+            cierre:         'Visita de cierre',
+            postventa:      'Visita de seguimiento postventa',
+          };
+          return origenMap[r.tipo_visita] || tipoVisita;
+        })()) +
       '</tbody></table>' +
 
       /* §2 PERSONAS CONTACTADAS */
