@@ -642,29 +642,46 @@
   }
 
   function activityItem(act, idx, studioId) {
-    const type    = act.type || 'nota';
-    const color   = ACT_COLORS[type] || '#94a3b8';
-    const label   = ACT_LABELS[type] || type;
-    const dateStr = U.formatDateES(act.createdAt) || act.date || '—';
-    const isVisit = type === 'registro_visita';
+    const type      = act.type || 'nota';
+    const isBandeja = !!act.bandeja;
+    const isHecho   = isBandeja && !!act.completada;
+    const color     = isHecho ? '#94a3b8' : (isBandeja ? '#16a34a' : (ACT_COLORS[type] || '#94a3b8'));
+    const label     = isBandeja ? (isHecho ? 'HECHO ✓' : 'BANDEJA') : (ACT_LABELS[type] || type);
+    const dateStr   = U.formatDateES(act.createdAt) || act.date || '—';
+    const isVisit   = type === 'registro_visita';
+    const textContent = act.title || act.text || act.notes || (isVisit ? 'Visita registrada' : '');
     return (
-      '<div style="display:flex; gap:12px; align-items:flex-start; margin-bottom:14px; position:relative; z-index:1;">' +
+      '<div style="display:flex; gap:12px; align-items:flex-start; margin-bottom:14px; position:relative; z-index:1;' +
+        (isHecho ? ' opacity:0.55;' : '') + '">' +
         '<div style="width:36px; height:36px; border-radius:50%; background:' + color + '22; ' +
           'border:2px solid ' + color + '; display:flex; align-items:center; justify-content:center; ' +
           'flex:0 0 auto; font-size:14px;">' +
-          actIcon(type) +
+          (isBandeja ? (isHecho ? '✓' : '✅') : actIcon(type)) +
         '</div>' +
-        '<div class="card" style="flex:1; padding:12px; min-width:0;">' +
+        '<div class="card" style="flex:1; padding:12px; min-width:0;' + (isBandeja && !isHecho ? ' border-left:3px solid #16a34a;' : '') + '">' +
           '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px;">' +
-            '<div>' +
+            '<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">' +
               '<span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; ' +
                 'color:' + color + ';">' + escape(label) + '</span>' +
-              '<span style="font-size:12px; color:var(--fg-3); font-family:var(--font-mono); margin-left:8px;">' + escape(dateStr) + '</span>' +
+              '<span style="font-size:12px; color:var(--fg-3); font-family:var(--font-mono);">' + escape(dateStr) + '</span>' +
+              (act.fecha_limite ? '<span style="font-size:11px; color:#1e40af; background:#eff6ff; padding:1px 6px; border-radius:5px;">📅 ' + escape(act.fecha_limite) + '</span>' : '') +
             '</div>' +
-            '<button onclick="window.Screens.detail.deleteActivity(\'' + escape(studioId) + '\',' + idx + ')" ' +
-              'style="background:none; border:none; cursor:pointer; color:var(--fg-3); font-size:13px; padding:0; flex:0 0 auto;">✕</button>' +
+            '<div style="display:flex; gap:4px; flex-shrink:0;">' +
+              /* Toggle hecho/pendiente para items de bandeja */
+              (isBandeja
+                ? '<button onclick="window.Screens.detail.toggleBandeja(\'' + escape(studioId) + '\',' + idx + ')" ' +
+                    'style="background:none; border:1px solid ' + (isHecho ? '#16a34a' : 'var(--line)') + '; border-radius:6px; padding:3px 7px; cursor:pointer; font-size:11px; color:' + (isHecho ? '#16a34a' : 'var(--fg-3)') + ';" ' +
+                    'title="' + (isHecho ? 'Marcar como pendiente' : 'Marcar como hecho') + '">' +
+                    (isHecho ? '↩ Reabrir' : '✓ Hecho') +
+                  '</button>'
+                : '') +
+              '<button onclick="window.Screens.detail.deleteActivity(\'' + escape(studioId) + '\',' + idx + ')" ' +
+                'style="background:none; border:none; cursor:pointer; color:var(--fg-3); font-size:13px; padding:0;">✕</button>' +
+            '</div>' +
           '</div>' +
-          '<div style="font-size:14px; color:var(--fg-1); line-height:1.5;">' + escape(act.text || act.notes || (isVisit ? 'Visita registrada' : '')) + '</div>' +
+          '<div style="font-size:14px; color:var(--fg-1); line-height:1.5;' + (isHecho ? ' text-decoration:line-through; color:var(--fg-3);' : '') + '">' +
+            escape(textContent) +
+          '</div>' +
           (act.followupDate ? '<div style="margin-top:6px; font-size:12px; color:var(--fg-3);">📅 Seguimiento: ' + escape(U.formatDateES(act.followupDate) || act.followupDate) + '</div>' : '') +
         '</div>' +
       '</div>'
@@ -2223,6 +2240,7 @@
    * Se abre automáticamente después de una importación exitosa para
    * que el comercial pueda actuar de inmediato sobre los datos de la visita.
    */
+  /* Panel post-importación con checkboxes para seleccionar qué va a la bandeja */
   function _openPostImportSheet(studioId, yaml) {
     var studio = getStudio(studioId);
     if (!studio) return;
@@ -2230,7 +2248,6 @@
     var v     = (yaml && yaml.visita)  || {};
     var inter = (yaml && yaml.interlocutores && yaml.interlocutores.principal) || {};
     var dev   = (yaml && yaml.desarrollo) || {};
-    var ev    = (yaml && yaml.evaluacion) || {};
 
     function sv(val) { return (val === null || val === undefined || val === '' || val === 'N/A') ? null : val; }
     function ph(p)   { return p ? p.replace(/[^\d+]/g, '') : ''; }
@@ -2241,20 +2258,18 @@
     var nuevosCont  = arr(yaml && yaml.actualizacion_empresa && yaml.actualizacion_empresa.nuevos_contactos).filter(function(c) { return c && sv(c.nombre); });
     var proyectos   = arr(yaml && yaml.oportunidades_detectadas && yaml.oportunidades_detectadas.proyectos).filter(function(p) { return p && sv(p.nombre); });
 
-    /* ---- helpers UI ---- */
     function sectionHead(emoji, title, count) {
       return '<div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; ' +
         'color:var(--fg-3); margin:16px 0 8px; display:flex; align-items:center; gap:6px;">' +
         emoji + ' ' + title + (count ? ' <span style="background:var(--bg-2); border-radius:8px; padding:1px 6px; font-size:10px;">' + count + '</span>' : '') +
       '</div>';
     }
-
     function contactCard(name, role, phone, email, tag) {
       var tel = ph(phone);
       return '<div style="background:var(--bg-2); border-radius:8px; padding:10px 12px; margin-bottom:7px; ' +
         'display:flex; align-items:center; justify-content:space-between; gap:10px;">' +
         '<div style="flex:1; min-width:0;">' +
-          '<div style="font-size:13px; font-weight:600; color:var(--fg-1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + escape(name) + '</div>' +
+          '<div style="font-size:13px; font-weight:600; color:var(--fg-1);">' + escape(name) + '</div>' +
           '<div style="font-size:11px; color:var(--fg-3);">' + escape(role || '—') + (tag ? ' · <span style="color:#854d0e;">' + tag + '</span>' : '') + '</div>' +
         '</div>' +
         '<div style="display:flex; gap:6px; flex-shrink:0;">' +
@@ -2264,23 +2279,29 @@
       '</div>';
     }
 
-    function tareaRow(text, plazo, icono) {
-      return '<div style="display:flex; align-items:flex-start; gap:8px; padding:8px 0; border-bottom:1px solid var(--border-1);">' +
-        '<span style="flex-shrink:0; margin-top:1px;">' + icono + '</span>' +
+    /* Fila con checkbox — todos pre-seleccionados */
+    var _cbIdx = 0;
+    function checkRow(key, text, plazo, tipo) {
+      var id = 'cb-bandeja-' + (_cbIdx++);
+      return '<label style="display:flex; align-items:flex-start; gap:10px; padding:8px 0; ' +
+        'border-bottom:1px solid var(--border-1); cursor:pointer;">' +
+        '<input type="checkbox" id="' + id + '" data-key="' + escape(key) + '" ' +
+          'data-title="' + escape(text) + '" data-plazo="' + escape(sv(plazo) || '') + '" data-tipo="' + escape(tipo) + '" ' +
+          'checked style="margin-top:2px; width:16px; height:16px; flex-shrink:0; accent-color:var(--gpf-blue-700);">' +
         '<div style="flex:1;">' +
           '<div style="font-size:13px; color:var(--fg-1); line-height:1.4;">' + escape(text) + '</div>' +
           (sv(plazo) ? '<div style="font-size:11px; color:var(--fg-3); margin-top:2px;">⏰ ' + escape(plazo) + '</div>' : '') +
         '</div>' +
-      '</div>';
+      '</label>';
     }
 
-    /* ---- construir HTML del sheet ---- */
     var hasContacts = sv(inter.nombre) || otrosAsist.length || nuevosCont.length;
     var hasProx     = sv(dev.proxima_accion) || sv(dev.fecha_proxima_visita);
+    var totalAcciones = comprNos.length + comprClient.length + proyectos.length + (hasProx ? 1 : 0);
 
     var html = (
       '<div class="handle"></div>' +
-      '<div style="padding:0 16px 32px; flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;">' +
+      '<div id="post-import-sheet" style="padding:0 16px 32px; flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;">' +
 
         /* Cabecera */
         '<div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:4px;">' +
@@ -2290,18 +2311,27 @@
           '</div>' +
           '<button onclick="window.closeSheet()" style="background:none; border:none; cursor:pointer; font-size:20px; color:var(--fg-3); padding:4px; margin-top:2px;">✕</button>' +
         '</div>' +
-        '<p style="font-size:13px; color:var(--fg-3); margin:0 0 4px;">' + escape(studio.name) + '</p>' +
+        '<p style="font-size:13px; color:var(--fg-3); margin:0 0 12px;">' + escape(studio.name) + '</p>' +
 
-        /* ---- Próxima acción ---- */
-        (hasProx
-          ? sectionHead('🎯', 'Próxima acción', null) +
-            '<div style="background:#eff6ff; border-left:3px solid var(--gpf-blue-500); border-radius:0 8px 8px 0; padding:10px 12px; margin-bottom:4px;">' +
-              (sv(dev.proxima_accion) ? '<p style="font-size:14px; font-weight:600; color:var(--fg-1); margin:0 0 4px; line-height:1.4;">' + escape(dev.proxima_accion) + '</p>' : '') +
-              (sv(dev.fecha_proxima_visita) ? '<div style="font-size:12px; color:var(--gpf-blue-700); font-weight:600;">📅 ' + escape(dev.fecha_proxima_visita) + '</div>' : '') +
+        /* Botón principal — añadir a bandeja */
+        (totalAcciones > 0
+          ? '<div id="bandeja-add-wrap" style="background:#dcfce7; border:1px solid #86efac; border-radius:10px; padding:12px 14px; margin-bottom:14px;">' +
+              '<div style="font-size:13px; color:#166534; font-weight:600; margin-bottom:8px;">✅ Selecciona las acciones que quieres añadir a la bandeja:</div>' +
+              '<button id="btn-add-bandeja" class="btn btn-primary" ' +
+                'style="background:#16a34a; border-color:#16a34a; width:100%; font-size:14px;" ' +
+                'onclick="window.Screens.detail._guardarEnBandeja(\'' + escape(studioId) + '\')">' +
+                'Añadir seleccionadas a bandeja' +
+              '</button>' +
             '</div>'
           : '') +
 
-        /* ---- Contactos de la visita ---- */
+        /* ---- Próxima acción (checkbox) ---- */
+        (hasProx
+          ? sectionHead('🎯', 'Próxima acción', null) +
+            checkRow('proxima', sv(dev.proxima_accion) || ('Próxima visita · ' + sv(dev.fecha_proxima_visita)), sv(dev.fecha_proxima_visita), 'reunion')
+          : '') +
+
+        /* ---- Contactos (sin checkbox, solo informativo) ---- */
         (hasContacts
           ? sectionHead('📞', 'Contactos de la visita', null) +
             (sv(inter.nombre) ? contactCard(inter.nombre, sv(inter.cargo), sv(inter.telefono), sv(inter.email), inter.es_decision_maker ? 'Decisor' : null) : '') +
@@ -2311,45 +2341,99 @@
               'style="font-size:12px; color:var(--gpf-blue-700); background:none; border:none; cursor:pointer; padding:2px 0; margin-bottom:4px;">Ver todos en la pestaña Equipo →</button>'
           : '') +
 
-        /* ---- Nuestros compromisos ---- */
+        /* ---- Nuestros compromisos (checkboxes) ---- */
         (comprNos.length
           ? sectionHead('✅', 'Nuestros compromisos', comprNos.length) +
-            '<div style="padding:0 2px;">' +
-              comprNos.map(function(c) { return tareaRow(c.accion, sv(c.plazo), '☐'); }).join('') +
-            '</div>'
+            '<div>' + comprNos.map(function(c) { return checkRow('comprN', c.accion, sv(c.plazo), 'tarea'); }).join('') + '</div>'
           : '') +
 
-        /* ---- Compromisos del cliente ---- */
+        /* ---- Pendiente del cliente (checkboxes) ---- */
         (comprClient.length
           ? sectionHead('📬', 'Pendiente del cliente', comprClient.length) +
-            '<div style="padding:0 2px;">' +
-              comprClient.map(function(c) {
-                var texto = c.accion + (sv(c.contacto) ? ' (' + c.contacto + ')' : '');
-                return tareaRow(texto, sv(c.plazo), '⏳');
-              }).join('') +
-            '</div>'
+            '<div>' + comprClient.map(function(c) {
+              var txt = 'Esperar: ' + c.accion + (sv(c.contacto) ? ' (' + c.contacto + ')' : '');
+              return checkRow('comprC', txt, sv(c.plazo), 'tarea');
+            }).join('') + '</div>'
           : '') +
 
-        /* ---- Oportunidades ---- */
+        /* ---- Oportunidades (checkboxes) ---- */
         (proyectos.length
           ? sectionHead('🏗', 'Oportunidades detectadas', proyectos.length) +
-            proyectos.map(function(p) {
-              var sub = [sv(p.tipo), sv(p.fase_actual), p.importe_estimado ? (p.importe_estimado / 1000).toFixed(0) + ' k€' : null].filter(Boolean).join(' · ');
-              return '<div style="background:var(--bg-2); border-radius:8px; padding:10px 12px; margin-bottom:7px;">' +
-                '<div style="font-size:13px; font-weight:600; color:var(--fg-1);">' + escape(p.nombre) + '</div>' +
-                (sub ? '<div style="font-size:11px; color:var(--fg-3); margin-top:2px;">' + escape(sub) + '</div>' : '') +
-              '</div>';
-            }).join('') +
+            '<div>' + proyectos.map(function(p) {
+              var sub = [sv(p.tipo), sv(p.fase_actual), p.importe_estimado ? (p.importe_estimado / 1000).toFixed(0) + ' k€' : null].filter(Boolean).join(', ');
+              var txt = p.nombre + (sub ? ' — ' + sub : '');
+              return checkRow('opor', txt, null, 'tarea');
+            }).join('') + '</div>' +
             '<button onclick="window.Screens.detail.switchTab(\'proyectos\',\'' + escape(studioId) + '\'); window.closeSheet();" ' +
               'style="font-size:12px; color:var(--gpf-blue-700); background:none; border:none; cursor:pointer; padding:2px 0; margin-bottom:4px;">Ver en pestaña Proyectos →</button>'
           : '') +
 
-        /* ---- Botón cerrar ---- */
-        '<button onclick="window.closeSheet()" class="btn btn-ghost btn-block" style="margin-top:20px;">Cerrar</button>' +
+        '<button onclick="window.closeSheet()" class="btn btn-ghost btn-block" style="margin-top:20px;">Cerrar sin añadir</button>' +
       '</div>'
     );
 
     if (window.openSheet) window.openSheet(html);
+  }
+
+  /* Recoge los checkboxes marcados y escribe en data.activities[] con bandeja:true */
+  async function _guardarEnBandeja(studioId) {
+    var btn = document.getElementById('btn-add-bandeja');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Guardando…'; }
+
+    var today = new Date().toISOString().slice(0, 10);
+    var raw = State.studiosById && State.studiosById[studioId];
+    if (!raw) { notif('Studio no encontrado', 'error'); return; }
+
+    var curData = Object.assign({}, raw.data || {});
+    var activities = arr(curData.activities).slice();
+
+    // Leer checkboxes marcados
+    var checks = document.querySelectorAll('#post-import-sheet input[type=checkbox]:checked');
+    var nuevas = [];
+    checks.forEach(function(cb) {
+      var title = cb.getAttribute('data-title') || '';
+      var plazo = cb.getAttribute('data-plazo') || null;
+      var tipo  = cb.getAttribute('data-tipo') || 'tarea';
+      if (!title) return;
+      // ID estable para poder sincronizar
+      var bid = 'b' + Math.abs((function(s){var h=0;for(var i=0;i<s.length;i++)h=((h<<5)-h+s.charCodeAt(i))|0;return h;})(studioId+'|'+title+'|'+today)).toString(36);
+      nuevas.push({
+        type: 'tarea',
+        date: today,
+        title: title,
+        notes: plazo ? 'Plazo: ' + plazo : '',
+        bandeja: true,
+        completada: false,
+        tipo_accion: tipo,
+        fecha_limite: plazo && /^\d{4}-\d{2}-\d{2}$/.test(plazo) ? plazo : null,
+        plazo: plazo || null,
+        bandeja_id: bid,
+        studioId: studioId,
+      });
+    });
+
+    if (!nuevas.length) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Añadir seleccionadas a bandeja'; }
+      notif('No hay acciones seleccionadas', 'info');
+      return;
+    }
+
+    activities = activities.concat(nuevas);
+    curData.activities = activities;
+
+    try {
+      await window.Data.patchDoc('studios/' + studioId, { data: curData });
+      raw.data = curData;
+      if (State.studiosById) State.studiosById[studioId] = raw;
+      // Invalidar caché de acciones
+      if (window.AccionesEngine) window.AccionesEngine.invalidarCache();
+      window.closeSheet();
+      notif('✅ ' + nuevas.length + ' acción' + (nuevas.length > 1 ? 'es añadidas' : ' añadida') + ' a la bandeja', 'success');
+      render({ studioId: studioId, tab: 'actividades' });
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Añadir seleccionadas a bandeja'; }
+      notif('Error: ' + e.message, 'error');
+    }
   }
 
   /* ============================================================
@@ -3180,6 +3264,22 @@
     // Importar visita .yaml
     openImportarVisitaModal: openImportarVisitaModal,
     _confirmarImportarVisita: _confirmarImportarVisita,
+    _guardarEnBandeja: _guardarEnBandeja,
+    // Toggle completada en actividades de bandeja
+    toggleBandeja: async function(studioId, idx) {
+      var raw = State.studiosById && State.studiosById[studioId];
+      if (!raw) return;
+      var curData = Object.assign({}, raw.data || {});
+      var acts = arr(curData.activities).slice();
+      if (!acts[idx]) return;
+      acts[idx] = Object.assign({}, acts[idx], { completada: !acts[idx].completada });
+      curData.activities = acts;
+      await window.Data.patchDoc('studios/' + studioId, { data: curData });
+      raw.data = curData;
+      if (State.studiosById) State.studiosById[studioId] = raw;
+      if (window.AccionesEngine) window.AccionesEngine.invalidarCache();
+      render({ studioId: studioId, tab: 'actividades' });
+    },
     // Ver, editar y descargar informe importado
     openReportSheet: openReportSheet,
     openEditReportModal: openEditReportModal,
