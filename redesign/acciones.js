@@ -166,7 +166,6 @@
   /* Filtra las descartadas y las ya aceptadas (por activities en studios) */
   function filtrarVigentes(items, studios) {
     var desc = _getDescartadas();
-    // Recoger IDs de actividades aceptadas
     var aceptadasIds = new Set();
     if (Array.isArray(studios)) {
       studios.forEach(function (s) {
@@ -175,6 +174,81 @@
       });
     }
     return items.filter(function (it) { return !desc[it.id] && !aceptadasIds.has(it.id); });
+  }
+
+  /* ---- SEGUNDA FUENTE: data.activities[] con bandeja:true ----
+   * Las actividades marcadas como bandeja:true y completada:false
+   * aparecen en la bandeja como elementos de primera clase.
+   * Son la fuente de verdad — no hay copia separada.
+   */
+  function _procesarActividades(studios) {
+    var items = [];
+    var TIPO_ICONS = { llamada:'📞', email:'📧', material:'📦', reunion:'📅', tarea:'✅', tarea_importada:'✅' };
+    if (!Array.isArray(studios)) return items;
+    studios.forEach(function (s) {
+      var acts = (s.data && Array.isArray(s.data.activities)) ? s.data.activities : [];
+      var prov = s.province;
+      if (prov && typeof prov === 'object') prov = prov.valor || '';
+      acts.forEach(function (a, idx) {
+        if (!a || !a.bandeja || a.completada) return;
+        var tipo = a.tipo_accion || a.type || 'tarea';
+        items.push({
+          id: a.bandeja_id || _hash(String(s.id) + '|' + String(idx) + '|' + (a.title || '')),
+          studioId: String(s.id),
+          studioName: s.name || '',
+          studioProvince: prov || '',
+          tipo: tipo,
+          tipoIcon: TIPO_ICONS[tipo] || '✅',
+          descripcion: a.title || a.text || a.notes || '',
+          plazoTexto: a.plazo || null,
+          fechaLimite: a.fecha_limite || null,
+          fechaInforme: a.date || '',
+          _fromActivity: true,
+          _activityIdx: idx,
+          _studioId: String(s.id),
+        });
+      });
+    });
+    return items;
+  }
+
+  /* Marca una actividad como completada en Supabase y la elimina de la bandeja */
+  async function completarActividad(studioId, activityIdx) {
+    if (!window.Data || !window.State || !window.State.studiosById) return;
+    var raw = window.State.studiosById[studioId];
+    if (!raw) return;
+    var curData = Object.assign({}, raw.data || {});
+    var acts = (curData.activities || []).slice();
+    if (!acts[activityIdx]) return;
+    acts[activityIdx] = Object.assign({}, acts[activityIdx], { completada: true });
+    curData.activities = acts;
+    await window.Data.patchDoc('studios/' + studioId, { data: curData });
+    raw.data = curData;
+    if (window.State.studiosById) window.State.studiosById[studioId] = raw;
+    invalidarCache();
+  }
+
+  /* Carga acciones con caché — ahora incluye actividades de bandeja */
+  async function cargarAcciones(studios, force) {
+    // Las actividades de bandeja van SIEMPRE en tiempo real (sin caché),
+    // porque el usuario las cambia directamente desde el studio.
+    var actItems = _procesarActividades(studios);
+
+    if (!force) {
+      try {
+        var raw = localStorage.getItem(_CACHE_KEY);
+        if (raw) {
+          var j = JSON.parse(raw);
+          if (j.ts && (Date.now() - j.ts) < _TTL_MS) {
+            // Devolver docx-items cacheados + actividades frescas
+            return j.items.concat(actItems);
+          }
+        }
+      } catch (e) {}
+    }
+    var docxItems = await procesarTodos(studios);
+    try { localStorage.setItem(_CACHE_KEY, JSON.stringify({ ts: Date.now(), items: docxItems })); } catch (e) {}
+    return docxItems.concat(actItems);
   }
 
   /* Invalida la caché manualmente */
@@ -188,5 +262,6 @@
     filtrarVigentes: filtrarVigentes,
     descartar: _descartar,
     invalidarCache: invalidarCache,
+    completarActividad: completarActividad,
   };
 })();

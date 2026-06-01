@@ -440,20 +440,27 @@
     el.innerHTML = (
       '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">' +
         items.slice(0, 30).map(function (it) {
-          var bg = tipoBg[it.tipo] || '#64748b';
+          var bg = tipoBg[it.tipo] || (it._fromActivity ? '#16a34a' : '#64748b');
           var urgente = it.fechaLimite && it.fechaLimite <= hoy;
           var plazoHtml = it.fechaLimite
             ? '<span style="background:' + (urgente ? '#fef2f2' : '#eff6ff') + ';color:' +
               (urgente ? '#991b1b' : '#1e40af') + ';padding:2px 7px;border-radius:6px;font-size:11px;font-weight:600;">' +
               (urgente ? '🔴' : '📅') + ' ' + escape(it.fechaLimite) + '</span>'
             : '';
+          // Items de actividad: borde verde + botón "Hecho" que escribe en Supabase
+          var esActiv = !!it._fromActivity;
+          var borderStyle = esActiv ? 'border-left:3px solid #16a34a;' : (urgente ? 'border-left:3px solid #dc2626;' : '');
+          var btnCompletar = esActiv
+            ? '<button class="btn btn-primary" style="font-size:11px; padding:4px 10px; background:#16a34a; border-color:#16a34a;" ' +
+                'onclick="window.Screens.bandeja._completar(\'' + escape(it._studioId) + '\',' + it._activityIdx + ')">✓ Hecho</button>'
+            : '';
           return (
-            '<div style="background:var(--bg-card); border:1px solid var(--line); border-radius:10px; padding:12px; ' +
-              (urgente ? 'border-left:3px solid #dc2626;' : '') + '">' +
+            '<div style="background:var(--bg-card); border:1px solid var(--line); border-radius:10px; padding:12px; ' + borderStyle + '">' +
               '<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px;">' +
                 '<span style="background:' + bg + ';color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;">' +
                   it.tipoIcon + ' ' + it.tipo.toUpperCase() +
                 '</span>' +
+                (esActiv ? '<span style="background:#dcfce7;color:#166534;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;">BANDEJA</span>' : '') +
                 '<strong style="font-size:13px; color:var(--gpf-blue-700); cursor:pointer;" ' +
                   'onclick="showView(\'detail\',{studioId:\'' + escape(it.studioId) + '\'})">' +
                   escape(it.studioName) +
@@ -461,10 +468,13 @@
                 '<span style="font-size:11px; color:var(--fg-3);">(' + escape(it.studioProvince) + ')</span>' +
                 plazoHtml +
               '</div>' +
-              '<div style="font-size:12px; color:var(--fg-2); margin-bottom:8px; font-style:italic;">"' + escape(it.descripcion) + '"</div>' +
-              '<div style="display:flex; gap:6px;">' +
+              '<div style="font-size:12px; color:var(--fg-2); margin-bottom:8px; ' + (esActiv ? 'font-weight:500;color:var(--fg-1);' : 'font-style:italic;') + '">' +
+                (esActiv ? '' : '"') + escape(it.descripcion) + (esActiv ? '' : '"') +
+              '</div>' +
+              '<div style="display:flex; gap:6px; flex-wrap:wrap;">' +
+                btnCompletar +
                 '<button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" ' +
-                  'onclick="window.Screens.bandeja._descartar(\'' + it.id + '\')">✕ Descartar</button>' +
+                  'onclick="window.Screens.bandeja._descartar(\'' + it.id + '\'' + (esActiv ? ',\'' + escape(it._studioId) + '\',' + it._activityIdx : '') + ')">✕ Descartar</button>' +
                 '<a href="#detail/' + escape(it.studioId) + '" class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" ' +
                   'onclick="showView(\'detail\',{studioId:\'' + escape(it.studioId) + '\'});return false;">Ver ficha →</a>' +
               '</div>' +
@@ -476,12 +486,41 @@
     );
   }
 
-  function _descartarAccion(id) {
+  function _descartarAccion(id, studioId, actIdx) {
     var engine = window.AccionesEngine;
+    // Si es una actividad de bandeja, marcarla como completada en Supabase
+    if (studioId !== undefined && actIdx !== undefined) {
+      engine && engine.completarActividad && engine.completarActividad(studioId, actIdx).then(function () {
+        window.showNotification && window.showNotification('✕ Acción descartada', 'info');
+        _loadAcciones(true);
+        // Re-render actividades si el usuario está en esa ficha
+        if (window.Screens && window.Screens.detail && window.State && window.State.currentStudioId === studioId) {
+          window.Screens.detail.switchTab('actividades', studioId);
+        }
+      });
+      return;
+    }
     if (engine) engine.descartar(id);
     window.showNotification && window.showNotification('✕ Acción descartada', 'info');
     _loadAcciones();
   }
+
+  async function _completarAccion(studioId, actIdx) {
+    var engine = window.AccionesEngine;
+    if (!engine || !engine.completarActividad) return;
+    try {
+      await engine.completarActividad(studioId, actIdx);
+      window.showNotification && window.showNotification('✓ Acción completada', 'success');
+      _loadAcciones(true);
+      // Refrescar actividades si la ficha está abierta
+      if (window.Screens && window.Screens.detail && window.State && window.State.currentStudioId === studioId) {
+        window.Screens.detail.switchTab('actividades', studioId);
+      }
+    } catch (e) {
+      window.showNotification && window.showNotification('Error al completar: ' + e.message, 'error');
+    }
+  }
+
   function _refrescarAcciones() {
     var engine = window.AccionesEngine;
     if (engine) engine.invalidarCache();
@@ -781,6 +820,7 @@
     filtrarProvincia: function (prov) { _provFiltro = prov; render(); },
     refrescar: refrescarRefCruz,
     _descartar: _descartarAccion,
+    _completar: _completarAccion,
     _refrescarAcciones: _refrescarAcciones,
   };
 })();
