@@ -132,9 +132,17 @@
      ============================================================ */
   async function sbFetch(pathQ, opts) {
     opts = opts || {};
+    // Bearer = access_token de sesión (rol authenticated) si hay login; si no,
+    // cae a la anon key (con RLS exigiendo authenticated, esas peticiones serán
+    // rechazadas → la verja de login en app.js garantiza sesión antes de leer/escribir).
+    let bearer = SUPABASE_ANON_KEY;
+    if (window.Auth && typeof window.Auth.getValidToken === 'function') {
+      const tok = await window.Auth.getValidToken();
+      if (tok) bearer = tok;
+    }
     const headers = Object.assign({
       'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + bearer,
       'Accept-Profile': 'public',
     }, opts.headers || {});
     if (opts.method && opts.method !== 'GET') {
