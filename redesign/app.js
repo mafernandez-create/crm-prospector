@@ -538,6 +538,20 @@
   function init() {
     console.info('[redesign] init…');
 
+    // Procesar OAuth callback de Google (Sheets / Calendar) ANTES de la verja:
+    // el popup de Sheets debe poder cerrarse aunque la lógica de sesión cambie.
+    _handleOAuthCallback();
+
+    // Verja de autenticación (hallazgo C1): sin sesión Supabase válida no se
+    // pinta la app ni se carga ningún dato (RLS exige rol authenticated).
+    if (window.Auth && typeof window.Auth.isAuthenticated === 'function' && !window.Auth.isAuthenticated()) {
+      window.Auth.renderGate(_startApp);
+      return;
+    }
+    _startApp();
+  }
+
+  function _startApp() {
     // Pintar shell si el HTML aún no lo tiene
     if (window.Shell && typeof window.Shell.render === 'function') {
       window.Shell.render();
@@ -545,10 +559,7 @@
       console.warn('[redesign] Shell.render no disponible. Asegúrate de cargar shell.js antes de app.js');
     }
 
-    // Procesar OAuth callback de Google (Sheets / Calendar) si hay access_token en el hash
-    _handleOAuthCallback();
-
-    // Cargar datos (Fase G — todavía no hace nada real, solo placeholder)
+    // Cargar datos
     if (window.Data && typeof window.Data.loadAll === 'function') {
       window.Data.loadAll().then(function () {
         State.loading = false;

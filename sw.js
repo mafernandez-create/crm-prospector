@@ -11,7 +11,7 @@
  *     porque son inmutables por URL.
  *   - Firestore / GAS → pasan tal cual (no se interceptan).
  */
-const CACHE_NAME = 'crm-prospector-v16';
+const CACHE_NAME = 'crm-prospector-v17';
 
 self.addEventListener('install', function (e) {
   self.skipWaiting();

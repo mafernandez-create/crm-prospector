@@ -1433,3 +1433,53 @@ body {
     }
   }
 }
+
+/* ============================================================
+   AUTH GATE — formulario de login (redesign/auth.js)
+   ============================================================ */
+.auth-gate {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: var(--bg-app);
+}
+.auth-card {
+  width: 100%; max-width: 380px;
+  display: flex; flex-direction: column; gap: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-2);
+  padding: 32px 28px;
+}
+.auth-brand {
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--gpf-blue-700); margin-bottom: 4px;
+}
+.auth-title {
+  font-family: var(--font-display); font-weight: 700; font-size: 28px;
+  text-transform: uppercase; letter-spacing: .005em; color: var(--fg-1); margin: 0;
+}
+.auth-sub { font-size: 14px; color: var(--fg-3); margin: 2px 0 18px; }
+.auth-label {
+  font-size: 12px; font-weight: 600; color: var(--fg-2);
+  text-transform: uppercase; letter-spacing: .03em; margin-top: 12px;
+}
+.auth-input {
+  font-family: var(--font-sans); font-size: 15px; color: var(--fg-1);
+  background: var(--bg-card); border: 1px solid var(--line);
+  border-radius: var(--radius-m); padding: 11px 12px; margin-top: 4px;
+}
+.auth-input:focus { outline: 2px solid var(--gpf-blue-500); outline-offset: -1px; border-color: var(--gpf-blue-500); }
+.auth-error {
+  background: #fbe4e7; color: var(--mute-red-dark);
+  border-radius: var(--radius-m); padding: 9px 11px; font-size: 13px; margin-top: 14px;
+}
+.auth-btn {
+  margin-top: 20px; padding: 13px; cursor: pointer;
+  font-family: var(--font-display); font-weight: 600; font-size: 16px;
+  text-transform: uppercase; letter-spacing: .02em;
+  color: #fff; background: var(--cta); border: none; border-radius: var(--radius-m);
+}
+.auth-btn:hover { background: var(--cta-hover); }
+.auth-btn:disabled { opacity: .6; cursor: default; }
