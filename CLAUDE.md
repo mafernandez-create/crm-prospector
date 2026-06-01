@@ -1,4 +1,8 @@
 # CRM Prospector Ferroplast
+## Regla de trabajo (OBLIGATORIO)
+- Todo nuevo desarrollo va al **rediseño** (`redesign/`) y **Supabase**.
+- La versión anterior (`index.html` + Firebase Firestore) **NO se toca** sin permiso explícito.
+- Si hay que modificar `index.html` o Firestore, pedir permiso antes de actuar.
 
 ## Descripcion
 CRM B2B de ventas para prospección de estudios de arquitectura e ingeniería en España.

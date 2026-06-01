@@ -25,3 +25,8 @@ dunsSegmentacion_fix.js
 .env.supabase*
 *.supabase.env
 .gstack/
+
+# Backups y artefactos de reorganización (locales, no versionar)
+*.bak
+*.bak-*
+.reorg_backup_*/

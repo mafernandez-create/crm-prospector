@@ -11,13 +11,13 @@ if [ -f "$GUARD_FILE" ]; then
     LAST=$(cat "$GUARD_FILE" 2>/dev/null || echo 0)
     DIFF=$((NOW - LAST))
     if [ "$DIFF" -lt "$TWENTY_HOURS" ]; then
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Auto-qualify omitido — última ejecución hace ${DIFF}s (mín 72000s)" >> /Users/ma.fernandez/Documents/crm/.auto-qualify.log
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Auto-qualify omitido — última ejecución hace ${DIFF}s (mín 72000s)" >> /Users/ma.fernandez/Documents/02_Proyectos_Claude/Trabajo_GPF/crm/.auto-qualify.log
         exit 0
     fi
 fi
 
 echo "$NOW" > "$GUARD_FILE"
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Abriendo CRM con auto-qualify=1..." >> /Users/ma.fernandez/Documents/crm/.auto-qualify.log
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Abriendo CRM con auto-qualify=1..." >> /Users/ma.fernandez/Documents/02_Proyectos_Claude/Trabajo_GPF/crm/.auto-qualify.log
 
 # Abre en Chrome (crea nueva pestaña si ya está abierto)
-open -a "Google Chrome" "file:///Users/ma.fernandez/Documents/crm/index.html?auto-qualify=1"
+open -a "Google Chrome" "file:///Users/ma.fernandez/Documents/02_Proyectos_Claude/Trabajo_GPF/crm/index.html?auto-qualify=1"
