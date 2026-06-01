@@ -30,3 +30,6 @@ dunsSegmentacion_fix.js
 *.bak
 *.bak-*
 .reorg_backup_*/
+
+# Capturas del manual (49 MB de PNG — solo local, no inflar el repo)
+manual_assets/

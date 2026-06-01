@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Planning Visitas Jaén – 13-15 Abril 2026</title>
+<style>
+  body { font-family: Arial, sans-serif; font-size: 13px; color: #222; margin: 20px; }
+  h1 { background: #1a3a5c; color: white; padding: 12px 18px; border-radius: 6px; font-size: 20px; margin-bottom: 4px; }
+  .subtitle { color: #555; font-size: 12px; margin-bottom: 20px; }
+  .day-block { margin-bottom: 28px; page-break-inside: avoid; }
+  .day-header { background: #2e6da4; color: white; padding: 8px 14px; border-radius: 5px; font-size: 15px; font-weight: bold; }
+  .route-bar { background: #e8f0f8; border-left: 4px solid #2e6da4; padding: 6px 12px; font-size: 12px; color: #444; margin: 6px 0; }
+  .visit-card { border: 1px solid #d0d8e8; border-radius: 5px; margin: 8px 0; padding: 10px 14px; background: white; }
+  .visit-card.municipal { border-left: 5px solid #8e44ad; }
+  .visit-card.empresa { border-left: 5px solid #2e6da4; }
+  .visit-card.distribuidor { border-left: 5px solid #27ae60; }
+  .visit-num { display: inline-block; background: #2e6da4; color: white; border-radius: 50%; width: 22px; height: 22px; text-align: center; line-height: 22px; font-size: 12px; font-weight: bold; margin-right: 8px; }
+  .company-name { font-size: 14px; font-weight: bold; color: #1a3a5c; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 6px; }
+  .tag-mun { background: #f3e8fd; color: #6c3483; }
+  .tag-emp { background: #d6eaf8; color: #1a5276; }
+  .tag-dis { background: #d5f5e3; color: #1e8449; }
+  .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 6px; font-size: 12px; }
+  .contact-item { color: #444; }
+  .contact-item strong { color: #222; }
+  .products { background: #f0f8ff; border-radius: 4px; padding: 5px 10px; margin-top: 6px; font-size: 12px; color: #1a3a5c; }
+  .notes { font-size: 12px; color: #555; margin-top: 5px; font-style: italic; }
+  .argument { font-size: 12px; color: #3d3d3d; margin-top: 6px; background: #fffbe6; border-left: 3px solid #f1c40f; padding: 5px 10px; border-radius: 3px; }
+  .warning-bar { background: #fef9e7; border: 1px solid #f39c12; border-radius: 4px; padding: 3px 10px; font-size: 11px; color: #935116; margin-top: 5px; display: inline-block; }
+  .section-header { font-size: 13px; font-weight: bold; color: #555; margin: 14px 0 4px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+  .header-meta { display: flex; gap: 30px; margin: 8px 0 16px 0; font-size: 12px; color: #555; flex-wrap: wrap; }
+  .header-meta span { display: flex; align-items: center; gap: 5px; }
+  .products-badge { display: inline-block; background: #1a3a5c; color: #aed6f1; border-radius: 10px; font-size: 10px; padding: 2px 7px; margin: 2px 2px 0 0; }
+  .summary-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+  .summary-table th { background: #1a3a5c; color: white; padding: 7px 12px; text-align: left; font-size: 12px; }
+  .summary-table td { padding: 6px 12px; border-bottom: 1px solid #dde5f0; font-size: 12px; }
+  .summary-table tr:nth-child(even) td { background: #f0f5fc; }
+  .summary-table tr:last-child td { background: #e8f0f8; font-weight: bold; border-top: 2px solid #2e6da4; }
+  .prod-matrix th { background: #1a3a5c; color: white; padding: 7px 12px; text-align: left; font-size: 12px; }
+  .prod-matrix td { padding: 6px 12px; border-bottom: 1px solid #dde5f0; font-size: 12px; }
+  .prod-matrix tr:nth-child(even) td { background: #f0f5fc; }
+  .star { color: #e67e22; }
+  .visit-time { font-size: 12px; font-weight: bold; color: #2e6da4; margin-bottom: 4px; }
+  .visit-header-row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+  .legend { display: flex; gap: 16px; margin: 12px 0 20px 0; font-size: 12px; align-items: center; flex-wrap: wrap; }
+  .leg-item { display: flex; align-items: center; gap: 6px; }
+  .leg-color { width: 14px; height: 14px; border-radius: 3px; }
+  .footer { margin-top: 30px; border-top: 1px solid #ccc; padding-top: 10px; font-size: 11px; color: #888; display: flex; justify-content: space-between; }
+  @media print {
+    .day-block { page-break-inside: avoid; }
+    body { margin: 10px; }
+    h1 { font-size: 17px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Planning Visitas Comerciales &mdash; Jaén</h1>
+<div class="subtitle">13&ndash;15 de Abril 2026 &nbsp;|&nbsp; Ferroplast &ndash; Tuyper &nbsp;|&nbsp; Uso interno</div>
+
+<div class="header-meta">
+  <span><strong>Comercial:</strong> Manuel Fernández</span>
+  <span><strong>Productos a presentar:</strong></span>
+  <span class="products-badge">MUTE</span>
+  <span class="products-badge">ECOSAN</span>
+  <span class="products-badge">BIORIENTADO (PVC-O)</span>
+  <span class="products-badge">PVC PRESIÓN</span>
+  <span class="products-badge">PE PRESIÓN P100</span>
+</div>
+
+<div class="legend">
+  <strong>Leyenda:</strong>
+  <div class="leg-item"><div class="leg-color" style="background:#2e6da4;"></div> Empresa gestora / Mixta</div>
+  <div class="leg-item"><div class="leg-color" style="background:#27ae60;"></div> Distribuidor</div>
+  <div class="leg-item"><div class="leg-color" style="background:#8e44ad;"></div> Ayuntamiento / Ente municipal</div>
+</div>
+
+<!-- ==================== RESUMEN INICIAL ==================== -->
+<div class="day-block">
+  <div class="day-header" style="background:#1a3a5c;">Resumen del viaje &mdash; 3 días &middot; 15 visitas</div>
+  <table class="summary-table" style="margin-top:12px;">
+    <thead>
+      <tr>
+        <th>Día</th>
+        <th>Fecha</th>
+        <th>Ruta</th>
+        <th>N.º visitas</th>
+        <th>Pernoctación</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Lunes</strong></td>
+        <td>13 Abr</td>
+        <td>Málaga → Jaén capital (Alcalá la Real, Jaén, Alcaudete) → Arjonilla</td>
+        <td>5</td>
+        <td>Jaén capital</td>
+      </tr>
+      <tr>
+        <td><strong>Martes</strong></td>
+        <td>14 Abr</td>
+        <td>Jaén → Sierra Mágina (Cambil → Cárcheles → Huelma → Torres → Albanchez)</td>
+        <td>5</td>
+        <td>Úbeda</td>
+      </tr>
+      <tr>
+        <td><strong>Miércoles</strong></td>
+        <td>15 Abr</td>
+        <td>Úbeda → Cazorla → Chilluévar → Huesa → Hinojares → Pozo Alcón → Málaga</td>
+        <td>5</td>
+        <td>&mdash; (regreso Málaga ~16:00)</td>
+      </tr>
+      <tr>
+        <td><strong>TOTAL</strong></td>
+        <td colspan="2">&mdash;</td>
+        <td><strong>15 visitas</strong></td>
+        <td>&mdash;</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== DÍA 1 ==================== -->
+<div class="day-block">
+  <div class="day-header">Día 1 &mdash; Lunes 13 de Abril &nbsp;|&nbsp; Jaén capital &middot; Alcalá la Real &middot; Alcaudete &middot; Arjonilla</div>
+  <div class="route-bar">
+    <strong>Trayecto:</strong> Málaga (7:00) &rarr; Alcalá la Real &rarr; Jaén capital &rarr; Alcaudete &rarr; Arjonilla &rarr; Hotel Jaén &nbsp;&nbsp;|&nbsp;&nbsp;
+    <strong>Llegada Jaén:</strong> ~9:30h &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Pernoctación:</strong> Jaén capital
+  </div>
+
+  <!-- VISITA 1 -->
+  <div class="visit-card empresa">
+    <div class="visit-time">09:30h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">1</span>
+      <span class="company-name">Adalsa &mdash; Aguas de Alcalá la Real</span>
+      <span class="tag tag-emp">EMPRESA MUNICIPAL AGUAS</span>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> Avda. Andalucía, 44 &middot; 23680 Alcalá la Real, Jaén</div>
+      <div class="contact-item"><strong>Tel:</strong> 953 582 831</div>
+      <div class="contact-item"><strong>Email:</strong> adalsa.adalsa@alcalalareal.es</div>
+      <div class="contact-item"><strong>Web:</strong> adalsa.es</div>
+      <div class="contact-item"><strong>Contacto:</strong> Gerente / Dirección técnica</div>
+    </div>
+    <div class="products">
+      <strong>Productos:</strong>
+      <span class="products-badge">PE PRESIÓN P100</span>
+      <span class="products-badge">PVC PRESIÓN</span>
+      <span class="products-badge">ECOSAN</span>
+    </div>
+    <div class="argument"><strong>Argumento:</strong> Gestión municipal del ciclo integral del agua. Presentar PE P100 para renovación de redes de distribución y ECOSAN para saneamiento. Empresa con proyectos continuos de mantenimiento y mejora de infraestructuras.</div>
+  </div>
+
+  <!-- VISITA 2 -->
+  <div class="visit-card empresa">
+    <div class="visit-time">10:20h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">2</span>
+      <span class="company-name">Aguas de Jaén S.A. — SOMAJASA</span>
+      <span class="tag tag-emp">EMPRESA MIXTA DIPUTACIÓN + ACCIONA</span>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> C/ Villatorres, 10, Planta 2ª &middot; P.I. Los Olivares &middot; 23009 Jaén</div>
+      <div class="contact-item"><strong>Tel:</strong> 953 273 300</div>
+      <div class="contact-item"><strong>Email:</strong> somajasa@somajasa.es</div>
+      <div class="contact-item"><strong>Web:</strong> somajasa.es</div>
+      <div class="contact-item"><strong>Contacto:</strong> Dirección técnica</div>
+    </div>
+    <div class="products">
+      <strong>Productos:</strong>
+      <span class="products-badge">PE PRESIÓN P100</span>
+      <span class="products-badge">BIORIENTADO (PVC-O)</span>
+      <span class="products-badge">PVC PRESIÓN</span>
+      <span class="products-badge">ECOSAN</span>
+    </div>
+    <div class="argument"><strong>Argumento:</strong> Gestiona el ciclo integral del agua en toda la provincia de Jaén. Gran volumen de obras de mantenimiento y renovación de redes. El BIORIENTADO PVC-O es ideal para renovación sin zanja (menor diámetro exterior). PE P100 para ramales de distribución.</div>
+  </div>
+
+  <!-- VISITA 3 -->
+  <div class="visit-card distribuidor">
+    <div class="visit-time">11:10h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">3</span>
+      <span class="company-name">Jaén Clima</span>
+      <span class="tag tag-dis">DISTRIBUIDOR — FONTANERÍA / PVC / TUBERÍAS</span>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> C/ Espeluy, Parcela 52 &middot; P.I. Los Olivares &middot; 23009 Jaén</div>
+      <div class="contact-item"><strong>Tel:</strong> 953 280 288</div>
+      <div class="contact-item"><strong>Email:</strong> info@jaenclima.com</div>
+      <div class="contact-item"><strong>Web:</strong> jaenclima.es</div>
+      <div class="contact-item"><strong>Contacto:</strong> Responsable comercial</div>
+      <div class="contact-item"><strong>Horario:</strong> L-V 7:00–20:00h</div>
+    </div>
+    <div class="products">
+      <strong>Productos:</strong>
+      <span class="products-badge">MUTE</span>
+      <span class="products-badge">ECOSAN</span>
+      <span class="products-badge">BIORIENTADO (PVC-O)</span>
+      <span class="products-badge">PVC PRESIÓN</span>
+      <span class="products-badge">PE PRESIÓN P100</span>
+    </div>
+    <div class="argument"><strong>Argumento:</strong> Canal de distribución clave en la provincia. Presentar catálogo completo con foco en PVC-O Biorientado y PE P100. Oportunidad de prescripción hacia clientes finales (ayuntamientos, comunidades de regantes). Negociar condiciones de distribuidor preferente.</div>
+  </div>
+
+  <!-- VISITA 4 -->
+  <div class="visit-card empresa">
+    <div class="visit-time">12:00h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">4</span>
+      <span class="company-name">Hidrogestión S.A.</span>
+      <span class="tag tag-emp">GESTIÓN CICLO INTEGRAL DEL AGUA</span>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> C/ Llana, 1 &middot; 23660 Alcaudete, Jaén</div>
+      <div class="contact-item"><strong>Tel:</strong> 953 561 306 &nbsp;|&nbsp; Guardia 24h: 609 739 601</div>
+      <div class="contact-item"><strong>Email:</strong> alcaudete@hidrogestion.es</div>
+      <div class="contact-item"><strong>Web:</strong> hidrogestion.es</div>
+      <div class="contact-item"><strong>Contacto:</strong> Responsable oficina local (L-V 10:00–13:00h)</div>
+    </div>
+    <div class="products">
+      <strong>Productos:</strong>
+      <span class="products-badge">PE PRESIÓN P100</span>
+      <span class="products-badge">PVC PRESIÓN</span>
+      <span class="products-badge">ECOSAN</span>
+      <span class="products-badge">MUTE</span>
+    </div>
+    <div class="argument"><strong>Argumento:</strong> Empresa concesionaria de servicios de agua en varios municipios de Jaén. Proyectos de renovación continua de redes. MUTE (fundición) para tramos principales, PE P100 para ramales secundarios, ECOSAN para saneamiento.</div>
+  </div>
+
+  <!-- VISITA 5 -->
+  <div class="visit-card municipal">
+    <div class="visit-time">14:00h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">5</span>
+      <span class="company-name">Ayuntamiento de Arjonilla</span>
+      <span class="tag tag-mun">AYUNTAMIENTO</span>
+    </div>
+    <span class="warning-bar">&#9888; Visitar antes de las 15:00 &mdash; cierra a las 15:00h</span>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> C/ Mesones, 2 &middot; 23750 Arjonilla, Jaén</div>
+      <div class="contact-item"><strong>Tel:</strong> 953 520 111</div>
+      <div class="contact-item"><strong>Email:</strong> ayuntamiento@ayuntamientodearjonilla.es</div>
+      <div class="contact-item"><strong>Web:</strong> arjonilla.es</div>
+      <div class="contact-item"><strong>Contacto:</strong> Alcalde — Luis Miguel Carmona Maroto</div>
+    </div>
+    <div class="products">
+      <strong>Productos:</strong>
+      <span class="products-badge">PVC PRESIÓN</span>
+      <span class="products-badge">PE PRESIÓN P100</span>
+    </div>
+    <div class="argument"><strong>Argumento:</strong> Municipio de ~2.500 hab. con red de distribución de agua municipal. Presentar PVC PRESIÓN y PE P100 para renovación de tramos deteriorados. Abordar también posibilidad de mejora de red de saneamiento con ECOSAN.</div>
+  </div>
+</div>
+
+<!-- ==================== DÍA 2 ==================== -->
+<div class="day-block">
+  <div class="day-header">Día 2 &mdash; Martes 14 de Abril &nbsp;|&nbsp; Sierra Mágina &mdash; Cambil · Cárcheles · Huelma · Torres · Albanchez</div>
+  <div class="route-bar">
+    <strong>Trayecto:</strong> Jaén &rarr; Cambil &rarr; Cárcheles &rarr; Huelma &rarr; Torres &rarr; Albanchez de Mágina &rarr; Hotel Úbeda &nbsp;&nbsp;|&nbsp;&nbsp;
+    <strong>Sentido:</strong> Oeste a este por Sierra Mágina &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Pernoctación:</strong> Úbeda
+  </div>
+
+  <!-- VISITA 1 -->
+  <div class="visit-card municipal">
+    <div class="visit-time">09:00h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">1</span>
+      <span class="company-name">Ayuntamiento de Cambil</span>
+      <span class="tag tag-mun">AYUNTAMIENTO</span>
+    </div>
+    <span class="warning-bar">&#9888; Visitar antes de las 15:00 &mdash; cierra a las 15:00h</span>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> Plaza de la Constitución, s/n &middot; 23120 Cambil, Jaén</div>
+      <div class="contact-item"><strong>Tel:</strong> 953 300 011</div>
+      <div class="contact-item"><strong>Email:</strong> secretaria@cambil.com</div>
+      <div class="contact-item"><strong>Web:</strong> cambil-arbuniel.es</div>
+      <div class="contact-item"><strong>Contacto:</strong> Alcalde — José María Guzmán García</div>
+    </div>
+    <div class="products">
+      <strong>Productos:</strong>
+      <span class="products-badge">PVC PRESIÓN</span>
+      <span class="products-badge">PE PRESIÓN P100</span>
+    </div>
+    <div class="argument"><strong>Argumento:</strong> Municipio en zona sierra con red de agua potable municipal. Necesidades de renovación de tuberías por antigüedad. PE P100 resistente a terreno montañoso y cambios de presión.</div>
+  </div>
+
+  <!-- VISITA 2 -->
+  <div class="visit-card municipal">
+    <div class="visit-time">10:10h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">2</span>
+      <span class="company-name">Ayuntamiento de Cárcheles</span>
+      <span class="tag tag-mun">AYUNTAMIENTO</span>
+    </div>
+    <span class="warning-bar">&#9888; Visitar antes de las 15:00 &mdash; cierra a las 15:00h</span>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> Plaza de la Constitución, 8 &middot; 23192 Carchelejo, Cárcheles, Jaén</div>
+      <div class="contact-item"><strong>Tel:</strong> 953 302 003</div>
+      <div class="contact-item"><strong>Email:</strong> administracion@carcheles.es</div>
+      <div class="contact-item"><strong>Web:</strong> carcheles.es</div>
+      <div class="contact-item"><strong>Contacto:</strong> Concejal de Obras Públicas — Juan Zafra González</div>
+      <div class="contact-item"><strong>Alcalde:</strong> Enrique Puñal Rueda</div>
+    </div>
+    <div class="products">
+      <strong>Productos:</strong>
+      <span class="products-badge">PVC PRESIÓN</span>
+      <span class="products-badge">PE PRESIÓN P100</span>
+    </div>
+    <div class="argument"><strong>Argumento:</strong> Municipio pequeño (~300 hab.) en sierra. Concejal de Obras con competencia directa en infraestructuras hidráulicas. PE P100 para abastecimiento en zona montañosa. Abordar posibles subvenciones de la Diputación para renovación de redes.</div>
+  </div>
+
+  <!-- VISITA 3 -->
+  <div class="visit-card municipal">
+    <div class="visit-time">11:30h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">3</span>
+      <span class="company-name">Ayuntamiento de Huelma</span>
+      <span class="tag tag-mun">AYUNTAMIENTO</span>
+    </div>
+    <span class="warning-bar">&#9888; Visitar antes de las 15:00 &mdash; cierra a las 15:00h</span>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> Plaza de España, 1 &middot; 23560 Huelma, Jaén</div>
+      <div class="contact-item"><strong>Tel:</strong> 953 390 210</div>
+      <div class="contact-item"><strong>Web:</strong> aytohuelma.es</div>
+      <div class="contact-item"><strong>Contacto:</strong> Alcaldesa — Ana María Guzmán Cano (PP)</div>
+    </div>
+    <div class="products">
+      <strong>Productos:</strong>
+      <span class="products-badge">PVC PRESIÓN</span>
+      <span class="products-badge">PE PRESIÓN P100</span>
+      <span class="products-badge">ECOSAN</span>
+    </div>
+    <div class="argument"><strong>Argumento:</strong> Municipio de ~2.000 hab. en Sierra Mágina. Infraestructuras de agua con necesidades de modernización. Presentar soluciones para renovación de red de distribución y saneamiento.</div>
+  </div>
+
+  <!-- VISITA 4 -->
+  <div class="visit-card municipal">
+    <div class="visit-time">13:00h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">4</span>
+      <span class="company-name">Ayuntamiento de Torres</span>
+      <span class="tag tag-mun">AYUNTAMIENTO</span>
+    </div>
+    <span class="warning-bar">&#9888; Visitar antes de las 15:00 &mdash; cierra a las 15:00h</span>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> Plaza de España, 1 &middot; 23540 Torres, Jaén</div>
+      <div class="contact-item"><strong>Tel:</strong> 953 363 011 &nbsp;|&nbsp; Emergencias: 605 269 383</div>
+      <div class="contact-item"><strong>Email:</strong> comunicacionaytorres@gmail.com</div>
+      <div class="contact-item"><strong>Web:</strong> ayuntamientodetorres.com</div>
+      <div class="contact-item"><strong>Contacto:</strong> Secretaría municipal / Alcaldía</div>
+    </div>
+    <div class="products">
+      <strong>Productos:</strong>
+      <span class="products-badge">PVC PRESIÓN</span>
+      <span class="products-badge">PE PRESIÓN P100</span>
+    </div>
+    <div class="argument"><strong>Argumento:</strong> Municipio en el corazón de Sierra Mágina. Red de abastecimiento municipal. Aprovechar visita para presentar catálogo y establecer contacto directo con responsable de obras/mantenimiento.</div>
+  </div>
+
+  <!-- VISITA 5 -->
+  <div class="visit-card municipal">
+    <div class="visit-time">14:30h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">5</span>
+      <span class="company-name">Ayuntamiento de Albanchez de Mágina</span>
+      <span class="tag tag-mun">AYUNTAMIENTO</span>
+    </div>
+    <span class="warning-bar">&#9888; Visitar antes de las 15:15 &mdash; cierra a las 15:15h</span>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> Plaza de la Constitución, 1 &middot; 23538 Albanchez de Mágina, Jaén</div>
+      <div class="contact-item"><strong>Tel:</strong> 953 358 304 / 953 358 339</div>
+      <div class="contact-item"><strong>Email:</strong> ayuntaalbanchezdemagina@hotmail.com</div>
+      <div class="contact-item"><strong>Web:</strong> albanchezdemagina.es</div>
+      <div class="contact-item"><strong>Contacto:</strong> Alcalde — Diego Fernández Muñoz (PSOE)</div>
+    </div>
+    <div class="products">
+      <strong>Productos:</strong>
+      <span class="products-badge">PVC PRESIÓN</span>
+      <span class="products-badge">PE PRESIÓN P100</span>
+    </div>
+    <div class="argument"><strong>Argumento:</strong> Último municipio de la jornada, camino a Úbeda. Municipio con red de distribución propia. Presentar rápido con catálogo y tarjeta. Fijar siguiente cita si no hay tiempo para reunión completa.</div>
+  </div>
+</div>
+
+<!-- ==================== DÍA 3 ==================== -->
+<div class="day-block">
+  <div class="day-header">Día 3 &mdash; Miércoles 15 de Abril &nbsp;|&nbsp; Cazorla · Chilluévar · Huesa · Hinojares · Pozo Alcón</div>
+  <div class="route-bar">
+    <strong>Trayecto:</strong> Úbeda &rarr; Cazorla &rarr; Chilluévar &rarr; Huesa &rarr; Hinojares &rarr; Pozo Alcón &rarr; Málaga &nbsp;&nbsp;|&nbsp;&nbsp;
+    <strong>Llegada Málaga:</strong> ~16:00h &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Pernoctación:</strong> &mdash; (regreso)
+  </div>
+
+  <!-- VISITA 1 -->
+  <div class="visit-card empresa">
+    <div class="visit-time">09:00h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">1</span>
+      <span class="company-name">HISERCA — Hidráulica y Servicios Cazorla S.A.</span>
+      <span class="tag tag-emp">EMPRESA PÚBLICA MUNICIPAL DE AGUA</span>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> Plaza de Andalucía, 5 Bajo &middot; 23470 Cazorla, Jaén</div>
+      <div class="contact-item"><strong>Tel:</strong> 953 710 169 &nbsp;|&nbsp; Averías 24h: 696 962 444</div>
+      <div class="contact-item"><strong>Email:</strong> aguas@cazorla.es</div>
+      <div class="contact-item"><strong>Web:</strong> hiserca.com</div>
+      <div class="contact-item"><strong>Contacto:</strong> Dirección técnica municipal</div>
+    </div>
+    <div class="products">
+      <strong>Productos:</strong>
+      <span class="products-badge">PE PRESIÓN P100</span>
+      <span class="products-badge">BIORIENTADO (PVC-O)</span>
+      <span class="products-badge">PVC PRESIÓN</span>
+      <span class="products-badge">ECOSAN</span>
+      <span class="products-badge">MUTE</span>
+    </div>
+    <div class="argument"><strong>Argumento:</strong> Empresa pública que gestiona el servicio de agua en Cazorla (municipio turístico con alta demanda). Proyectos de renovación de red en zona de parque natural. BIORIENTADO PVC-O especialmente interesante por su resistencia y menor peso en zonas de difícil acceso.</div>
+  </div>
+
+  <!-- VISITA 2 -->
+  <div class="visit-card municipal">
+    <div class="visit-time">10:15h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">2</span>
+      <span class="company-name">Ayuntamiento de Chilluévar</span>
+      <span class="tag tag-mun">AYUNTAMIENTO</span>
+    </div>
+    <span class="warning-bar">&#9888; Visitar antes de las 15:00 &mdash; cierra a las 15:00h</span>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> Avda. de Andalucía, 6 &middot; 23477 Chilluévar, Jaén</div>
+      <div class="contact-item"><strong>Tel:</strong> 953 717 300</div>
+      <div class="contact-item"><strong>Email:</strong> chilluevar@promojaen.es</div>
+      <div class="contact-item"><strong>Web:</strong> chilluevar.es</div>
+      <div class="contact-item"><strong>Contacto:</strong> Alcaldesa — Mairena Martínez Gómez (PSOE)</div>
+    </div>
+    <div class="products">
+      <strong>Productos:</strong>
+      <span class="products-badge">PVC PRESIÓN</span>
+      <span class="products-badge">PE PRESIÓN P100</span>
+    </div>
+    <div class="argument"><strong>Argumento:</strong> Municipio pequeño próximo a Cazorla con gestión propia del agua. Presentar soluciones económicas para pequeñas redes municipales. PE P100 flexible y de fácil instalación.</div>
+  </div>
+
+  <!-- VISITA 3 -->
+  <div class="visit-card municipal">
+    <div class="visit-time">11:45h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">3</span>
+      <span class="company-name">Ayuntamiento de Huesa</span>
+      <span class="tag tag-mun">AYUNTAMIENTO</span>
+    </div>
+    <span class="warning-bar">&#9888; Visitar antes de las 15:00 &mdash; cierra a las 15:00h</span>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> Plaza de la Constitución, 11 &middot; 23487 Huesa, Jaén</div>
+      <div class="contact-item"><strong>Tel:</strong> 953 715 009</div>
+      <div class="contact-item"><strong>Email:</strong> ayuntamiento@huesa.es</div>
+      <div class="contact-item"><strong>Web:</strong> huesa.es</div>
+      <div class="contact-item"><strong>Contacto:</strong> Alcaldesa — Isabel Martínez Moreno (PSOE)</div>
+    </div>
+    <div class="products">
+      <strong>Productos:</strong>
+      <span class="products-badge">PVC PRESIÓN</span>
+      <span class="products-badge">PE PRESIÓN P100</span>
+      <span class="products-badge">ECOSAN</span>
+    </div>
+    <div class="argument"><strong>Argumento:</strong> Municipio con infraestructuras de agua y saneamiento propias. Presentar gama completa con foco en renovación de redes antiguas. ECOSAN para mejora de saneamiento.</div>
+  </div>
+
+  <!-- VISITA 4 -->
+  <div class="visit-card municipal">
+    <div class="visit-time">13:15h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">4</span>
+      <span class="company-name">Ayuntamiento de Hinojares</span>
+      <span class="tag tag-mun">AYUNTAMIENTO</span>
+    </div>
+    <span class="warning-bar">&#9888; Visitar antes de las 15:00 &mdash; cierra a las 15:00h</span>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> Plaza de la Constitución, 1 &middot; 23486 Hinojares, Jaén</div>
+      <div class="contact-item"><strong>Tel:</strong> 953 738 111</div>
+      <div class="contact-item"><strong>Email:</strong> ayuntamiento@hinojares.es</div>
+      <div class="contact-item"><strong>Web:</strong> hinojares.es</div>
+      <div class="contact-item"><strong>Contacto:</strong> Concejal de Urbanismo y Obras — Jaime Moya Ortega</div>
+      <div class="contact-item"><strong>Alcalde:</strong> Santiago Jesús Iruela Rodríguez (PP)</div>
+    </div>
+    <div class="products">
+      <strong>Productos:</strong>
+      <span class="products-badge">PVC PRESIÓN</span>
+      <span class="products-badge">PE PRESIÓN P100</span>
+    </div>
+    <div class="argument"><strong>Argumento:</strong> Municipio pequeño con concejal de obras identificado. Contacto directo con Jaime Moya para necesidades de infraestructuras. Presentar catálogo y dejar muestras.</div>
+  </div>
+
+  <!-- VISITA 5 -->
+  <div class="visit-card municipal">
+    <div class="visit-time">14:30h</div>
+    <div class="visit-header-row">
+      <span class="visit-num">5</span>
+      <span class="company-name">Ayuntamiento de Pozo Alcón</span>
+      <span class="tag tag-mun">AYUNTAMIENTO</span>
+    </div>
+    <span class="warning-bar">&#9888; Visitar antes de las 15:30 &mdash; cierra a las 15:30h</span>
+    <div class="contact-grid">
+      <div class="contact-item"><strong>Dirección:</strong> Plaza del Ayuntamiento, 1 &middot; 23485 Pozo Alcón, Jaén</div>
+      <div class="contact-item"><strong>Tel:</strong> 953 738 041</div>
+      <div class="contact-item"><strong>Email:</strong> ayuntamiento@pozoalcon.es</div>
+      <div class="contact-item"><strong>Web:</strong> pozoalcon.es</div>
+      <div class="contact-item"><strong>Contacto:</strong> Alcalde — Iván Raúl Cruz Lozano (PSOE)</div>
+    </div>
+    <div class="products">
+      <strong>Productos:</strong>
+      <span class="products-badge">PVC PRESIÓN</span>
+      <span class="products-badge">PE PRESIÓN P100</span>
+      <span class="products-badge">ECOSAN</span>
+    </div>
+    <div class="argument"><strong>Argumento:</strong> Municipio de ~3.000 hab., el más grande de la zona. Alcalde con delegación directa sobre obras y servicios. Última visita del viaje — presentación completa de catálogo y productos estrella. Municipio con potencial para proyectos de mayor envergadura.</div>
+  </div>
+</div>
+
+<!-- ==================== RESUMEN DE PRODUCTOS ==================== -->
+<div class="day-block" style="page-break-before: always;">
+  <div class="day-header" style="background:#1a3a5c;">Matriz de productos por tipo de cliente</div>
+
+  <table class="summary-table prod-matrix" style="margin-top:12px;">
+    <thead>
+      <tr>
+        <th>Producto</th>
+        <th>Empresa gestora / Mixta</th>
+        <th>Distribuidor</th>
+        <th>Ayuntamiento</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>PE Presión P100</strong></td>
+        <td><span class="star">&#9733;&#9733;&#9733;</span> Principal</td>
+        <td><span class="star">&#9733;&#9733;&#9733;</span> Todo el catálogo</td>
+        <td><span class="star">&#9733;&#9733;&#9733;</span> Renovación redes</td>
+      </tr>
+      <tr>
+        <td><strong>PVC Presión</strong></td>
+        <td><span class="star">&#9733;&#9733;&#9733;</span> Ramales</td>
+        <td><span class="star">&#9733;&#9733;&#9733;</span> Todo el catálogo</td>
+        <td><span class="star">&#9733;&#9733;&#9733;</span> Distribución</td>
+      </tr>
+      <tr>
+        <td><strong>Biorientado (PVC-O)</strong></td>
+        <td><span class="star">&#9733;&#9733;&#9733;</span> Sin zanja</td>
+        <td><span class="star">&#9733;&#9733;</span> Prescripción</td>
+        <td>&ndash;</td>
+      </tr>
+      <tr>
+        <td><strong>ECOSAN</strong></td>
+        <td><span class="star">&#9733;&#9733;&#9733;</span> Saneamiento</td>
+        <td><span class="star">&#9733;&#9733;</span> Prescripción</td>
+        <td><span class="star">&#9733;&#9733;</span> Saneamiento</td>
+      </tr>
+      <tr>
+        <td><strong>MUTE</strong></td>
+        <td><span class="star">&#9733;&#9733;</span> Tramos principales</td>
+        <td><span class="star">&#9733;&#9733;</span> Prescripción</td>
+        <td>&ndash;</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="footer">
+  <span>Documento generado: 10 Abril 2026</span>
+  <span>Ferroplast &ndash; Tuyper &nbsp;|&nbsp; Uso interno</span>
+  <span>Planning Visitas Comerciales Jaén &middot; 13&ndash;15 Abril 2026</span>
+</div>
+
+</body>
+</html>
