@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>CRM Prospector · Rediseño v1 · Ferroplast</title>
+
+<!-- Rediseño v1 — ya no se redirige a legacy.
+     Eliminado el redirect de dispositivo 2026-05-25: el rediseño tiene
+     todas las secciones (Contacto, Equipo, Actividades, Informes, Pipeline,
+     Proyectos) y es 100% funcional en desktop y móvil.
+     El legacy (index-legacy.html) sigue disponible como fallback manual. -->
+
+<meta name="theme-color" content="#0a2d52"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="CRM GPF"/>
+
+<!-- Fuentes Google -->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+
+<!-- DS -->
+<link rel="stylesheet" href="redesign/tokens.css"/>
+<link rel="stylesheet" href="redesign/components.css"/>
+
+<!-- Leaflet (mapa) — sólo se usa en la vista #mapa, pero el CSS y el JS
+     son ligeros y caben en cache; se cargan defer para no bloquear render -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
+
+<!-- XLSX (importar Excel) — defer también -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+<!-- js-yaml (importar visita .yaml desde app de transcripción) — defer -->
+<script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js" defer></script>
+<!-- JSZip (extracción texto .docx para acciones pendientes) -->
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+</head>
+<body>
+
+<!-- Loader inicial -->
+<div id="app-loader">
+  <div class="spinner"></div>
+  <div class="label">Cargando CRM…</div>
+</div>
+
+<div id="app"></div>
+
+<!-- Scripts (orden importa: icons → app → shell → screens) -->
+<script src="redesign/icons.js"></script>
+<script src="redesign/states.js"></script>
+<script src="redesign/data-supabase.js"></script>
+<script src="redesign/data.js"></script>
+<script src="redesign/app.js"></script>
+<script src="redesign/shell.js"></script>
+<script src="redesign/screens/inicio.js"></script>
+<script src="redesign/screens/studios.js"></script>
+<script src="redesign/screens/detail.js"></script>
+<script src="redesign/screens/comollegar.js"></script>
+<script src="redesign/screens/briefing.js"></script>
+<script src="redesign/screens/informe.js"></script>
+<script src="redesign/screens/dashboard.js"></script>
+<script src="redesign/screens/bandeja.js"></script>
+<script src="redesign/screens/planificador.js"></script>
+<script src="redesign/screens/mapa.js"></script>
+<script src="redesign/screens/importar.js"></script>
+<script src="redesign/screens/cmdk.js"></script>
+<script src="redesign/screens/voice.js"></script>
+<script src="redesign/acciones.js"></script>
+<script src="redesign/screens/asistente.js"></script>
+
+<!-- Service Worker v2 — registrado como archivo real /sw.js
+     (blob: URLs no se admiten para SW en Chrome moderno, error
+     "URL protocol of the script is not supported") -->
+<script>
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+  // Resolver paths relativos a la URL actual (compatible con GH Pages
+  // donde la app vive en /crm-prospector/, no en raíz).
+  const swUrl = new URL('sw.js', location.href).toString();
+  const scopeUrl = new URL('.', location.href).pathname;
+  navigator.serviceWorker.register(swUrl, { scope: scopeUrl })
+    .then(function () { console.info('[redesign] SW v2 registrado en ' + scopeUrl); })
+    .catch(function (err) { console.warn('[redesign] SW registro fallido:', err && err.message); });
+})();
+</script>
+
+</body>
+</html>

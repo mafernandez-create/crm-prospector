@@ -1,0 +1,83 @@
+# ============================================================
+# CRM GPF — Tests Daily
+#
+# Ejecuta la batería completa de tests del CRM (scripts/tests/run-all.js)
+# todos los días a las 05:00 UTC. Si alguno falla, crea automáticamente un
+# Issue de GitHub con el output capturado.
+#
+# Se puede lanzar manualmente desde la UI (workflow_dispatch).
+# ============================================================
+
+name: Tests Daily
+
+on:
+  schedule:
+    - cron: '0 5 * * *'   # 05:00 UTC todos los días (07:00 España verano / 06:00 invierno)
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'Suite a ejecutar (--all | --unit | --integration | --e2e | --smoke)'
+        required: false
+        default: '--all'
+
+permissions:
+  contents: read
+  issues:   write
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run test battery
+        id: tests
+        env:
+          BATCH_ENDPOINT: ${{ secrets.BATCH_ENDPOINT }}
+          BATCH_API_KEY:  ${{ secrets.BATCH_API_KEY }}
+          GH_TOKEN:       ${{ secrets.GITHUB_TOKEN }}
+          CRM_URL:        ${{ vars.CRM_URL || 'https://mafernandez-create.github.io/crm-prospector/' }}
+          TESTS_REPO:     ${{ github.repository }}
+          SUITE:          ${{ inputs.suite || '--all' }}
+        run: |
+          set +e
+          node scripts/tests/run-all.js $SUITE | tee tests-output.log
+          STATUS=${PIPESTATUS[0]}
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Open issue on failure
+        if: steps.tests.outputs.status != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(date -u +"%Y-%m-%d %H:%M UTC")
+          {
+            echo "Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo
+            echo '<details><summary>Output completo</summary>'
+            echo
+            echo '```'
+            tail -c 60000 tests-output.log
+            echo '```'
+            echo
+            echo '</details>'
+          } > issue-body.md
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "🔴 Batería de tests falló en $DATE" \
+            --body-file issue-body.md \
+            --label "tests-failing" || true
+
+      - name: Fail step if tests failed
+        if: steps.tests.outputs.status != '0'
+        run: |
+          echo "❌ Tests fallaron — exit code ${{ steps.tests.outputs.status }}"
+          exit 1

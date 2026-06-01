@@ -1,0 +1,32 @@
+node_modules/
+.DS_Store
+*.log
+.auto-push.log
+google_credentials.json
+.sheets_token.json
+*.py
+*.js
+!index.js
+!cors-proxy.js
+!sw.js
+!scripts/*.js
+!scripts/**/*.js
+!redesign/*.js
+!redesign/**/*.js
+gen_*.js
+insertar_*.js
+import_*.js
+dunsSegmentacion_fix.js
+*.xlsx
+*.csv
+.claude/
+
+# Supabase credentials (nunca commitear)
+.env.supabase*
+*.supabase.env
+.gstack/
+
+# Backups y artefactos de reorganización (locales, no versionar)
+*.bak
+*.bak-*
+.reorg_backup_*/

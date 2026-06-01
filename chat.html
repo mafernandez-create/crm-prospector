@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GPF CRM</title>
+
+  <!-- iOS Home Screen / PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="GPF CRM">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1F4E79">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue:  #1F4E79; --blue2: #2E75B6; --light: #EEF4FB;
+      --bg:    #F5F7FA; --white: #FFFFFF; --border: #E2E8F0;
+      --tool:  #FFF8E1; --radius: 18px;
+      --header: 56px;  --input: 68px;
+    }
+    html, body { height: 100%; overflow: hidden; background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+    header {
+      position: fixed; top: 0; left: 0; right: 0; height: var(--header);
+      background: var(--blue); color: #fff;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    .title    { font-size: 16px; font-weight: 600; }
+    .subtitle { font-size: 11px; opacity: .7; margin-top: 1px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #94a3b8; transition: background .4s; }
+    .dot.ok  { background: #4ADE80; }
+    .dot.err { background: #F87171; }
+
+    #messages {
+      position: fixed; top: var(--header); bottom: var(--input);
+      left: 0; right: 0; overflow-y: auto; padding: 14px 12px;
+      scroll-behavior: smooth;
+    }
+    .msg { display: flex; margin-bottom: 10px; animation: fi .2s ease; }
+    .msg.user      { justify-content: flex-end; }
+    .msg.assistant { justify-content: flex-start; }
+    .msg.tool      { justify-content: flex-start; }
+    @keyframes fi { from { opacity:0; transform:translateY(4px); } to { opacity:1; } }
+
+    .bubble {
+      max-width: 84%; padding: 10px 14px; border-radius: var(--radius);
+      font-size: 14px; line-height: 1.55; word-wrap: break-word;
+    }
+    .msg.user      .bubble { background: var(--blue2); color:#fff; border-bottom-right-radius:5px; }
+    .msg.assistant .bubble { background: var(--white); color:#1a1a2e; border-bottom-left-radius:5px; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+    .msg.tool      .bubble { background: var(--tool); color:#92400e; font-size:12.5px; border:1px solid #fde68a; border-bottom-left-radius:5px; padding:6px 12px; }
+
+    .bubble p           { margin-bottom: 6px; }
+    .bubble p:last-child { margin-bottom: 0; }
+    .bubble strong      { font-weight: 600; }
+    .bubble h3          { font-size:14px; font-weight:700; margin:6px 0 3px; color:var(--blue); }
+    .bubble h4          { font-size:13px; font-weight:600; margin:5px 0 2px; }
+    .bubble ul          { padding-left:18px; margin:4px 0; }
+    .bubble li          { margin-bottom:2px; }
+    .bubble code        { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12px; font-family:monospace; }
+    .bubble hr          { border:none; border-top:1px solid var(--border); margin:8px 0; }
+    .bubble table       { border-collapse:collapse; font-size:12px; margin:6px 0; width:100%; }
+    .bubble th,.bubble td { border:1px solid var(--border); padding:4px 8px; text-align:left; }
+    .bubble th          { background:var(--light); font-weight:600; }
+
+    /* acción inline para confirmaciones */
+    .action-bar { display:flex; gap:8px; margin-top:10px; }
+    .btn-confirm { background:#1F4E79; color:#fff; border:none; border-radius:12px; padding:7px 16px; font-size:13px; cursor:pointer; }
+    .btn-cancel  { background:#f1f5f9; color:#374151; border:none; border-radius:12px; padding:7px 16px; font-size:13px; cursor:pointer; }
+
+    .typing .bubble { display:flex; gap:5px; align-items:center; padding:12px 16px; }
+    .dot-anim { width:7px; height:7px; background:#94a3b8; border-radius:50%; animation:b 1.2s infinite; }
+    .dot-anim:nth-child(2) { animation-delay:.2s; }
+    .dot-anim:nth-child(3) { animation-delay:.4s; }
+    @keyframes b { 0%,80%,100%{transform:scale(1)} 40%{transform:scale(1.4)} }
+
+    #quickBar {
+      position: fixed; bottom: var(--input); left:0; right:0;
+      background: var(--white); border-top:1px solid var(--border);
+      overflow-x:auto; display:none; padding:6px 10px;
+    }
+    #quickBar.on { display:block; }
+    #quickRow { display:flex; gap:6px; }
+    .qa { white-space:nowrap; font-size:12px; padding:5px 12px;
+      background:var(--light); color:var(--blue); border:1px solid #bfdbfe;
+      border-radius:20px; cursor:pointer; }
+    .qa:hover { background:#dbeafe; }
+
+    #input-bar {
+      position:fixed; bottom:0; left:0; right:0; height:var(--input);
+      background:var(--white); border-top:1px solid var(--border);
+      display:flex; align-items:center; gap:8px; padding:10px 12px;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+    #userInput {
+      flex:1; border:1.5px solid var(--border); border-radius:24px;
+      padding:10px 16px; font-size:15px; outline:none; resize:none;
+      max-height:110px; overflow-y:auto; line-height:1.4;
+      background:var(--bg); color:#1a1a2e; transition:border-color .2s;
+    }
+    #userInput:focus { border-color:var(--blue2); }
+    #userInput::placeholder { color:#9CA3AF; }
+    #sendBtn {
+      width:44px; height:44px; border-radius:50%; border:none;
+      background:var(--blue); color:#fff; font-size:20px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      flex-shrink:0; transition:background .2s, transform .1s;
+    }
+    #sendBtn:hover   { background:var(--blue2); }
+    #sendBtn:active  { transform:scale(.92); }
+    #sendBtn:disabled { background:#94a3b8; cursor:not-allowed; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div><div class="title">🏗️ GPF Assistant</div><div class="subtitle" id="stTxt">Conectando…</div></div>
+  <div class="dot" id="stDot"></div>
+</header>
+
+<div id="messages"></div>
+
+<div id="quickBar">
+  <div id="quickRow">
+    <button class="qa" onclick="ask('¿Qué visitas tengo hoy?')">📅 Hoy</button>
+    <button class="qa" onclick="ask('Estudios de Cádiz sin visita en 30 días')">📍 Cádiz pendientes</button>
+    <button class="qa" onclick="ask('¿Cuántas visitas llevo esta semana?')">📊 Stats semana</button>
+    <button class="qa" onclick="ask('Arquitectura en Jerez de la Frontera')">🏛️ Jerez</button>
+    <button class="qa" onclick="ask('Muéstrame el planificador de esta semana')">🗓️ Planificador</button>
+    <button class="qa" onclick="ask('Ingenierías en Sevilla con score alto')">⚙️ Ing. Sevilla</button>
+    <button class="qa" onclick="ask('Arquitecturas en Jerez de la Frontera que no estén en el CRM')">🔍 Nuevas en Jerez</button>
+    <button class="qa" onclick="ask('¿Qué eventos tengo hoy en el calendario?')">📅 Agenda</button>
+    <button class="qa" onclick="ask('Arquitecturas en Jerez de la Frontera, tanto las del CRM como las que no estén')">🔀 Todas en Jerez</button>
+  </div>
+</div>
+
+<div id="input-bar">
+  <textarea id="userInput" placeholder="Pregunta sobre el CRM…" rows="1"></textarea>
+  <button id="sendBtn" onclick="sendMessage()">↑</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script>
+// ══════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════
+const GAS = 'https://script.google.com/macros/s/AKfycbzh2oFEM2QcL0OFef1dqz36b0C1f8qTMlvGdhoWATMwF5r2umlZpYdrq-7w86i6GF8/exec';
+const FB  = { apiKey:"AIzaSyCVxMjrIfB4MrYiUzvKzt8fJeKKNne-Cm0", authDomain:"ferroplast-crm.firebaseapp.com", projectId:"ferroplast-crm", storageBucket:"ferroplast-crm.firebasestorage.app", messagingSenderId:"90876822103", appId:"1:90876822103:web:eb7acb645d7205bd0f1912" };
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let db = null;
+let studioCache = null;
+let studioCacheAt = 0;
+const STUDIO_CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+let history = [];   // historial de conversación (sin datos crudos de CRM)
+let busy = false;
+let pendingAction = null; // acción pendiente de confirmación
+
+// ══════════════════════════════════════════
+// FIREBASE
+// ══════════════════════════════════════════
+async function initFB() {
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(FB);
+    db = firebase.firestore();
+    await db.collection('_meta').doc('ping').set({ ts: Date.now() });
+    setStatus('ok', 'CRM conectado ✓');
+    document.getElementById('quickBar').classList.add('on');
+    return true;
+  } catch(e) {
+    setStatus('err', 'Sin conexión Firebase');
+    return false;
+  }
+}
+
+async function getStudios(force = false) {
+  const now = Date.now();
+  if (!force && studioCache && (now - studioCacheAt) < STUDIO_CACHE_TTL) return studioCache;
+  const snap = await db.collection('studios').get();
+  studioCache = snap.docs.map(d => {
+    const data = d.data();
+    if (data.id == null) data.id = parseInt(d.id) || d.id;
+    data._docId = d.id;
+    return data;
+  });
+  studioCacheAt = now;
+  return studioCache;
+}
+function invalidateStudioCache() { studioCache = null; studioCacheAt = 0; }
+
+// ══════════════════════════════════════════
+// INTENT DETECTION — extrae parámetros del mensaje
+// ══════════════════════════════════════════
+const PROVINCIAS = ['Cádiz','Málaga','Granada','Sevilla','Huelva','Córdoba','Jaén','Almería','Toledo','Cáceres','Badajoz','Ciudad Real','Albacete','Cuenca','Alicante','Murcia','Las Palmas','Santa Cruz de Tenerife'];
+const TIPOS      = ['arquitectura','ingenieria','ingeniería','constructora','promotora','aapp','aguas','regantes'];
+const DIAS_SEM   = { lunes:1, martes:2, miércoles:3, miercoles:3, jueves:4, viernes:5, sábado:6, sabado:6, domingo:0 };
+
+function detectIntent(txt) {
+  const t = txt.toLowerCase();
+  const intent = { actions: [], provincia: null, ciudad: null, tipo: null, nombre: null, studioId: null, fecha: null, dias: null };
+
+  // acciones — orden de prioridad: las más específicas primero
+  if (/registra|anota|guarda|he visitado|he llamado|llamé|visité/.test(t)) intent.actions.push('add_act');
+  if (/no.*crm|sin.*crm|nueva|nuevas|sin.*registr|que falt|que no ten|que no est|no est.*crm|descono/.test(t)) intent.actions.push('search_new');
+  if (/estadística|cuántas|cuantas|resumen semana/.test(t))  intent.actions.push('stats');
+  if (/ficha|detalle|información|datos|info\b/.test(t))      intent.actions.push('detail');
+
+  // planificador: si se detecta, NO añadir search (son cosas distintas)
+  const esPlanif  = /planificador|visitas planificadas|programad/.test(t);
+  const esAddPlan = /añade|agrega|pon|incluye/.test(t) && /planificador|agenda|calendario|fecha/.test(t);
+  const esDelPlan = /elimina|quita|borra/.test(t) && /planificador|agenda/.test(t);
+  if (esDelPlan)        intent.actions.push('del_plan', 'planificador');
+  else if (esAddPlan)   intent.actions.push('add_plan', 'planificador', 'search');
+  else if (esPlanif)    intent.actions.push('planificador');
+
+  // search solo si no hay ninguna acción específica de planificador
+  if (!intent.actions.some(a => ['planificador','add_plan','del_plan'].includes(a))) {
+    if (/busca|muestra|dame|lista|encuentra|hay|tienes/.test(t)) intent.actions.push('search');
+  }
+
+  if (!intent.actions.length) intent.actions.push('search');
+
+  // provincia
+  for (const p of PROVINCIAS) { if (t.includes(p.toLowerCase())) { intent.provincia = p; break; } }
+
+  // ciudad — buscar "en [Ciudad]" o "de [Ciudad]" con mayúscula inicial
+  const cityM = txt.match(/\ben\s+([A-ZÁÉÍÓÚÜÑ][a-záéíóúüñA-ZÁÉÍÓÚÜÑ]+(?:\s+(?:de|del|la|las|los|el|San|Santa|Los|Las)\s+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+)*)/);
+  if (cityM) {
+    const candidate = cityM[1].trim();
+    if (!PROVINCIAS.some(p => p.toLowerCase() === candidate.toLowerCase())) {
+      intent.ciudad = candidate;
+    }
+  }
+
+  // tipo
+  for (const tp of TIPOS) { if (t.includes(tp)) { intent.tipo = tp.replace('ingeniería','ingenieria'); break; } }
+
+  // studio ID directo (ej: "estudio 277", "studio 28")
+  const idM = t.match(/estudio\s+(\d+)|studio\s+(\d+)|id\s+(\d+)/);
+  if (idM) intent.studioId = parseInt(idM[1] || idM[2] || idM[3]);
+
+  // días sin visita
+  const diasM = t.match(/(\d+)\s*d[ií]as/);
+  if (diasM) intent.dias = parseInt(diasM[1]);
+
+  // fecha
+  const hoy = new Date();
+  if (/\bhoy\b/.test(t))   intent.fecha = hoy.toISOString().split('T')[0];
+  if (/\bmañana\b/.test(t)) { const d = new Date(hoy); d.setDate(d.getDate()+1); intent.fecha = d.toISOString().split('T')[0]; }
+  for (const [dia, num] of Object.entries(DIAS_SEM)) {
+    if (t.includes(dia)) {
+      const d = new Date(hoy);
+      const diff = (num - d.getDay() + 7) % 7 || 7;
+      d.setDate(d.getDate() + diff);
+      intent.fecha = d.toISOString().split('T')[0];
+      break;
+    }
+  }
+  // fecha DD/MM o DD-MM
+  const fechaM = t.match(/(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{4}))?/);
+  if (fechaM) {
+    const y = fechaM[3] || hoy.getFullYear();
+    intent.fecha = `${y}-${fechaM[2].padStart(2,'0')}-${fechaM[1].padStart(2,'0')}`;
+  }
+
+  return intent;
+}
+
+// ══════════════════════════════════════════
+// FIREBASE QUERIES
+// ══════════════════════════════════════════
+async function fetchCRMData(intent, rawText) {
+  const result = {};
+
+  // ── planificador ──
+  if (intent.actions.includes('planificador') || intent.actions.includes('add_plan') || intent.actions.includes('del_plan')) {
+    const snap = await db.collection('_meta').doc('planificador').get();
+    if (snap.exists) {
+      const sched = snap.data().schedule || {};
+      const hoy   = new Date().toISOString().split('T')[0];
+      const fin   = new Date(); fin.setDate(fin.getDate()+8);
+      const finStr = fin.toISOString().split('T')[0];
+      const proximos = {};
+      Object.keys(sched).sort().forEach(d => { if (d >= hoy && d <= finStr) proximos[d] = sched[d]; });
+
+      // Enriquecer entradas con datos reales del estudio (teléfono, email, dirección, tipo)
+      const todosEstudios = await getStudios();
+      const enriched = {};
+      for (const [fecha, entries] of Object.entries(proximos)) {
+        enriched[fecha] = entries.map(e => {
+          const s = todosEstudios.find(x => x.id == e.id);
+          if (!s) console.warn(`[planificador] studio id=${e.id} ("${e.name}") no encontrado en Firestore`);
+          return {
+            id:        e.id,
+            nombre:    e.name || s?.name || `Estudio ${e.id}`,
+            ciudad:    e.city || s?.city || s?.data?.contact?.city || '',
+            provincia: e.province || s?.province || '',
+            reserva:   e.reserva || false,
+            priority:  e.priority || 'principal',
+            tipo:      s?.type || '',
+            telefono:  s?.phone || s?.data?.contact?.phone || '',
+            email:     s?.email || s?.data?.contact?.email || '',
+            direccion: s?.address || s?.data?.contact?.address || '',
+            _sinDatos: !s  // flag si el estudio no está en Firestore
+          };
+        });
+      }
+      result.planificador = enriched;
+    }
+  }
+
+  // ── agenda Google Calendar ──
+  if (intent.actions.includes('agenda')) {
+    const fecha = intent.fecha || new Date().toISOString().split('T')[0];
+    const dateMin = fecha + 'T00:00:00Z';
+    const dateMax = fecha + 'T23:59:59Z';
+    try {
+      const r = await fetch(GAS + '?action=getCalendarEvents', {
+        method: 'POST', headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ dateMin, dateMax })
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const d = await r.json();
+      result.agenda = { fecha, eventos: d.success ? (d.events || []) : [] };
+      if (!d.success && d.error) result.agenda.error = d.error;
+    } catch(e) { result.agenda = { fecha, eventos: [], error: e.message }; }
+  }
+
+  // ── historial de actividades ──
+  if (intent.actions.includes('historial') && intent.studioId) {
+    const estudios = await getStudios();
+    const s = estudios.find(x => x.id == intent.studioId);
+    if (s) {
+      const acts = (s.activities || []).slice().reverse(); // más reciente primero
+      result.historial = {
+        studio_id: s.id,
+        nombre: s.name,
+        total_actividades: acts.length,
+        actividades: acts
+      };
+    }
+  }
+
+  // ── stats ──
+  if (intent.actions.includes('stats')) {
+    const estudios = await getStudios();
+    const hoy    = new Date().toISOString().split('T')[0];
+    const lunesD = new Date(); lunesD.setDate(lunesD.getDate() - lunesD.getDay() + (lunesD.getDay()===0?-6:1));
+    const lunes  = lunesD.toISOString().split('T')[0];
+    let v=0, ll=0, em=0, wa=0; const ids = new Set();
+    estudios.forEach(s => {
+      (s.activities||[]).forEach(a => {
+        if (a.date >= lunes && a.date <= hoy) {
+          if (a.type==='visita')  { v++;  ids.add(s.id); }
+          if (a.type==='llamada') { ll++; ids.add(s.id); }
+          if (a.type==='email')   { em++; ids.add(s.id); }
+          if (a.type==='whatsapp'){ wa++; ids.add(s.id); }
+        }
+      });
+    });
+    result.stats = { semana: `${lunes} → ${hoy}`, visitas:v, llamadas:ll, emails:em, whatsapps:wa, estudios_contactados: ids.size };
+  }
+
+  // ── detalle de un studio ──
+  if (intent.studioId && intent.actions.includes('detail')) {
+    const estudios = await getStudios();
+    const s = estudios.find(x => x.id == intent.studioId);
+    if (s) result.studio = formatStudio(s, true);
+  }
+
+  // ── búsqueda ──
+  if (intent.actions.includes('search') || intent.actions.includes('add_act')) {
+    const estudios = await getStudios();
+    let filtrados = estudios;
+
+    if (intent.studioId) {
+      filtrados = filtrados.filter(s => s.id == intent.studioId);
+    } else {
+      if (intent.provincia) filtrados = filtrados.filter(s => (s.province||'').toLowerCase().includes(intent.provincia.toLowerCase()));
+      if (intent.tipo)      filtrados = filtrados.filter(s => (s.type||'').toLowerCase().includes(intent.tipo));
+      if (intent.ciudad)    filtrados = filtrados.filter(s => (s.city||s.data?.contact?.city||'').toLowerCase().includes(intent.ciudad.toLowerCase()));
+      // Búsqueda por nombre libre: solo si no hay ningún filtro explícito (incluyendo ciudad)
+      if (!intent.provincia && !intent.tipo && !intent.studioId && !intent.ciudad) {
+        const norm = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+        const stops = new Set([
+          'busca','muestra','dame','lista','todos','todas','hay','tienes','tiene',
+          'que','con','sin','para','una','estudio','estudios','empresa','empresas',
+          'arquitectura','ingenieria','ingeniería','constructora','promotora','aguas','regantes',
+          'cadiz','malaga','granada','sevilla','jerez','huelva','cordoba','jaen','almeria',
+          'toledo','caceres','badajoz','ciudad','albacete','cuenca','alicante','murcia',
+          'añade','agrega','pon','programa','incluye','calendario','agenda',
+          'hoy','manana','mañana','proxima','visita','visitas','planificador',
+          'semana','fecha','cuando','donde','cuales','cuántos','cuantos',
+          'en','de','del','la','el','un','al','las','los','por','sus','este','esta'
+        ]);
+        const palabras = norm(rawText).split(/\s+/).filter(w => w.length > 3 && !stops.has(w));
+        if (palabras.length) {
+          filtrados = filtrados.filter(s => {
+            const hay = norm(s.name+' '+(s.city||''));
+            return palabras.some(p => hay.includes(p));
+          });
+        }
+        // Si después del filtro de texto no queda nada, no devolver nada
+        // (mejor respuesta vacía que 10 estudios irrelevantes)
+        if (!palabras.length) filtrados = [];
+      }
+    }
+
+    if (intent.dias) {
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - intent.dias);
+      const cutoffStr = cutoff.toISOString().split('T')[0];
+      filtrados = filtrados.filter(s => {
+        const vs = (s.activities||[]).filter(a => a.type==='visita');
+        return !vs.length || vs[vs.length-1].date < cutoffStr;
+      });
+    }
+
+    filtrados.sort((a,b) => (b.score||b.data?.score||0)-(a.score||a.data?.score||0));
+    const full = intent.studioId && filtrados.length === 1;
+    result.studios = filtrados.slice(0, full ? 1 : 10).map(s => formatStudio(s, full));
+    result.total = filtrados.length;
+  }
+
+  // ── búsqueda externa multi-fuente ──
+  if (intent.actions.includes('search_new')) {
+    const location = intent.ciudad || intent.provincia;
+    const tipo     = intent.tipo || 'ingenieria';
+    if (!location) {
+      result.error_busqueda = 'No se detectó ciudad o provincia en la consulta. Especifica una ciudad o provincia.';
+    } else {
+      const crmStudios = await getStudios();
+      let allFound = [];
+      try {
+        allFound = await searchStudiosExternalChat(location, tipo);
+      } catch(e) { console.warn('searchStudiosExternalChat error:', e.message); }
+
+      if (allFound.length > 0) {
+        const nuevos  = allFound.filter(r => !isAlreadyInCRM(r.name, crmStudios));
+        const yaEnCRM = allFound.filter(r =>  isAlreadyInCRM(r.name, crmStudios));
+        result.busqueda_externa = {
+          fuente: `Multi-fuente (DuckDuckGo, LinkedIn, Páginas Amarillas, portales) — ${tipo} en ${location}`,
+          total_encontrados: allFound.length,
+          nuevos_no_en_crm: nuevos.length,
+          ya_en_crm: yaEnCRM.length,
+          // Enviar los top-20 nuevos con sus datos
+          nuevos: nuevos.slice(0, 20).map(r => ({
+            nombre:    r.name,
+            snippet:   r.snippet || '',
+            url:       r.url || '',
+            fuentes:   r.sources.join(', '),
+            telefono:  r.telefono || '',
+            direccion: r.direccion || '',
+            ciudad:    r.ciudad || location
+          }))
+        };
+      } else {
+        // Fallback: Claude usa conocimiento propio si ninguna fuente devolvió resultados
+        result.busqueda_externa = {
+          fuente: 'conocimiento_claude',
+          tipo, location,
+          instruccion: `Las búsquedas web no devolvieron resultados. Usa tu conocimiento de entrenamiento para listar ${tipo}s reales en ${location} que podrían ser clientes de Ferroplast/GPF (tuberías HDPE, saneamiento, obras). Incluye nombre, breve descripción. Máximo 8 empresas. Siempre añade: "⚠️ Datos de entrenamiento — verificar vigencia."`
+        };
+      }
+    }
+  }
+
+  return result;
+}
+
+function formatStudio(s, full = false) {
+  const base = {
+    id:        s.id,
+    nombre:    s.name,
+    ciudad:    s.city || s.data?.contact?.city || '',
+    provincia: s.province || '',
+    tipo:      s.type,
+    score:     s.score || s.data?.score || '',
+    telefono:  s.phone || s.data?.contact?.phone || '',
+    email:     s.email || s.data?.contact?.email || '',
+    web:       s.web   || s.data?.contact?.web   || '',
+    actividades: (s.activities||[]).length,
+    ultima_visita: (() => { const v=(s.activities||[]).filter(a=>a.type==='visita'); return v.length?v[v.length-1].date:null; })()
+  };
+  if (full) {
+    base.direccion  = s.address || s.data?.contact?.address || '';
+    base.proyectos  = (s.data?.projects||[]).slice(0,4);
+    base.pitch_llamada = s.data?.comms?.callPitch || '';
+    base.pitch_email   = s.data?.comms?.emailBody  || '';
+    base.next_action   = s.data?.nextAction || '';
+    base.ultimas_actividades = (s.activities||[]).slice(-5);
+  }
+  return base;
+}
+
+// ══════════════════════════════════════════
+// PÁGINAS AMARILLAS — búsqueda externa
+// ══════════════════════════════════════════
+const PA_MAP = {
+  arquitectura: 'arquitectos',
+  ingenieria:   'ingenieros',
+  ingeniería:   'ingenieros',
+  constructora: 'empresas-de-construccion',
+  promotora:    'promotoras-inmobiliarias',
+  aguas:        'abastecimiento-de-aguas',
+  regantes:     'comunidades-de-regantes',
+  otros:        'ingenieros'
+};
+
+function toSlug(str) {
+  return str.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'');
+}
+
+// Fetch externo via GAS (UrlFetchApp — servidores Google, evita Incapsula)
+async function fetchWithProxy(url) {
+  const r = await fetch(GAS + '?action=fetchUrl', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ url })
+  });
+  if (!r.ok) throw new Error('GAS fetchUrl HTTP ' + r.status);
+  const d = await r.json();
+  if (d.error) throw new Error('GAS fetchUrl error: ' + d.error);
+  if (!d.html) throw new Error('GAS fetchUrl: sin contenido');
+  return d.html;
+}
+
+async function searchPaginasAmarillas(tipo, location, maxPages = 2) {
+  const cat = PA_MAP[tipo] || PA_MAP['ingenieria'];
+  const slug = toSlug(location);
+  const base = `https://www.paginasamarillas.es/a/${cat}/${slug}/`;
+  const results = [];
+
+  for (let page = 1; page <= maxPages; page++) {
+    const url = page === 1 ? base : `${base}${page}`;
+    let html;
+    try { html = await fetchWithProxy(url); }
+    catch(e) { if (page === 1) throw e; break; }
+
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const listings = doc.querySelectorAll('[itemtype*="LocalBusiness"]');
+    if (!listings.length) break;
+
+    listings.forEach(el => {
+      const name = el.querySelector('[itemprop="name"]')?.textContent?.trim();
+      if (!name || name.length < 3) return;
+      results.push({
+        nombre:    name,
+        telefono:  el.querySelector('[itemprop="telephone"]')?.textContent?.trim() || '',
+        direccion: el.querySelector('[itemprop="streetAddress"]')?.textContent?.trim() || '',
+        ciudad:    el.querySelector('[itemprop="addressLocality"]')?.textContent?.trim() || location
+      });
+    });
+  }
+  return results;
+}
+
+function normName(n) {
+  return n.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\b(sl|slp|slu|sa|cb|sc|sll|soc|arq|ing|arquitecto|arquitectos|ingeniero|ingenieros|estudio|studio|asociados|consultores|consultoria|grupo|servicios)\b/g,'')
+    .replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim();
+}
+
+function isAlreadyInCRM(extName, crmStudios) {
+  const norm = normName(extName);
+  if (norm.length < 4) return false;
+  return crmStudios.some(s => {
+    const crmNorm = normName(s.name || '');
+    if (!crmNorm) return false;
+    const wordsA = norm.split(' ').filter(w => w.length > 3);
+    const wordsB = crmNorm.split(' ').filter(w => w.length > 3);
+    if (!wordsA.length || !wordsB.length) return false;
+    const matchesAinB = wordsA.filter(w => wordsB.includes(w)).length;
+    const matchesBinA = wordsB.filter(w => wordsA.includes(w)).length;
+    // Bidireccional: 60% de palabras en cualquier dirección
+    return matchesAinB / wordsA.length >= 0.6 || matchesBinA / wordsB.length >= 0.6;
+  });
+}
+
+// ══════════════════════════════════════════
+// BÚSQUEDA EXTERNA MULTI-FUENTE (igual que CRM)
+// ══════════════════════════════════════════
+
+function normalizeStudioKey(name) {
+  return name.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\b(sl|slp|slu|sa|cb|sc|sll|soc|arq|ing|arquitecto|arquitectos|ingeniero|ingenieros|estudio|studio|asociados|consultores|consultoria|grupo|servicios)\b/g,'')
+    .replace(/[^a-z0-9]/g,'').substring(0,25);
+}
+
+function extractStudioName(title, snippet) {
+  if (!title) return null;
+  let name = title
+    .replace(/\|\s*LinkedIn$/i,'').replace(/\|\s*Instagram$/i,'').replace(/\|\s*Facebook$/i,'')
+    .replace(/\s*-\s*Páginas Amarillas$/i,'').replace(/\s*\|\s*ArchDaily.*$/i,'')
+    .replace(/\s*-\s*Google Maps$/i,'').replace(/\s*::.*/,'').replace(/\(@[^)]+\)/g,'').trim();
+  if (name.length > 3 && name.length < 80 && !/resultado|buscar|search|error/i.test(name))
+    return name.split(/\s*[-|]\s*/)[0].trim();
+  return null;
+}
+
+async function searchWeb(query) {
+  try {
+    const html = await fetchWithProxy('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(query));
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const links    = doc.querySelectorAll('.result__a');
+    const snippets = doc.querySelectorAll('.result__snippet');
+    const results  = [];
+    for (let i = 0; i < Math.min(links.length, 12); i++) {
+      results.push({
+        title:   links[i]?.textContent?.trim() || '',
+        snippet: snippets[i]?.textContent?.trim() || '',
+        url:     links[i]?.href || ''
+      });
+    }
+    return results;
+  } catch(e) { return []; }
+}
+
+async function searchStudiosExternalChat(location, tipo) {
+  const foundStudios = new Map();
+  const cfgMap = {
+    'arquitectura': { label:'arquitectura', terms:['estudio arquitectura','arquitectos'] },
+    'ingenieria':   { label:'ingeniería',   terms:['ingeniería civil','ingenieros consultora'] },
+    'constructora': { label:'construcción', terms:['constructora obras','empresa construcción'] },
+    'promotora':    { label:'promotora inmobiliaria', terms:['promotora inmobiliaria','promoción viviendas'] },
+    'regantes':     { label:'comunidades de regantes', terms:['comunidad de regantes','zona regable modernización'] },
+    'aguas':        { label:'gestión de aguas', terms:['empresa aguas','abastecimiento agua'] },
+    'aapp':         { label:'administración pública', terms:['ayuntamiento obras públicas','diputación infraestructuras'] },
+    'otros':        { label:'empresas',     terms:['empresa consultoría','estudio técnico'] }
+  };
+  const cfg = cfgMap[tipo] || cfgMap['otros'];
+
+  const addResults = (results, source, relevance) => {
+    for (const r of results) {
+      const name = extractStudioName(r.title, r.snippet);
+      if (!name || name.length < 3) continue;
+      const key = normalizeStudioKey(name);
+      if (foundStudios.has(key)) {
+        const ex = foundStudios.get(key);
+        ex.relevance = Math.min(100, ex.relevance + 5);
+        if (!ex.sources.includes(source)) ex.sources.push(source);
+        if (r.url && !(ex.urls||[]).includes(r.url)) (ex.urls = ex.urls||[]).push(r.url);
+      } else {
+        foundStudios.set(key, { name, snippet:r.snippet||'', url:r.url||'', urls:r.url?[r.url]:[], relevance, sources:[source] });
+      }
+    }
+  };
+
+  // 1. Búsqueda general
+  updateTool(`🌐 Buscando ${cfg.label} en ${location}…`);
+  const gen1 = await searchWeb(`${cfg.terms[0]} ${location} España`);
+  addResults(gen1, 'Búsqueda web', 70);
+
+  // 2. Segunda búsqueda con variante de término
+  const gen2 = await searchWeb(`${cfg.terms[1] || cfg.terms[0]} ${location}`);
+  addResults(gen2, 'Búsqueda web', 65);
+
+  // 3. LinkedIn
+  updateTool('💼 Buscando en LinkedIn…');
+  const li = await searchWeb(`site:linkedin.com/company ${cfg.label} ${location}`);
+  addResults(li, 'LinkedIn', 80);
+
+  // 4. Páginas Amarillas via DuckDuckGo (siempre funciona aunque PA directa esté bloqueada)
+  updateTool('📒 Buscando en Páginas Amarillas…');
+  const paDdg = await searchWeb(`site:paginasamarillas.es ${cfg.label} ${location}`);
+  addResults(paDdg, 'Páginas Amarillas', 75);
+
+  // 5. PA directa (puede fallar por Incapsula, es OK)
+  try {
+    const paDirect = await searchPaginasAmarillas(tipo, location, 2);
+    for (const p of paDirect) {
+      if (!p.nombre || p.nombre.length < 3) continue;
+      const key = normalizeStudioKey(p.nombre);
+      if (foundStudios.has(key)) {
+        const ex = foundStudios.get(key);
+        if (!ex.sources.includes('PA directo')) ex.sources.push('PA directo');
+        if (p.telefono && !ex.telefono) ex.telefono = p.telefono;
+        if (p.direccion && !ex.direccion) ex.direccion = p.direccion;
+        if (p.ciudad && !ex.ciudad) ex.ciudad = p.ciudad;
+        ex.relevance = Math.min(100, ex.relevance + 10);
+      } else {
+        foundStudios.set(key, { name:p.nombre, snippet:[p.ciudad,p.direccion].filter(Boolean).join(' — '),
+          url:'', urls:[], relevance:80, sources:['PA directo'],
+          telefono:p.telefono||'', direccion:p.direccion||'', ciudad:p.ciudad||'' });
+      }
+    }
+  } catch(e) { /* PA bloqueada por Incapsula — DuckDuckGo PA ya cubierto */ }
+
+  // 6. Portal especializado por tipo
+  updateTool('🏗️ Buscando en portales especializados…');
+  const portalQ = tipo === 'arquitectura'
+    ? `site:archdaily.com OR site:plataformaarquitectura.cl arquitectos ${location}`
+    : tipo === 'regantes' ? `comunidad regantes ${location} modernización riego SEIASA`
+    : tipo === 'aguas'   ? `empresa aguas ${location} abastecimiento potable servicio municipal`
+    : tipo === 'ingenieria' ? `ingeniería civil ${location} consultora proyectos infraestructura`
+    : `${cfg.label} ${location} listado directorio empresas`;
+  const portal = await searchWeb(portalQ);
+  addResults(portal, 'Portal especializado', 85);
+
+  // 7. Noticias / proyectos recientes
+  updateTool('📰 Buscando proyectos recientes…');
+  const news = await searchWeb(`estudio ${cfg.label} ${location} proyecto 2024 2025`);
+  addResults(news, 'Noticias', 65);
+
+  return Array.from(foundStudios.values()).sort((a, b) => b.relevance - a.relevance);
+}
+
+// ══════════════════════════════════════════
+// WRITE OPERATIONS
+// ══════════════════════════════════════════
+async function addActivity(studioId, tipo, notas, resultado, fecha) {
+  const estudios = await getStudios();
+  const s = estudios.find(x => x.id == studioId);
+  if (!s) return { ok:false, msg:`Studio ${studioId} no encontrado` };
+  const act = { id: Date.now(), type: tipo, date: fecha||new Date().toISOString().split('T')[0], notes: notas, result: resultado||'pendiente', createdAt: new Date().toISOString() };
+  const newActs = [...(s.activities||[]), act];
+  await db.collection('studios').doc(s._docId).update({ activities: newActs });
+  s.activities = newActs; // actualizar objeto en caché para coherencia inmediata
+  studioCacheAt = Date.now(); // resetear TTL — los datos del caché siguen siendo válidos
+  return { ok:true, msg:`Actividad "${tipo}" registrada en "${s.name}"`, actividad: act };
+}
+
+async function addToPlan(studioId, fecha, reserva=false, priority='principal', hora=null) {
+  const estudios = await getStudios();
+  const s = estudios.find(x => x.id == studioId);
+  if (!s) return { ok:false, msg:`Studio ${studioId} no encontrado` };
+
+  const ref  = db.collection('_meta').doc('planificador');
+  const snap = await ref.get();
+  const sched = snap.data()?.schedule || {};
+  const dia   = [...(sched[fecha]||[])];
+
+  if (dia.some(x => x.id == studioId)) return { ok:false, msg:`"${s.name}" ya está en el planificador el ${fecha}` };
+
+  dia.push({ id:s.id, name:s.name, city:s.city||s.data?.contact?.city||'', reserva, priority });
+  await ref.update({ schedule: { ...sched, [fecha]: dia }, lastModified: new Date().toISOString() });
+
+  // Sincronizar con Google Calendar
+  let calMsg = '';
+  try {
+    const h = hora || '10:00';
+    const direccion = studioAddress(s);
+    const start = new Date(`${fecha}T${h}:00`);
+    const end   = new Date(start.getTime() + 60*60*1000);
+    const eventData = {
+      title: `[CRM] Visita ${s.name}`,
+      startTime: start.toISOString(),
+      end: end.toISOString(),
+      type: 'meeting',
+      location: direccion || `${s.city||''}, ${s.province||''}`,
+      description: `🏢 ${s.name}\n📍 ${direccion || (s.city||'') + ' (' + (s.province||'') + ')'}\n📞 ${s.phone||s.data?.contact?.phone||'-'}\n📧 ${s.email||s.data?.contact?.email||'-'}\n\n${reserva?'⚠️ RESERVA':'✅ VISITA PRINCIPAL'}${!direccion?' · ⚠️ Sin dirección en CRM':''}\n\nCreado desde GPF Chat Assistant`,
+      duration: 60
+    };
+    const r = await fetch(GAS + '?action=createCalendarEvent', {
+      method:'POST', headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({ data: eventData })
+    });
+    const d = await r.json();
+    calMsg = d.success ? ` · 📅 Evento creado en Calendar (${h})` : ' · ⚠️ No se pudo sincronizar con Calendar';
+  } catch(e) { calMsg = ' · ⚠️ Error Calendar: ' + e.message; }
+
+  return { ok:true, msg:`✅ "${s.name}" añadido al planificador el ${fecha}${calMsg}` };
+}
+
+async function delFromPlan(studioId, fecha) {
+  const estudios = await getStudios();
+  const s = estudios.find(x => x.id == studioId);
+  if (!s) return { ok:false, msg:`Studio ${studioId} no encontrado` };
+
+  const ref   = db.collection('_meta').doc('planificador');
+  const snap  = await ref.get();
+  const sched = snap.data()?.schedule || {};
+  const nuevo = (sched[fecha]||[]).filter(x => x.id != studioId);
+  const newSched = { ...sched, [fecha]: nuevo };
+  if (!nuevo.length) delete newSched[fecha];
+  await ref.update({ schedule: newSched, lastModified: new Date().toISOString() });
+  return { ok:true, msg:`🗑️ "${s.name}" eliminado del planificador el ${fecha}` };
+}
+
+async function addStudio(nombre, ciudad, provincia, tipo, telefono, email, direccion) {
+  const estudios = await getStudios();
+  const maxId = estudios.reduce((m, s) => Math.max(m, typeof s.id === 'number' ? s.id : 0), 0);
+  const newId = maxId + 1;
+  const newStudio = {
+    id: newId,
+    name: nombre,
+    city: ciudad || '',
+    province: provincia || '',
+    type: tipo || 'arquitectura',
+    phone: telefono || '',
+    email: email || '',
+    score: 50,
+    activities: [],
+    createdAt: new Date().toISOString(),
+    data: {
+      contact: { phone: telefono||'', email: email||'', city: ciudad||'', address: direccion||'' }
+    }
+  };
+  const ref = await db.collection('studios').add(newStudio);
+  newStudio._docId = ref.id;
+  invalidateStudioCache();
+  const sinDir = !direccion ? ' ⚠️ Sin dirección — recuerda añadirla para poder crear eventos en Calendar' : '';
+  return { ok: true, msg: `✅ "${nombre}" añadido al CRM con ID ${newId}${sinDir}`, studio_id: newId };
+}
+
+function studioAddress(s) {
+  return s.address || s.data?.contact?.address || '';
+}
+
+async function addCalendarEvent(studioId, fecha, hora, titulo) {
+  const estudios = await getStudios();
+  const s = estudios.find(x => x.id == studioId);
+  if (!s) return { ok: false, msg: `Studio ${studioId} no encontrado` };
+  const h = hora || '10:00';
+  const tituloFinal = titulo || `Visita ${s.name}`;
+  const direccion = studioAddress(s);
+  const start = new Date(`${fecha}T${h}:00`);
+  const end   = new Date(start.getTime() + 60*60*1000);
+  const eventData = {
+    title: tituloFinal,
+    startTime: start.toISOString(),
+    end: end.toISOString(),
+    type: 'meeting',
+    location: direccion || `${s.city||''}, ${s.province||''}`,
+    description: `🏢 ${s.name}\n📍 ${direccion || (s.city||'') + ' (' + (s.province||'') + ')'}\n📞 ${s.phone||s.data?.contact?.phone||'-'}\n📧 ${s.email||s.data?.contact?.email||'-'}\n\nCreado desde GPF Chat Assistant`,
+    duration: 60
+  };
+  if (!direccion) eventData.description += '\n\n⚠️ Dirección no registrada en el CRM';
+  const r = await fetch(GAS + '?action=createCalendarEvent', {
+    method: 'POST', headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ data: eventData })
+  });
+  if (!r.ok) return { ok: false, msg: 'Error HTTP ' + r.status };
+  const d = await r.json();
+  if (!d.success) return { ok: false, msg: d.error || 'Error creando evento' };
+  const dirMsg = direccion ? ` · 📍 ${direccion}` : ' · ⚠️ Sin dirección en CRM';
+  return { ok: true, msg: `📅 "${tituloFinal}" creado en Google Calendar — ${fecha} ${h}${dirMsg}` };
+}
+
+// ══════════════════════════════════════════
+// CLAUDE (sin tools — datos inyectados en el contexto)
+// ══════════════════════════════════════════
+function today() {
+  return new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+
+const SYS = `Eres el asistente de CRM de Manuel Fernández, prescriptor de Ferroplast/Tuyper (Grupo GPF).
+Hoy es ${today()}. Zona: Andalucía, Cáceres, Toledo, Cuenca, Albacete, Badajoz, Ciudad Real, Alicante, Canarias.
+Productos: MUTE (evacuación insonorizada, arquitectura/ingeniería), ECOSAN/BIOPIPE (saneamiento, aguas/regantes), TUYPER PE/PVC (distribución/riego).
+
+Recibirás los datos del CRM directamente en el mensaje del usuario bajo la etiqueta [DATOS_CRM].
+REGLA ABSOLUTA: Usa SOLO los datos de [DATOS_CRM] para responder. NUNCA inventes estudios, visitas, eventos de agenda ni cualquier otro dato que no esté explícitamente en [DATOS_CRM]. Si no tienes datos de agenda, di "No tengo datos del calendario en este momento" — nunca fabricar una lista de eventos.
+Sé conciso, directo y práctico. Responde en español.
+
+Cuando recibas datos de "busqueda_externa":
+- Si fuente es "Multi-fuente ...": lista los nuevos numerados (1, 2, 3…). Para cada uno: nombre en negrita, fuentes donde apareció (entre paréntesis), ciudad, y si tiene teléfono o dirección. Resumen al inicio: "X encontradas, Y ya en CRM, Z nuevas."
+- Si fuente es "conocimiento_claude": sigue la instrucción del campo "instruccion" exactamente. Usa tu conocimiento real de empresas en esa zona.
+- Al final SIEMPRE pregunta: "¿Quieres añadir alguna al CRM? Dime los números y las añado."
+- Cuando el usuario confirme cuáles añadir, incluye un bloque ACTION por cada una con los datos disponibles.
+
+Cuando recibas datos combinados ("studios" + "busqueda_externa"):
+- Primero muestra los estudios ya en el CRM (con ID y datos).
+- Luego muestra los que NO están en el CRM (fuente externa), marcados con ⭐ Nuevo.
+
+Cuando recibas "agenda":
+- Presenta los eventos del calendario de forma clara: hora, título y descripción breve.
+- Si no hay eventos, dilo directamente.
+
+Cuando recibas "historial":
+- Muestra las actividades más recientes primero, con fecha, tipo e icono (📞 llamada, 🤝 visita, 📧 email, 💬 whatsapp).
+
+Cuando el usuario quiera añadir una empresa nueva al CRM:
+- OBLIGATORIO pedir dirección completa (calle, número, CP, ciudad) si no la ha proporcionado. Sin dirección no se puede crear el evento en Calendar.
+- Solo genera el ACTION cuando tengas nombre, ciudad, provincia, tipo Y dirección.
+
+Cuando el usuario quiera añadir una visita al planificador o al calendario:
+- Comprueba si el estudio tiene dirección en los datos del CRM. Si el campo "direccion" está vacío o no aparece, pregunta la dirección antes de generar el ACTION.
+- Si tiene dirección, confirma estudio, fecha, hora y dirección, luego genera el ACTION.
+
+Solo incluye bloques ACTION si el usuario pide EXPLÍCITAMENTE registrar o guardar algo.
+<ACTION>{"op":"add_act","studio_id":N,"tipo":"visita","notas":"...","resultado":"positivo","fecha":"YYYY-MM-DD"}</ACTION>
+<ACTION>{"op":"add_plan","studio_id":N,"fecha":"YYYY-MM-DD","hora":"HH:MM","reserva":false}</ACTION>
+<ACTION>{"op":"del_plan","studio_id":N,"fecha":"YYYY-MM-DD"}</ACTION>
+<ACTION>{"op":"add_studio","nombre":"...","ciudad":"...","provincia":"...","tipo":"arquitectura|ingenieria|constructora|promotora|aapp|aguas|regantes","telefono":"...","email":"...","direccion":"Calle ..., N.º, CP Ciudad"}</ACTION>
+<ACTION>{"op":"add_calendar","studio_id":N,"fecha":"YYYY-MM-DD","hora":"HH:MM","titulo":"Visita ..."}</ACTION>`;
+
+async function callClaude(msgs) {
+  const r = await fetch(GAS + '?action=claudeProxy', {
+    method:'POST', headers:{'Content-Type':'text/plain'},
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1500,
+      system: [{ type:'text', text:SYS, cache_control:{ type:'ephemeral' } }],
+      messages: msgs
+    })
+  });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const d = await r.json();
+  if (d.error) throw new Error(typeof d.error==='string'?d.error:JSON.stringify(d.error));
+  return d.content?.find(b=>b.type==='text')?.text || '';
+}
+
+// ══════════════════════════════════════════
+// AGENT LOOP — Claude decide qué buscar
+// (mismo método que Claude Code usa en sesión)
+// ══════════════════════════════════════════
+
+// Sistema para que Claude interprete la intención
+const SYS_INTENT = `Hoy es {{HOY}}. Eres un analizador de intenciones para un CRM de ventas B2B (Ferroplast/GPF).
+Dado el mensaje del usuario, devuelve ÚNICAMENTE un JSON válido sin texto adicional:
+{"accion":"buscar"|"detalle"|"historial"|"planificador"|"add_plan"|"del_plan"|"stats"|"busqueda_externa"|"buscar_todo"|"agenda"|"add_studio"|"add_calendar"|"chat","tipo":"arquitectura"|"ingenieria"|"constructora"|"promotora"|"aapp"|"aguas"|"regantes"|null,"ciudad":null,"provincia":null,"studio_id":null,"dias_sin_visita":null,"score_min":null,"periodo":"hoy"|"esta_semana"|"semana_pasada"|"este_mes"|"ultimos_30_dias"|null,"fecha":null,"busqueda_externa":false}
+
+Reglas:
+- "accion":"chat" solo si es saludo/agradecimiento sin datos del CRM
+- "accion":"planificador" cuando SOLO quiere VER las visitas programadas (sin añadir ni eliminar)
+- "accion":"add_plan" cuando quiere AÑADIR un estudio al planificador/calendario (ej: "añade X para el martes")
+- "accion":"del_plan" cuando quiere ELIMINAR/QUITAR un estudio del planificador
+- "accion":"busqueda_externa" cuando quiere empresas que NO están en el CRM
+- "accion":"buscar_todo" cuando quiere TANTO las del CRM COMO las nuevas/externas
+- "accion":"stats" cuando pregunta cuántas visitas/llamadas ha hecho
+- "accion":"agenda" cuando pregunta por eventos del calendario Google (ej: "¿qué tengo hoy?", "agenda del día")
+- "accion":"historial" cuando pregunta por las actividades o historial de contacto de un estudio concreto
+- "accion":"add_studio" cuando quiere añadir/dar de alta una empresa nueva en el CRM
+- "accion":"add_calendar" cuando quiere crear un evento en Google Calendar para visitar un estudio
+- ciudad y provincia en español con mayúsculas (ej: "Jerez de la Frontera", "Cádiz")
+- fecha en formato YYYY-MM-DD
+- studio_id: número entero si el usuario menciona un estudio concreto por nombre o ID`;
+
+async function callClaudeIntent(userText) {
+  const hoy = new Date().toISOString().split('T')[0];
+  const r = await fetch(GAS + '?action=claudeProxy', {
+    method:'POST', headers:{'Content-Type':'text/plain'},
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 120,
+      system: [{ type:'text', text: SYS_INTENT.replace('{{HOY}}', hoy), cache_control:{ type:'ephemeral' } }],
+      messages: [{ role:'user', content: userText }]
+    })
+  });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const d = await r.json();
+  const text = d.content?.find(b => b.type === 'text')?.text || '{}';
+  const match = text.match(/\{[\s\S]*\}/);
+  return match ? JSON.parse(match[0]) : null;
+}
+
+function intentToLegacy(c) {
+  if (!c) return detectIntent('buscar');
+  const actions = [];
+  // Para add_calendar y add_plan/del_plan: no filtrar por ciudad ni tipo
+  // (el nombre del estudio no es ciudad ni tipo)
+  const noFiltros = { provincia: null, ciudad: null, tipo: null, nombre: null,
+                      studioId: c.studio_id || null, fecha: c.fecha || null, dias: null };
+
+  switch(c.accion) {
+    case 'buscar':           actions.push('search'); break;
+    case 'detalle':          actions.push('detail', 'search'); break;
+    case 'historial':        actions.push('historial', 'search'); break;
+    case 'planificador':     actions.push('planificador'); break;    // SOLO lectura del plan
+    case 'add_plan':         actions.push('search', 'planificador'); // buscar estudio + leer plan
+      return { actions, ...noFiltros };
+    case 'del_plan':         actions.push('search', 'planificador'); // buscar estudio + leer plan
+      return { actions, ...noFiltros };
+    case 'stats':            actions.push('stats'); break;
+    case 'busqueda_externa': actions.push('search_new'); break;
+    case 'buscar_todo':      actions.push('search', 'search_new'); break;
+    case 'agenda':           actions.push('agenda'); break;
+    case 'add_calendar':     actions.push('search');
+      return { actions, ...noFiltros };
+    case 'add_studio':       actions.push('add_studio'); break;
+    default:                 actions.push('search');
+  }
+  if (c.busqueda_externa) { if (!actions.includes('search_new')) actions.push('search_new'); }
+  return {
+    actions,
+    provincia:  c.provincia   || null,
+    ciudad:     c.ciudad      || null,
+    tipo:       (c.tipo||'').replace('ingeniería','ingenieria') || null,
+    nombre:     null,
+    studioId:   c.studio_id   || null,
+    fecha:      c.fecha       || null,
+    dias:       c.dias_sin_visita || null
+  };
+}
+
+function finishReply(reply) {
+  history.push({ role:'assistant', content: reply });
+  if (history.length > 30) history = history.slice(-30);
+  // Eliminar TODOS los bloques ACTION del texto mostrado
+  const text = reply.replace(/<ACTION>[\s\S]*?<\/ACTION>/g, '').replace(/\n{3,}/g,'\n\n').trim();
+  // Recoger TODAS las acciones válidas
+  const actions = [];
+  const re = /<ACTION>([\s\S]*?)<\/ACTION>/g;
+  let m;
+  while ((m = re.exec(reply)) !== null) {
+    try { actions.push(JSON.parse(m[1].trim())); } catch(e) {}
+  }
+  return { text, actions };
+}
+
+async function runAgent(userText) {
+  history.push({ role:'user', content: userText });
+
+  // ── Paso 1: Claude interpreta la intención ──
+  addTool('🤔 Analizando consulta…');
+  let claudeIntent = null;
+  try { claudeIntent = await callClaudeIntent(userText); }
+  catch(e) { /* fallback a regex */ }
+  removeTool();
+
+  // Si es conversación pura (saludo, etc.) responder directo
+  if (claudeIntent?.accion === 'chat') {
+    addTool('💬 Respondiendo…');
+    const reply = await callClaude(history);
+    removeTool();
+    return finishReply(reply);
+  }
+
+  // ── Paso 2: Cargar datos de Firebase según lo que Claude decidió ──
+  const intent = intentToLegacy(claudeIntent);
+  const isExternalSearch = intent.actions.includes('search_new');
+  addTool(isExternalSearch ? '🌐 Iniciando búsqueda externa…' : '🔍 Consultando el CRM…');
+  let crmData = {};
+  try { crmData = await fetchCRMData(intent, userText); }
+  catch(e) { removeTool(); addTool('⚠️ Error Firebase: ' + e.message); }
+  removeTool();
+
+  // ── Paso 3: Claude responde con los datos reales ──
+  const dataBlock = Object.keys(crmData).length
+    ? `\n\n[DATOS_CRM]\n${JSON.stringify(crmData, null, 1)}` : '';
+  const msgs = [...history.slice(0,-1), { role:'user', content: userText + dataBlock }];
+
+  addTool('✍️ Generando respuesta…');
+  const reply = await callClaude(msgs);
+  removeTool();
+
+  return finishReply(reply);
+}
+
+// ══════════════════════════════════════════
+// UI
+// ══════════════════════════════════════════
+const msgsEl = document.getElementById('messages');
+
+function addMsg(role, html, raw) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + role;
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  if (role === 'assistant') b.innerHTML = md(raw || html);
+  else b.textContent = raw || html;
+  d.appendChild(b);
+  msgsEl.appendChild(d);
+  scrollDown();
+  return b;
+}
+
+let toolEl = null;
+function addTool(txt) {
+  const d = document.createElement('div'); d.className = 'msg tool'; d.id='toolmsg';
+  const b = document.createElement('div'); b.className = 'bubble'; b.textContent = txt;
+  d.appendChild(b); msgsEl.appendChild(d); scrollDown();
+}
+function removeTool() { document.getElementById('toolmsg')?.remove(); }
+function updateTool(txt) { const el = document.getElementById('toolmsg'); if (el) el.querySelector('.bubble').textContent = txt; }
+
+function addTyping() {
+  const d = document.createElement('div'); d.className = 'msg assistant typing'; d.id='typing';
+  d.innerHTML = '<div class="bubble"><div class="dot-anim"></div><div class="dot-anim"></div><div class="dot-anim"></div></div>';
+  msgsEl.appendChild(d); scrollDown();
+}
+function removeTyping() { document.getElementById('typing')?.remove(); }
+
+function showConfirm(bubble, actions) {
+  if (!actions || !actions.length) return;
+  const bar = document.createElement('div'); bar.className = 'action-bar';
+  const labels = { add_act:'✅ Registrar actividad', add_plan:'📅 Añadir al planificador', del_plan:'🗑️ Eliminar del planificador', add_studio:'🏢 Añadir al CRM', add_calendar:'📅 Crear en Calendar' };
+
+  // Etiqueta del botón: usar la primera acción reconocida, o "Confirmar"
+  const mainLabel = actions.map(a => labels[a.op]).filter(Boolean).join(' + ') || 'Confirmar';
+  const btnOk = document.createElement('button'); btnOk.className='btn-confirm'; btnOk.textContent = mainLabel;
+  const btnNo = document.createElement('button'); btnNo.className='btn-cancel';  btnNo.textContent = 'Cancelar';
+
+  async function execAction(action) {
+    if (action.op==='add_act')      return addActivity(action.studio_id, action.tipo, action.notas, action.resultado, action.fecha);
+    if (action.op==='add_plan')     return addToPlan(action.studio_id, action.fecha, action.reserva||false, 'principal', action.hora||null);
+    if (action.op==='del_plan')     return delFromPlan(action.studio_id, action.fecha);
+    if (action.op==='add_studio')   return addStudio(action.nombre, action.ciudad, action.provincia, action.tipo, action.telefono, action.email, action.direccion);
+    if (action.op==='add_calendar') return addCalendarEvent(action.studio_id, action.fecha, action.hora, action.titulo);
+  }
+
+  btnOk.onclick = async () => {
+    bar.remove();
+    addTool('💾 Guardando…');
+    const msgs = [];
+    try {
+      for (const action of actions) {
+        const res = await execAction(action);
+        if (res?.msg) msgs.push(res.msg);
+      }
+      removeTool();
+      addMsg('assistant', '', msgs.join('\n') || '✅ Hecho');
+    } catch(e) { removeTool(); addMsg('assistant','','❌ Error: '+e.message); }
+  };
+  btnNo.onclick = () => { bar.remove(); addMsg('assistant','','De acuerdo, no se ha guardado nada.'); };
+  bar.appendChild(btnOk); bar.appendChild(btnNo);
+  bubble.appendChild(bar);
+}
+
+function scrollDown() { setTimeout(() => msgsEl.scrollTop = msgsEl.scrollHeight, 50); }
+
+function setStatus(type, text) {
+  document.getElementById('stDot').className = 'dot ' + type;
+  document.getElementById('stTxt').textContent = text;
+}
+
+// Markdown mínimo
+function md(t) {
+  if (!t) return '';
+  return t
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^#### (.+)$/gm,'<h4>$1</h4>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code>$1</code>').replace(/^---$/gm,'<hr>')
+    .replace(/^- (.+)$/gm,'<li>$1</li>').replace(/(<li>.*<\/li>\n?)+/gs,s=>`<ul>${s}</ul>`)
+    .replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br>')
+    .replace(/^([^<])/, '<p>$1').replace(/([^>])$/, '$1</p>');
+}
+
+// ══════════════════════════════════════════
+// SEND
+// ══════════════════════════════════════════
+const inp = document.getElementById('userInput');
+const btn = document.getElementById('sendBtn');
+
+async function sendMessage() {
+  const txt = inp.value.trim();
+  if (!txt || busy) return;
+  inp.value = ''; inp.style.height = 'auto';
+  addMsg('user','',txt);
+  await think(txt);
+}
+
+async function ask(txt) { if (busy) return; addMsg('user','',txt); await think(txt); }
+
+async function think(txt) {
+  busy = true; btn.disabled = true; addTyping();
+  try {
+    const { text, actions } = await runAgent(txt);
+    removeTyping();
+    const bubble = addMsg('assistant','',text);
+    if (actions && actions.length) showConfirm(bubble, actions);
+  } catch(e) {
+    removeTyping();
+    addMsg('assistant','','❌ Error: ' + e.message);
+  } finally { busy=false; btn.disabled=false; inp.focus(); }
+}
+
+inp.addEventListener('input', () => { inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,110)+'px'; });
+inp.addEventListener('keydown', e => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} });
+
+// ══════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════
+(async () => {
+  const ok = await initFB();
+  if (ok) addMsg('assistant','','¡Hola Manuel! Conectado al CRM 🔥\n\nPuedo buscar estudios, ver tu agenda, registrar visitas o añadir empresas al planificador. ¿Qué necesitas?');
+})();
+</script>
+</body>
+</html>

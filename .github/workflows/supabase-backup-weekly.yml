@@ -1,0 +1,174 @@
+# ============================================================
+# CRM GPF — Supabase Backup Weekly
+# Cierre migración Supabase (2026-05-25)
+#
+# Cada domingo a las 04:00 UTC: pg_dump completo (schema + datos) del
+# proyecto Supabase de producción. El resultado se comprime y se sube
+# como artifact con retention de 30 días. Las credenciales viajan por
+# GitHub Secrets, nunca aparecen en logs ni en el filesystem persistente.
+#
+# Secrets de repo necesarios:
+#   - SUPABASE_DB_URL           → URL Postgres completa, copiar del dashboard:
+#                                 Supabase → Project Settings → Database → Connection string → "Session pooler"
+#                                 Formato: postgresql://postgres.<ref>:<pwd>@aws-0-<region>.pooler.supabase.com:5432/postgres
+#                                 (la conexión directa db.<ref>.supabase.co está deprecada en muchas regiones).
+#   - SUPABASE_URL              → https://<ref>.supabase.co (para los counts)
+#   - SUPABASE_SERVICE_ROLE_KEY → para los counts REST (sólo lectura)
+#
+# Restauración manual:
+#   gunzip -c supabase-backup-YYYYMMDD.sql.gz | psql "<SUPABASE_DB_URL>"
+# ============================================================
+
+name: Supabase Backup Weekly
+
+on:
+  schedule:
+    # Domingos a las 04:00 UTC (06:00 CET / 05:00 invierno España)
+    - cron: '0 4 * * 0'
+  workflow_dispatch:           # Permite lanzarlo a mano desde la UI
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify secrets present
+        run: |
+          missing=()
+          [ -z "${{ secrets.SUPABASE_DB_URL }}" ]           && missing+=(SUPABASE_DB_URL)
+          [ -z "${{ secrets.SUPABASE_URL }}" ]              && missing+=(SUPABASE_URL)
+          [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ] && missing+=(SUPABASE_SERVICE_ROLE_KEY)
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "❌ Faltan secrets: ${missing[*]}"
+            exit 1
+          fi
+          echo "✅ Todos los secrets presentes"
+
+      - name: Install postgresql-client-17
+        run: |
+          # Supabase corre Postgres 17.x (verificado 2026-05-25: server 17.6).
+          # El client 17 es required (16.x aborta por version mismatch).
+          # Ubuntu mantiene varios pg_dump simultáneos — el comando `pg_dump`
+          # sin path apunta al cluster default (16), así que invocamos por
+          # path absoluto en el step de dump: /usr/lib/postgresql/17/bin/pg_dump.
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client-17
+          /usr/lib/postgresql/17/bin/pg_dump --version
+
+      - name: Dump Supabase database
+        id: dump
+        env:
+          # SUPABASE_DB_URL es la connection string completa.
+          # pg_dump la acepta directamente vía --dbname=<url>.
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          STAMP=$(date -u +"%Y%m%d-%H%M")
+          OUTFILE="supabase-backup-${STAMP}.sql"
+          echo "stamp=${STAMP}" >> "$GITHUB_OUTPUT"
+          echo "outfile=${OUTFILE}" >> "$GITHUB_OUTPUT"
+
+          echo "▶ pg_dump → ${OUTFILE}"
+          # --no-owner / --no-privileges → backup limpio, restaurable en
+          #   cualquier instancia Postgres compatible.
+          # --schema=public → sólo nuestro schema, no auth/storage/realtime
+          #   de Supabase (esos los restaura Supabase automáticamente).
+          # NOTA: la URL contiene la password — nunca la imprimimos.
+          # Path absoluto al binario 17 (no usar `pg_dump` plano: apunta al 16).
+          /usr/lib/postgresql/17/bin/pg_dump \
+            --dbname="${DB_URL}" \
+            --schema=public \
+            --no-owner \
+            --no-privileges \
+            --format=plain \
+            --file="${OUTFILE}"
+
+          SIZE_BYTES=$(stat -c%s "${OUTFILE}")
+          LINES=$(wc -l < "${OUTFILE}")
+          echo "size_bytes=${SIZE_BYTES}" >> "$GITHUB_OUTPUT"
+          echo "lines=${LINES}" >> "$GITHUB_OUTPUT"
+
+          echo "▶ gzip ${OUTFILE}"
+          gzip "${OUTFILE}"
+          SIZE_GZ=$(stat -c%s "${OUTFILE}.gz")
+          echo "size_gz=${SIZE_GZ}" >> "$GITHUB_OUTPUT"
+
+          echo "✅ Dump completado:"
+          ls -lh "${OUTFILE}.gz"
+
+      - name: Count rows per table (REST API, no log de secrets)
+        id: counts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          # Endpoint HEAD con Prefer: count=exact devuelve el total en el
+          # header Content-Range. No descarga datos.
+          count_table() {
+            local tbl="$1"
+            local hdr
+            hdr=$(curl --silent --head \
+              -H "apikey: ${SUPABASE_KEY}" \
+              -H "Authorization: Bearer ${SUPABASE_KEY}" \
+              -H "Prefer: count=exact" \
+              -H "Range: 0-0" \
+              "${SUPABASE_URL}/rest/v1/${tbl}?select=*" \
+              | grep -i '^content-range:' | tr -d '\r')
+            # Content-Range: 0-0/<total>
+            echo "${hdr}" | sed -E 's/.*\///'
+          }
+
+          STUDIOS=$(count_table studios)
+          BRIEFINGS=$(count_table briefings)
+          PLACSP=$(count_table placsp_adjudicaciones)
+          META_KV=$(count_table meta_kv)
+
+          echo "studios=${STUDIOS}"      >> "$GITHUB_OUTPUT"
+          echo "briefings=${BRIEFINGS}"  >> "$GITHUB_OUTPUT"
+          echo "placsp=${PLACSP}"        >> "$GITHUB_OUTPUT"
+          echo "meta_kv=${META_KV}"      >> "$GITHUB_OUTPUT"
+
+      - name: Upload backup as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-backup-${{ steps.dump.outputs.stamp }}
+          path: ${{ steps.dump.outputs.outfile }}.gz
+          retention-days: 30
+          if-no-files-found: error
+          compression-level: 0   # ya está gzipped, no recomprimir
+
+      - name: Write GitHub summary
+        run: |
+          {
+            echo "# Supabase Backup — $(date -u +"%Y-%m-%d %H:%M UTC")"
+            echo ""
+            echo "**Archivo:** \`${{ steps.dump.outputs.outfile }}.gz\`"
+            echo "- Tamaño dump:      $(numfmt --to=iec ${{ steps.dump.outputs.size_bytes }})"
+            echo "- Tamaño .gz:       $(numfmt --to=iec ${{ steps.dump.outputs.size_gz }})"
+            echo "- Líneas SQL:       ${{ steps.dump.outputs.lines }}"
+            echo "- Retention:        30 días"
+            echo ""
+            echo "## Filas por tabla"
+            echo ""
+            echo "| Tabla                    | Filas |"
+            echo "|--------------------------|-------|"
+            echo "| studios                  | ${{ steps.counts.outputs.studios }} |"
+            echo "| briefings                | ${{ steps.counts.outputs.briefings }} |"
+            echo "| placsp_adjudicaciones    | ${{ steps.counts.outputs.placsp }} |"
+            echo "| meta_kv                  | ${{ steps.counts.outputs.meta_kv }} |"
+            echo ""
+            echo "## Cómo restaurar"
+            echo ""
+            echo '```bash'
+            echo "gunzip -c ${{ steps.dump.outputs.outfile }}.gz | \\"
+            echo '  psql "postgresql://postgres:<password>@<host>:5432/postgres"'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
