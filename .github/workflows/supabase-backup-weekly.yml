@@ -14,9 +14,13 @@
 #                                 (la conexión directa db.<ref>.supabase.co está deprecada en muchas regiones).
 #   - SUPABASE_URL              → https://<ref>.supabase.co (para los counts)
 #   - SUPABASE_SERVICE_ROLE_KEY → para los counts REST (sólo lectura)
+#   - BACKUP_PASSPHRASE         → passphrase para cifrar el dump (AES256). El repo
+#                                 es PÚBLICO y los artifacts son descargables por
+#                                 cualquiera → el backup DEBE ir cifrado (hallazgo H4).
 #
-# Restauración manual:
-#   gunzip -c supabase-backup-YYYYMMDD.sql.gz | psql "<SUPABASE_DB_URL>"
+# Restauración manual (el artifact viene cifrado .sql.gz.gpg):
+#   gpg --batch --passphrase "$BACKUP_PASSPHRASE" -d supabase-backup-YYYYMMDD.sql.gz.gpg \
+#     | gunzip | psql "<SUPABASE_DB_URL>"
 # ============================================================
 
 name: Supabase Backup Weekly
@@ -45,6 +49,7 @@ jobs:
           [ -z "${{ secrets.SUPABASE_DB_URL }}" ]           && missing+=(SUPABASE_DB_URL)
           [ -z "${{ secrets.SUPABASE_URL }}" ]              && missing+=(SUPABASE_URL)
           [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ] && missing+=(SUPABASE_SERVICE_ROLE_KEY)
+          [ -z "${{ secrets.BACKUP_PASSPHRASE }}" ]         && missing+=(BACKUP_PASSPHRASE)
           if [ ${#missing[@]} -gt 0 ]; then
             echo "❌ Faltan secrets: ${missing[*]}"
             exit 1
@@ -70,6 +75,9 @@ jobs:
           # SUPABASE_DB_URL es la connection string completa.
           # pg_dump la acepta directamente vía --dbname=<url>.
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          # Passphrase para cifrar el backup (el repo es público → los artifacts
+          # son descargables; sin cifrar filtraría PII). Restauración: gpg -d.
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           STAMP=$(date -u +"%Y%m%d-%H%M")
           OUTFILE="supabase-backup-${STAMP}.sql"
@@ -101,8 +109,17 @@ jobs:
           SIZE_GZ=$(stat -c%s "${OUTFILE}.gz")
           echo "size_gz=${SIZE_GZ}" >> "$GITHUB_OUTPUT"
 
-          echo "✅ Dump completado:"
-          ls -lh "${OUTFILE}.gz"
+          # Cifrado AES256: el repo es PÚBLICO → los artifacts son descargables
+          # por cualquiera. Sin cifrar, el dump filtraría PII (hallazgo H4).
+          echo "▶ cifrar (AES256) → ${OUTFILE}.gz.gpg"
+          gpg --batch --yes --symmetric --cipher-algo AES256 \
+            --passphrase "${BACKUP_PASSPHRASE}" \
+            --output "${OUTFILE}.gz.gpg" "${OUTFILE}.gz"
+          rm -f "${OUTFILE}.gz"               # no dejar el dump en claro
+          echo "encfile=${OUTFILE}.gz.gpg" >> "$GITHUB_OUTPUT"
+
+          echo "✅ Dump cifrado:"
+          ls -lh "${OUTFILE}.gz.gpg"
 
       - name: Count rows per table (REST API, no log de secrets)
         id: counts
@@ -136,14 +153,14 @@ jobs:
           echo "placsp=${PLACSP}"        >> "$GITHUB_OUTPUT"
           echo "meta_kv=${META_KV}"      >> "$GITHUB_OUTPUT"
 
-      - name: Upload backup as artifact
+      - name: Upload backup as artifact (cifrado)
         uses: actions/upload-artifact@v4
         with:
           name: supabase-backup-${{ steps.dump.outputs.stamp }}
-          path: ${{ steps.dump.outputs.outfile }}.gz
+          path: ${{ steps.dump.outputs.encfile }}
           retention-days: 30
           if-no-files-found: error
-          compression-level: 0   # ya está gzipped, no recomprimir
+          compression-level: 0   # ya está gzipped + cifrado, no recomprimir
 
       - name: Write GitHub summary
         run: |
@@ -165,10 +182,12 @@ jobs:
             echo "| placsp_adjudicaciones    | ${{ steps.counts.outputs.placsp }} |"
             echo "| meta_kv                  | ${{ steps.counts.outputs.meta_kv }} |"
             echo ""
-            echo "## Cómo restaurar"
+            echo "## Cómo restaurar (backup CIFRADO AES256)"
             echo ""
             echo '```bash'
-            echo "gunzip -c ${{ steps.dump.outputs.outfile }}.gz | \\"
+            echo "# 1) descifrar con BACKUP_PASSPHRASE   2) restaurar"
+            echo "gpg --batch --passphrase \"\$BACKUP_PASSPHRASE\" \\"
+            echo "  -d ${{ steps.dump.outputs.encfile }} | gunzip | \\"
             echo '  psql "postgresql://postgres:<password>@<host>:5432/postgres"'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
