@@ -2634,7 +2634,10 @@
     if (window.openSheet) window.openSheet(html);
   }
 
-  function studioName(studio, id) { return studio ? studio.name : id; }
+  function studioName(studio, id) {
+    var n = studio && studio.name;
+    return (typeof n === 'string' ? n : (n && n.valor) || '') || id;
+  }
 
   /* ============================================================
      DESCARGAR INFORME IMPORTADO COMO WORD (.doc)
@@ -2648,7 +2651,9 @@
     var r = reports[idx];
     if (!r) return;
     var studio = getStudio(studioId);
-    var sName = (studio && studio.name) || studioId;
+    // Manejar formato legacy {valor:"..."} en studio.name
+    var rawName = studio && studio.name;
+    var sName = (typeof rawName === 'string' ? rawName : (rawName && rawName.valor) || '') || String(studioId);
 
     function sv(v) { return (v === null || v === undefined || v === '' || v === 'N/A') ? null : v; }
     function arrF(v) { return Array.isArray(v) ? v : []; }
@@ -2835,7 +2840,7 @@
         '<body>' + body + '</body>' +
       '</html>';
 
-    var safeName = studioName.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+    var safeName = sName.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '');
     var filename = 'visita_' + safeName + '_' + (r.date || 'sin_fecha').replace(/[^0-9-]/g, '') + '.doc';
     var blob = new Blob(['﻿', wordHTML], { type: 'application/msword' });
     var a = document.createElement('a');
