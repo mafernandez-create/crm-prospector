@@ -1284,6 +1284,30 @@
    *   tipoVisita:         string                'primera-frio'|'primera-con-cita'|'seguimiento'|...
    * }
    */
+  /* Elimina cualquier marca de tiempo / timestamp del markdown del informe.
+     El informe es un registro comercial, NO una transcripción: no puede
+     parecer que proviene de una reunión grabada. Cubre formatos:
+       [01:47]  [01:47–02:34]  (01:47)  (1:02:33)  01:47–02:34 (rango suelto)
+     NO toca fechas tipo [2026-06-01] (sin ':') ni marcadores como [SIN DATO]. */
+  function _stripTimestamps(md) {
+    if (!md) return md;
+    var TS = '\\d{1,2}:\\d{2}(?::\\d{2})?';                 // M:SS, MM:SS o H:MM:SS
+    var DASH = '\\s*[–—-]\\s*';
+    return md
+      // [MM:SS] o [MM:SS–MM:SS]
+      .replace(new RegExp('\\[\\s*' + TS + '(?:' + DASH + TS + ')?\\s*\\]', 'g'), '')
+      // (MM:SS) o (MM:SS–MM:SS)
+      .replace(new RegExp('\\(\\s*' + TS + '(?:' + DASH + TS + ')?\\s*\\)', 'g'), '')
+      // rango suelto sin paréntesis: 01:47–02:34
+      .replace(new RegExp('\\b' + TS + DASH + TS + '\\b', 'g'), '')
+      // limpieza de artefactos que deja el borrado
+      .replace(/[ \t]{2,}/g, ' ')                 // espacios dobles
+      .replace(/\(\s*\)/g, '')                    // paréntesis vacíos
+      .replace(/[ \t]+([,.;:)])/g, '$1')          // espacio antes de puntuación
+      .replace(/^(\s*(?:[-*•]|\d+\.)\s*)[–—-]\s+/gm, '$1') // viñeta con guion colgante
+      .replace(/[ \t]+$/gm, '');                  // espacios al final de línea
+  }
+
   async function generateReport(studioId, payload) {
     payload = payload || {};
     const studio = await _getStudio(studioId);
@@ -1393,8 +1417,8 @@
       '## Reglas absolutas\n' +
       '- Devuelve ÚNICAMENTE el markdown del informe. Sin preámbulo, sin texto introductorio, sin explicaciones.\n' +
       '- No inventes datos que no estén en las notas. Si algo no se puede extraer, usa [SIN DATO] o simplemente no lo pongas.\n' +
-      '- Los timestamps [MM:SS] solo aparecen si están en el input. No inventes minutos.\n' +
-      '- Las citas del cliente van siempre entre comillas y en cursiva cuando son literales.\n' +
+      '- PROHIBIDO incluir marcas de tiempo o timestamps de ningún tipo ([MM:SS], [MM:SS–MM:SS], (01:47), "al minuto 2:30", rangos como 01:47–02:34, etc.), AUNQUE aparezcan en el input. El informe es un registro comercial profesional, NO una transcripción: bajo ninguna circunstancia puede parecer que proviene de una reunión grabada. Si las notas traen marcas de tiempo, ignóralas por completo al redactar.\n' +
+      '- Las citas del cliente van siempre entre comillas y en cursiva cuando son literales (sin marca de tiempo).\n' +
       '- Los ejercicios de práctica son siempre específicos de esta visita, nunca genéricos.\n' +
       '- El guión para la próxima visita contiene preguntas LITERALES entre comillas, no descripciones de preguntas.\n' +
       '- El JSON de métricas cierra el informe y es siempre válido.\n' +
@@ -1427,7 +1451,7 @@
       '**Fecha:** ' + fecha + '\n' +
       '**Interlocutor:** (nombre y cargo extraído de las notas; o [SIN DATO])\n' +
       '**Tipo:** ' + tipoVisitaLabel + '\n' +
-      '**Duración:** (estima si hay timestamps o lo mencionan; omite la línea si no hay dato)\n\n' +
+      '**Duración:** (solo si las notas la mencionan explícitamente en minutos; omite la línea si no hay dato. NO la deduzcas de marcas de tiempo)\n\n' +
       '---\n\n' +
       '## Resumen ejecutivo\n\n' +
       '(2-3 párrafos: contexto del cliente, productos GPF más pertinentes para su perfil, resultado real como advance/continuation, y el dato más importante que Manolo debe recordar mañana)\n\n' +
@@ -1436,7 +1460,7 @@
       '(bullets: especialidades declaradas, herramientas —BC3/Presto/BIM/IFC—, clientes o contratantes mencionados, proyectos activos, volumen estimado, si prescriben o compran directamente)\n\n' +
       '---\n\n' +
       '## Temas tratados\n\n' +
-      '(lista numerada cronológica; incluye timestamps [MM:SS–MM:SS] solo si están en el input)\n\n' +
+      '(lista numerada cronológica de los temas tratados; NO incluyas marcas de tiempo, minutos ni rangos [MM:SS])\n\n' +
       '---\n\n' +
       '## Productos GPF presentados\n\n' +
       '(tabla: Producto | Cómo se presentó | Pertinencia según overlay ✅ prioritario / ⚠️ secundario / ❌ no aplica)\n\n' +
@@ -1444,7 +1468,7 @@
       '---\n\n' +
       '## Señales del cliente\n\n' +
       '**Intereses confirmados (con cita):**\n' +
-      '(bullet por cada interés claro; cita literal en cursiva y timestamp si disponible)\n\n' +
+      '(bullet por cada interés claro; cita literal en cursiva, SIN marca de tiempo)\n\n' +
       '**Dolores insinuados (implícitos, no desarrollados):**\n' +
       '(bullet por dolor detectado pero no profundizado; o "Sin dolores detectados." si no hay)\n\n' +
       '**Engagement:** (nivel: alto/moderado/bajo y justificación breve)\n\n' +
@@ -1482,7 +1506,7 @@
       '## 🎯 Guión para la próxima visita\n\n' +
       '(contexto de 1 línea: qué se envió antes, qué ancla usar)\n\n' +
       '**Preguntas de Problema** (dolores insinuados pero no desarrollados):\n\n' +
-      '(3-4 preguntas LITERALES en cursiva y comillas, con referencia al momento de la visita que las justifica)\n\n' +
+      '(3-4 preguntas LITERALES en cursiva y comillas, con referencia al tema de la visita que las justifica, sin marca de tiempo)\n\n' +
       '**Preguntas de Implicación** (cuantificar el coste del problema):\n\n' +
       '(3-4 preguntas LITERALES en cursiva y comillas)\n\n' +
       '**Preguntas de Need-payoff** (que el cliente verbalice el valor):\n\n' +
@@ -1521,10 +1545,12 @@
       '}\n' +
       '```';
 
-    const markdown = (await _claudeCall(systemPrompt, userMsg, 8192))
-      .replace(/^\s*```(?:markdown)?\s*\n?/, '')
-      .replace(/\s*```\s*$/, '')
-      .trim();
+    const markdown = _stripTimestamps(
+      (await _claudeCall(systemPrompt, userMsg, 8192))
+        .replace(/^\s*```(?:markdown)?\s*\n?/, '')
+        .replace(/\s*```\s*$/, '')
+        .trim()
+    );
 
     // Persistir como informe_v2 en data.reports[] del studio
     const isoDate = new Date().toISOString().replace(/[:.]/g, '-');
