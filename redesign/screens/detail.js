@@ -109,6 +109,7 @@
       type: s.type,
       cuadrante: normalizeQ(s.priorityQuadrant) || s.cuadrante || s.quadrant,
       cuadranteName: s.priorityQuadrantName || null,
+      scoringConfianza: s.scoringConfianza || null,
       recommendedAction: s.priorityRecommendedAction || null,
       scoreDirect: s.priorityDirectScore || null,
       scoreNetwork: s.priorityNetworkScore || null,
@@ -293,6 +294,9 @@
             '<div style="display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; align-items:center;">' +
               '<span class="chip chip-accent">' + escape(tipoLabel) + '</span>' +
               '<span class="chip">' + escape(cuadLabel) + '</span>' +
+              (s.scoringConfianza === 'baja'
+                ? '<span class="chip chip-red" title="Faltan datos (proyectos/contacto) para clasificar con fiabilidad. Enriquece la ficha y se reclasificará en el recálculo diario.">⚠ Datos insuficientes</span>'
+                : '') +
               '<span style="font-size:12px; font-weight:600; padding:2px 10px; border-radius:12px; ' +
                 'background:' + statusColor + '22; color:' + statusColor + ';">' +
                 escape(statusLabel) +

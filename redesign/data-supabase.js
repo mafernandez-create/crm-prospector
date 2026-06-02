@@ -56,6 +56,7 @@
     ['priority_network_score', 'priorityNetworkScore'],
     ['priority_direct_score_natural', 'priorityDirectScoreNatural'],
     ['priority_network_score_natural', 'priorityNetworkScoreNatural'],
+    ['scoring_confianza', 'scoringConfianza'],   // v2.1: alta|media|baja
   ];
 
   function rowToInternal(row) {

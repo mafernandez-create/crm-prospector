@@ -63,6 +63,7 @@ async function main() {
   const transitions = {};                                   // "Qa → Qb" → conteo
   const confianzaCount = { alta: 0, media: 0, baja: 0 };
   let conEngagement = 0;
+  const bajaList = [];                                      // estudios confianza baja (para exportar)
 
   while (processed < LIMITE) {
     if (Date.now() - t0 > MAX_DURATION_MS) {
@@ -111,6 +112,10 @@ async function main() {
         }
         if (confianzaCount[v2updates.scoringConfianza] != null) confianzaCount[v2updates.scoringConfianza]++;
         if (v2updates.engagementScore > 0) conEngagement++;
+        if (v2updates.scoringConfianza === 'baja') {
+          bajaList.push([studio.id, (studio.name || '').replace(/\|/g, '/'), getTipoPrincipal(studio),
+            (studio.city || ''), (studio.province || '')].join('|'));
+        }
 
         // Idempotencia
         if (cambiaCuadrante || nuevoCandidato || !studio.priorityQuadrant) {
@@ -202,6 +207,12 @@ async function main() {
   log(`--- Transiciones de cuadrante (${transKeys.length} tipos) ---`);
   if (transKeys.length === 0) log('  (ninguna)');
   transKeys.slice(0, 25).forEach(k => log(`  ${k}: ${transitions[k]}`));
+
+  // Volcado parseable de los estudios de confianza baja (solo en dry-run/export)
+  if (DRY_RUN) {
+    log(`--- BAJACONF list (${bajaList.length}) ---`);
+    bajaList.forEach(l => log('BAJACONF ' + l));
+  }
   if (errors.length > 0) {
     log('Primeros errores:');
     errors.slice(0, 5).forEach(e => log(`  - ${e}`));
