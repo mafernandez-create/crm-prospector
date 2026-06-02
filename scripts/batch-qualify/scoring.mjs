@@ -88,7 +88,79 @@ export function getTipoPrincipal(studio) {
   return TIPO_LEGACY_MAP[studio.type] || studio.type;
 }
 
-// ── calculateScoringV2 (port 1:1 del GAS / client-side) ──
+// ── v2.1: helpers de engagement (informes/visitas) y confianza ──
+
+function _todayISO() { return new Date().toISOString().slice(0, 10); }
+function _daysBetween(isoA, isoB) {
+  const a = new Date(isoA + 'T00:00:00Z').getTime();
+  const b = new Date(isoB + 'T00:00:00Z').getTime();
+  return Math.round((b - a) / 86400000);
+}
+
+function _reports(studio)    { return (studio.data && studio.data.reports)    || []; }
+function _activities(studio) { return (studio.data && studio.data.activities) || []; }
+
+function _lastInteractionISO(studio) {
+  const ds = [];
+  _reports(studio).forEach(r => { if (r && r.date) ds.push(String(r.date).slice(0, 10)); });
+  _activities(studio).forEach(a => { if (a && a.date) ds.push(String(a.date).slice(0, 10)); });
+  return ds.length ? ds.sort().pop() : null;
+}
+
+// EJE DIRECTO v2.1 — bloque ENGAGEMENT (tope +6). Valor real de la relación,
+// extraído de los informes de visita. Defensivo: cada señal suma solo si hay dato.
+function calculateEngagement(studio, todayISO) {
+  let e = 0;
+  // E1: visita reciente
+  const last = _lastInteractionISO(studio);
+  if (last) {
+    const days = _daysBetween(last, todayISO);
+    if (days <= 90) e += 2; else if (days <= 180) e += 1;
+  }
+  // Último informe por fecha
+  const reps = _reports(studio).filter(r => r && r.date)
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const lastRep = reps.length ? reps[reps.length - 1] : null;
+  if (lastRep) {
+    // E2: interés del cliente — probabilidad_cierre_pct (0-100) o temperatura (~1-5)
+    const prob = Number(lastRep.probabilidad_cierre_pct);
+    const temp = Number(lastRep.temperatura);
+    if (!Number.isNaN(prob) && lastRep.probabilidad_cierre_pct != null) {
+      if (prob >= 60) e += 2; else if (prob >= 30) e += 1;
+    } else if (!Number.isNaN(temp) && lastRep.temperatura != null) {
+      if (temp >= 4) e += 2; else if (temp >= 3) e += 1;
+    }
+    // E3: próxima visita agendada en el futuro
+    const prox = lastRep.fecha_proxima_visita;
+    if (prox && /^\d{4}-\d{2}-\d{2}/.test(String(prox)) && String(prox).slice(0, 10) >= todayISO) e += 1;
+    // E4: advance / compromiso por nuestra parte
+    const comp = lastRep.compromisos && lastRep.compromisos.por_nuestra_parte;
+    const proxAcc = lastRep.proxima_accion && String(lastRep.proxima_accion).trim() && lastRep.proxima_accion !== '—';
+    if ((Array.isArray(comp) && comp.length > 0) || proxAcc) e += 1;
+  }
+  return Math.min(e, 6);
+}
+
+// CONFIANZA v2.1 — completitud de datos que alimentan el scoring.
+// Evita clasificar "con seguridad" a estudios casi sin datos.
+function calculateConfianza(studio) {
+  const data = studio.data || {};
+  const contact = data.contact || {};
+  const checks = [
+    ((data.projects || []).length > 0),
+    (!!getValor(contact.phone) || !!getValor(contact.email)),
+    (!!studio.type),
+    ((parseInt(getValor((data.studio || {}).employees), 10) || 0) > 0),
+    ((data.reports || []).length > 0),
+  ];
+  const have = checks.filter(Boolean).length;
+  if (have >= 4) return 'alta';
+  if (have >= 2) return 'media';
+  return 'baja';
+}
+
+// ── calculateScoringV2 — v2.1 (engagement + confianza). Fuente ÚNICA de la
+//    fórmula: el cliente del rediseño solo LEE priorityQuadrant de Supabase. ──
 
 export function calculateScoringV2(studio) {
   const data     = studio.data || {};
@@ -151,7 +223,9 @@ export function calculateScoringV2(studio) {
   if (team.some(t => t.linkedin && t.linkedin !== 'No encontrado')) d6Pts++;
   if (d6Pts >= 5) d6 = 2; else if (d6Pts >= 2) d6 = 1;
 
-  const rawDirect = d1 + d2 + d3 + d4 + d5 + d6;
+  // v2.1: D3 (facturación) retirado del cómputo — siempre fue 0 (sin dato fiable).
+  // Se reactivará si algún día hay fuente de facturación. (d3 se mantiene declarado = 0.)
+  const rawDirect = d1 + d2 + d4 + d5 + d6;
 
   // ── EJE 2: VALOR DE RED — R1+R2+R3+R4+R5 ──
 
@@ -231,11 +305,23 @@ export function calculateScoringV2(studio) {
   const rawNetwork = r1 + r2 + r3 + r4 + r5;
   const priorityNetwork = rawNetwork >= 10 ? 'Alta' : rawNetwork >= 6 ? 'Media' : 'Baja';
 
-  // CLIENTE PUENTE §7.2.1
+  // CLIENTE PUENTE §7.2.1 — candidatura se evalúa sobre el directo "natural"
+  // (sin engagement ni bonus), para no enmascarar perfiles bajos-pero-conectores.
   const esCandidatoPuente = rawDirect < 6 && rawNetwork >= 6 && projects.length >= 5;
   const puenteActivo = studio.es_cliente_puente === true;
-  const rawDirectFinal = puenteActivo ? rawDirect + 4 : rawDirect;
+
+  // v2.1: ENGAGEMENT (informes de visita) suma al eje directo — captura el valor
+  // real de la relación, que antes el scoring ignoraba por completo.
+  const engagementScore = calculateEngagement(studio, _todayISO());
+  const rawDirectFinal = rawDirect + (puenteActivo ? 4 : 0) + engagementScore;
   const priorityDirect = rawDirectFinal >= 10 ? 'Alto' : rawDirectFinal >= 6 ? 'Medio' : 'Bajo';
+
+  // v2.1: distancia al siguiente umbral del eje directo ("casi sube de cuadrante")
+  const directDistanceToNext = priorityDirect === 'Alto' ? 0
+    : (priorityDirect === 'Medio' ? Math.max(0, 10 - rawDirectFinal) : Math.max(0, 6 - rawDirectFinal));
+
+  // v2.1: confianza por completitud de datos (evita clasificar a ciegas)
+  const scoringConfianza = calculateConfianza(studio);
 
   // Cuadrante
   const priorityQuadrant = SV2_QUADRANT_MAP[priorityDirect + '_' + priorityNetwork] || 5;
@@ -251,6 +337,10 @@ export function calculateScoringV2(studio) {
     priorityQuadrant,
     priorityQuadrantName: SV2_QUADRANT_NAMES[priorityQuadrant],
     priorityRecommendedAction: SV2_ACTIONS[priorityQuadrant],
+    // v2.1
+    engagementScore,
+    scoringConfianza,
+    directDistanceToNext,
   };
 }
 

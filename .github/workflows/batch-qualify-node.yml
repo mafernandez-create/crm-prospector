@@ -26,22 +26,20 @@ name: Batch Qualify Studios (Node)
 
 on:
   schedule:
-    # Diario 02:30 UTC — incremental: clasifica los studios SIN cuadrante.
+    # Diario 02:30 UTC — recálculo COMPLETO (v2.1): re-evalúa TODA la cartera
+    # (nuevos + enriquecidos). Es idempotente y barato (solo escribe los que
+    # cambian de cuadrante). Antes del backup semanal de los domingos (04:00).
     - cron: '30 2 * * *'
-    # Domingo 03:30 UTC — recálculo COMPLETO (FILTRO=todos): re-evalúa toda la
-    # cartera para capturar enriquecimientos (proyectos/contacto añadidos en la
-    # app). Va antes del backup semanal (04:00) para que éste capte scores frescos.
-    - cron: '30 3 * * 0'
   workflow_dispatch:
     inputs:
       filtro:
         description: 'Filtro de estudios'
         type: choice
         required: false
-        default: 'sin_cuadrante'
+        default: 'todos'
         options:
-          - sin_cuadrante
           - todos
+          - sin_cuadrante
           - ARQ
           - ING
           - OCV
@@ -49,9 +47,17 @@ on:
           - CCRR
           - CICA
       limite:
-        description: 'Número máximo de estudios a procesar (1-1585)'
+        description: 'Número máximo de estudios a procesar'
         required: false
-        default: '200'
+        default: '2000'
+      dry_run:
+        description: 'DRY-RUN: recalcula y reporta el impacto SIN escribir'
+        type: choice
+        required: false
+        default: 'no'
+        options:
+          - 'no'
+          - 'yes'
 
 permissions:
   contents: read
@@ -88,9 +94,10 @@ jobs:
           FIRESTORE_PROJECT_ID: ferroplast-crm
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          # Prioridad: input manual > cron semanal (todos) > cron diario / default (sin_cuadrante)
-          FILTRO: ${{ inputs.filtro || (github.event.schedule == '30 3 * * 0' && 'todos' || 'sin_cuadrante') }}
-          LIMITE: ${{ inputs.limite || (github.event.schedule == '30 3 * * 0' && '2000' || '200') }}
+          # El cron diario hace recálculo completo (todos). Manual puede sobreescribir.
+          FILTRO: ${{ inputs.filtro || 'todos' }}
+          LIMITE: ${{ inputs.limite || '2000' }}
+          DRY_RUN: ${{ inputs.dry_run == 'yes' && '1' || '' }}
         run: |
           echo "======================================"
           echo "Batch Qualify Node"

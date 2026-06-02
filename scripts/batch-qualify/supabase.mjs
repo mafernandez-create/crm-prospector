@@ -22,6 +22,7 @@ const FIELD_MAP = {
   status: 'status',
   es_cliente_puente: 'es_cliente_puente',
   fuente_descubrimiento: 'fuente_descubrimiento',
+  scoringConfianza: 'scoring_confianza',  // v2.1: alta|media|baja (completitud de datos)
 };
 
 // Columnas planas snake_case → camelCase del shape interno (inversa de FIELD_MAP

@@ -32,18 +32,23 @@ async function main() {
     throw new Error(`FILTRO inválido: ${FILTRO}. Permitidos: ${[...validFiltros].join(', ')}`);
   }
 
-  log(`Batch Qualify Node · filtro=${FILTRO} · limite=${LIMITE}`);
+  // v2.1: DRY_RUN = recalcula y reporta el IMPACTO sin escribir nada.
+  const DRY_RUN = process.env.DRY_RUN === '1' || process.env.DRY_RUN === 'true';
+
+  log(`Batch Qualify Node · filtro=${FILTRO} · limite=${LIMITE}${DRY_RUN ? ' · DRY-RUN (sin escribir)' : ''}`);
   const t0 = Date.now();
 
-  // Checkpoint inicial (no bloqueante)
-  await saveCheckpoint({
-    trigger: TRIGGER,
-    procesandose_por: 'github_actions_node',
-    filtro: FILTRO,
-    limite: LIMITE,
-    status: 'running',
-    startedAt: new Date().toISOString(),
-  });
+  // Checkpoint inicial (no bloqueante, no en dry-run)
+  if (!DRY_RUN) {
+    await saveCheckpoint({
+      trigger: TRIGGER,
+      procesandose_por: 'github_actions_node',
+      filtro: FILTRO,
+      limite: LIMITE,
+      status: 'running',
+      startedAt: new Date().toISOString(),
+    });
+  }
 
   let pageToken = null;
   let processed = 0;
@@ -53,6 +58,11 @@ async function main() {
   const errors = [];
   let pendingSupabase = [];
   let lastIdProcessed = null;
+
+  // v2.1: métricas de impacto (para dry-run y log normal)
+  const transitions = {};                                   // "Qa → Qb" → conteo
+  const confianzaCount = { alta: 0, media: 0, baja: 0 };
+  let conEngagement = 0;
 
   while (processed < LIMITE) {
     if (Date.now() - t0 > MAX_DURATION_MS) {
@@ -92,16 +102,26 @@ async function main() {
         const cambiaCuadrante = (studio.priorityQuadrant || null) !== (v2updates.priorityQuadrant || null);
         const nuevoCandidato = !studio.es_candidato_puente && v2updates.es_candidato_puente === true;
 
+        // Métricas de impacto (siempre, también en dry-run)
+        const oldQ = studio.priorityQuadrant != null ? studio.priorityQuadrant : 'sin';
+        const newQ = v2updates.priorityQuadrant != null ? v2updates.priorityQuadrant : 'sin';
+        if (String(oldQ) !== String(newQ)) {
+          const k = `Q${oldQ} → Q${newQ}`;
+          transitions[k] = (transitions[k] || 0) + 1;
+        }
+        if (confianzaCount[v2updates.scoringConfianza] != null) confianzaCount[v2updates.scoringConfianza]++;
+        if (v2updates.engagementScore > 0) conEngagement++;
+
         // Idempotencia
         if (cambiaCuadrante || nuevoCandidato || !studio.priorityQuadrant) {
-          pendingSupabase.push({ docId: studio.id, updates: v2updates });
           updated++;
           if (cambiaCuadrante) cambiosCuadrante++;
           if (nuevoCandidato) nuevosCandidatosPuente++;
+          if (!DRY_RUN) pendingSupabase.push({ docId: studio.id, updates: v2updates });
         }
 
-        // Flush por batches (solo Supabase)
-        if (pendingSupabase.length >= WRITE_BATCH_SIZE) {
+        // Flush por batches (solo Supabase, nunca en dry-run)
+        if (!DRY_RUN && pendingSupabase.length >= WRITE_BATCH_SIZE) {
           try {
             await supabaseBatchUpsert(pendingSupabase);
           } catch (e) {
@@ -127,30 +147,32 @@ async function main() {
     pageToken = page.nextPageToken;
   }
 
-  // Flush final (solo Supabase)
-  if (pendingSupabase.length > 0) {
+  // Flush final (solo Supabase, nunca en dry-run)
+  if (!DRY_RUN && pendingSupabase.length > 0) {
     try { await supabaseBatchUpsert(pendingSupabase); }
     catch (e) { errors.push(`flush supabase: ${e.message}`); }
   }
 
   const durationSec = Math.round((Date.now() - t0) / 1000);
 
-  // Checkpoint final
-  await saveCheckpoint({
-    trigger: TRIGGER,
-    procesandose_por: null,
-    filtro: FILTRO,
-    limite: LIMITE,
-    processed,
-    updated,
-    cambiosCuadrante,
-    nuevosCandidatosPuente,
-    lastId: String(lastIdProcessed || ''),
-    status: 'done',
-    finishedAt: new Date().toISOString(),
-    durationSec,
-    errorsCount: errors.length,
-  });
+  // Checkpoint final (no en dry-run)
+  if (!DRY_RUN) {
+    await saveCheckpoint({
+      trigger: TRIGGER,
+      procesandose_por: null,
+      filtro: FILTRO,
+      limite: LIMITE,
+      processed,
+      updated,
+      cambiosCuadrante,
+      nuevosCandidatosPuente,
+      lastId: String(lastIdProcessed || ''),
+      status: 'done',
+      finishedAt: new Date().toISOString(),
+      durationSec,
+      errorsCount: errors.length,
+    });
+  }
 
   const summary = {
     success: errors.length === 0,
@@ -163,14 +185,23 @@ async function main() {
   };
 
   log('======================================');
-  log('Resumen');
+  log(`Resumen${DRY_RUN ? ' · DRY-RUN (no se escribió nada)' : ''}`);
   log('======================================');
   log(`Procesados:                ${processed}`);
-  log(`Actualizados:              ${updated}`);
+  log(`${DRY_RUN ? 'Cambiarían' : 'Actualizados'}:              ${updated}`);
   log(`Cambios de cuadrante:      ${cambiosCuadrante}`);
   log(`Nuevos candidatos puente:  ${nuevosCandidatosPuente}`);
   log(`Errores:                   ${errors.length}`);
   log(`Duración:                  ${durationSec}s`);
+
+  // v2.1: impacto detallado
+  log('--- Confianza (completitud de datos) ---');
+  log(`  alta=${confianzaCount.alta} · media=${confianzaCount.media} · baja=${confianzaCount.baja}  (baja = "datos insuficientes, revisar")`);
+  log(`  Con engagement (>0):     ${conEngagement} de ${processed}`);
+  const transKeys = Object.keys(transitions).sort((a, b) => transitions[b] - transitions[a]);
+  log(`--- Transiciones de cuadrante (${transKeys.length} tipos) ---`);
+  if (transKeys.length === 0) log('  (ninguna)');
+  transKeys.slice(0, 25).forEach(k => log(`  ${k}: ${transitions[k]}`));
   if (errors.length > 0) {
     log('Primeros errores:');
     errors.slice(0, 5).forEach(e => log(`  - ${e}`));
