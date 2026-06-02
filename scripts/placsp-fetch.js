@@ -445,29 +445,19 @@ async function main() {
     return;
   }
 
-  // Dual-write: GAS (Firestore) + Supabase, lanzados en paralelo.
-  // Cualquiera de los dos puede fallar sin romper al otro — registramos por separado.
-  const [gasSettled, supaSettled] = await Promise.allSettled([
-    postToGAS(relevantes),
-    crosscheckSupabase(relevantes),
-  ]);
-
-  const result = gasSettled.status === 'fulfilled' ? gasSettled.value : null;
-  const gasErr = gasSettled.status === 'rejected' ? gasSettled.reason : null;
-  const supaResult = supaSettled.status === 'fulfilled' ? supaSettled.value : null;
-  const supaErr = supaSettled.status === 'rejected' ? supaSettled.reason : null;
+  // Cross-check escrito SOLO en Supabase (fuente de verdad). Firestore/GAS
+  // retirado (2026-06): se mantenía una copia espejo que nadie leía.
+  let supaResult = null, supaErr = null;
+  try {
+    supaResult = await crosscheckSupabase(relevantes);
+  } catch (e) {
+    supaErr = e;
+  }
 
   log('======================================');
   log('Resumen');
   log('======================================');
   log(`Adjudicaciones enviadas:        ${relevantes.length}`);
-  if (gasErr) {
-    log(`GAS (Firestore):                ✗ ${gasErr.message}`);
-  } else if (result) {
-    log(`GAS (Firestore) cruces:         ${result.matched ?? '?'}`);
-    log(`GAS (Firestore) creadas:        ${result.created ?? '?'}`);
-    log(`GAS (Firestore) errores:        ${result.errorsCount ?? 0}`);
-  }
   if (supaErr) {
     log(`Supabase:                       ✗ ${supaErr.message}`);
   } else if (supaResult) {
@@ -482,9 +472,13 @@ async function main() {
     log(`Supabase:                       skipped (no configurado)`);
   }
 
-  // Si AMBOS fallaron, sí queremos exit != 0 para que GH Actions marque rojo.
-  if (gasErr && (supaErr || !SUPABASE_ENABLED)) {
-    throw gasErr;
+  // Si la escritura en Supabase falló (o no está configurado), exit != 0 para
+  // que GH Actions lo marque en rojo.
+  if (supaErr) {
+    throw supaErr;
+  }
+  if (!SUPABASE_ENABLED) {
+    throw new Error('Supabase no configurado (SUPABASE_URL/SERVICE_ROLE_KEY ausentes)');
   }
 }
 

@@ -7,7 +7,10 @@
 // detecta candidato a puente nuevo.
 // =========================================================================
 
-import { batchPatch, saveCheckpoint } from './firestore.mjs';
+// Firestore retirado como almacén de datos (2026-06): el batch escribe SOLO en
+// Supabase (fuente de verdad). saveCheckpoint sigue en Firestore (metadata no-PII,
+// vía service account) hasta migrar el checkpoint a Supabase.
+import { saveCheckpoint } from './firestore.mjs';
 import { batchUpsert as supabaseBatchUpsert, listStudiosNeedingQuadrant, listAllStudios } from './supabase.mjs';
 import { buildScoringV2Updates, getTipoPrincipal } from './scoring.mjs';
 
@@ -48,7 +51,6 @@ async function main() {
   let nuevosCandidatosPuente = 0;
   let cambiosCuadrante = 0;
   const errors = [];
-  let pendingFirestore = [];
   let pendingSupabase = [];
   let lastIdProcessed = null;
 
@@ -92,26 +94,19 @@ async function main() {
 
         // Idempotencia
         if (cambiaCuadrante || nuevoCandidato || !studio.priorityQuadrant) {
-          pendingFirestore.push({ docId: studio.id, updates: v2updates });
           pendingSupabase.push({ docId: studio.id, updates: v2updates });
           updated++;
           if (cambiaCuadrante) cambiosCuadrante++;
           if (nuevoCandidato) nuevosCandidatosPuente++;
         }
 
-        // Flush por batches
-        if (pendingFirestore.length >= WRITE_BATCH_SIZE) {
-          try {
-            await batchPatch(pendingFirestore);
-          } catch (e) {
-            errors.push(`batchPatch ${pendingFirestore.length}: ${e.message}`);
-          }
+        // Flush por batches (solo Supabase)
+        if (pendingSupabase.length >= WRITE_BATCH_SIZE) {
           try {
             await supabaseBatchUpsert(pendingSupabase);
           } catch (e) {
             errors.push(`supabase ${pendingSupabase.length}: ${e.message}`);
           }
-          pendingFirestore = [];
           pendingSupabase = [];
 
           await saveCheckpoint({
@@ -132,11 +127,7 @@ async function main() {
     pageToken = page.nextPageToken;
   }
 
-  // Flush final
-  if (pendingFirestore.length > 0) {
-    try { await batchPatch(pendingFirestore); }
-    catch (e) { errors.push(`flush firestore: ${e.message}`); }
-  }
+  // Flush final (solo Supabase)
   if (pendingSupabase.length > 0) {
     try { await supabaseBatchUpsert(pendingSupabase); }
     catch (e) { errors.push(`flush supabase: ${e.message}`); }
