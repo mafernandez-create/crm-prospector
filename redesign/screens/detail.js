@@ -528,14 +528,18 @@
         '</div>' +
         (projs.length === 0
           ? emptyCard('Sin proyectos registrados', 'Añade los proyectos relevantes del cliente para mejorar el scoring.')
-          : projs.map(function (p, idx) { return projectCard(p, idx, s.id); }).join('')
+          : projs.map(function (p, idx) { return projectCard(p, idx, s.id, s.reports || []); }).join('')
         ) +
       '</section>'
     );
   }
 
-  function projectCard(p, idx, studioId) {
+  function projectCard(p, idx, studioId, reps) {
     const estadoLabel = PROYECTO_ESTADO[p.estado] || p.estado || '';
+    const pNom = p.nombre || p.name || '';
+    const linked = (reps || []).filter(function (r) {
+      return (p.id && r.project_id === p.id) || (pNom && r.project_nombre === pNom);
+    });
     return (
       '<div class="card" style="padding:14px; margin-bottom:10px; position:relative;">' +
         '<div style="display:flex; gap:10px; align-items:flex-start;">' +
@@ -559,6 +563,16 @@
             '<button onclick="window.Screens.detail.deleteProject(\'' + escape(studioId) + '\',' + idx + ')" ' +
               'style="background:none; border:1px solid #fecaca; border-radius:6px; padding:4px 8px; cursor:pointer; font-size:12px; color:#dc2626;">🗑️</button>' +
           '</div>' +
+        '</div>' +
+        /* Footer: informes del proyecto + nuevo informe */
+        '<div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">' +
+          '<span style="font-size:12px; color:var(--fg-3);">' +
+            (linked.length ? '📁 ' + linked.length + ' informe' + (linked.length !== 1 ? 's' : '') + ' de este proyecto' : 'Sin informes de este proyecto') +
+          '</span>' +
+          '<button class="btn btn-ghost" style="height:30px; font-size:12px;" ' +
+            'onclick="window.showView(\'informe\', { studioId: \'' + escape(studioId) + '\', projectIdx: ' + idx + ' })">' +
+            I.Plus() + ' Nuevo informe' +
+          '</button>' +
         '</div>' +
       '</div>'
     );
@@ -727,9 +741,17 @@
           '</div>' +
         '</div>' +
         /* Lista */
-        '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px; flex-wrap:wrap;">' +
           '<span class="eyebrow">Informes adjuntos</span>' +
-          '<span style="font-size:12px; color:var(--fg-3);">' + reps.length + ' archivo' + (reps.length !== 1 ? 's' : '') + '</span>' +
+          (function () {
+            var provs = []; reps.forEach(function (r) { if (r.project_nombre && provs.indexOf(r.project_nombre) === -1) provs.push(r.project_nombre); });
+            if (!provs.length) return '<span style="font-size:12px; color:var(--fg-3);">' + reps.length + ' archivo' + (reps.length !== 1 ? 's' : '') + '</span>';
+            return '<select class="field" style="width:auto; padding:4px 8px; font-size:12px; height:auto;" ' +
+              'onchange="window.Screens.detail._filtrarInformes(this.value)">' +
+              '<option value="">Todos los informes (' + reps.length + ')</option>' +
+              provs.map(function (p) { return '<option value="' + escape(p) + '">📁 ' + escape(p) + '</option>'; }).join('') +
+            '</select>';
+          })() +
         '</div>' +
         (reps.length === 0
           ? emptyCard('Sin informes', 'Usa "Informe IA" para generar el primero.')
@@ -758,7 +780,7 @@
       ? (r.temperatura >= 8 ? '🔥' : r.temperatura >= 5 ? '🌤️' : '❄️') + ' ' + r.temperatura
       : null;
     return (
-      '<div class="card" style="padding:14px; margin-bottom:10px; border-left:4px solid ' + borderColor + ';">' +
+      '<div class="card" data-report-proj="' + escape(r.project_nombre || '') + '" style="padding:14px; margin-bottom:10px; border-left:4px solid ' + borderColor + ';">' +
         '<div style="display:flex; gap:12px; align-items:flex-start;">' +
           '<div style="font-size:2rem; flex:0 0 auto;">' + (isImported ? '📥' : fileIcon(r.fileName)) + '</div>' +
           '<div style="flex:1; min-width:0;">' +
@@ -3381,6 +3403,11 @@
   window.Screens.detail = {
     render: render,
     switchTab: switchTab,
+    _filtrarInformes: function (val) {
+      document.querySelectorAll('[data-report-proj]').forEach(function (el) {
+        el.style.display = (!val || el.getAttribute('data-report-proj') === val) ? '' : 'none';
+      });
+    },
     closeModal: closeModal,
     // Actividades
     openAddActivity: openAddActivity,

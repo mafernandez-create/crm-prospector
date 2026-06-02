@@ -104,6 +104,11 @@
     document.getElementById('topbar-current').textContent = 'Informe · ' + empresa;
 
     const draft = loadDraft(id);
+    // Proyecto preseleccionado (desde "Nuevo informe de este proyecto")
+    if (params && params.projectIdx != null && params.projectIdx !== '') {
+      draft.projectIdx = parseInt(params.projectIdx, 10);
+      saveDraft(id, draft);
+    }
     const isMobile = window.innerWidth < 768;
     v.innerHTML = isMobile ? renderMobile(id, empresa, draft) : renderDesktopColumn(id, empresa, draft);
     wireForm(id, draft);
