@@ -7,8 +7,8 @@
 // detecta candidato a puente nuevo.
 // =========================================================================
 
-import { listStudios, batchPatch, saveCheckpoint } from './firestore.mjs';
-import { batchUpsert as supabaseBatchUpsert, listStudiosNeedingQuadrant } from './supabase.mjs';
+import { batchPatch, saveCheckpoint } from './firestore.mjs';
+import { batchUpsert as supabaseBatchUpsert, listStudiosNeedingQuadrant, listAllStudios } from './supabase.mjs';
 import { buildScoringV2Updates, getTipoPrincipal } from './scoring.mjs';
 
 const FILTRO = process.env.FILTRO || 'sin_cuadrante';
@@ -60,15 +60,15 @@ async function main() {
 
     let page;
     try {
-      if (FILTRO === 'sin_cuadrante') {
-        // Lectura server-side desde Supabase (fuente de verdad): solo studios con
-        // priority_quadrant IS NULL. Firestore no puede filtrar por campo ausente.
-        const off = pageToken ? parseInt(pageToken, 10) : 0;
-        const r = await listStudiosNeedingQuadrant(off, Math.min(PAGE_SIZE, LIMITE - processed));
-        page = { studios: r.studios, nextPageToken: r.nextOffset != null ? String(r.nextOffset) : null };
-      } else {
-        page = await listStudios(pageToken, Math.min(PAGE_SIZE, LIMITE - processed));
-      }
+      // Todo se lee de Supabase (fuente de verdad). sin_cuadrante filtra
+      // server-side por priority_quadrant IS NULL; el resto (todos / por tipo)
+      // lee la cartera completa. El filtro por tipo se aplica abajo (client-side).
+      const off = pageToken ? parseInt(pageToken, 10) : 0;
+      const pageLim = Math.min(PAGE_SIZE, LIMITE - processed);
+      const r = FILTRO === 'sin_cuadrante'
+        ? await listStudiosNeedingQuadrant(off, pageLim)
+        : await listAllStudios(off, pageLim);
+      page = { studios: r.studios, nextPageToken: r.nextOffset != null ? String(r.nextOffset) : null };
     } catch (e) {
       errors.push(`list page: ${e.message}`);
       break;

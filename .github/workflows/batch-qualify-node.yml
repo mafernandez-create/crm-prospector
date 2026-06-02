@@ -26,9 +26,12 @@ name: Batch Qualify Studios (Node)
 
 on:
   schedule:
-    # 02:30 UTC — 30 min después del GAS legacy para no solaparse durante
-    # validación. Cuando se desactive el viejo, cambiar a 02:00.
+    # Diario 02:30 UTC — incremental: clasifica los studios SIN cuadrante.
     - cron: '30 2 * * *'
+    # Domingo 03:30 UTC — recálculo COMPLETO (FILTRO=todos): re-evalúa toda la
+    # cartera para capturar enriquecimientos (proyectos/contacto añadidos en la
+    # app). Va antes del backup semanal (04:00) para que éste capte scores frescos.
+    - cron: '30 3 * * 0'
   workflow_dispatch:
     inputs:
       filtro:
@@ -85,8 +88,9 @@ jobs:
           FIRESTORE_PROJECT_ID: ferroplast-crm
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          FILTRO: ${{ inputs.filtro || 'sin_cuadrante' }}
-          LIMITE: ${{ inputs.limite || '200' }}
+          # Prioridad: input manual > cron semanal (todos) > cron diario / default (sin_cuadrante)
+          FILTRO: ${{ inputs.filtro || (github.event.schedule == '30 3 * * 0' && 'todos' || 'sin_cuadrante') }}
+          LIMITE: ${{ inputs.limite || (github.event.schedule == '30 3 * * 0' && '2000' || '200') }}
         run: |
           echo "======================================"
           echo "Batch Qualify Node"

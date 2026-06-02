@@ -78,6 +78,32 @@ export async function listStudiosNeedingQuadrant(offset, limit) {
 }
 
 /**
+ * Lee de Supabase TODA la cartera (paginado por offset), para el recálculo
+ * completo (FILTRO=todos / filtros por tipo). Supabase es la fuente de verdad:
+ * la app escribe ahí los enriquecimientos, así que el scoring debe leer de aquí
+ * (no de Firestore, que queda desactualizado).
+ *
+ * @param {number} offset
+ * @param {number} limit
+ * @returns {Promise<{studios: object[], nextOffset: number|null}>}
+ */
+export async function listAllStudios(offset, limit) {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error('SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY no definidos');
+  const off = offset || 0;
+  const lim = limit || 100;
+  const q = `${url.replace(/\/$/, '')}/rest/v1/studios` +
+    `?select=*&order=id.asc&offset=${off}&limit=${lim}`;
+  const res = await fetch(q, { headers: { apikey: key, Authorization: 'Bearer ' + key } });
+  if (!res.ok) throw new Error(`Supabase list HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const rows = await res.json();
+  const studios = rows.map(rowToInternal);
+  const nextOffset = studios.length === lim ? off + lim : null;
+  return { studios, nextOffset };
+}
+
+/**
  * Upserta los updates en Supabase studios. Idempotente vía on_conflict=id.
  * No-op si SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY no están definidos.
  *
