@@ -235,6 +235,12 @@
     const notas = draft.notes || '';
     const cargo = draft.cargoInterlocutor || '';
     const tipoVisita = draft.tipoVisita || 'seguimiento';
+    // v: informe por proyecto (opcional) — solo proyectos del propio estudio
+    const _studioObj = (window.State && window.State.studiosById && window.State.studiosById[id]) || {};
+    const _projs = (_studioObj.data && _studioObj.data.projects) || [];
+    const projIdx = (draft.projectIdx === 0 || draft.projectIdx) ? String(draft.projectIdx) : '';
+    const nuevoEstado = draft.nuevoEstadoProyecto || '';
+    const PROY_ESTADOS = { en_preparacion: 'En preparación', convocado: 'Convocado', adjudicado: 'Adjudicado', en_ejecucion: 'En ejecución', ejecutado: 'Ejecutado' };
 
     const TIPOS_VISITA = [
       { id: 'primera-frio',          label: 'Primera visita en frío' },
@@ -296,6 +302,27 @@
           'style="width:22px; height:22px; accent-color: var(--gpf-blue-700); flex:0 0 auto;"/>' +
         '<span style="font-size:15px; color:var(--fg-1); flex:1;">Visita iniciada por prescripción</span>' +
       '</label>' +
+
+      // Proyecto (opcional) — solo si el estudio tiene proyectos
+      (_projs.length ? (
+        '<label class="field-label" for="inf-proyecto">Proyecto (opcional)</label>' +
+        '<select id="inf-proyecto" class="field" style="margin-bottom:20px;">' +
+          '<option value="">Visita general (sin proyecto)</option>' +
+          _projs.map(function (p, i) {
+            return '<option value="' + i + '"' + (projIdx === String(i) ? ' selected' : '') + '>' +
+              escape(p.nombre || p.name || ('Proyecto ' + (i + 1))) + '</option>';
+          }).join('') +
+        '</select>' +
+        '<div id="inf-proy-estado-wrap" style="' + (projIdx === '' ? 'display:none; ' : '') + 'margin-bottom:20px;">' +
+          '<label class="field-label" for="inf-proy-estado">Estado del proyecto tras esta visita</label>' +
+          '<select id="inf-proy-estado" class="field">' +
+            '<option value="">— sin cambiar —</option>' +
+            Object.keys(PROY_ESTADOS).map(function (k) {
+              return '<option value="' + k + '"' + (nuevoEstado === k ? ' selected' : '') + '>' + escape(PROY_ESTADOS[k]) + '</option>';
+            }).join('') +
+          '</select>' +
+        '</div>'
+      ) : '') +
 
       // Notas textarea
       '<label class="field-label" for="inf-notas">Notas o transcripción de la visita</label>' +
@@ -381,6 +408,14 @@
     bindInput('inf-cargo',        'change', function (e) { draft.cargoInterlocutor = e.target.value; autosave(id, draft); });
     bindInput('inf-comercial',    'change', function (e) { draft.comercial = e.target.value; autosave(id, draft); });
     bindInput('inf-prescripcion', 'change', function (e) { draft.prescripcion = e.target.checked; autosave(id, draft); });
+    bindInput('inf-proyecto', 'change', function (e) {
+      draft.projectIdx = e.target.value === '' ? null : parseInt(e.target.value, 10);
+      var w = document.getElementById('inf-proy-estado-wrap');
+      if (w) w.style.display = e.target.value === '' ? 'none' : '';
+      if (e.target.value === '') draft.nuevoEstadoProyecto = null;
+      autosave(id, draft);
+    });
+    bindInput('inf-proy-estado', 'change', function (e) { draft.nuevoEstadoProyecto = e.target.value || null; autosave(id, draft); });
     bindInput('inf-notas', 'input', function (e) {
       draft.notes = e.target.value;
       const cc = document.getElementById('char-count');
@@ -434,6 +469,15 @@
     }
 
     try {
+      // Enlace a proyecto (opcional): asegura id estable + actualiza estado, y
+      // recupera nombre/id para guardarlos en el informe.
+      let _projectId = null, _projectNombre = null;
+      if (draft.projectIdx != null && draft.projectIdx !== '' && window.Data.updateProjectFromReport) {
+        try {
+          const pr = await window.Data.updateProjectFromReport(id, draft.projectIdx, { nuevoEstado: draft.nuevoEstadoProyecto || null });
+          if (pr) { _projectId = pr.projectId; _projectNombre = pr.projectNombre; }
+        } catch (e) { console.warn('[informe] enlace proyecto falló:', e && e.message); }
+      }
       const payload = {
         modalidad:          draft.modalidad || 'real',
         fecha:              draft.fecha,
@@ -442,6 +486,8 @@
         notes:              draft.notes,
         cargoInterlocutor:  draft.cargoInterlocutor || '',
         tipoVisita:         draft.tipoVisita || 'seguimiento',
+        projectId:          _projectId,
+        projectNombre:      _projectNombre,
       };
       const res = await window.Data.generateReport(id, payload);
 

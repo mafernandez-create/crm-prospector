@@ -1563,13 +1563,41 @@
         formato: 'informe_v2',
         cargo_interlocutor: cargoInterlocutor || null,
         tipo_visita: tipoVisita || null,
-        title: 'Visita ' + fecha + ' · ' + comercial,
+        project_id: payload.projectId || null,        // enlace a data.projects[].id (opcional)
+        project_nombre: payload.projectNombre || null,
+        title: 'Visita ' + fecha + ' · ' + comercial + (payload.projectNombre ? ' · ' + payload.projectNombre : ''),
       });
     } catch (e) {
       console.warn('[redesign/data] persistencia report falló:', e.message);
     }
 
     return { success: true, markdown: markdown, persisted: true };
+  }
+
+  /* Enlaza un informe a un proyecto del estudio: asegura un id estable en el
+     proyecto (perezoso) y, opcionalmente, actualiza su estado. Devuelve
+     { projectId, projectNombre } para guardarlos en el informe.
+     Usa el MISMO patrón seguro que saveDataField (read full data → patchDoc data). */
+  async function updateProjectFromReport(studioId, projectIdx, opts) {
+    opts = opts || {};
+    const studio = await _getStudio(studioId);
+    if (!studio) throw new Error('Studio ' + studioId + ' no encontrado');
+    const projects = (((studio.data && studio.data.projects) || [])).slice();
+    const idx = parseInt(projectIdx, 10);
+    if (!projects[idx]) return null;
+    const p = Object.assign({}, projects[idx]);
+    if (!p.id) p.id = 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    if (opts.nuevoEstado) p.estado = opts.nuevoEstado;
+    projects[idx] = p;
+    const newData = Object.assign({}, studio.data || {}, { projects: projects });
+    await _patchDocActive('studios/' + studioId, { data: newData });
+    // Sincronizar State local
+    if (window.State && window.State.studiosById && window.State.studiosById[studioId]) {
+      const raw = window.State.studiosById[studioId];
+      raw.data = newData;
+      raw.projects = projects;
+    }
+    return { projectId: p.id, projectNombre: p.nombre || p.name || null };
   }
 
   /* ============================================================
@@ -1955,6 +1983,7 @@
     CARGOS_POR_TIPO: CARGOS_POR_TIPO,
     getCargoOverlay: getCargoOverlay,
     generateReport: generateReport,
+    updateProjectFromReport: updateProjectFromReport,
     getBriefingItems: getBriefingItems,
     savePlanificador: savePlanificador,
     // Helpers internos por si las pantallas quieren parsear ad-hoc

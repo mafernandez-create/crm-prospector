@@ -771,6 +771,7 @@
               (isImported ? '<span style="font-size:11px; padding:2px 8px; border-radius:8px; background:#fef9c3; color:#854d0e; font-weight:600;">📥 Importada</span>' : '') +
               (r.aiGenerated ? '<span style="font-size:11px; padding:2px 8px; border-radius:8px; background:rgba(124,58,237,.15); color:#a78bfa;">✍️ IA</span>' : '') +
               (r.tipo_visita ? '<span style="font-size:11px; padding:2px 8px; border-radius:8px; background:var(--bg-2); color:var(--fg-3);">' + escape(tipo_labels[r.tipo_visita] || r.tipo_visita) + '</span>' : '') +
+              (r.project_nombre ? '<span style="font-size:11px; padding:2px 8px; border-radius:8px; background:var(--gpf-blue-100); color:var(--gpf-blue-700); font-weight:600;">📁 ' + escape(r.project_nombre) + '</span>' : '') +
               (tempIco ? '<span style="font-size:11px; padding:2px 8px; border-radius:8px; background:var(--bg-2); color:var(--fg-2); font-family:var(--font-mono);">' + tempIco + '</span>' : '') +
             '</div>' +
             (r.resumen_ejecutivo
