@@ -1996,6 +1996,25 @@
           '<button class="btn btn-ghost" onclick="window.Screens.detail.closeModal()">Cancelar</button>' +
         '</div>';
 
+    var _impProys = arr(studio.projects);
+    var _proySelector = (!st.validationErrors.length && _impProys.length) ? (
+      '<div style="margin-top:14px; padding:12px; background:var(--paper-warm); border:1px solid var(--line); border-radius:10px;">' +
+        '<label class="field-label" for="import-proyecto" style="margin-bottom:6px;">Asociar a un proyecto (opcional)</label>' +
+        '<select id="import-proyecto" class="field" ' +
+          'onchange="var w=document.getElementById(\'import-proy-estado-wrap\'); if(w) w.style.display=(this.value===\'\'?\'none\':\'\');">' +
+          '<option value="">— Sin proyecto (visita general) —</option>' +
+          _impProys.map(function (p, i) { return '<option value="' + i + '">' + escape(p.nombre || p.name || ('Proyecto ' + (i + 1))) + '</option>'; }).join('') +
+        '</select>' +
+        '<div id="import-proy-estado-wrap" style="display:none; margin-top:10px;">' +
+          '<label class="field-label" for="import-proy-estado" style="margin-bottom:6px;">Estado del proyecto tras esta visita</label>' +
+          '<select id="import-proy-estado" class="field">' +
+            '<option value="">— sin cambiar —</option>' +
+            Object.keys(PROYECTO_ESTADO).map(function (k) { return '<option value="' + k + '">' + escape(PROYECTO_ESTADO[k]) + '</option>'; }).join('') +
+          '</select>' +
+        '</div>' +
+      '</div>'
+    ) : '';
+
     ov.innerHTML = (
       '<div style="background:var(--bg-card); border-radius:14px; padding:24px; width:100%; ' +
         'max-width:540px; max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.3);">' +
@@ -2010,7 +2029,7 @@
         '<p style="font-size:13px; color:var(--fg-3); margin:0 0 14px;">' +
           'Asociado a: <strong>' + escape(studio.name) + '</strong>' +
         '</p>' +
-        errBlock + warnBlock + previewBlock +
+        errBlock + warnBlock + previewBlock + _proySelector +
         '<div id="import-error-block"></div>' +
         '<div style="margin-top:14px;">' + actionHtml + '</div>' +
       '</div>'
@@ -2028,7 +2047,12 @@
     if (btn) { btn.disabled = true; btn.textContent = '⏳ Importando…'; }
 
     try {
-      var result = await _ejecutarImportacion(studioId, st.yaml, st.fileName);
+      var _pSel = document.getElementById('import-proyecto');
+      var _eSel = document.getElementById('import-proy-estado');
+      var _linkOpts = (_pSel && _pSel.value !== '')
+        ? { projectIdx: _pSel.value, nuevoEstado: (_eSel && _eSel.value) || null }
+        : null;
+      var result = await _ejecutarImportacion(studioId, st.yaml, st.fileName, _linkOpts);
       closeModal();
       _importState = null;
 
@@ -2059,7 +2083,7 @@
    * persiste. Una segunda llamada (saveTopFields) actualiza status/score/priority;
    * si falla, únicamente esos 3 campos quedan sin actualizar (impacto menor).
    */
-  async function _ejecutarImportacion(studioId, yaml, fileName) {
+  async function _ejecutarImportacion(studioId, yaml, fileName, linkOpts) {
     // REGLA GLOBAL: ningún informe puede contener marcas de tiempo de la
     // transcripción. Limpiamos el YAML completo antes de derivar campos, así
     // reportEntry, raw_yaml y las actividades quedan sin timestamps.
@@ -2083,6 +2107,21 @@
     var raw = State.studiosById && State.studiosById[studioId];
     if (!raw) throw new Error('Studio no disponible en State');
     var curData = Object.assign({}, raw.data || {});
+
+    // --- Enlace opcional a un proyecto existente (selector del preview) ---
+    var _projId = null, _projNom = null;
+    if (linkOpts && linkOpts.projectIdx != null && linkOpts.projectIdx !== '') {
+      var _pjs = arr(curData.projects).slice();
+      var _p = _pjs[parseInt(linkOpts.projectIdx, 10)];
+      if (_p) {
+        var _np = Object.assign({}, _p);
+        if (!_np.id) _np.id = 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        if (linkOpts.nuevoEstado) _np.estado = linkOpts.nuevoEstado;
+        _pjs[parseInt(linkOpts.projectIdx, 10)] = _np;
+        curData.projects = _pjs;        // se escribe junto al report más abajo
+        _projId = _np.id; _projNom = _np.nombre || _np.name || null;
+      }
+    }
 
     // ------ 1. Registro de la visita → reports[] ------
     var reportEntry = {
@@ -2119,7 +2158,10 @@
       autoevaluacion:      yaml.autoevaluacion || null,
       intel_competitiva:   yaml.intel_competitiva || null,
       raw_yaml:            yaml,   // audit trail completo
+      project_id:          _projId,
+      project_nombre:      _projNom,
     };
+    if (_projNom) reportEntry.title += ' · ' + _projNom;
     var reports = arr(curData.reports).slice();
     reports.push(reportEntry);
     curData.reports = reports;
