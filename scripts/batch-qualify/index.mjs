@@ -8,7 +8,7 @@
 // =========================================================================
 
 import { listStudios, batchPatch, saveCheckpoint } from './firestore.mjs';
-import { batchUpsert as supabaseBatchUpsert } from './supabase.mjs';
+import { batchUpsert as supabaseBatchUpsert, listStudiosNeedingQuadrant } from './supabase.mjs';
 import { buildScoringV2Updates, getTipoPrincipal } from './scoring.mjs';
 
 const FILTRO = process.env.FILTRO || 'sin_cuadrante';
@@ -60,7 +60,15 @@ async function main() {
 
     let page;
     try {
-      page = await listStudios(pageToken, Math.min(PAGE_SIZE, LIMITE - processed));
+      if (FILTRO === 'sin_cuadrante') {
+        // Lectura server-side desde Supabase (fuente de verdad): solo studios con
+        // priority_quadrant IS NULL. Firestore no puede filtrar por campo ausente.
+        const off = pageToken ? parseInt(pageToken, 10) : 0;
+        const r = await listStudiosNeedingQuadrant(off, Math.min(PAGE_SIZE, LIMITE - processed));
+        page = { studios: r.studios, nextPageToken: r.nextOffset != null ? String(r.nextOffset) : null };
+      } else {
+        page = await listStudios(pageToken, Math.min(PAGE_SIZE, LIMITE - processed));
+      }
     } catch (e) {
       errors.push(`list page: ${e.message}`);
       break;
