@@ -28,6 +28,7 @@
     ];
     const itemsTools = [
       { id: 'planificador', label: 'Planificador',     icon: I.Calendar() },
+      { id: 'pipeline',     label: 'Pipeline pliegos', icon: I.Layers() },
       { id: 'mapa',         label: 'Mapa caliente',    icon: I.MapPin() },
       { id: 'importar',     label: 'Importar / Exportar', icon: I.Save() },
       { id: 'asistente',    label: 'Asistente IA',     icon: I.Sparkles() },
@@ -103,6 +104,7 @@
           '<section class="view" id="view-bandeja"></section>' +
           '<section class="view" id="view-dashboard"></section>' +
           '<section class="view" id="view-planificador"></section>' +
+          '<section class="view" id="view-pipeline"></section>' +
           '<section class="view" id="view-mapa"></section>' +
           '<section class="view" id="view-importar"></section>' +
           '<section class="view" id="view-asistente"></section>' +
