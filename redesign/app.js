@@ -70,7 +70,7 @@
     });
 
     // Sincronizar tab bar global móvil
-    var tabMap = { inicio: true, studios: true, planificador: true, bandeja: true };
+    var tabMap = { inicio: true, studios: true, planificador: true, pipeline: true, bandeja: true };
     document.querySelectorAll('.mobile-tabbar .m-tab').forEach(function (el) {
       var tid = el.id.replace('mobile-tab-', '');
       el.classList.toggle('active', tid === name);

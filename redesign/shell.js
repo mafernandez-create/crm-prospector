@@ -131,6 +131,7 @@
       { id: 'inicio',       label: 'Hoy',      icon: I.Home() },
       { id: 'studios',      label: 'Empresas',  icon: I.Building() },
       { id: 'planificador', label: 'Visitas',   icon: I.Calendar() },
+      { id: 'pipeline',     label: 'Pliegos',   icon: I.TrendingUp() },
       { id: 'bandeja',      label: 'Bandeja',   icon: I.Layers() },
     ];
     return (
