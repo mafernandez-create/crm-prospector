@@ -1820,24 +1820,19 @@
   }
 
   /* ============================================================
-     BACKEND SWITCH (migración Supabase consolidada 2026-05-25)
+     BACKEND (Supabase es la ÚNICA fuente de verdad — 2026-06)
      ============================================================
-     Default: 'supabase'. Firestore queda como fallback opcional:
-       localStorage.setItem('redesign:backend','firebase'); location.reload()
-     vuelve al comportamiento legacy.
-
-     Si window.DataSupabase no está cargado por cualquier motivo,
-     _useSupabase() devuelve false y caemos a Firestore automáticamente. */
-  const DEFAULT_BACKEND = 'supabase';
-  function _activeBackend() {
-    try { return localStorage.getItem('redesign:backend') || DEFAULT_BACKEND; }
-    catch (_) { return DEFAULT_BACKEND; }
-  }
+     El fallback a Firestore se retiró: Firestore quedó bloqueado al cerrar
+     la RLS/auth (hallazgo C1), así que dejar de leerlo evita errores silenciosos.
+     _activeBackend() ignora cualquier override en localStorage. El cliente REST
+     de Firestore de este archivo queda como código muerto (inalcanzable);
+     puede eliminarse del todo en una limpieza posterior. */
+  function _activeBackend() { return 'supabase'; }
   function _sb() {
     return window.DataSupabase;
   }
   function _useSupabase() {
-    return _activeBackend() === 'supabase' && !!_sb();
+    return !!_sb();   // Supabase siempre; Firestore ya no es alcanzable
   }
 
   async function loadAll() {
