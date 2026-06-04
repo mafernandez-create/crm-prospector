@@ -6,17 +6,12 @@
 # no son válidas desde GAS UrlFetchApp (Supabase las rechaza como "browser"),
 # así que necesitamos un "protected environment" real.
 #
-# Llamado cada noche a las 02:00 UTC. Procesa hasta `limite` studios:
-# recalcula scoring v2 y escribe los cambios en Firestore + Supabase
-# (dual-write, paridad con el código legacy).
+# Llamado cada noche a las 02:30 UTC. Recalcula scoring v2 y escribe en Supabase
+# (incluido el checkpoint en meta_kv). Firestore retirado (2026-06).
 #
 # Secrets de repo necesarios:
-#   - FIREBASE_SERVICE_ACCOUNT_KEY → JSON completo del service account
-#       crm-batch-qualify@ferroplast-crm.iam.gserviceaccount.com
-#   - FIRESTORE_PROJECT_ID         → ferroplast-crm
-#   - SUPABASE_URL                 → https://<ref>.supabase.co
-#   - SUPABASE_SERVICE_ROLE_KEY    → legacy JWT por ahora; cuando se valide,
-#                                    cambiar a sb_secret_* y desactivar legacy.
+#   - SUPABASE_URL              → https://<ref>.supabase.co
+#   - SUPABASE_SERVICE_ROLE_KEY → service role (ignora RLS)
 #
 # ESTADO: paralelo al cron viejo (batch-qualify.yml) durante validación.
 # Tras 1 semana de runs verdes, desactivar el cron viejo.
@@ -74,9 +69,8 @@ jobs:
       - name: Verify secrets present
         run: |
           missing=()
-          [ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}" ] && missing+=(FIREBASE_SERVICE_ACCOUNT_KEY)
-          [ -z "${{ secrets.SUPABASE_URL }}" ]                && missing+=(SUPABASE_URL)
-          [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]   && missing+=(SUPABASE_SERVICE_ROLE_KEY)
+          [ -z "${{ secrets.SUPABASE_URL }}" ]              && missing+=(SUPABASE_URL)
+          [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ] && missing+=(SUPABASE_SERVICE_ROLE_KEY)
           if [ ${#missing[@]} -gt 0 ]; then
             echo "❌ Faltan secrets: ${missing[*]}"
             exit 1
@@ -90,8 +84,6 @@ jobs:
 
       - name: Run batch-qualify (Node)
         env:
-          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
-          FIRESTORE_PROJECT_ID: ferroplast-crm
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           # El cron diario hace recálculo completo (todos). Manual puede sobreescribir.
