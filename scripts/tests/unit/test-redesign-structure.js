@@ -32,9 +32,12 @@ const A = require('../_lib/assert');
   A.contains(icons, 'GoogleMaps', 'BrandMarks tiene GoogleMaps');
   A.contains(icons, 'Waze', 'BrandMarks tiene Waze');
 
-  // 3. data.js apunta al endpoint GAS correcto y al proyecto Firestore
+  // 3. data.js apunta al endpoint GAS correcto y enruta a Supabase
+  //    (el cliente REST de Firestore se eliminó en 2026-06; ya no debe
+  //     quedar ninguna referencia al proyecto ferroplast-crm aquí).
   const data = fs.readFileSync(path.join(REDESIGN_DIR, 'data.js'), 'utf8');
-  A.contains(data, 'ferroplast-crm', 'data.js apunta a proyecto ferroplast-crm');
+  A.falsy(/ferroplast-crm|firestore\.googleapis\.com/.test(data), 'data.js ya NO referencia Firestore (código muerto eliminado)');
+  A.contains(data, '_sb()', 'data.js enruta el acceso a datos vía window.DataSupabase');
   A.contains(data, 'script.google.com/macros', 'data.js apunta al GAS endpoint');
   A.contains(data, 'AKfycb', 'data.js tiene el ID del despliegue GAS');
   A.contains(data, 'function loadAll', 'data.js expone loadAll()');

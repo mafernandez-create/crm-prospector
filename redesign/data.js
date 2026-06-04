@@ -1,27 +1,25 @@
-/* CRM Prospector · rediseño v1 · Fase G — Capa de datos
+/* CRM Prospector · rediseño v1 — Capa de datos de alto nivel (window.Data)
  *
- * Acceso a Firestore (REST público, mismo proyecto ferroplast-crm) y
- * proxy al endpoint GAS Web App existente. NO se reescribe lógica de
- * negocio — se mantiene el mismo endpoint actual.
+ * Backend: Supabase (única fuente de verdad desde 2026-06). El acceso a datos
+ * se delega en window.DataSupabase (data-supabase.js); este módulo enruta y
+ * añade la lógica de negocio (informes, briefings, enriquecimiento). El cliente
+ * REST de Firestore se eliminó: Firestore quedó bloqueado al cerrar la RLS/auth.
+ * Se mantiene además el proxy al GAS Web App (Claude/Anthropic + Calendar).
  *
  * Expone:
  *   window.Data.loadAll()        — carga studios + planificador en State
- *   window.Data.getDoc(path)     — un único documento
- *   window.Data.listCollection(name, opts) — lista paginada
- *   window.Data.patchDoc(path, obj) — UPSERT documento (rules-permitting)
+ *   window.Data.getDoc(path)     — un único documento (→ Supabase)
+ *   window.Data.listCollection(name, opts) — lista paginada (→ Supabase)
+ *   window.Data.patchDoc(path, obj) — UPSERT documento (→ Supabase)
  *   window.Data.callGAS(action, params)    — proxy genérico al GAS Web App
  *   window.Data.generateBriefing(studioId, fecha, contextoExtra)
  *   window.Data.generateReport(studioId, payload)
- *   window.Data.getBriefingItems(studioId, limit) — read briefings/{id}/items
- *   window.Data.savePlanificador(schedule) — persiste _meta/planificador
+ *   window.Data.getBriefingItems(studioId, limit)
+ *   window.Data.savePlanificador(schedule) — persiste meta_planificador
  *
  * Convenciones:
- *   - Sin Firebase compat SDK: usamos REST directo, mismo patrón que
- *     scripts/tests/_lib/firestore.js para no tener que cargar 200KB
- *     adicionales de Firebase SDK.
- *   - Escrituras REST usan apiKey público (mismo que el legacy SDK). Las
- *     reglas de Firestore deciden qué se puede escribir; _meta/planificador
- *     y studios admiten patch (igual que el legacy).
+ *   - Todo el acceso a Supabase pasa por window.DataSupabase (REST/PostgREST
+ *     con Bearer de Supabase Auth, ver auth.js).
  *   - GAS URL es la misma del CRM actual. Si se redeploya, hay que
  *     actualizar aquí también.
  */
@@ -31,114 +29,7 @@
   /* ============================================================
      CONFIG (extraída del index.html actual)
      ============================================================ */
-  const PROJECT = 'ferroplast-crm';
-  const API_KEY = 'AIzaSyCVxMjrIfB4MrYiUzvKzt8fJeKKNne-Cm0';
-  const REST_BASE = 'https://firestore.googleapis.com/v1/projects/' + PROJECT + '/databases/(default)/documents';
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbxx6KIUavnMAVn3eUtX4SKMoVAnOQ3YAsIYofiMufkw6tkbQDaG3-jDku_Z8kEsNY_6aQ/exec';
-
-  /* ============================================================
-     FIRESTORE REST CLIENT (sin auth, igual que scripts/tests/_lib)
-     ============================================================ */
-  function unwrap(f) {
-    if (f === null || f === undefined) return null;
-    if ('stringValue' in f) return f.stringValue;
-    if ('integerValue' in f) return parseInt(f.integerValue, 10);
-    if ('doubleValue' in f) return f.doubleValue;
-    if ('booleanValue' in f) return f.booleanValue;
-    if ('nullValue' in f) return null;
-    if ('timestampValue' in f) return f.timestampValue;
-    if ('arrayValue' in f) return (f.arrayValue.values || []).map(unwrap);
-    if ('mapValue' in f) {
-      const o = {};
-      const fields = f.mapValue.fields || {};
-      for (const k in fields) o[k] = unwrap(fields[k]);
-      return o;
-    }
-    return null;
-  }
-  function fieldsToObj(fields) {
-    const o = {};
-    for (const k in (fields || {})) o[k] = unwrap(fields[k]);
-    return o;
-  }
-
-  /* Inversa de unwrap — convierte un valor JS en un Firestore Value typed */
-  function wrap(v) {
-    if (v === null || v === undefined) return { nullValue: null };
-    if (typeof v === 'boolean') return { booleanValue: v };
-    if (typeof v === 'number') {
-      if (Number.isInteger(v)) return { integerValue: String(v) };
-      return { doubleValue: v };
-    }
-    if (typeof v === 'string') return { stringValue: v };
-    if (Array.isArray(v)) {
-      return { arrayValue: { values: v.map(wrap) } };
-    }
-    if (typeof v === 'object') {
-      const fields = {};
-      for (const k in v) fields[k] = wrap(v[k]);
-      return { mapValue: { fields: fields } };
-    }
-    return { stringValue: String(v) };
-  }
-  function objToFields(obj) {
-    const fields = {};
-    for (const k in (obj || {})) fields[k] = wrap(obj[k]);
-    return fields;
-  }
-
-  async function getDoc(path) {
-    const r = await fetch(REST_BASE + '/' + path);
-    if (r.status === 404) return null;
-    if (!r.ok) throw new Error('Firestore ' + r.status + ' ' + r.statusText + ' (' + path + ')');
-    const j = await r.json();
-    return Object.assign({ id: j.name.split('/').pop() }, fieldsToObj(j.fields || {}));
-  }
-
-  async function listCollection(name, opts) {
-    opts = opts || {};
-    const docs = [];
-    const pageSize = opts.pageSize || 300;
-    const limit = opts.limit || Infinity;
-    let pageToken = null;
-    do {
-      const u = new URL(REST_BASE + '/' + name);
-      u.searchParams.set('pageSize', String(pageSize));
-      if (pageToken) u.searchParams.set('pageToken', pageToken);
-      const r = await fetch(u);
-      if (!r.ok) throw new Error('Firestore ' + r.status + ' ' + r.statusText + ' (' + name + ')');
-      const j = await r.json();
-      (j.documents || []).forEach(function (d) {
-        if (docs.length >= limit) return;
-        docs.push(Object.assign({ id: d.name.split('/').pop() }, fieldsToObj(d.fields || {})));
-      });
-      pageToken = j.nextPageToken || null;
-    } while (pageToken && docs.length < limit);
-    return docs;
-  }
-
-  /* PATCH = upsert. Si el doc no existe se crea, si existe se mergea
-     (sólo los campos indicados; pasar updateMask vacío reemplaza todo).
-     Usa la API key pública del proyecto, idéntico al SDK del legacy. */
-  async function patchDoc(path, obj, opts) {
-    opts = opts || {};
-    const url = new URL(REST_BASE + '/' + path);
-    url.searchParams.set('key', API_KEY);
-    if (opts.updateMask && opts.updateMask.length) {
-      opts.updateMask.forEach(function (m) { url.searchParams.append('updateMask.fieldPaths', m); });
-    }
-    const res = await fetch(url, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields: objToFields(obj) }),
-    });
-    if (!res.ok) {
-      const txt = await res.text().catch(function () { return ''; });
-      throw new Error('Firestore PATCH ' + res.status + ' ' + res.statusText + ' (' + path + ') ' + txt.slice(0, 200));
-    }
-    const j = await res.json();
-    return Object.assign({ id: (j.name || '').split('/').pop() }, fieldsToObj(j.fields || {}));
-  }
 
   /* ============================================================
      GAS WEB APP PROXY (no-CORS via form-encoded)
@@ -166,8 +57,7 @@
 
   async function getBriefingItems(studioId, limit) {
     try {
-      if (_useSupabase()) return await _sb().getBriefingItems(studioId, limit);
-      return await listCollection('briefings/' + studioId + '/items', { limit: limit || 10 });
+      return await _sb().getBriefingItems(studioId, limit);
     } catch (e) {
       console.warn('[redesign/data] no se pudo leer briefings/' + studioId + '/items:', e.message);
       return [];
@@ -185,14 +75,12 @@
   async function _getStudio(studioId) {
     const State = window.State;
     if (State && State.studiosById && State.studiosById[studioId]) return State.studiosById[studioId];
-    if (_useSupabase()) return await _sb().getDoc('studios/' + studioId);
-    return await getDoc('studios/' + studioId);
+    return await _sb().getDoc('studios/' + studioId);
   }
   /* Helper: patch que respeta el backend activo. Lo usan las funciones de
      alto nivel (generateBriefing, generateReport, savePlanificador, …) */
   async function _patchDocActive(path, obj) {
-    if (_useSupabase()) return _sb().patchDoc(path, obj);
-    return patchDoc(path, obj);
+    return _sb().patchDoc(path, obj);
   }
 
   /* Helper: read value (puede venir como string o {valor, fuente_url}) */
@@ -1603,21 +1491,8 @@
   /* ============================================================
      DELETE DOC
      ============================================================ */
-  async function _deleteDocFirestore(path) {
-    const url = new URL(REST_BASE + '/' + path);
-    url.searchParams.set('key', API_KEY);
-    const res = await fetch(url, { method: 'DELETE' });
-    // 404 = ya no existe, se acepta como éxito
-    if (!res.ok && res.status !== 404) {
-      const txt = await res.text().catch(function () { return ''; });
-      throw new Error('Firestore DELETE ' + res.status + ' ' + res.statusText + ' (' + path + ') ' + txt.slice(0, 200));
-    }
-    return true;
-  }
-
   function _routeDeleteDoc(path) {
-    if (_useSupabase()) return _sb().deleteDoc(path);
-    return _deleteDocFirestore(path);
+    return _sb().deleteDoc(path);
   }
 
   /* ============================================================
@@ -1825,14 +1700,11 @@
      El fallback a Firestore se retiró: Firestore quedó bloqueado al cerrar
      la RLS/auth (hallazgo C1), así que dejar de leerlo evita errores silenciosos.
      _activeBackend() ignora cualquier override en localStorage. El cliente REST
-     de Firestore de este archivo queda como código muerto (inalcanzable);
-     puede eliminarse del todo en una limpieza posterior. */
+     de Firestore de este archivo se eliminó por completo (2026-06): ya no hay
+     ningún camino que lo invoque. */
   function _activeBackend() { return 'supabase'; }
   function _sb() {
     return window.DataSupabase;
-  }
-  function _useSupabase() {
-    return !!_sb();   // Supabase siempre; Firestore ya no es alcanzable
   }
 
   async function loadAll() {
@@ -1860,7 +1732,7 @@
     }
 
     // Path Supabase: una sola llamada que retorna {studios, planificador}
-    if (_useSupabase()) {
+    if (_sb()) {
       try {
         const out = await _sb().loadAll();
         State.studios = out.studios || [];
@@ -1893,51 +1765,9 @@
       }
     }
 
-    // Path Firebase (default) — comportamiento previo
-    // Carga las dos fuentes en paralelo pero AISLADAS: si una falla,
-    // la otra sigue. La cartera es crítica; el planificador, accesorio.
-    const studiosP = _withRetry(function () {
-      return listCollection('studios', { pageSize: 300, limit: 5000 });
-    }, 'studios');
-    const planP = _withRetry(function () {
-      return getDoc('_meta/planificador');
-    }, 'planificador', 2).catch(function (e) {
-      console.warn('[redesign/data] planificador no se pudo cargar (no es crítico):', e.message);
-      return null;
-    });
-
-    try {
-      const studios = await studiosP;
-      State.studios = studios || [];
-      State.studiosById = {};
-      (studios || []).forEach(function (s) { State.studiosById[s.id] = s; });
-      const plan = await planP;
-      State.planificador = plan;
-      _writeCache(studios || [], plan);
-      console.info('[redesign/data] backend=firebase · cartera: ' + (studios || []).length);
-    } catch (e) {
-      // Firestore caído / 429 sostenido: usar cache STALE si existe (hasta 24h)
-      const stale = _readCache(CACHE_TTL_STALE_MS);
-      if (stale) {
-        const ageMin = Math.round((Date.now() - stale.savedAt) / 60000);
-        console.warn('[redesign/data] Firestore falló, usando cache stale de hace ' +
-          ageMin + ' min · ' + stale.studios.length + ' studios');
-        State.studios = stale.studios;
-        State.studiosById = {};
-        stale.studios.forEach(function (s) { State.studiosById[s.id] = s; });
-        State.planificador = stale.planificador || null;
-        State.error = 'Datos de hace ' + ageMin + ' min (Firestore no disponible)';
-      } else {
-        console.error('[redesign/data] error cargando studios y sin cache:', e);
-        State.error = e.message || String(e);
-        State.loading = false;
-        throw e;
-      }
-    }
-    State.loading = false;
   }
 
-  /* Fuerza recarga ignorando cache (botón "Sincronizar ahora") */
+    /* Fuerza recarga ignorando cache (botón "Sincronizar ahora") */
   async function forceReload() {
     try { localStorage.removeItem(CACHE_KEY); } catch (_) {}
     return loadAll();
@@ -1949,22 +1779,11 @@
      Para getDoc/listCollection/patchDoc, exponemos wrappers que enrutan
      al backend activo. Las pantallas siguen llamando a window.Data.X
      sin saber qué backend hay detrás. */
-  function _routeGetDoc(path) {
-    if (_useSupabase()) return _sb().getDoc(path);
-    return getDoc(path);
-  }
-  function _routeListCollection(name, opts) {
-    if (_useSupabase()) return _sb().listCollection(name, opts);
-    return listCollection(name, opts);
-  }
-  function _routePatchDoc(path, obj, opts) {
-    if (_useSupabase()) return _sb().patchDoc(path, obj, opts);
-    return patchDoc(path, obj, opts);
-  }
+  function _routeGetDoc(path) { return _sb().getDoc(path); }
+  function _routeListCollection(name, opts) { return _sb().listCollection(name, opts); }
+  function _routePatchDoc(path, obj, opts) { return _sb().patchDoc(path, obj, opts); }
 
   window.Data = {
-    PROJECT: PROJECT,
-    REST_BASE: REST_BASE,
     GAS_URL: GAS_URL,
     loadAll: loadAll,
     forceReload: forceReload,
@@ -1981,11 +1800,6 @@
     updateProjectFromReport: updateProjectFromReport,
     getBriefingItems: getBriefingItems,
     savePlanificador: savePlanificador,
-    // Helpers internos por si las pantallas quieren parsear ad-hoc
-    unwrap: unwrap,
-    fieldsToObj: fieldsToObj,
-    wrap: wrap,
-    objToFields: objToFields,
     // Diagnóstico
     activeBackend: _activeBackend,
   };
