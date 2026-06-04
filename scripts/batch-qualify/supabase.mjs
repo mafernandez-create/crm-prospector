@@ -79,6 +79,29 @@ export async function listStudiosNeedingQuadrant(offset, limit) {
 }
 
 /**
+ * Guarda el checkpoint del batch en meta_kv (key='batch_checkpoint'). Sustituye
+ * al saveCheckpoint de Firestore — el batch ya no escribe en Firestore.
+ * No-op si faltan SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY.
+ */
+export async function saveCheckpoint(checkpoint) {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) { console.warn('[supabase] checkpoint omitido (sin URL/KEY)'); return null; }
+  const res = await fetch(`${url.replace(/\/$/, '')}/rest/v1/meta_kv?on_conflict=key`, {
+    method: 'POST',
+    headers: {
+      apikey: key,
+      Authorization: 'Bearer ' + key,
+      'Content-Type': 'application/json',
+      Prefer: 'resolution=merge-duplicates,return=minimal',
+    },
+    body: JSON.stringify([{ key: 'batch_checkpoint', value: checkpoint }]),
+  });
+  if (!res.ok) throw new Error(`Supabase checkpoint HTTP ${res.status}: ${(await res.text()).slice(0, 150)}`);
+  return { ok: true };
+}
+
+/**
  * Lee de Supabase TODA la cartera (paginado por offset), para el recálculo
  * completo (FILTRO=todos / filtros por tipo). Supabase es la fuente de verdad:
  * la app escribe ahí los enriquecimientos, así que el scoring debe leer de aquí

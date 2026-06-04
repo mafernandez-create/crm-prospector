@@ -122,11 +122,10 @@ const A = require('../_lib/assert');
     A.contains(swSrc, 'clients.claim', 'sw.js usa clients.claim');
   }
 
-  // 7. index-legacy.html sigue accesible (rollback path)
+  // 7. index-legacy.html RETIRADO (2026-06): leía Firestore, bloqueado al cerrar
+  //    la RLS/auth. Se confirma que ya NO está en el repo (recuperable del historial).
   const legacyPath = path.resolve(__dirname, '..', '..', '..', 'index-legacy.html');
-  A.truthy(fs.existsSync(legacyPath), 'index-legacy.html existe (rollback)');
-  const legacy = fs.readFileSync(legacyPath, 'utf8').slice(0, 5000);
-  A.contains(legacy, 'CRM Prospector', 'index-legacy.html parece el CRM antiguo');
+  A.falsy(fs.existsSync(legacyPath), 'index-legacy.html retirado del repo');
 
   const s = A.summary();
   console.log(JSON.stringify(s));

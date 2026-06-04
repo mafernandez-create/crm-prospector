@@ -27,11 +27,10 @@ async function fetchHtml(url, timeoutMs) {
   A.contains(r1.html, 'Ferroplast', '/ contiene la marca "Ferroplast"');
   A.matches(r1.html, /Redise[ñn]o\s*v1/i, '/ es el rediseño v1');
 
-  // 2. CRM antiguo accesible para rollback
+  // 2. CRM antiguo RETIRADO (2026-06): ya no debe servirse (leía Firestore,
+  //    bloqueado al cerrar la RLS/auth).
   const r2 = await fetchHtml(CRM_URL + 'index-legacy.html');
-  A.eq(r2.status, 200, 'GET /index-legacy.html → 200');
-  A.contains(r2.html, 'loadBandeja', 'legacy contiene la función bundle "loadBandeja"');
-  A.contains(r2.html, 'firestoreDB', 'legacy contiene la variable global "firestoreDB"');
+  A.eq(r2.status, 404, 'GET /index-legacy.html → 404 (legacy retirado)');
 
   const s = A.summary();
   console.log(JSON.stringify(s));

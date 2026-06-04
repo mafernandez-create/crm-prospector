@@ -7,11 +7,9 @@
 // detecta candidato a puente nuevo.
 // =========================================================================
 
-// Firestore retirado como almacén de datos (2026-06): el batch escribe SOLO en
-// Supabase (fuente de verdad). saveCheckpoint sigue en Firestore (metadata no-PII,
-// vía service account) hasta migrar el checkpoint a Supabase.
-import { saveCheckpoint } from './firestore.mjs';
-import { batchUpsert as supabaseBatchUpsert, listStudiosNeedingQuadrant, listAllStudios } from './supabase.mjs';
+// Firestore retirado por completo (2026-06): el batch lee y escribe SOLO en
+// Supabase, incluido el checkpoint (meta_kv). Ya no depende de Firebase.
+import { batchUpsert as supabaseBatchUpsert, listStudiosNeedingQuadrant, listAllStudios, saveCheckpoint } from './supabase.mjs';
 import { buildScoringV2Updates, getTipoPrincipal } from './scoring.mjs';
 
 const FILTRO = process.env.FILTRO || 'sin_cuadrante';

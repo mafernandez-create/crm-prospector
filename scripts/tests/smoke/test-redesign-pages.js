@@ -34,13 +34,9 @@ async function fetchText(url) {
   A.matches(swResp.text, /CACHE_NAME = 'crm-prospector-v\d+'/, 'sw.js sirve CACHE_NAME versionado');
   A.matches(swResp.text, /content-type|/i, 'sw.js servido (chequeo trivial)');
 
-  // 2. index-legacy.html accesible para rollback
+  // 2. index-legacy.html RETIRADO (2026-06): ya no debe servirse.
   const r2 = await fetchText(root + 'index-legacy.html');
-  A.eq(r2.status, 200, 'GET /index-legacy.html → 200');
-  A.matches(r2.text, /CRM Prospector/i, 'legacy contiene CRM Prospector');
-  // firebaseConfig aparece bien dentro del HTML (línea ~5530), comprobamos en todo el texto:
-  A.contains(r2.text, 'FIREBASE_CONFIG', 'legacy tiene FIREBASE_CONFIG embebido (CRM antiguo)');
-  A.contains(r2.text, 'ferroplast-crm', 'legacy apunta al mismo Firestore (ferroplast-crm)');
+  A.eq(r2.status, 404, 'GET /index-legacy.html → 404 (legacy retirado)');
 
   // 3. Recursos críticos del rediseño servidos correctamente
   const assets = [
