@@ -531,12 +531,23 @@
         inCode = false; codeLang = ''; codeLines = [];
       }
     }
+    // H3: solo esquemas seguros en href (bloquea javascript:, data:, vbscript:…)
+    function safeHref(url) {
+      var u = String(url || '').trim();
+      if (/^(https?:\/\/|mailto:|tel:|#|\/)/i.test(u)) return u;   // seguro / ancla / relativo
+      if (/^[a-z][a-z0-9+.\-]*:/i.test(u)) return '#';             // otro esquema → neutralizar
+      return u;                                                    // relativo sin esquema
+    }
     function inline(s) {
+      s = escape(s);   // H2: neutraliza HTML crudo antes de aplicar markdown
       s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
       s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
       s = s.replace(/(^|[\s(])_([^_]+)_([\s.,;:!?)]|$)/g, '$1<em>$2</em>$3');
       s = s.replace(/`([^`]+)`/g, '<code style="background:rgba(10,45,82,.06); padding:0.1em 0.35em; border-radius:3px; font-size:0.9em;">$1</code>');
-      s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+      // url ya escapada por escape(s); safeHref solo valida el esquema
+      s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function (m, text, url) {
+        return '<a href="' + safeHref(url) + '" target="_blank" rel="noopener">' + text + '</a>';
+      });
       return s;
     }
     // Detect table block (consecutive lines starting with |)

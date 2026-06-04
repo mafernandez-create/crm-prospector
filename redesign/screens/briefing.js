@@ -157,15 +157,25 @@
     function closeList() {
       if (inList) { out.push(listOrdered ? '</ol>' : '</ul>'); inList = false; }
     }
+    // H3: solo esquemas seguros en href (bloquea javascript:, data:, vbscript:…)
+    function safeHref(url) {
+      var u = String(url || '').trim();
+      if (/^(https?:\/\/|mailto:|tel:|#|\/)/i.test(u)) return u;
+      if (/^[a-z][a-z0-9+.\-]*:/i.test(u)) return '#';
+      return u;
+    }
     function inline(s) {
+      s = escape(s);   // M3/H2: neutraliza HTML crudo antes de aplicar markdown
       // Negrita ** -> <strong>
       s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
       // Italic _foo_
       s = s.replace(/(^|\s)_([^_]+)_(\s|[.,;:!?]|$)/g, '$1<em>$2</em>$3');
       // Inline code `x`
       s = s.replace(/`([^`]+)`/g, '<code style="background:rgba(10,45,82,.06); padding:0.1em 0.35em; border-radius:3px; font-size:0.9em;">$1</code>');
-      // Links [txt](url)
-      s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+      // Links [txt](url) — url ya escapada; safeHref valida el esquema
+      s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function (m, text, url) {
+        return '<a href="' + safeHref(url) + '" target="_blank" rel="noopener">' + text + '</a>';
+      });
       return s;
     }
     for (let i = 0; i < lines.length; i++) {
