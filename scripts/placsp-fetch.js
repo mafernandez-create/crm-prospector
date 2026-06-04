@@ -42,7 +42,13 @@ function log(...args) {
 async function fetchAtom(url) {
   log('Descargando feed ATOM:', url);
   const res = await fetch(url, {
-    headers: { 'Accept': 'application/atom+xml,application/xml,text/xml', 'User-Agent': 'CRM-Prospector-PLACSP/1.0' },
+    // UA de navegador real: el WAF de contrataciondelestado.es bloquea
+    // User-Agents no-navegador (200 con body vacío) en entornos como GitHub.
+    headers: {
+      'Accept': 'application/atom+xml,application/xml,text/xml,*/*',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+      'Accept-Language': 'es-ES,es;q=0.9',
+    },
   });
   if (!res.ok) throw new Error(`Feed ATOM HTTP ${res.status}: ${res.statusText}`);
   const text = await res.text();

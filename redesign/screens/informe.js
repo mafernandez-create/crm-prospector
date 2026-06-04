@@ -457,20 +457,12 @@
       return;
     }
 
-    // Mostrar estado loading
-    const v = document.getElementById('view-informe');
-    if (v) {
-      v.innerHTML =
-        '<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; ' +
-          'min-height:300px; padding:40px 24px; gap:16px;">' +
-          '<div style="width:40px; height:40px; border:3px solid var(--gpf-blue-200); ' +
-            'border-top-color:var(--gpf-blue-700); border-radius:50%; ' +
-            'animation:skeleton-spin 0.8s linear infinite;"></div>' +
-          '<div style="font-size:17px; font-weight:600; color:var(--fg-1);">Analizando visita con IA</div>' +
-          '<div style="font-size:14px; color:var(--fg-3); text-align:center; max-width:280px;">' +
-            'Aplicando metodología SPIN… puede tardar 20–40 s' +
-          '</div>' +
-        '</div>';
+    // Estado loading — helper compartido de states.js (convención del proyecto)
+    if (window.States && window.States.showLoading) {
+      window.States.showLoading('view-informe', {
+        title: 'Analizando visita con IA',
+        sub: 'Aplicando metodología SPIN… puede tardar 20–40 s',
+      });
     }
 
     try {
@@ -504,24 +496,17 @@
       }
     } catch (e) {
       console.error('[redesign/informe] error generando informe:', e);
-      const v2 = document.getElementById('view-informe');
-      if (v2) {
-        v2.innerHTML =
-          '<div style="max-width:480px; margin:60px auto; padding:0 24px;">' +
-            '<div style="background:var(--paper-warm); border:1px solid var(--line); border-radius:12px; padding:24px;">' +
-              '<div style="font-size:17px; font-weight:600; color:var(--fg-1); margin-bottom:8px;">No se pudo generar el informe</div>' +
-              '<div style="font-size:14px; color:var(--fg-3); margin-bottom:16px;">El servidor no respondió. Tu borrador queda guardado localmente.</div>' +
-              '<div style="font-size:12px; font-family:var(--font-mono); background:var(--ink-50); ' +
-                'padding:10px; border-radius:6px; color:var(--fg-3); margin-bottom:20px; word-break:break-word;">' +
-                escape((e.message || String(e)).slice(0, 300)) +
-              '</div>' +
-              '<div style="display:flex; gap:10px;">' +
-                '<button class="btn btn-ghost" onclick="window.Screens && window.Screens.informe && window.Screens.informe.render({ studioId: \'' + escapeJs(id) + '\' })">' +
-                  'Seguir editando' +
-                '</button>' +
-              '</div>' +
-            '</div>' +
-          '</div>';
+      // El borrador ya está autoguardado (autosave al inicio) → queda a salvo.
+      if (window.States && window.States.showError) {
+        window.States.showError('view-informe', {
+          title: 'No se pudo generar el informe',
+          body: 'El servidor no respondió. Tu borrador queda guardado localmente.',
+          detail: (e.message || String(e)).slice(0, 300),
+          ctas: [
+            { label: 'Seguir editando',
+              onclick: "window.Screens && window.Screens.informe && window.Screens.informe.render({ studioId: '" + escapeJs(id) + "' })" },
+          ],
+        });
       }
     }
   }

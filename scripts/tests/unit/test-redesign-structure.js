@@ -46,8 +46,10 @@ const A = require('../_lib/assert');
   A.contains(informe, 'localStorage.setItem', 'informe.js persiste a localStorage');
   A.contains(informe, "'redesign:informe:draft:'", 'informe.js usa namespace redesign:* en localStorage');
   A.contains(informe, 'States.showLoading', 'informe.js usa States.showLoading');
-  A.contains(informe, 'States.showSuccess', 'informe.js usa States.showSuccess');
   A.contains(informe, 'States.showError', 'informe.js usa States.showError');
+  // En éxito informe.js NO usa el panel genérico showSuccess: renderiza el
+  // informe generado (markdown) vía _showInformeResultado. Verificamos esa ruta.
+  A.contains(informe, '_showInformeResultado', 'informe.js muestra el informe generado en éxito');
   A.contains(informe, 'Data.generateReport', 'informe.js llama Data.generateReport');
 
   // 5. detail.js wirea regenerar briefing
