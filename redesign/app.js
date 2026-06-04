@@ -519,8 +519,18 @@
     return obj;
   }
 
+  // L2/L3: valida el esquema de una URL para usarla en href. Bloquea
+  // javascript:/data:/vbscript:; permite http(s)/mailto/tel/ancla/relativo.
+  function safeHref(url) {
+    var u = String(url == null ? '' : url).trim();
+    if (/^(https?:\/\/|mailto:|tel:|#|\/)/i.test(u)) return u;
+    if (/^[a-z][a-z0-9+.\-]*:/i.test(u)) return '#';   // otro esquema → neutralizar
+    return u;                                          // relativo sin esquema
+  }
+
   window.Util = {
     escapeHtml: escapeHtml,
+    safeHref: safeHref,
     formatDateES: formatDateES,
     diasDesde: diasDesde,
     studioInitials: studioInitials,

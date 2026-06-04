@@ -700,7 +700,18 @@
     URL.revokeObjectURL(a.href);
   }
 
-  function escapeJs(s) { return String(s || '').replace(/'/g, "\\'"); }
+  // L4: dato embebido en una cadena JS de un atributo onclick="" (doble contexto:
+  // string JS de comilla simple + atributo HTML de comilla doble). Neutraliza
+  // backslash, comilla simple (JS), comilla doble (cierre de atributo), '<'
+  // (cierre de <script>) y saltos de línea.
+  function escapeJs(s) {
+    return String(s == null ? '' : s)
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '\\x3C')
+      .replace(/\r?\n/g, ' ');
+  }
 
   function bindInput(id, evt, handler) {
     const el = document.getElementById(id);

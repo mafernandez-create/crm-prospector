@@ -555,7 +555,7 @@
               (p.presupuesto ? ' · 💰 ' + escape(p.presupuesto) : '') +
             '</div>' +
             (p.norma ? '<div style="margin-top:4px;"><span style="font-size:11px; padding:2px 7px; border-radius:8px; background:#fef3c7; color:#92400e;">' + escape(p.norma) + '</span></div>' : '') +
-            (p.url ? '<div style="margin-top:5px;"><a href="' + escape(p.url) + '" target="_blank" rel="noopener" style="font-size:12px; color:var(--gpf-blue-700);">🔗 Perfil del contratante ↗</a></div>' : '') +
+            (p.url ? '<div style="margin-top:5px;"><a href="' + escape(U.safeHref(p.url)) + '" target="_blank" rel="noopener" style="font-size:12px; color:var(--gpf-blue-700);">🔗 Perfil del contratante ↗</a></div>' : '') +
           '</div>' +
           '<div style="display:flex; gap:4px; flex:0 0 auto;">' +
             '<button onclick="window.Screens.detail.openEditProject(\'' + escape(studioId) + '\',' + idx + ')" ' +
@@ -617,7 +617,7 @@
             '<div style="font-size:13px; color:var(--gpf-blue-700); margin-bottom:6px;">' + escape(m.role || '—') + '</div>' +
             (m.email ? '<div style="font-size:13px; color:var(--fg-2);"><a href="mailto:' + escape(m.email) + '" style="color:var(--gpf-blue-700);">📧 ' + escape(m.email) + '</a></div>' : '') +
             (m.phone ? '<div style="font-size:13px; color:var(--fg-2);"><a href="tel:' + escape(m.phone.replace(/[^\d+]/g,'')) + '" style="color:var(--fg-2);">📞 ' + escape(m.phone) + '</a></div>' : '') +
-            (m.linkedin ? '<div style="font-size:13px;"><a href="' + escape(m.linkedin) + '" target="_blank" rel="noopener" style="color:var(--gpf-blue-700);">💼 LinkedIn ↗</a></div>' : '') +
+            (m.linkedin ? '<div style="font-size:13px;"><a href="' + escape(U.safeHref(m.linkedin)) + '" target="_blank" rel="noopener" style="color:var(--gpf-blue-700);">💼 LinkedIn ↗</a></div>' : '') +
             (m.notes ? '<div style="margin-top:6px; font-size:12px; color:var(--fg-3); padding:6px; background:var(--gpf-blue-100); border-radius:6px;">' + escape(m.notes) + '</div>' : '') +
           '</div>' +
           '<div style="display:flex; gap:4px; flex:0 0 auto;">' +
@@ -942,7 +942,7 @@
               '<div style="flex:1; min-width:0;">' +
                 '<div style="font-size:13px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' +
                   escape((l.titulo || '').substring(0, 80)) +
-                  (l.url_placsp || l.url ? ' <a href="' + escape(l.url_placsp || l.url) + '" target="_blank" rel="noopener" style="font-size:11px; color:var(--gpf-blue-700);">↗</a>' : '') +
+                  (l.url_placsp || l.url ? ' <a href="' + escape(U.safeHref(l.url_placsp || l.url)) + '" target="_blank" rel="noopener" style="font-size:11px; color:var(--gpf-blue-700);">↗</a>' : '') +
                 '</div>' +
                 '<div style="font-size:11px; color:var(--fg-3);">' + escape(l.organismo || '') + (fecha ? ' · ' + fecha : '') + '</div>' +
               '</div>' +

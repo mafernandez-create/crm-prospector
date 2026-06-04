@@ -41,7 +41,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
       - name: Verify secrets present
         run: |
@@ -154,7 +154,7 @@ jobs:
           echo "meta_kv=${META_KV}"      >> "$GITHUB_OUTPUT"
 
       - name: Upload backup as artifact (cifrado)
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: supabase-backup-${{ steps.dump.outputs.stamp }}
           path: ${{ steps.dump.outputs.encfile }}
