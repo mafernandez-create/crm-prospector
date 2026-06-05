@@ -354,6 +354,31 @@ async function supaUpsertAdjudicacion(row) {
   }
 }
 
+// Heartbeat de salud del pipeline: registra la última ingesta EXITOSA en
+// meta_kv['placsp_last_success']. scripts/placsp-freshness.js lo lee para
+// avisar si PLACSP deja de ingerir varios días seguidos (p.ej. el WAF del
+// Estado bloquea las IPs de GitHub), aunque el workflow salga en verde por el
+// soft-skip de fetchAtom. Nunca rompe el run: si falla, sólo avisa.
+async function supaWriteHeartbeat(stats) {
+  if (!SUPABASE_ENABLED) return;
+  const value = Object.assign({ ts: isoNow() }, stats || {});
+  try {
+    const res = await supaFetch('/rest/v1/meta_kv?on_conflict=key', {
+      method: 'POST',
+      // merge-duplicates: cada ingesta exitosa REFRESCA el timestamp.
+      headers: { Prefer: 'return=minimal,resolution=merge-duplicates' },
+      body: JSON.stringify({ key: 'placsp_last_success', value }),
+    });
+    if (res.status >= 400) {
+      log(`⚠️  heartbeat meta_kv falló: HTTP ${res.status} ${(await res.text()).slice(0, 150)}`);
+    } else {
+      log(`Heartbeat OK: placsp_last_success = ${value.ts} (sent=${value.sent ?? 0})`);
+    }
+  } catch (e) {
+    log(`⚠️  heartbeat meta_kv error: ${e.message}`);
+  }
+}
+
 // Cruce completo contra Supabase. Mismo contrato que postToGAS:
 // devuelve { matched, created, errorsCount, errors }.
 async function crosscheckSupabase(adjudicaciones) {
@@ -496,6 +521,8 @@ async function main() {
 
   if (relevantes.length === 0) {
     log('Sin adjudicaciones relevantes hoy.');
+    // Feed descargado y procesado OK → run sano aunque no haya nada relevante.
+    await supaWriteHeartbeat({ sent: 0, matched: 0, created: 0, feed_entries: entries.length });
     return;
   }
 
@@ -534,6 +561,14 @@ async function main() {
   if (!SUPABASE_ENABLED) {
     throw new Error('Supabase no configurado (SUPABASE_URL/SERVICE_ROLE_KEY ausentes)');
   }
+
+  // Ingesta completada con éxito → refresca el heartbeat de frescura.
+  await supaWriteHeartbeat({
+    sent: relevantes.length,
+    matched: supaResult ? supaResult.matched : 0,
+    created: supaResult ? supaResult.created : 0,
+    feed_entries: entries.length,
+  });
 }
 
 main().catch(err => {

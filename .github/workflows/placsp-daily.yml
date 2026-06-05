@@ -29,6 +29,11 @@ on:
         required: false
         default: '500'
 
+# El chequeo de frescura abre/cierra un Issue si PLACSP deja de ingerir.
+permissions:
+  contents: read
+  issues:   write
+
 jobs:
   placsp-crosscheck:
     runs-on: ubuntu-latest
@@ -70,3 +75,15 @@ jobs:
             echo "✅ Dual-write activo (GAS → Firestore + Node → Supabase)"
           fi
           node scripts/placsp-fetch.js
+
+      # Vigila que la ingesta no se "muera en silencio": si el feed lleva días
+      # inalcanzable (soft-skip → verde), abre un Issue; si se recupera, lo cierra.
+      # always() para que corra aunque el paso anterior fallara.
+      - name: PLACSP freshness check (alerta si lleva días sin ingerir)
+        if: always()
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STALE_DAYS: '4'
+        run: node scripts/placsp-freshness.js
