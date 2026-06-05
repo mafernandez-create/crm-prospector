@@ -39,21 +39,69 @@ function log(...args) {
   console.log(`[${isoNow()}]`, ...args);
 }
 
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Errores de red transitorios: el servidor de PLACSP
+// (contrataciondelestado.es) es lento e intermitente desde los runners de
+// GitHub (connect timeout, reset, DNS, "fetch failed" genérico, abort por
+// nuestro propio timeout). NO son un fallo del CRM ni un secret caducado, así
+// que tras agotar reintentos NO deben marcar el workflow en rojo (sería ruido
+// diario). En cambio, un 4xx o un fallo de parseo/escritura SÍ son señal real.
+function isTransientNetworkError(err) {
+  if (!err) return false;
+  if (err.name === 'AbortError') return true;
+  const code = err.code || (err.cause && err.cause.code) || '';
+  const TRANSIENT = [
+    'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT', 'UND_ERR_SOCKET',
+    'ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED', 'EAI_AGAIN', 'ENOTFOUND', 'ENETUNREACH',
+  ];
+  if (TRANSIENT.includes(code)) return true;
+  // fetch() envuelve los errores de red de bajo nivel como "TypeError: fetch failed".
+  if (err.name === 'TypeError' && /fetch failed/i.test(err.message || '')) return true;
+  return false;
+}
+
 async function fetchAtom(url) {
-  log('Descargando feed ATOM:', url);
-  const res = await fetch(url, {
-    // UA de navegador real: el WAF de contrataciondelestado.es bloquea
-    // User-Agents no-navegador (200 con body vacío) en entornos como GitHub.
-    headers: {
-      'Accept': 'application/atom+xml,application/xml,text/xml,*/*',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-      'Accept-Language': 'es-ES,es;q=0.9',
-    },
-  });
-  if (!res.ok) throw new Error(`Feed ATOM HTTP ${res.status}: ${res.statusText}`);
-  const text = await res.text();
-  log(`Feed recibido: ${text.length} bytes`);
-  return text;
+  const MAX_ATTEMPTS = 4;
+  const PER_ATTEMPT_TIMEOUT_MS = 30000;       // el servidor gov es lento: 30s/intento
+  const BACKOFFS_MS = [3000, 8000, 15000];    // espera entre intentos
+  let lastErr = null;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    log(`Descargando feed ATOM (intento ${attempt}/${MAX_ATTEMPTS}):`, url);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), PER_ATTEMPT_TIMEOUT_MS);
+    try {
+      const res = await fetch(url, {
+        signal: ctrl.signal,
+        // UA de navegador real: el WAF de contrataciondelestado.es bloquea
+        // User-Agents no-navegador (200 con body vacío) en entornos como GitHub.
+        headers: {
+          'Accept': 'application/atom+xml,application/xml,text/xml,*/*',
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+          'Accept-Language': 'es-ES,es;q=0.9',
+        },
+      });
+      // 5xx del servidor PLACSP = transitorio → reintentar. 4xx = error duro.
+      if (!res.ok) throw new Error(`Feed ATOM HTTP ${res.status}: ${res.statusText}`);
+      const text = await res.text();
+      log(`Feed recibido: ${text.length} bytes`);
+      return text;
+    } catch (err) {
+      lastErr = err;
+      const transient = isTransientNetworkError(err) || /HTTP 5\d\d/.test(err.message || '');
+      log(`  ✗ intento ${attempt} falló: ${err.message || err}${transient ? ' (transitorio)' : ''}`);
+      if (!transient) throw err;                 // 4xx u otro error duro → no reintentar
+      if (attempt < MAX_ATTEMPTS) await sleep(BACKOFFS_MS[attempt - 1] || 15000);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  // Agotados los reintentos por causa transitoria: marcar para que main() lo
+  // trate como soft-skip (exit 0) en vez de fallo (exit 1).
+  const e = new Error(`Feed PLACSP inalcanzable tras ${MAX_ATTEMPTS} intentos: ${lastErr && lastErr.message}`);
+  e.transientNetwork = true;
+  throw e;
 }
 
 // Parser XML mínimo usando regex (sin dependencias). PLACSP usa estructura
@@ -489,6 +537,14 @@ async function main() {
 }
 
 main().catch(err => {
+  // Fuente PLACSP inalcanzable tras reintentos: condición transitoria externa,
+  // NO un fallo del CRM ni de credenciales. Salimos en verde con aviso para no
+  // generar ruido (rojo diario) cuando el servidor del Estado está caído/lento.
+  if (err && err.transientNetwork) {
+    console.warn('⚠️  ' + err.message);
+    console.warn('⚠️  Se omite la pasada de hoy (fuente externa caída). Se reintentará en el próximo cron.');
+    process.exit(0);
+  }
   console.error('PLACSP fetch failed:', err);
   process.exit(1);
 });
