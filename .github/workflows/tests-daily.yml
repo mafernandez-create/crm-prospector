@@ -70,11 +70,25 @@ jobs:
             echo
             echo '</details>'
           } > issue-body.md
-          gh issue create \
-            --repo "${{ github.repository }}" \
-            --title "🔴 Batería de tests falló en $DATE" \
-            --body-file issue-body.md \
-            --label "tests-failing" || true
+          # Asegura que la etiqueta existe (idempotente). Antes, si la etiqueta
+          # no existía, `gh issue create` fallaba ENTERA y el aviso no se creaba
+          # nunca → la batería se pudría en rojo sin notificar a nadie.
+          gh label create "tests-failing" --repo "${{ github.repository }}" \
+            --color B60205 --description "La batería de tests diaria falló" --force 2>/dev/null || true
+
+          # Evita acumular un Issue nuevo cada día: si ya hay uno abierto con la
+          # etiqueta, se comenta en él; si no, se crea.
+          EXISTING=$(gh issue list --repo "${{ github.repository }}" \
+            --label "tests-failing" --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "${{ github.repository }}" --body-file issue-body.md || true
+          else
+            gh issue create \
+              --repo "${{ github.repository }}" \
+              --title "🔴 Batería de tests falló en $DATE" \
+              --body-file issue-body.md \
+              --label "tests-failing" || true
+          fi
 
       - name: Fail step if tests failed
         if: steps.tests.outputs.status != '0'
