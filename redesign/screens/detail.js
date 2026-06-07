@@ -1672,7 +1672,7 @@
           '</div>' +
           '<textarea id="ep-ia-input" placeholder="Describe qué quieres decir… ej: «enviarle el catálogo de tuberías PE100 que me pidió y preguntarle por el proyecto del polígono»" ' +
             'style="width:100%; box-sizing:border-box; padding:10px 12px; border:1.5px solid var(--line); border-radius:10px; font-size:13px; ' +
-            'background:var(--bg-card); color:var(--fg-1); resize:none; min-height:80px; margin-bottom:10px; font-family:inherit;"></textarea>' +
+            'background:var(--bg-card); color:var(--fg-1); resize:none; min-height:80px; margin-bottom:10px; font-family:inherit;">' + escape(window._emailPanelSeed || '') + '</textarea>' +
           '<button class="btn btn-primary" style="width:100%; margin-bottom:12px;" ' +
             'onclick="window.Screens.detail._emailGenerar()">' +
             '✨ Generar con IA' +
@@ -1755,13 +1755,20 @@
     );
   }
 
-  function openEmailPanel(studio) {
+  function openEmailPanel(studio, seedInstruction) {
     window._emailPanelStudio  = studio;
-    window._emailPanelActive  = 0;
+    window._emailPanelSeed    = seedInstruction || '';
     window._emailPanelIASub   = '';
     window._emailPanelIABody  = '';
+    // Si llega una instrucción "semilla" (desde una acción pendiente de la
+    // Bandeja), abrir directamente en la plantilla "✨ Redactar con IA" con el
+    // texto de la acción precargado en el campo de instrucción.
+    var _tpls = _emailTemplates(studio);
+    var _iaIdx = -1;
+    for (var _i = 0; _i < _tpls.length; _i++) { if (_tpls[_i].esIA) { _iaIdx = _i; break; } }
+    window._emailPanelActive = (seedInstruction && _iaIdx >= 0) ? _iaIdx : 0;
     window.openSheet('<div class="handle"></div>');  // abre el sheet vacío para que la animación arranque
-    _renderEmailSheet(studio, 0, '', '');
+    _renderEmailSheet(studio, window._emailPanelActive, '', '');
   }
 
   /* ============================================================
@@ -3503,6 +3510,26 @@
     eliminarEmpresa: eliminarEmpresa,
     // Briefing IA
     regenerarBriefingIA: regenerarBriefingIA,
+    // Resolver una acción pendiente (desde la Bandeja o la ficha)
+    openEmailPanel: openEmailPanel,
+    resolverAccion: function (studioId, tipo, descripcion) {
+      var studio = getStudio(studioId);
+      if (!studio) { window.showView('detail', { studioId: studioId }); return; }
+      if (tipo === 'llamada') {
+        var tel = studio.phone ? String(studio.phone).split('/')[0].replace(/[^\d+]/g, '') : '';
+        if (tel) { window.location.href = 'tel:' + tel; }
+        else {
+          if (window.showNotification) window.showNotification('Sin teléfono registrado — abro la ficha', 'info');
+          window.showView('detail', { studioId: studioId });
+        }
+        return;
+      }
+      var seed;
+      if (tipo === 'reunion')       seed = 'Proponer una reunión o visita técnica. Contexto de la acción pendiente: ' + descripcion;
+      else if (tipo === 'material') seed = 'Coordinar por correo la entrega de la muestra/material. Contexto: ' + descripcion;
+      else                          seed = descripcion;   // email (y cualquier otro tipo)
+      openEmailPanel(studio, seed);
+    },
     // Email panel
     _emailChip: function (idx) {
       var studio = window._emailPanelStudio;

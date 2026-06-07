@@ -396,6 +396,7 @@
   }
 
   var _accionesLoading = false;
+  var _accionesById = {};   // id → acción, para resolverla desde el botón sin escapar texto en el onclick
 
   function _loadAcciones(force) {
     if (_accionesLoading && !force) return;
@@ -437,9 +438,13 @@
     }
     var hoy = new Date().toISOString().slice(0, 10);
     var tipoBg = { llamada: '#3b82f6', email: '#8b5cf6', material: '#f59e0b', reunion: '#10b981' };
+    // Etiqueta del botón de resolución según el tipo de acción.
+    var resolveLabels = { email: '✨ Redactar email', reunion: '📅 Proponer fecha', material: '📦 Coordinar entrega', llamada: '📞 Llamar' };
+    _accionesById = {};
     el.innerHTML = (
       '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">' +
         items.slice(0, 30).map(function (it) {
+          _accionesById[it.id] = it;
           var bg = tipoBg[it.tipo] || (it._fromActivity ? '#16a34a' : '#64748b');
           var urgente = it.fechaLimite && it.fechaLimite <= hoy;
           var plazoHtml = it.fechaLimite
@@ -453,6 +458,12 @@
           var btnCompletar = esActiv
             ? '<button class="btn btn-primary" style="font-size:11px; padding:4px 10px; background:#16a34a; border-color:#16a34a;" ' +
                 'onclick="window.Screens.bandeja._completar(\'' + escape(it._studioId) + '\',' + it._activityIdx + ')">✓ Hecho</button>'
+            : '';
+          // Botón de resolución directa: email/reunión/material → compositor IA; llamada → tel:
+          var resolveLabel = resolveLabels[it.tipo];
+          var btnResolver = resolveLabel
+            ? '<button class="btn btn-primary" style="font-size:11px; padding:4px 10px;" ' +
+                'onclick="window.Screens.bandeja._resolver(\'' + escape(String(it.id)) + '\')">' + resolveLabel + '</button>'
             : '';
           return (
             '<div style="background:var(--bg-card); border:1px solid var(--line); border-radius:10px; padding:12px; ' + borderStyle + '">' +
@@ -472,6 +483,7 @@
                 (esActiv ? '' : '"') + escape(it.descripcion) + (esActiv ? '' : '"') +
               '</div>' +
               '<div style="display:flex; gap:6px; flex-wrap:wrap;">' +
+                btnResolver +
                 btnCompletar +
                 '<button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" ' +
                   'onclick="window.Screens.bandeja._descartar(\'' + it.id + '\'' + (esActiv ? ',\'' + escape(it._studioId) + '\',' + it._activityIdx : '') + ')">✕ Descartar</button>' +
@@ -822,5 +834,12 @@
     _descartar: _descartarAccion,
     _completar: _completarAccion,
     _refrescarAcciones: _refrescarAcciones,
+    _resolver: function (id) {
+      var it = _accionesById[id];
+      if (!it) return;
+      if (window.Screens && window.Screens.detail && window.Screens.detail.resolverAccion) {
+        window.Screens.detail.resolverAccion(it.studioId, it.tipo, it.descripcion);
+      }
+    },
   };
 })();
