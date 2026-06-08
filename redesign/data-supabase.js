@@ -94,18 +94,21 @@
 
   function internalToRow(obj) {
     // Inversa: separa campos planos del resto del data JSONB.
-    const row = {
-      id: obj.id != null ? String(obj.id) : undefined,
-      name: obj.name,
-      type: Array.isArray(obj.type) ? obj.type[0] : obj.type,
-      city: typeof obj.city === 'object' && obj.city && 'valor' in obj.city ? obj.city.valor : obj.city,
-      province: typeof obj.province === 'object' && obj.province && 'valor' in obj.province ? obj.province.valor : obj.province,
-      score: typeof obj.score === 'number' ? obj.score : (parseInt(obj.score, 10) || null),
-      priority: obj.priority,
-      status: obj.status,
-      es_cliente_puente: obj.es_cliente_puente === true,
-      fuente_descubrimiento: obj.fuente_descubrimiento || null,
-    };
+    // Solo incluimos las columnas que el caller envía explícitamente. Antes se
+    // ponían score:null / es_cliente_puente:false / fuente_descubrimiento:null
+    // por defecto, de modo que un patch parcial (cambiar estado, guardar un
+    // informe → patch de data) BORRABA esos campos. Ahora un patch parcial solo
+    // toca lo que trae.
+    const row = { id: obj.id != null ? String(obj.id) : undefined };
+    if ('name' in obj) row.name = obj.name;
+    if ('type' in obj) row.type = Array.isArray(obj.type) ? obj.type[0] : obj.type;
+    if ('city' in obj) row.city = (typeof obj.city === 'object' && obj.city && 'valor' in obj.city) ? obj.city.valor : obj.city;
+    if ('province' in obj) row.province = (typeof obj.province === 'object' && obj.province && 'valor' in obj.province) ? obj.province.valor : obj.province;
+    if ('score' in obj) row.score = typeof obj.score === 'number' ? obj.score : (parseInt(obj.score, 10) || null);
+    if ('priority' in obj) row.priority = obj.priority;
+    if ('status' in obj) row.status = obj.status;
+    if ('es_cliente_puente' in obj) row.es_cliente_puente = obj.es_cliente_puente === true;
+    if ('fuente_descubrimiento' in obj) row.fuente_descubrimiento = obj.fuente_descubrimiento || null;
     for (const [pg, js] of STUDIO_FLAT_MAP) {
       if (obj[js] != null) row[pg] = obj[js];
     }

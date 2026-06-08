@@ -467,6 +467,42 @@
 
   function reports(s) { return (s && s.data && s.data.reports) || []; }
   function activities(s) { return (s && s.data && s.data.activities) || []; }
+
+  /* Catálogo GPF para detectar productos tratados en un informe. Cubre las
+     variantes de escritura habituales. */
+  var GPF_PRODUCTOS = [
+    { canon: 'MUTE',         re: /\bmute\b/i },
+    { canon: 'ecoSAN',       re: /eco\s*-?\s*san/i },
+    { canon: 'BIOPIPE',      re: /\bbiopipe/i },
+    { canon: 'PE100',        re: /\bpe\s*-?\s*100\b/i },
+    { canon: 'CONDUSAN',     re: /\bcondusan/i },
+    { canon: 'EUME',         re: /\beume\b/i },
+    { canon: 'PVC presión',  re: /\bpvc\s+presi[óo]n/i },
+  ];
+  /* Devuelve los productos GPF detectados en un informe (array de nombres
+     canónicos). Combina campos estructurados (visita_importada) y texto libre
+     (markdown / notas), así funciona con cualquier formato de informe. */
+  function productosEnInforme(r) {
+    if (!r) return [];
+    var text = [r.notes, r.notes_raw, r.title, r.fileName, r.markdown, r.resumen_ejecutivo]
+      .filter(Boolean).join(' ');
+    var struct = [];
+    if (r.productos) struct = struct.concat(r.productos.presentados || [], r.productos.de_interes || []);
+    var rawP = r.raw_yaml && r.raw_yaml.desarrollo && r.raw_yaml.desarrollo.productos;
+    if (rawP) struct = struct.concat(rawP.presentados || [], rawP.de_interes || []);
+    if (struct.length) text += ' ' + struct.join(' ');
+    var found = [];
+    GPF_PRODUCTOS.forEach(function (p) { if (p.re.test(text) && found.indexOf(p.canon) < 0) found.push(p.canon); });
+    return found;
+  }
+  /* Productos GPF tratados en TODOS los informes de un estudio (unión). */
+  function productosEstudio(s) {
+    var set = [];
+    reports(s).forEach(function (r) {
+      productosEnInforme(r).forEach(function (p) { if (set.indexOf(p) < 0) set.push(p); });
+    });
+    return set;
+  }
   function lastInteraction(s) {
     const ds = [];
     reports(s).forEach(function (r) { if (r && r.date) ds.push(r.date); });
@@ -540,6 +576,8 @@
     readField: readField,
     stripTimestamps: stripTimestamps,
     stripTimestampsDeep: stripTimestampsDeep,
+    productosEnInforme: productosEnInforme,
+    productosEstudio: productosEstudio,
   };
 
   /* ============================================================

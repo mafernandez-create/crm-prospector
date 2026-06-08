@@ -333,6 +333,18 @@
                 escape(statusLabel) +
               '</span>' +
             '</div>' +
+            /* Productos GPF tratados (extraídos de los informes de visita) */
+            (function () {
+              var prods = (U.productosEstudio ? U.productosEstudio(s) : []);
+              if (!prods.length) return '';
+              return '<div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; align-items:center;">' +
+                '<span style="font-size:11px; color:var(--fg-3); font-weight:600;">Productos tratados:</span>' +
+                prods.map(function (p) {
+                  return '<span style="font-size:11px; font-weight:600; padding:2px 9px; border-radius:10px; ' +
+                    'background:var(--gpf-blue-100); color:var(--gpf-blue-700);">' + escape(p) + '</span>';
+                }).join('') +
+              '</div>';
+            })() +
           '</div>' +
           /* Botones header */
           '<div style="display:flex; flex-direction:column; gap:6px; flex:0 0 auto;">' +

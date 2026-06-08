@@ -1528,7 +1528,25 @@
       persistError = e.message || String(e);
     }
 
-    return { success: true, markdown: markdown, persisted: persisted, persistError: persistError };
+    // Avanzar el estado del cliente: una visita con informe implica al menos
+    // una reunión. Solo avanza (nunca retrocede) ni toca estados terminales.
+    let statusChanged = null;
+    if (persisted) {
+      try {
+        const _rank = { nuevo: 0, contactado: 1, reunion: 2, propuesta: 3, negociacion: 4 };
+        const _terminal = ['ganado', 'perdido', 'dormido'];
+        const _raw = window.State && window.State.studiosById && window.State.studiosById[studioId];
+        const _cur = (_raw && _raw.status) || studio.status || 'nuevo';
+        const _target = 'reunion';
+        if (_terminal.indexOf(_cur) < 0 && (_rank[_target] || 0) > (_rank[_cur] || 0)) {
+          await _patchDocActive('studios/' + studioId, { status: _target });
+          if (_raw) _raw.status = _target;
+          statusChanged = _target;
+        }
+      } catch (_) {}
+    }
+
+    return { success: true, markdown: markdown, persisted: persisted, persistError: persistError, statusChanged: statusChanged };
   }
 
   /* Enlaza un informe a un proyecto del estudio: asegura un id estable en el

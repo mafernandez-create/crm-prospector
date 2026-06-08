@@ -150,8 +150,10 @@
       for (const r of reps) {
         if (r && r.date && r.date.indexOf(String(yyyy)) === 0) {
           visitas++;
-          const txt = ((r.notes || '') + ' ' + (r.title || '') + ' ' + (r.fileName || '')).toUpperCase();
-          if (txt.indexOf('MUTE') >= 0) mute++;
+          // Detecta MUTE en el contenido REAL del informe (markdown, notas_raw,
+          // productos estructurados…), no solo en notas/título.
+          const prods = U.productosEnInforme ? U.productosEnInforme(r) : [];
+          if (prods.indexOf('MUTE') >= 0) mute++;
         }
       }
     }
