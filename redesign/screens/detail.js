@@ -818,8 +818,8 @@
                     'style="background:var(--gpf-blue-100); border:none; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; color:var(--gpf-blue-700); font-weight:600; white-space:nowrap;">👁 Ver</button>' +
                   '<button onclick="window.Screens.detail.openEditReportMarkdownModal(\'' + escape(studioId) + '\',' + idx + ')" ' +
                     'style="background:#fef9c3; border:none; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; color:#854d0e; font-weight:600; white-space:nowrap;">✏️ Editar</button>' +
-                  '<button onclick="window.Screens.detail.downloadReportMd(\'' + escape(studioId) + '\',' + idx + ')" ' +
-                    'style="background:#f0fdf4; border:none; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; color:#16a34a; font-weight:600; white-space:nowrap;">⬇ .md</button>'
+                  '<button onclick="window.Screens.detail.downloadReportMarkdownWord(\'' + escape(studioId) + '\',' + idx + ')" ' +
+                    'style="background:#f0fdf4; border:none; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; color:#16a34a; font-weight:600; white-space:nowrap;">📄 Word</button>'
                 : '')) +
             '<button onclick="window.Screens.detail.deleteReport(\'' + escape(studioId) + '\',' + idx + ')" ' +
               'style="background:none; border:1px solid #fecaca; border-radius:6px; padding:4px 8px; cursor:pointer; font-size:12px; color:#dc2626;">🗑️</button>' +
@@ -2762,7 +2762,8 @@
         '</div>' +
         '<div style="display:flex; gap:8px; margin-bottom:14px;">' +
           '<button onclick="window.Screens.detail.downloadReportMd(\'' + escape(studioId) + '\',' + idx + ')" class="btn btn-ghost" style="flex:1; font-size:13px;">⬇ .md</button>' +
-          '<button onclick="window.Screens.detail.openEditReportMarkdownModal(\'' + escape(studioId) + '\',' + idx + ')" class="btn btn-ghost" style="flex:1; font-size:13px;">✏️ Editar</button>' +
+          '<button onclick="window.Screens.detail.downloadReportMarkdownWord(\'' + escape(studioId) + '\',' + idx + ')" class="btn btn-ghost" style="flex:1; font-size:13px;">📄 Word</button>' +
+          '<button onclick="window.Screens.detail.printReportMarkdown(\'' + escape(studioId) + '\',' + idx + ')" class="btn btn-ghost" style="flex:1; font-size:13px;">🖨 Imprimir</button>' +
         '</div>' +
         '<div class="briefing-content" style="font-size:14px; line-height:1.6;">' + mdHtml + '</div>' +
       '</div>'
@@ -2828,6 +2829,75 @@
     } catch (e) {
       if (window.showNotification) window.showNotification('Error al guardar: ' + (e.message || e), 'error');
     }
+  }
+
+  // Resuelve las variables CSS de _md2html a colores concretos (Word no
+  // soporta CSS custom properties; el navegador sí, pero las unificamos).
+  function _resolveReportVars(html) {
+    var MAP = {
+      '--gpf-blue-900': '#0a2d52', '--gpf-blue-700': '#124b8a', '--gpf-blue-500': '#1f72c7',
+      '--gpf-blue-100': '#e6f0fa', '--mute-red': '#c8102e', '--paper-warm': '#f7f5f1',
+      '--fg-1': '#101418', '--fg-2': '#2a3138', '--fg-3': '#5b6672', '--line': '#d7dde3', '--ink-50': '#f2f4f6'
+    };
+    return String(html).replace(/var\((--[a-z0-9\-]+)\)/gi, function (m, n) { return MAP[n] || 'inherit'; });
+  }
+
+  // Documento HTML completo (plantilla GPF) para Word e impresión de un informe_v2.
+  function _reportMarkdownDoc(r, sName) {
+    var rawHtml = (window.Screens.informe && window.Screens.informe._md2html)
+      ? window.Screens.informe._md2html(r.markdown || '')
+      : '<pre>' + escape(r.markdown || '') + '</pre>';
+    var body = _resolveReportVars(rawHtml);
+    var fechaTxt = (U && U.formatDateES ? U.formatDateES(r.date) : null) || r.date || '';
+    var header =
+      '<div style="border-bottom:2px solid #124b8a; padding-bottom:8px; margin-bottom:16px;">' +
+        '<div style="font-size:20px; font-weight:700; color:#0a2d52;">Informe de visita</div>' +
+        '<div style="font-size:13px; color:#2a3138; margin-top:2px;">' + escape(sName) +
+          (fechaTxt ? ' · ' + escape(fechaTxt) : '') + (r.comercial ? ' · ' + escape(r.comercial) : '') + '</div>' +
+        '<div style="font-size:11px; color:#5b6672;">Manuel Fernández · Prescriptor GPF · Ferroplast &amp; Tuyper</div>' +
+      '</div>';
+    return '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+      'xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' +
+      '<head><meta charset="utf-8"><title>Informe de visita · ' + escape(sName) + '</title>' +
+      '<style>body{font-family:Calibri,Arial,sans-serif;font-size:11pt;line-height:1.5;color:#101418;margin:24px;}' +
+      'table{border-collapse:collapse;}a{color:#124b8a;}@media print{body{margin:0;}}</style></head>' +
+      '<body>' + header + body + '</body></html>';
+  }
+
+  function downloadReportMarkdownWord(studioId, idx) {
+    var raw = State.studiosById && State.studiosById[studioId];
+    if (!raw) return;
+    var reports = arr((raw.data && raw.data.reports) || []);
+    var r = reports[idx];
+    if (!r || !r.markdown) return;
+    var studio = getStudio(studioId);
+    var sName = (studio && studio.name) || String(studioId);
+    var html = _reportMarkdownDoc(r, sName);
+    var safe = String(sName).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+    var filename = 'Informe_Visita_' + safe + '_' + (r.date || 'sin_fecha').replace(/[^0-9-]/g, '') + '.doc';
+    var blob = new Blob(['﻿', html], { type: 'application/msword' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 1000);
+  }
+
+  function printReportMarkdown(studioId, idx) {
+    var raw = State.studiosById && State.studiosById[studioId];
+    if (!raw) return;
+    var reports = arr((raw.data && raw.data.reports) || []);
+    var r = reports[idx];
+    if (!r || !r.markdown) return;
+    var studio = getStudio(studioId);
+    var sName = (studio && studio.name) || String(studioId);
+    var w = window.open('', '_blank');
+    if (!w) { if (window.showNotification) window.showNotification('Permite las ventanas emergentes para imprimir', 'error'); return; }
+    w.document.open();
+    w.document.write(_reportMarkdownDoc(r, sName));
+    w.document.close();
+    w.focus();
+    setTimeout(function () { try { w.print(); } catch (_) {} }, 350);
   }
 
   function downloadReportWord(studioId, idx) {
@@ -3605,6 +3675,8 @@
     // Informes markdown (informe_v2)
     openReportMarkdownSheet: openReportMarkdownSheet,
     downloadReportMd: downloadReportMd,
+    downloadReportMarkdownWord: downloadReportMarkdownWord,
+    printReportMarkdown: printReportMarkdown,
     openEditReportMarkdownModal: openEditReportMarkdownModal,
     saveReportMarkdown: saveReportMarkdown,
     // Contacto
