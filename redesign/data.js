@@ -1438,28 +1438,47 @@
 
     // Persistir como informe_v2 en data.reports[] del studio
     const isoDate = new Date().toISOString().replace(/[:.]/g, '-');
+    const reportEntry = {
+      iso_date: isoDate,
+      date: fecha,
+      generated_at: new Date().toISOString(),
+      modalidad: modalidad,
+      comercial: comercial,
+      prescripcion: prescripcion,
+      notes_raw: notas,
+      markdown: markdown,
+      formato: 'informe_v2',
+      cargo_interlocutor: cargoInterlocutor || null,
+      tipo_visita: tipoVisita || null,
+      project_id: payload.projectId || null,        // enlace a data.projects[].id (opcional)
+      project_nombre: payload.projectNombre || null,
+      title: 'Visita ' + fecha + ' · ' + comercial + (payload.projectNombre ? ' · ' + payload.projectNombre : ''),
+    };
+    let persisted = false, persistError = null;
     try {
-      await _patchDocActive('studios/' + studioId + '/reports/' + isoDate, {
-        iso_date: isoDate,
-        date: fecha,
-        generated_at: new Date().toISOString(),
-        modalidad: modalidad,
-        comercial: comercial,
-        prescripcion: prescripcion,
-        notes_raw: notas,
-        markdown: markdown,
-        formato: 'informe_v2',
-        cargo_interlocutor: cargoInterlocutor || null,
-        tipo_visita: tipoVisita || null,
-        project_id: payload.projectId || null,        // enlace a data.projects[].id (opcional)
-        project_nombre: payload.projectNombre || null,
-        title: 'Visita ' + fecha + ' · ' + comercial + (payload.projectNombre ? ' · ' + payload.projectNombre : ''),
-      });
+      await _patchDocActive('studios/' + studioId + '/reports/' + isoDate, reportEntry);
+      persisted = true;
+      // Sincronizar State EN MEMORIA para que la ficha muestre el informe al
+      // instante (antes solo se escribía en Supabase y parecía no guardarse
+      // hasta recargar la app).
+      try {
+        const raw = window.State && window.State.studiosById && window.State.studiosById[studioId];
+        if (raw) {
+          raw.data = raw.data || {};
+          raw.data.reports = (raw.data.reports || []).slice();
+          raw.data.reports.push(reportEntry);
+          raw.reports = raw.data.reports;
+        }
+        // Invalidar la cache local: una recarga releerá de Supabase (que ya
+        // tiene el informe) en vez de servir la copia antigua.
+        try { localStorage.removeItem(CACHE_KEY); } catch (_) {}
+      } catch (_) {}
     } catch (e) {
       console.warn('[redesign/data] persistencia report falló:', e.message);
+      persistError = e.message || String(e);
     }
 
-    return { success: true, markdown: markdown, persisted: true };
+    return { success: true, markdown: markdown, persisted: persisted, persistError: persistError };
   }
 
   /* Enlaza un informe a un proyecto del estudio: asegura un id estable en el

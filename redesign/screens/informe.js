@@ -490,7 +490,11 @@
 
       if (res && res.success && res.markdown) {
         clearDraft(id);
-        _showInformeResultado(id, res.markdown, draft.fecha || new Date().toISOString().slice(0, 10));
+        if (window.showNotification) {
+          if (res.persisted) window.showNotification('✓ Informe guardado en la ficha', 'success');
+          else window.showNotification('⚠️ Informe generado pero NO se pudo guardar en la ficha — descárgalo como .md', 'error');
+        }
+        _showInformeResultado(id, res.markdown, draft.fecha || new Date().toISOString().slice(0, 10), res.persisted, res.persistError);
       } else {
         throw new Error((res && (res.error || res.message)) || 'Respuesta no reconocida del servidor');
       }
@@ -633,13 +637,21 @@
   /* ============================================================
      RESULTADO — renderiza el markdown del informe v2
      ============================================================ */
-  function _showInformeResultado(id, markdown, fecha) {
+  function _showInformeResultado(id, markdown, fecha, persisted, persistError) {
     const empresa = getName(id);
     const v = document.getElementById('view-informe');
     if (!v) return;
 
     _lastMarkdown = markdown; // cachear para descarga
     var html = _md2html(markdown);
+
+    // Banner de estado de guardado: verde si quedó en la ficha, rojo si falló.
+    var bannerHtml = (persisted === false)
+      ? '<div style="max-width:800px; margin:0 auto; padding:12px 24px; background:#fef2f2; color:#991b1b; ' +
+          'border-bottom:1px solid #fecaca; font-size:13px;">⚠️ El informe se generó pero <strong>no se pudo guardar en la ficha</strong>' +
+          (persistError ? ' (' + escape(persistError) + ')' : '') + '. Descárgalo como <strong>.md</strong> para no perderlo.</div>'
+      : '<div style="max-width:800px; margin:0 auto; padding:10px 24px; background:#f0fdf4; color:#166534; ' +
+          'border-bottom:1px solid #bbf7d0; font-size:13px;">✓ Guardado en la ficha de <strong>' + escape(empresa) + '</strong> · pulsa «Ver ficha» para consultarlo.</div>';
 
     v.innerHTML =
       // Barra superior con botones
@@ -668,6 +680,8 @@
           '</button>' +
         '</div>' +
       '</div>' +
+      // Banner de guardado
+      bannerHtml +
       // Contenido markdown
       '<div class="briefing-content" style="max-width:800px; margin:0 auto; padding:32px 24px 80px;">' +
         html +
