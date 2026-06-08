@@ -227,8 +227,14 @@
     var TIPOS = ['Arquitectura', 'Ingeniería', 'C.R. Regantes', 'Ciclo del agua',
                  'Promotora · Constructora', 'Administración pública', 'Hotel / Hostelería',
                  'Hospital', 'Distribuidor', 'Otros'];
+    // Zona de trabajo real de Manolo (18 provincias, ver mapa): Andalucía completa
+    // + Extremadura + Castilla-La Mancha (Albacete/C.Real/Cuenca/Toledo) + Alicante
+    // + Murcia + Canarias. NO incluye Guadalajara, Valencia, Castellón ni el norte.
     var PROVINCIAS = ['Almería', 'Cádiz', 'Córdoba', 'Granada', 'Huelva',
-                      'Jaén', 'Málaga', 'Sevilla', 'Murcia', 'Badajoz', 'Otras'];
+                      'Jaén', 'Málaga', 'Sevilla', 'Badajoz', 'Cáceres',
+                      'Albacete', 'Ciudad Real', 'Cuenca', 'Toledo',
+                      'Alicante', 'Murcia', 'Las Palmas', 'Santa Cruz de Tenerife',
+                      'Otras'];
 
     var tipoOpts = TIPOS.map(function (t) {
       return '<option value="' + t + '">' + t + '</option>';
