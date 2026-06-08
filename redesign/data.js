@@ -1204,6 +1204,9 @@
     const notas = payload.notes || payload.notas || '';
     const cargoInterlocutor = payload.cargoInterlocutor || '';
     const tipoVisita = payload.tipoVisita || 'seguimiento';
+    // Formato de salida: 'estandar' (registro comercial de 8 secciones, sin
+    // SPIN) o 'spin' (coaching). Por defecto, estándar.
+    const formato = payload.formato === 'spin' ? 'spin' : 'estandar';
 
     if (modalidad === 'real' && !notas.trim()) {
       throw new Error('Necesitas escribir las notas de la visita antes de generar el informe.');
@@ -1429,8 +1432,54 @@
       '}\n' +
       '```';
 
+    // ── Formato ESTÁNDAR (registro comercial de 8 secciones, SIN SPIN) ──
+    // Sustituye el prompt de coaching cuando el usuario elige "Estándar".
+    // Funciona igual con notas, transcripción o ambas (no requiere grabación).
+    let _sysPrompt = systemPrompt, _userMsg = userMsg;
+    if (formato === 'estandar') {
+      _sysPrompt =
+        'Eres el asistente que redacta INFORMES DE VISITA COMERCIAL profesionales para Manuel Fernández (Manolo), prescriptor de Grupo Plásticos Ferro (GPF) en Andalucía/Extremadura/Levante. GPF fabrica sistemas de tubería y saneamiento: BIOPIPE PVC-O, ecoSAN, PE 100, CONDUSAN, MUTE, EUME, PVC presión.\n\n' +
+        'El objetivo de Manolo es que el proyectista o cliente especifique la marca GPF en el pliego técnico antes del concurso.\n\n' +
+        '## Tu tarea\n' +
+        'Transforma las notas y/o la transcripción de la visita en un INFORME ESTÁNDAR de registro comercial, claro y profesional, orientado a la ficha del cliente. Sirve igual con solo notas, solo transcripción o ambas.\n\n' +
+        '## Reglas absolutas\n' +
+        '- Devuelve ÚNICAMENTE el markdown del informe. Sin preámbulo ni explicaciones.\n' +
+        '- NO incluyas análisis SPIN, autoevaluación, apartados de "mi desempeño", ejercicios de práctica, ratios de habla, momentos perdidos ni métricas de coaching. Es un registro comercial, NO una herramienta de coaching.\n' +
+        '- No inventes datos que no estén en las notas. Si algo no consta, usa [SIN DATO] o simplemente omítelo.\n' +
+        '- PROHIBIDO incluir marcas de tiempo de ningún tipo ([MM:SS], rangos como 01:47–02:34, "al minuto 2:30", etc.), AUNQUE aparezcan en el input. El informe es un registro comercial profesional y NO puede parecer una transcripción.\n' +
+        '- Tono profesional, directo y claro, en español.';
+      _userMsg =
+        'Genera el INFORME ESTÁNDAR de esta visita con la estructura EXACTA siguiente. Las indicaciones entre paréntesis son para ti: ejecútalas y no las incluyas en el resultado.\n\n' +
+        crmCtx + '\n\n' +
+        'FECHA: ' + fecha + '\n' +
+        'COMERCIAL: ' + comercial + '\n' +
+        'TIPO DE VISITA: ' + tipoVisitaLabel + '\n' +
+        (cargoInterlocutor ? 'CARGO DEL INTERLOCUTOR: ' + cargoInterlocutor + '\n' : '') +
+        (prescripcion ? 'Visita de prescripción.\n' : '') +
+        '\n## HISTÓRICO DE VISITAS ANTERIORES\n' + histCtx + '\n\n' +
+        '## NOTAS / TRANSCRIPCIÓN DE LA VISITA\n' + notas + '\n\n' +
+        '---\n\n' +
+        '# Informe de visita — ' + studioName + '\n\n' +
+        '## 1. Datos generales\n' +
+        '(tabla markdown de dos columnas Campo | Valor con: Empresa, Tipo, Ciudad / Provincia, Fecha, Tipo de visita, Modalidad, Interlocutor principal, Estado tras la visita)\n\n' +
+        '## 2. Personas contactadas\n' +
+        '(tabla markdown: Nombre | Cargo | Observaciones. Marca con ⭐ a los decisores o contactos clave. Si no consta el nombre, usa el cargo en su lugar.)\n\n' +
+        '## 3. Desarrollo de la visita\n' +
+        '(2-4 párrafos narrativos: qué se trató, qué productos GPF se presentaron, reacciones del cliente y resultado de la visita)\n\n' +
+        '## 4. Contexto estratégico\n' +
+        '(análisis breve: tipo de cliente, focos, por qué es relevante para GPF, ámbitos o proyectos donde puede prescribir)\n\n' +
+        '## 5. Oportunidades detectadas\n' +
+        '(lista numerada de proyectos u oportunidades concretas con los productos GPF relevantes para cada una; si no hay, escribe "Sin oportunidades concretas detectadas en esta visita.")\n\n' +
+        '## 6. Compromisos y próximos pasos\n' +
+        '(lista numerada de acciones concretas y accionables: qué hará GPF/Manolo y qué hará el cliente, con responsable cuando se sepa)\n\n' +
+        '## 7. Observaciones adicionales\n' +
+        '(bullets con datos sueltos relevantes: contactos obtenidos, notas de la empresa, detalles a recordar; omite la sección entera si no hay nada)\n\n' +
+        '## 8. Evaluación general\n' +
+        '(tabla markdown Campo | Valor con: Nivel de interés, Potencial del cliente, Plazo estimado, Productos prioritarios, Estado de la cuenta)';
+    }
+
     const markdown = _stripTimestamps(
-      (await _claudeCall(systemPrompt, userMsg, 8192))
+      (await _claudeCall(_sysPrompt, _userMsg, 8192))
         .replace(/^\s*```(?:markdown)?\s*\n?/, '')
         .replace(/\s*```\s*$/, '')
         .trim()
@@ -1448,6 +1497,7 @@
       notes_raw: notas,
       markdown: markdown,
       formato: 'informe_v2',
+      tipo_informe: formato,          // 'estandar' | 'spin'
       cargo_interlocutor: cargoInterlocutor || null,
       tipo_visita: tipoVisita || null,
       project_id: payload.projectId || null,        // enlace a data.projects[].id (opcional)

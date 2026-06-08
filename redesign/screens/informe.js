@@ -240,6 +240,7 @@
     const notas = draft.notes || '';
     const cargo = draft.cargoInterlocutor || '';
     const tipoVisita = draft.tipoVisita || 'seguimiento';
+    const formato = draft.formato || 'estandar';   // 'estandar' | 'spin'
     // v: informe por proyecto (opcional) — solo proyectos del propio estudio
     const _studioObj = (window.State && window.State.studiosById && window.State.studiosById[id]) || {};
     const _projs = (_studioObj.data && _studioObj.data.projects) || [];
@@ -271,6 +272,19 @@
         'background:var(--ink-100); border-radius:10px; padding:4px; margin-bottom:20px;">' +
         segBtn('real',     'Visita real', modalidad === 'real') +
         segBtn('ficticia', 'Ficticia',     modalidad === 'ficticia') +
+      '</div>' +
+
+      // Formato del informe segmented
+      '<label class="field-label">Formato del informe</label>' +
+      '<div id="seg-formato" style="display:grid; grid-template-columns:1fr 1fr; gap:0; ' +
+        'background:var(--ink-100); border-radius:10px; padding:4px; margin-bottom:6px;">' +
+        segBtnFmt('estandar', '📋 Estándar',     formato === 'estandar') +
+        segBtnFmt('spin',     '🎯 Coaching SPIN', formato === 'spin') +
+      '</div>' +
+      '<div id="fmt-help" style="font-size:12px; color:var(--fg-3); margin-bottom:20px; line-height:1.4;">' +
+        (formato === 'spin'
+          ? 'Informe de coaching con análisis SPIN y autoevaluación.'
+          : 'Informe de visita profesional (8 secciones) para la ficha del cliente. Sin SPIN.') +
       '</div>' +
 
       // Fecha
@@ -361,6 +375,24 @@
     );
   }
 
+  function segBtnFmt(val, label, active) {
+    if (active) {
+      return (
+        '<button data-formato="' + val + '" style="padding:12px; text-align:center; font-size:15px; ' +
+          'font-weight:600; background:#fff; border-radius:7px; color:var(--gpf-blue-900); ' +
+          'box-shadow:0 1px 2px rgba(10,45,82,.08); border:0; cursor:pointer; min-height:44px;">' +
+          escape(label) +
+        '</button>'
+      );
+    }
+    return (
+      '<button data-formato="' + val + '" style="padding:12px; text-align:center; font-size:15px; ' +
+        'font-weight:500; background:transparent; color:var(--fg-3); border:0; cursor:pointer; min-height:44px;">' +
+        escape(label) +
+      '</button>'
+    );
+  }
+
   function stickyCta(id) {
     return (
       '<div style="position:absolute; left:0; right:0; bottom:0; ' +
@@ -403,6 +435,31 @@
           if (v === draft.modalidad) return;
           draft.modalidad = v;
           updateSeg(v);
+          autosave(id, draft);
+        });
+      });
+    }
+
+    // Formato del informe segmented
+    const segF = document.getElementById('seg-formato');
+    if (segF) {
+      segF.querySelectorAll('[data-formato]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const v = btn.getAttribute('data-formato');
+          if (v === (draft.formato || 'estandar')) return;
+          draft.formato = v;
+          segF.querySelectorAll('[data-formato]').forEach(function (b) {
+            const act = b.getAttribute('data-formato') === v;
+            b.style.background  = act ? '#fff' : 'transparent';
+            b.style.color       = act ? 'var(--gpf-blue-900)' : 'var(--fg-3)';
+            b.style.fontWeight  = act ? '600' : '500';
+            b.style.boxShadow   = act ? '0 1px 2px rgba(10,45,82,.08)' : 'none';
+            b.style.borderRadius = act ? '7px' : '0';
+          });
+          const help = document.getElementById('fmt-help');
+          if (help) help.textContent = v === 'spin'
+            ? 'Informe de coaching con análisis SPIN y autoevaluación.'
+            : 'Informe de visita profesional (8 secciones) para la ficha del cliente. Sin SPIN.';
           autosave(id, draft);
         });
       });
@@ -457,11 +514,13 @@
       return;
     }
 
+    const _formato = draft.formato || 'estandar';
+
     // Estado loading — helper compartido de states.js (convención del proyecto)
     if (window.States && window.States.showLoading) {
       window.States.showLoading('view-informe', {
-        title: 'Analizando visita con IA',
-        sub: 'Aplicando metodología SPIN… puede tardar 20–40 s',
+        title: 'Generando informe con IA',
+        sub: (_formato === 'spin' ? 'Aplicando metodología SPIN' : 'Estructurando el informe estándar') + '… puede tardar 20–40 s',
       });
     }
 
@@ -483,6 +542,7 @@
         notes:              draft.notes,
         cargoInterlocutor:  draft.cargoInterlocutor || '',
         tipoVisita:         draft.tipoVisita || 'seguimiento',
+        formato:            _formato,
         projectId:          _projectId,
         projectNombre:      _projectNombre,
       };
