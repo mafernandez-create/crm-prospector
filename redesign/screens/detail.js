@@ -2864,7 +2864,112 @@
       '<body>' + header + body + '</body></html>';
   }
 
-  function downloadReportMarkdownWord(studioId, idx) {
+  /* ============================================================
+     .docx REAL (OOXML vía JSZip) — markdown → Word nativo
+     Antes generábamos HTML disfrazado de .doc: Word lo trataba como
+     "página web" y al guardar creaba una carpeta _files y no dejaba
+     guardar con el mismo nombre. Un .docx real evita ambos problemas.
+     ============================================================ */
+  function _docxEsc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function _docxRuns(text, baseRpr) {
+    baseRpr = baseRpr || '';
+    var parts = String(text || '').split(/(\*\*[^*]+\*\*)/g);
+    var out = '';
+    parts.forEach(function (p) {
+      if (!p) return;
+      var bold = /^\*\*[\s\S]+\*\*$/.test(p);
+      var t = (bold ? p.slice(2, -2) : p)
+        .replace(/\*([^*]+)\*/g, '$1').replace(/`([^`]+)`/g, '$1').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
+      var rpr = baseRpr + (bold ? '<w:b/>' : '');
+      out += '<w:r>' + (rpr ? '<w:rPr>' + rpr + '</w:rPr>' : '') + '<w:t xml:space="preserve">' + _docxEsc(t) + '</w:t></w:r>';
+    });
+    return out || '<w:r><w:t xml:space="preserve"></w:t></w:r>';
+  }
+  function _docxP(runs, pPr) { return '<w:p>' + (pPr ? '<w:pPr>' + pPr + '</w:pPr>' : '') + runs + '</w:p>'; }
+  function _docxHeading(text, level) {
+    var sz = level <= 1 ? '34' : level === 2 ? '28' : '24';
+    var color = level === 2 ? '124B8A' : '0A2D52';
+    var t = String(text || '').replace(/\*\*/g, '').replace(/\*([^*]+)\*/g, '$1');
+    return _docxP('<w:r><w:rPr><w:b/><w:color w:val="' + color + '"/><w:sz w:val="' + sz + '"/></w:rPr><w:t xml:space="preserve">' + _docxEsc(t) + '</w:t></w:r>',
+      '<w:spacing w:before="240" w:after="80"/>');
+  }
+  function _docxCell(text, header) {
+    return '<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/>' + (header ? '<w:shd w:val="clear" w:fill="0A2D52"/>' : '') + '</w:tcPr>' +
+      _docxP(_docxRuns(text, header ? '<w:b/><w:color w:val="FFFFFF"/>' : '')) + '</w:tc>';
+  }
+  function _docxTable(headerCells, rows) {
+    var borders = '<w:tblBorders>' + ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map(function (b) {
+      return '<w:' + b + ' w:val="single" w:sz="4" w:space="0" w:color="D7DDE3"/>';
+    }).join('') + '</w:tblBorders>';
+    var tbl = '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/>' + borders + '</w:tblPr>';
+    tbl += '<w:tr>' + headerCells.map(function (c) { return _docxCell(c, true); }).join('') + '</w:tr>';
+    rows.forEach(function (row) { tbl += '<w:tr>' + row.map(function (c) { return _docxCell(c, false); }).join('') + '</w:tr>'; });
+    return tbl + '</w:tbl>' + _docxP('');
+  }
+  function _markdownToDocxBody(markdown) {
+    var lines = String(markdown || '').split('\n'), body = '', i = 0;
+    function isSep(l) { return /^\|?[\s:\-]+(\|[\s:\-]+)+\|?$/.test((l || '').trim()); }
+    while (i < lines.length) {
+      var line = lines[i].replace(/\s+$/, '');
+      if (/^\s*\|/.test(line) && i + 1 < lines.length && isSep(lines[i + 1])) {
+        var hdr = line.trim().replace(/^\||\|$/g, '').split('|').map(function (c) { return c.trim(); });
+        i += 2; var rows = [];
+        while (i < lines.length && /^\s*\|/.test(lines[i])) {
+          rows.push(lines[i].trim().replace(/^\||\|$/g, '').split('|').map(function (c) { return c.trim(); })); i++;
+        }
+        body += _docxTable(hdr, rows); continue;
+      }
+      var h = line.match(/^(#{1,6})\s+(.*)$/);
+      if (h) { body += _docxHeading(h[2], h[1].length); i++; continue; }
+      if (/^\s*---+\s*$/.test(line)) { body += _docxP('', '<w:pBdr><w:bottom w:val="single" w:sz="4" w:space="1" w:color="D7DDE3"/></w:pBdr>'); i++; continue; }
+      var ul = line.match(/^\s*[-*]\s+(.*)$/);
+      if (ul) { body += _docxP('<w:r><w:t xml:space="preserve">• </w:t></w:r>' + _docxRuns(ul[1]), '<w:ind w:left="360"/>'); i++; continue; }
+      var ol = line.match(/^\s*(\d+)\.\s+(.*)$/);
+      if (ol) { body += _docxP('<w:r><w:t xml:space="preserve">' + ol[1] + '. </w:t></w:r>' + _docxRuns(ol[2]), '<w:ind w:left="360"/>'); i++; continue; }
+      var bq = line.match(/^\s*>\s?(.*)$/);
+      if (bq) { body += _docxP(_docxRuns(bq[1], '<w:i/><w:color w:val="5B6672"/>'), '<w:ind w:left="360"/>'); i++; continue; }
+      if (line.trim() === '') { i++; continue; }
+      body += _docxP(_docxRuns(line)); i++;
+    }
+    return body;
+  }
+  function _markdownToDocxBlob(markdown, titulo, subtitulo) {
+    if (typeof JSZip === 'undefined') return null;
+    var header = '';
+    if (titulo) header += _docxP('<w:r><w:rPr><w:b/><w:color w:val="0A2D52"/><w:sz w:val="40"/></w:rPr><w:t xml:space="preserve">' + _docxEsc(titulo) + '</w:t></w:r>');
+    if (subtitulo) header += _docxP('<w:r><w:rPr><w:color w:val="5B6672"/><w:sz w:val="20"/></w:rPr><w:t xml:space="preserve">' + _docxEsc(subtitulo) + '</w:t></w:r>',
+      '<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="4" w:color="124B8A"/></w:pBdr><w:spacing w:after="200"/>');
+    var documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' +
+      header + _markdownToDocxBody(markdown) +
+      '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>' +
+      '</w:body></w:document>';
+    var contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>';
+    var rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
+    var zip = new JSZip();
+    zip.file('[Content_Types].xml', contentTypes);
+    zip.file('_rels/.rels', rels);
+    zip.file('word/document.xml', documentXml);
+    return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  }
+  function _triggerDownload(blob, filename) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 1000);
+  }
+
+  async function downloadReportMarkdownWord(studioId, idx) {
     var raw = State.studiosById && State.studiosById[studioId];
     if (!raw) return;
     var reports = arr((raw.data && raw.data.reports) || []);
@@ -2872,15 +2977,18 @@
     if (!r || !r.markdown) return;
     var studio = getStudio(studioId);
     var sName = (studio && studio.name) || String(studioId);
-    var html = _reportMarkdownDoc(r, sName);
     var safe = String(sName).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '');
-    var filename = 'Informe_Visita_' + safe + '_' + (r.date || 'sin_fecha').replace(/[^0-9-]/g, '') + '.doc';
-    var blob = new Blob(['﻿', html], { type: 'application/msword' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    document.body.appendChild(a); a.click();
-    setTimeout(function () { URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 1000);
+    var fechaTxt = (U && U.formatDateES ? U.formatDateES(r.date) : null) || r.date || '';
+    var subtitulo = (fechaTxt ? fechaTxt + ' · ' : '') + 'Manuel Fernández · Prescriptor GPF · Ferroplast & Tuyper';
+    var blob = null;
+    try { blob = await _markdownToDocxBlob(r.markdown, 'Informe de visita — ' + sName, subtitulo); } catch (e) { blob = null; }
+    if (blob) {
+      _triggerDownload(blob, 'Informe_Visita_' + safe + '_' + (r.date || 'sin_fecha').replace(/[^0-9-]/g, '') + '.docx');
+    } else {
+      // Fallback (JSZip ausente): HTML-as-doc como antes.
+      _triggerDownload(new Blob(['﻿', _reportMarkdownDoc(r, sName)], { type: 'application/msword' }),
+        'Informe_Visita_' + safe + '_' + (r.date || 'sin_fecha').replace(/[^0-9-]/g, '') + '.doc');
+    }
   }
 
   function printReportMarkdown(studioId, idx) {
