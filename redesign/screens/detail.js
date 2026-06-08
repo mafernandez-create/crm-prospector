@@ -221,11 +221,42 @@
     }
   }
 
+  /* Aviso persistente: ficha nueva sin datos de investigación (la auto-
+     investigación falló o no encontró nada — típicamente una URL incorrecta).
+     Se muestra en la ficha hasta que tenga equipo o descripción. */
+  function _enrichBanner(s) {
+    var team = (s.data && s.data.team) || s.team || [];
+    var desc = (s.data && s.data.description) || s.description || '';
+    var status = s.status || s.estado || '';
+    if (status !== 'nuevo') return '';
+    if ((team && team.length) || String(desc).trim()) return '';   // ya investigada
+    var c = (s.data && s.data.contact) || {};
+    var web = (c.web && c.web.valor) || c.web || s.web || '';
+    var hint = web
+      ? 'Revisa que la URL de la web sea correcta (<strong>' + escape(web) + '</strong>) y vuelve a investigar.'
+      : 'Añade la URL de su web para que la investigación pueda completar la ficha.';
+    return (
+      '<div style="background:#fffbeb; border:1px solid #fde68a; border-radius:12px; padding:14px 16px; margin:12px 0;">' +
+        '<div style="display:flex; gap:10px; align-items:flex-start;">' +
+          '<span style="font-size:20px; flex:0 0 auto;">🔍</span>' +
+          '<div style="flex:1; min-width:0;">' +
+            '<div style="font-size:14px; font-weight:700; color:#92400e; margin-bottom:2px;">Ficha sin investigar</div>' +
+            '<div style="font-size:13px; color:#92400e; line-height:1.45;">No hay equipo ni descripción: la investigación automática no encontró datos. ' + hint + '</div>' +
+            '<div style="margin-top:10px;">' +
+              '<button class="btn btn-primary" data-action="enrich" style="font-size:13px; padding:6px 12px;">🔍 Investigar ahora</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
   function renderFull(s) {
     const isMobile = window.innerWidth < 700;
     return (
       '<div style="max-width:720px; margin:0 auto; padding-bottom:60px;">' +
         headerBlock(s) +
+        _enrichBanner(s) +
         tabBar(s) +
         '<div id="detail-panel" style="margin-top:16px;">' +
           renderPanel(s, _tab) +
