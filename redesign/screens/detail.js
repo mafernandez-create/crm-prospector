@@ -3008,13 +3008,114 @@
     setTimeout(function () { try { w.print(); } catch (_) {} }, 350);
   }
 
-  function downloadReportWord(studioId, idx) {
+  // Convierte un informe estructurado (visita_importada) a markdown de 8
+  // secciones, para generar el .docx real con el mismo conversor.
+  function _visitaImportadaToMd(r, studio) {
+    function sv(v) { return (v === null || v === undefined || v === '' || v === 'N/A') ? null : v; }
+    function arrF(v) { return Array.isArray(v) ? v : []; }
+    var y = r.raw_yaml || {};
+    var vis = y.visita || {}, inter = y.interlocutores || {}, dev = y.desarrollo || {};
+    var ev = y.evaluacion || {}, emp = y.actualizacion_empresa || {};
+    var nombre = (studio && studio.name) || vis.studio_nombre || r.title || '';
+    var tipo = studio && studio.type ? (Array.isArray(studio.type) ? studio.type.join(', ') : studio.type) : '';
+    var ciudad = vis.ciudad || (studio && ((studio.city && studio.city.valor) || studio.city)) || '';
+    var prov = vis.provincia || (studio && ((studio.province && studio.province.valor) || studio.province)) || '';
+    var L = [];
+    L.push('# Informe de visita — ' + nombre, '');
+    // 1
+    L.push('## 1. Datos generales', '', '| Campo | Valor |', '|---|---|');
+    L.push('| Empresa | ' + nombre + ' |');
+    if (tipo) L.push('| Tipo | ' + tipo + ' |');
+    L.push('| Ciudad / Provincia | ' + [ciudad, prov].filter(Boolean).join(' / ') + ' |');
+    if (sv(r.date || vis.fecha)) L.push('| Fecha | ' + (r.date || vis.fecha) + ' |');
+    if (sv(vis.hora_inicio || r.hora_inicio)) L.push('| Hora | ' + (vis.hora_inicio || r.hora_inicio) + ' |');
+    var dur = (vis.duracion_minutos != null ? vis.duracion_minutos : r.duracion_minutos);
+    if (sv(dur)) L.push('| Duración | ' + dur + ' min |');
+    if (sv(vis.tipo_visita || r.tipo_visita)) L.push('| Tipo de visita | ' + (vis.tipo_visita || r.tipo_visita) + ' |');
+    if (sv(vis.modalidad || r.modalidad)) L.push('| Modalidad | ' + (vis.modalidad || r.modalidad) + ' |');
+    if (sv(ev.nuevo_status || r.nuevo_status)) L.push('| Estado tras visita | ' + (ev.nuevo_status || r.nuevo_status) + ' |');
+    L.push('');
+    // 2
+    L.push('## 2. Personas contactadas', '', '| Nombre | Cargo | Observaciones |', '|---|---|---|');
+    var prin = inter.principal || {};
+    L.push('| ' + (sv(prin.nombre) || sv(r.interlocutor_nombre) || sv(prin.cargo) || '—') +
+      ((prin.es_decision_maker || r.es_decision_maker) ? ' ⭐' : '') + ' | ' +
+      (sv(prin.cargo) || sv(r.cargo_interlocutor) || '—') + ' | ' +
+      (sv(prin.perfil_comunicacion) || 'Interlocutor principal') + ' |');
+    arrF(inter.otros_asistentes).forEach(function (a) {
+      if (!a || (!sv(a.nombre) && !sv(a.cargo))) return;
+      L.push('| ' + (sv(a.nombre) || sv(a.cargo) || '—') + (a.es_decision_maker ? ' ⭐' : '') + ' | ' + (sv(a.cargo) || '—') + ' | — |');
+    });
+    L.push('');
+    // 3
+    L.push('## 3. Desarrollo de la visita', '');
+    if (sv(dev.resumen_ejecutivo) || sv(r.resumen_ejecutivo)) L.push(sv(dev.resumen_ejecutivo) || sv(r.resumen_ejecutivo), '');
+    // 4
+    var puntos = arrF(dev.puntos_clave || r.puntos_clave).filter(Boolean);
+    if (puntos.length || sv(emp.notas_empresa)) {
+      L.push('## 4. Contexto estratégico', '');
+      puntos.forEach(function (p) { L.push('- ' + p); });
+      if (sv(emp.notas_empresa)) { L.push(''); L.push(emp.notas_empresa); }
+      L.push('');
+    }
+    // 5
+    var proys = arrF(y.oportunidades_detectadas && y.oportunidades_detectadas.proyectos).filter(function (p) { return p && sv(p.nombre); });
+    L.push('## 5. Oportunidades detectadas', '');
+    if (proys.length) proys.forEach(function (p, i) {
+      var prod = arrF(p.productos_relevantes).length ? ' — Productos GPF: ' + arrF(p.productos_relevantes).join(', ') : '';
+      L.push((i + 1) + '. **' + p.nombre + '**' + (sv(p.tipo) ? ' (' + p.tipo + ')' : '') + (sv(p.promotor) ? ' · ' + p.promotor : '') + prod);
+    });
+    else L.push('Sin oportunidades concretas detectadas en esta visita.');
+    L.push('');
+    // 6
+    var cn = arrF(dev.compromisos && dev.compromisos.por_nuestra_parte).filter(function (c) { return c && sv(c.accion); });
+    var cc = arrF(dev.compromisos && dev.compromisos.por_parte_del_cliente).filter(function (c) { return c && sv(c.accion); });
+    L.push('## 6. Compromisos y próximos pasos', '');
+    var n = 0;
+    cn.forEach(function (c) { n++; L.push(n + '. ' + c.accion + (sv(c.responsable) ? ' (' + c.responsable + ')' : '') + (sv(c.plazo) ? ' — ' + c.plazo : '')); });
+    cc.forEach(function (c) { n++; L.push(n + '. (Cliente) ' + c.accion); });
+    if (sv(dev.proxima_accion || r.proxima_accion)) { n++; L.push(n + '. ' + (sv(dev.proxima_accion) || r.proxima_accion)); }
+    if (!n) L.push('Sin compromisos registrados.');
+    L.push('');
+    // 7
+    var obs = [];
+    arrF(emp.nuevos_contactos).forEach(function (c) {
+      if (!c || !sv(c.nombre)) return;
+      obs.push('Contacto: ' + c.nombre + (sv(c.cargo) ? ' — ' + c.cargo : '') + (sv(c.email) ? ' · ' + c.email : '') + (sv(c.telefono) ? ' · ' + c.telefono : ''));
+    });
+    if (sv(r.importe_estimado_eur)) obs.push('Volumen estimado: ' + (r.importe_estimado_eur / 1000).toFixed(0) + ' k€');
+    if (obs.length) { L.push('## 7. Observaciones adicionales', ''); obs.forEach(function (o) { L.push('- ' + o); }); L.push(''); }
+    // 8
+    L.push('## 8. Evaluación general', '', '| Campo | Valor |', '|---|---|');
+    var tempN = (ev.temperatura != null ? ev.temperatura : r.temperatura);
+    L.push('| Nivel de interés | ' + (tempN != null ? (tempN >= 8 ? 'Alto' : tempN >= 5 ? 'Medio' : 'Bajo') + ' (' + tempN + '/10)' : '—') + ' |');
+    if (sv(ev.plazo_estimado || r.plazo_estimado)) L.push('| Plazo estimado | ' + (sv(ev.plazo_estimado) || r.plazo_estimado) + ' |');
+    var prods = arrF(dev.productos && dev.productos.de_interes);
+    if (!prods.length) prods = arrF(dev.productos && dev.productos.presentados);
+    if (prods.length) L.push('| Productos prioritarios | ' + prods.join(', ') + ' |');
+    if (sv(ev.nuevo_status || r.nuevo_status)) L.push('| Estado de la cuenta | ' + (ev.nuevo_status || r.nuevo_status) + ' |');
+    return L.join('\n');
+  }
+
+  async function downloadReportWord(studioId, idx) {
     var raw = State.studiosById && State.studiosById[studioId];
     if (!raw) return;
     var reports = arr((raw.data && raw.data.reports) || []);
     var r = reports[idx];
     if (!r) return;
     var studio = getStudio(studioId);
+    // .docx REAL (OOXML) desde el informe estructurado → markdown. Retorno
+    // temprano; el builder HTML-as-doc de abajo queda solo como fallback.
+    try {
+      if (typeof JSZip !== 'undefined') {
+        var _sN = (studio && studio.name) || String(studioId);
+        var _sf = String(_sN).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+        var _ft = (U && U.formatDateES ? U.formatDateES(r.date) : null) || r.date || '';
+        var _sub = (_ft ? _ft + ' · ' : '') + 'Manuel Fernández · Prescriptor GPF · Ferroplast & Tuyper';
+        var _blob = await _markdownToDocxBlob(_visitaImportadaToMd(r, studio), 'Informe de visita — ' + _sN, _sub);
+        if (_blob) { _triggerDownload(_blob, 'Informe_Visita_' + _sf + '_' + (r.date || 'sin_fecha').replace(/[^0-9-]/g, '') + '.docx'); return; }
+      }
+    } catch (e) { console.warn('[detail] docx (importada) falló, uso fallback HTML:', e && e.message); }
     var rawName = studio && studio.name;
     var sName = (typeof rawName === 'string' ? rawName : (rawName && rawName.valor) || '') || String(studioId);
 
