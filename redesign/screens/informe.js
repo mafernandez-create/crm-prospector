@@ -781,5 +781,6 @@
   window.Screens.informe = {
     render: render,
     _descargarMd: _descargarMd,
+    _md2html: _md2html,   // reutilizado por detail.js para ver informes_v2 (markdown)
   };
 })();

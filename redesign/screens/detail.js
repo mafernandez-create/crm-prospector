@@ -813,7 +813,14 @@
                   'style="background:#fef9c3; border:none; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; color:#854d0e; font-weight:600; white-space:nowrap;">✏️ Editar</button>' +
                 '<button onclick="window.Screens.detail.downloadReportWord(\'' + escape(studioId) + '\',' + idx + ')" ' +
                   'style="background:#f0fdf4; border:none; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; color:#16a34a; font-weight:600; white-space:nowrap;">📄 Word</button>'
-              : '') +
+              : (r.markdown
+                ? '<button onclick="window.Screens.detail.openReportMarkdownSheet(\'' + escape(studioId) + '\',' + idx + ')" ' +
+                    'style="background:var(--gpf-blue-100); border:none; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; color:var(--gpf-blue-700); font-weight:600; white-space:nowrap;">👁 Ver</button>' +
+                  '<button onclick="window.Screens.detail.openEditReportMarkdownModal(\'' + escape(studioId) + '\',' + idx + ')" ' +
+                    'style="background:#fef9c3; border:none; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; color:#854d0e; font-weight:600; white-space:nowrap;">✏️ Editar</button>' +
+                  '<button onclick="window.Screens.detail.downloadReportMd(\'' + escape(studioId) + '\',' + idx + ')" ' +
+                    'style="background:#f0fdf4; border:none; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; color:#16a34a; font-weight:600; white-space:nowrap;">⬇ .md</button>'
+                : '')) +
             '<button onclick="window.Screens.detail.deleteReport(\'' + escape(studioId) + '\',' + idx + ')" ' +
               'style="background:none; border:1px solid #fecaca; border-radius:6px; padding:4px 8px; cursor:pointer; font-size:12px; color:#dc2626;">🗑️</button>' +
           '</div>' +
@@ -2726,6 +2733,103 @@
      Formato idéntico a los informes anteriores: 8 secciones, prosa
      narrativa, sin SPIN, sin citas, sin autoevaluación.
      ============================================================ */
+  /* ============================================================
+     INFORMES MARKDOWN (informe_v2) — ver / descargar .md / editar
+     openReportSheet/downloadReportWord son para informes ESTRUCTURADOS
+     (visita_importada). Los informe_v2 guardan todo en r.markdown.
+     ============================================================ */
+  function openReportMarkdownSheet(studioId, idx) {
+    var raw = State.studiosById && State.studiosById[studioId];
+    if (!raw) return;
+    var reports = arr((raw.data && raw.data.reports) || []);
+    var r = reports[idx];
+    if (!r || !r.markdown) return;
+    var studio = getStudio(studioId);
+    var nombre = (studio && studio.name) || studioId;
+    var mdHtml = (window.Screens.informe && window.Screens.informe._md2html)
+      ? window.Screens.informe._md2html(r.markdown)
+      : '<pre style="white-space:pre-wrap;">' + escape(r.markdown) + '</pre>';
+    var html = (
+      '<div class="handle"></div>' +
+      '<div style="padding:0 16px 32px; flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;">' +
+        '<div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:8px;">' +
+          '<div style="flex:1; min-width:0;">' +
+            '<div style="font-size:11px; color:var(--fg-3); font-weight:600; text-transform:uppercase; letter-spacing:.05em;">Informe de visita</div>' +
+            '<h3 style="font-family:var(--font-display); font-size:18px; font-weight:700; margin:2px 0 4px; color:var(--fg-1);">' + escape(nombre) + '</h3>' +
+            '<div style="font-size:12px; color:var(--fg-3);">' + escape(U.formatDateES(r.date) || r.date || '') + (r.comercial ? ' · ' + escape(r.comercial) : '') + '</div>' +
+          '</div>' +
+          '<button onclick="window.closeSheet()" style="background:none; border:none; cursor:pointer; font-size:20px; color:var(--fg-3); padding:4px; flex-shrink:0;">✕</button>' +
+        '</div>' +
+        '<div style="display:flex; gap:8px; margin-bottom:14px;">' +
+          '<button onclick="window.Screens.detail.downloadReportMd(\'' + escape(studioId) + '\',' + idx + ')" class="btn btn-ghost" style="flex:1; font-size:13px;">⬇ .md</button>' +
+          '<button onclick="window.Screens.detail.openEditReportMarkdownModal(\'' + escape(studioId) + '\',' + idx + ')" class="btn btn-ghost" style="flex:1; font-size:13px;">✏️ Editar</button>' +
+        '</div>' +
+        '<div class="briefing-content" style="font-size:14px; line-height:1.6;">' + mdHtml + '</div>' +
+      '</div>'
+    );
+    if (window.openSheet) window.openSheet(html);
+  }
+
+  function downloadReportMd(studioId, idx) {
+    var raw = State.studiosById && State.studiosById[studioId];
+    if (!raw) return;
+    var reports = arr((raw.data && raw.data.reports) || []);
+    var r = reports[idx];
+    if (!r || !r.markdown) return;
+    var studio = getStudio(studioId);
+    var nombre = (studio && studio.name) || String(studioId);
+    var safe = String(nombre).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+    var blob = new Blob([r.markdown], { type: 'text/markdown;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = safe + '_' + (r.date || 'informe') + '.md';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function openEditReportMarkdownModal(studioId, idx) {
+    var raw = State.studiosById && State.studiosById[studioId];
+    if (!raw) return;
+    var reports = arr((raw.data && raw.data.reports) || []);
+    var r = reports[idx];
+    if (!r) return;
+    showModal(
+      '<div style="background:var(--bg-card); border-radius:14px; padding:20px; width:100%; max-width:680px; max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.3);">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">' +
+          '<h3 style="margin:0; font-family:var(--font-display); font-size:18px; font-weight:700;">✏️ Editar informe</h3>' +
+          '<button onclick="window.Screens.detail.closeModal()" style="background:none; border:none; cursor:pointer; font-size:20px; color:var(--fg-3);">✕</button>' +
+        '</div>' +
+        '<textarea id="edit-report-md" style="width:100%; box-sizing:border-box; min-height:50vh; padding:12px; border:1.5px solid var(--line); border-radius:10px; font-family:var(--font-mono); font-size:13px; line-height:1.5; background:var(--bg-1); color:var(--fg-1);">' + escape(r.markdown || '') + '</textarea>' +
+        '<div style="display:flex; gap:10px; margin-top:12px;">' +
+          '<button onclick="window.Screens.detail.closeModal()" class="btn btn-ghost" style="flex:1;">Cancelar</button>' +
+          '<button onclick="window.Screens.detail.saveReportMarkdown(\'' + escape(studioId) + '\',' + idx + ')" class="btn btn-primary" style="flex:1;">Guardar</button>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  async function saveReportMarkdown(studioId, idx) {
+    var ta = document.getElementById('edit-report-md');
+    if (!ta) return;
+    var nuevo = ta.value || '';
+    // Regla del proyecto: los informes nunca llevan marcas de tiempo.
+    if (window.Util && window.Util.stripTimestamps) nuevo = window.Util.stripTimestamps(nuevo);
+    var raw = State.studiosById && State.studiosById[studioId];
+    if (!raw) return;
+    var reports = arr((raw.data && raw.data.reports) || []).slice();
+    if (!reports[idx]) return;
+    reports[idx] = Object.assign({}, reports[idx], { markdown: nuevo, edited_at: new Date().toISOString() });
+    try {
+      await saveDataField(studioId, 'reports', reports);
+      closeModal();
+      if (window.showNotification) window.showNotification('✓ Informe actualizado', 'success');
+      switchTab('informes', studioId);
+    } catch (e) {
+      if (window.showNotification) window.showNotification('Error al guardar: ' + (e.message || e), 'error');
+    }
+  }
+
   function downloadReportWord(studioId, idx) {
     var raw = State.studiosById && State.studiosById[studioId];
     if (!raw) return;
@@ -3498,6 +3602,11 @@
     openEditReportModal: openEditReportModal,
     saveEditReport: saveEditReport,
     downloadReportWord: downloadReportWord,
+    // Informes markdown (informe_v2)
+    openReportMarkdownSheet: openReportMarkdownSheet,
+    downloadReportMd: downloadReportMd,
+    openEditReportMarkdownModal: openEditReportMarkdownModal,
+    saveReportMarkdown: saveReportMarkdown,
     // Contacto
     openEditContact: openEditContact,
     saveContact: saveContact,
