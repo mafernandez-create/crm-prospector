@@ -465,7 +465,7 @@
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 
-  function reports(s) { return (s && s.data && s.data.reports) || []; }
+  function reports(s) { return (s && s.data && s.data.reports) || (s && s.reports) || []; }
   function activities(s) { return (s && s.data && s.data.activities) || []; }
 
   /* Catálogo GPF para detectar productos tratados en un informe. Cubre las
