@@ -262,11 +262,57 @@
         if (real) {
           v.innerHTML = isMobile ? renderMobile(id, real) : renderDesktopColumn(id, real);
           wireCTAs(id);
-          console.info('[redesign/briefing] cargado desde Firestore para ' + id);
+          console.info('[redesign/briefing] cargado para ' + id);
+        } else {
+          // No hay briefing en el servidor → estado vacío con CTA a generar
+          // (antes se quedaba colgado en "Cargando briefing del servidor…").
+          showEmptyBriefing(id);
         }
       }).catch(function (e) {
         console.warn('[redesign/briefing] fetch fallido:', e.message);
+        if (window.States && window.States.showError) {
+          window.States.showError('view-briefing', {
+            title: 'No se pudo cargar el briefing',
+            body: 'Hubo un problema al consultar el servidor.',
+            detail: (e && e.message ? e.message : String(e)).slice(0, 200),
+            ctas: [
+              { label: 'Reintentar', onclick: "window.showView('briefing', { studioId: '" + escape(id) + "' })" },
+              { label: 'Ver ficha',  onclick: "window.showView('detail', { studioId: '" + escape(id) + "' })" },
+            ],
+          });
+        }
       });
+    }
+  }
+
+  // Estado vacío: el cliente aún no tiene briefing. Ofrece generarlo con IA.
+  function showEmptyBriefing(id) {
+    const studio = (window.State && window.State.studiosById && window.State.studiosById[id]) || {};
+    const nombre = studio.name || ('Estudio ' + id);
+    const tc = document.getElementById('topbar-current');
+    if (tc) tc.textContent = 'Briefing · ' + nombre;
+    if (window.States && window.States.showEmpty) {
+      window.States.showEmpty('view-briefing', {
+        title: 'Sin briefing todavía',
+        body: 'Aún no hay briefing pre-visita para ' + nombre + '. Puedes generarlo con IA a partir de la ficha del cliente.',
+        ctas: [
+          { label: 'Generar briefing con IA', onclick: "window.Screens.briefing.generar('" + escape(id) + "')" },
+          { label: 'Ver ficha',               onclick: "window.showView('detail', { studioId: '" + escape(id) + "' })" },
+        ],
+      });
+    } else {
+      const v = document.getElementById('view-briefing');
+      if (v) v.innerHTML = '<div style="padding:40px; text-align:center; color:var(--fg-3);">Aún no hay briefing para ' + escape(nombre) + '.</div>';
+    }
+  }
+
+  // Lanza la generación de briefing con IA (reutiliza el flujo de la ficha).
+  function generar(id) {
+    const studio = (window.State && window.State.studiosById && window.State.studiosById[id]);
+    if (studio && window.Screens && window.Screens.detail && window.Screens.detail.regenerarBriefingIA) {
+      window.Screens.detail.regenerarBriefingIA(studio);
+    } else {
+      window.showView('detail', { studioId: id });
     }
   }
 
@@ -604,5 +650,5 @@
     setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1000);
   }
 
-  window.Screens.briefing = { render: render, descargarMD: descargarMD, descargarDOC: descargarDOC };
+  window.Screens.briefing = { render: render, descargarMD: descargarMD, descargarDOC: descargarDOC, generar: generar };
 })();
