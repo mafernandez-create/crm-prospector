@@ -2012,7 +2012,6 @@
             row('Fecha', escape(v.fecha || '—')) +
             row('Duración', v.duracion_minutos ? v.duracion_minutos + ' min' : '—') +
             row('Tipo de visita', escape(TIPO_L[v.tipo_visita] || v.tipo_visita || '—')) +
-            row('Modalidad', escape(MODAL_L[v.modalidad] || v.modalidad || '—')) +
             row('Interlocutor', escape((inter.nombre || '—') + ' · ' + (inter.cargo || '—') + dmText)) +
             row('Temperatura', tempIco) +
             row('Estado tras visita', escape(statusL)) +
@@ -2675,7 +2674,6 @@
           tRow('Hora', r.hora_inicio) +
           tRow('Duración', r.duracion_minutos ? r.duracion_minutos + ' min' : null) +
           tRow('Tipo de visita', TIPO_L[r.tipo_visita] || r.tipo_visita) +
-          tRow('Modalidad', r.modalidad) +
           tRow('Estado tras visita', STATUS_L[r.nuevo_status] || r.nuevo_status) +
         '</table>' +
 
@@ -2691,7 +2689,7 @@
               '<tr>' +
                 '<td style="font-size:13px; padding:5px 0;">' + escape(r.interlocutor_nombre || '—') + (r.es_decision_maker ? ' ⭐' : '') + '</td>' +
                 '<td style="font-size:13px; padding:5px 8px;">' + escape(r.cargo_interlocutor || '—') + '</td>' +
-                '<td style="font-size:13px; padding:5px 0;">' + escape(r.modalidad || '') + '</td>' +
+                '<td style="font-size:13px; padding:5px 0;">' + (r.es_decision_maker ? '⭐ Decisor' : '—') + '</td>' +
               '</tr>' +
             '</table>'
           : '') +
@@ -3075,7 +3073,6 @@
     var dur = (vis.duracion_minutos != null ? vis.duracion_minutos : r.duracion_minutos);
     if (sv(dur)) L.push('| Duración | ' + dur + ' min |');
     if (sv(vis.tipo_visita || r.tipo_visita)) L.push('| Tipo de visita | ' + (vis.tipo_visita || r.tipo_visita) + ' |');
-    if (sv(vis.modalidad || r.modalidad)) L.push('| Modalidad | ' + (vis.modalidad || r.modalidad) + ' |');
     if (sv(ev.nuevo_status || r.nuevo_status)) L.push('| Estado tras visita | ' + (ev.nuevo_status || r.nuevo_status) + ' |');
     L.push('');
     // 2
@@ -3278,7 +3275,6 @@
     });
     if (r.importe_estimado_eur)    obs.push('— Volumen estimado de negocio: ' + (r.importe_estimado_eur/1000).toFixed(0) + ' k€');
     if (r.probabilidad_cierre_pct) obs.push('— Probabilidad de cierre estimada: ' + r.probabilidad_cierre_pct + '%');
-    if (sv(r.modalidad) && r.modalidad !== 'presencial') obs.push('— Visita realizada en modalidad: ' + r.modalidad);
 
     /* ── §8 Acciones prioritarias (bullets en negrita bajo la tabla) ── */
     var accionesPrio = [];
@@ -3357,7 +3353,7 @@
             '<td>' + esc(r.cargo_interlocutor || '—') + '</td>' +
             '<td>' + (sv((r.raw_yaml && r.raw_yaml.interlocutores && r.raw_yaml.interlocutores.principal && r.raw_yaml.interlocutores.principal.perfil_comunicacion) || '') ||
               (r.es_decision_maker === true ? 'Decisor. ' : '') +
-              (sv(r.modalidad) ? 'Visita ' + r.modalidad + '.' : 'Interlocutor principal en la visita.')) + '</td>' +
+              'Interlocutor principal en la visita.') + '</td>' +
           '</tr>' +
           '</tbody></table>'
         : '') +

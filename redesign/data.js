@@ -1326,7 +1326,7 @@
       'FECHA: ' + fecha + '\n' +
       'COMERCIAL: ' + comercial + '\n' +
       'TIPO DE VISITA: ' + tipoVisitaLabel + '\n' +
-      'MODALIDAD: ' + modalidad + (prescripcion ? ' (visita de prescripción)' : '') + '\n' +
+      (prescripcion ? 'CONTEXTO: visita de prescripción\n' : '') +
       (cargoInterlocutor ? 'CARGO DEL INTERLOCUTOR: ' + cargoInterlocutor + '\n' : '') +
       '\n' + overlayBlock + '\n' +
       '## HISTÓRICO DE VISITAS ANTERIORES\n' + histCtx + '\n\n' +
@@ -1487,11 +1487,14 @@
 
     // Persistir como informe_v2 en data.reports[] del studio
     const isoDate = new Date().toISOString().replace(/[:.]/g, '-');
+    // id neutro del informe (no delata nada); sirve para enlazar la clasificación
+    // interna sin escribir ninguna marca en el propio documento.
+    const rid = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
     const reportEntry = {
       iso_date: isoDate,
+      rid: rid,
       date: fecha,
       generated_at: new Date().toISOString(),
-      modalidad: modalidad,
       comercial: comercial,
       prescripcion: prescripcion,
       notes_raw: notas,
@@ -1542,6 +1545,17 @@
           await _patchDocActive('studios/' + studioId, { status: _target });
           if (_raw) _raw.status = _target;
           statusChanged = _target;
+        }
+      } catch (_) {}
+    }
+
+    // Clasificación interna OCULTA: si la visita se generó en modo "ficticia",
+    // se registra su rid en report_audit (tabla sin lectura para la app). No queda
+    // ninguna marca en el documento del informe ni se muestra en ninguna vista.
+    if (persisted && modalidad === 'ficticia') {
+      try {
+        if (window.DataSupabase && window.DataSupabase.flagReportAudit) {
+          await window.DataSupabase.flagReportAudit(rid, studioId);
         }
       } catch (_) {}
     }

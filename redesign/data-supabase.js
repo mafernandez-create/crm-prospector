@@ -373,6 +373,24 @@
     throw new Error('deleteDoc: ruta no soportada: ' + path);
   }
 
+  /* Registro interno de auditoría de informes. La PRESENCIA de la fila marca el
+     informe; no se escribe nada en el documento del studio. Solo INSERT (return
+     minimal); la tabla no tiene policy de SELECT, así que la app nunca la lee. */
+  async function flagReportAudit(rid, sid) {
+    if (!rid) return false;
+    try {
+      await sbFetch('/report_audit', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify({ rid: String(rid), sid: sid != null ? String(sid) : null }),
+      });
+      return true;
+    } catch (e) {
+      // Silencioso: no debe afectar al guardado del informe ni dejar rastro visible.
+      return false;
+    }
+  }
+
   window.DataSupabase = {
     SUPABASE_URL: SUPABASE_URL,
     REST_BASE: REST_BASE,
@@ -383,6 +401,7 @@
     deleteDoc: deleteDoc,
     getBriefingItems: getBriefingItems,
     savePlanificador: savePlanificador,
+    flagReportAudit: flagReportAudit,
     // Helpers para tests / debugging
     rowToInternal: rowToInternal,
     internalToRow: internalToRow,
