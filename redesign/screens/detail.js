@@ -708,7 +708,7 @@
     const isHecho   = isBandeja && !!act.completada;
     const color     = isHecho ? '#94a3b8' : (isBandeja ? '#16a34a' : (ACT_COLORS[type] || '#94a3b8'));
     const label     = isBandeja ? (isHecho ? 'HECHO ✓' : 'BANDEJA') : (ACT_LABELS[type] || type);
-    const dateStr   = U.formatDateES(act.createdAt) || act.date || '—';
+    const dateStr   = (U.formatDateES(act.createdAt) || act.date || '—') + (act.hora ? ' · ' + act.hora : '');
     const isVisit   = type === 'registro_visita';
     const textContent = act.title || act.text || act.notes || (isVisit ? 'Visita registrada' : '');
     return (
@@ -1064,10 +1064,17 @@
           return '<option value="' + t + '">' + (ACT_LABELS[t] || t) + '</option>';
         }).join('') +
       '</select>') +
-      field('Fecha', '<input type="date" id="m-act-date" value="' + today + '" style="' + INPUT_STYLE + '">') +
+      '<div style="display:flex; gap:10px;">' +
+        '<div style="flex:1;">' + field('Fecha', '<input type="date" id="m-act-date" value="' + today + '" style="' + INPUT_STYLE + '">') + '</div>' +
+        '<div style="flex:0 0 130px;">' + field('Hora', '<input type="time" id="m-act-hora" value="09:00" style="' + INPUT_STYLE + '">') + '</div>' +
+      '</div>' +
       field('Descripción / Notas', '<textarea id="m-act-text" rows="4" placeholder="Qué ocurrió, próximos pasos…" ' +
         'style="' + INPUT_STYLE + ' resize:vertical; min-height:90px;"></textarea>') +
-      field('Seguimiento (opcional)', '<input type="date" id="m-act-followup" style="' + INPUT_STYLE + '">'),
+      field('Seguimiento (opcional)', '<input type="date" id="m-act-followup" style="' + INPUT_STYLE + '">') +
+      '<div style="display:flex; align-items:center; gap:8px; margin:2px 0 14px;">' +
+        '<input type="checkbox" id="m-act-sync" checked style="width:16px;height:16px;">' +
+        '<label for="m-act-sync" style="font-size:14px; color:var(--fg-2);">📅 Añadir a mi Google Calendar (con enlace a la ficha)</label>' +
+      '</div>',
       '<button class="btn btn-primary btn-block" ' +
         'onclick="window.Screens.detail.saveActivity(\'' + escape(studioId) + '\')">Guardar actividad</button>'
     ));
@@ -1076,16 +1083,23 @@
   async function saveActivity(studioId) {
     const type = document.getElementById('m-act-type').value;
     const date = document.getElementById('m-act-date').value;
+    const horaEl = document.getElementById('m-act-hora');
+    const hora = (horaEl && horaEl.value || '').trim();
     const text = (document.getElementById('m-act-text').value || '').trim();
     const followup = document.getElementById('m-act-followup').value;
+    const syncEl = document.getElementById('m-act-sync');
+    const sync = !!(syncEl && syncEl.checked);
     if (!text) { alert('Escribe una descripción.'); return; }
     const s = getStudio(studioId);
+    // createdAt con la hora indicada (Europe/Madrid); si no hay hora, mediodía local.
+    const at = date ? (date + 'T' + (hora || '12:00') + ':00') : new Date().toISOString();
     const activities = arr(s && s.activities).slice();
     activities.unshift({
       id: Date.now(),
       type: type,
       text: text,
-      createdAt: date ? date + 'T12:00:00Z' : new Date().toISOString(),
+      createdAt: at,
+      hora: hora || null,
       followupDate: followup ? followup + 'T00:00:00Z' : null,
       studioId: studioId,
     });
@@ -1093,6 +1107,10 @@
       await saveDataField(studioId, 'activities', activities);
       closeModal();
       notif('Actividad guardada', 'success');
+      // Sincronizar con Google Calendar (con enlace a la ficha) si se marcó.
+      if (sync && date && window.Screens.planificador && window.Screens.planificador.agendarActividadCalendar) {
+        try { await window.Screens.planificador.agendarActividadCalendar(s, { date: date, hora: hora || '09:00', tipo: type, text: text }); } catch (_) {}
+      }
       switchTab('actividades', studioId);
     } catch (e) { alert('Error al guardar: ' + e.message); }
   }

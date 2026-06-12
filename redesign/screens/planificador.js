@@ -988,6 +988,86 @@
      REGISTRO
      ============================================================ */
   window.Screens = window.Screens || {};
+  /* ------------------------------------------------------------
+     Alta de UN evento en Google Calendar desde una actividad de la
+     ficha (llamada desde detail.js). Reutiliza el mismo token/OAuth
+     que subirCalendario. opts = { date, hora, durMin?, tipo, text }.
+     El evento incluye un enlace directo a la ficha del cliente en el CRM.
+     ------------------------------------------------------------ */
+  async function agendarActividadCalendar(studio, opts) {
+    opts = opts || {};
+    const dateStr = opts.date;
+    const hora = opts.hora || '09:00';
+    if (!dateStr) { window.showNotification('⚠️ Falta la fecha para el calendario', 'warning'); return false; }
+
+    let calSettings;
+    try { calSettings = JSON.parse(localStorage.getItem('ferroplast_test_calendar_settings') || '{}'); } catch (e) { calSettings = {}; }
+    const tokenValido = calSettings.accessToken && calSettings.tokenExpiry > Date.now();
+    if (!tokenValido) {
+      const clientId = calSettings.clientId || calSettings.client_id || '';
+      if (!clientId) { _pedirClientId(function () { agendarActividadCalendar(studio, opts); }); return false; }
+      const redirectUri = window.location.href.split('?')[0].split('#')[0];
+      const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' +
+        'client_id=' + encodeURIComponent(clientId) +
+        '&redirect_uri=' + encodeURIComponent(redirectUri) +
+        '&response_type=token' +
+        '&scope=' + encodeURIComponent('https://www.googleapis.com/auth/calendar.events') +
+        '&state=gcal_auth&prompt=consent';
+      window.showNotification('🔐 Conecta tu Google Calendar para sincronizar…', 'info');
+      _abrirOAuthPopup(authUrl, function () { agendarActividadCalendar(studio, opts); });
+      return false;
+    }
+
+    function _rf(v) { if (!v) return ''; if (typeof v === 'object') return v.valor || ''; return String(v); }
+    const s = studio || {};
+    const sid = String(s.id != null ? s.id : '');
+    const ctc = (s.data && s.data.contact) || s.contact || {};
+    const addr = _rf(ctc.address);
+    const city = _rf(s.city); const prov = _rf(s.province);
+    const nombre = s.name || sid;
+    const tipoLabel = ({ llamada: 'Llamada', email: 'Email', reunion: 'Reunión', nota: 'Nota', evento: 'Evento', visita: 'Visita' })[opts.tipo] || (opts.tipo || 'Actividad');
+
+    const durMin = opts.durMin || 60;
+    const parts = hora.split(':').map(Number);
+    const endTot = parts[0] * 60 + parts[1] + durMin;
+    const endHora = String(Math.floor(endTot / 60)).padStart(2, '0') + ':' + String(endTot % 60).padStart(2, '0');
+    const location = addr || [city, prov].filter(Boolean).join(', ');
+    const crmLink = 'https://mafernandez-create.github.io/crm-prospector/#detail/' + sid;
+
+    let desc = '🏢 ' + nombre;
+    if (location) desc += '\n📍 ' + location;
+    if (opts.text) desc += '\n\n📝 ' + opts.text;
+    desc += '\n\n🔗 Ver ficha en el CRM:\n' + crmLink;
+
+    const event = {
+      summary: '📌 ' + tipoLabel + ' · ' + nombre,
+      location: location,
+      description: desc,
+      start: { dateTime: dateStr + 'T' + hora + ':00', timeZone: 'Europe/Madrid' },
+      end:   { dateTime: dateStr + 'T' + endHora + ':00', timeZone: 'Europe/Madrid' },
+      reminders: { useDefault: false, overrides: [ { method: 'popup', minutes: 60 }, { method: 'popup', minutes: 15 } ] },
+    };
+    const calendarId = calSettings.calendarId || 'primary';
+    try {
+      const resp = await fetch(
+        'https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(calendarId) + '/events',
+        { method: 'POST', headers: { 'Authorization': 'Bearer ' + calSettings.accessToken, 'Content-Type': 'application/json' }, body: JSON.stringify(event) }
+      );
+      if (resp.status === 401) {
+        calSettings.accessToken = null; calSettings.tokenExpiry = 0;
+        localStorage.setItem('ferroplast_test_calendar_settings', JSON.stringify(calSettings));
+        window.showNotification('⚠️ Sesión de calendario caducada. Vuelve a guardar la actividad para reconectar.', 'warning');
+        return false;
+      }
+      if (!resp.ok) { const err = await resp.json().catch(function () { return {}; }); throw new Error((err.error && err.error.message) || resp.statusText); }
+      window.showNotification('📅 Añadido a tu Google Calendar', 'success');
+      return true;
+    } catch (e) {
+      window.showNotification('No se pudo añadir al calendario: ' + e.message, 'error');
+      return false;
+    }
+  }
+
   window.Screens.planificador = {
     render: render,
     cambiarSemana: cambiarSemana,
@@ -1000,5 +1080,6 @@
     confirmarBorrar: confirmarBorrar,
     subirSheet: subirVisitasSheet,
     subirCalendario: subirCalendario,
+    agendarActividadCalendar: agendarActividadCalendar,
   };
 })();
