@@ -1773,6 +1773,10 @@
     // Para la plantilla IA usamos el texto generado si está disponible
     var subject = tpl.esIA ? (iaSubject || '') : tpl.subject;
     var body    = tpl.esIA ? (iaBody    || '') : tpl.body;
+    // Guardar el texto activo para poder enviarlo aunque la ficha no tenga email
+    // (el usuario indica el destinatario en el momento).
+    window._emailPanelSubject = subject;
+    window._emailPanelBody    = body;
 
     // Historial de emails registrados como actividades
     var emailActs = (studio.activities || [])
@@ -1849,16 +1853,20 @@
     var mailtoHref = (email && tieneTexto) ? escape(_mailtoUrl(email, subject, body)) : '';
     var actionBtns = (
       '<div style="display:flex; gap:10px;">' +
-        (email && tieneTexto
-          ? '<a href="' + mailtoHref + '" ' +
-              'style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; ' +
-              'background:var(--gpf-blue-700); color:#fff; border-radius:8px; padding:10px 16px; ' +
-              'font-size:14px; font-weight:600; text-decoration:none; cursor:pointer;">' +
-              I.Mail() + ' Abrir en Mail' +
-            '</a>'
-          : (email
-              ? '<span class="btn btn-primary" style="flex:1; opacity:.5; text-align:center;">Sin plantilla seleccionada</span>'
-              : '<span class="btn btn-primary" style="flex:1; opacity:.5; text-align:center;">Sin email registrado</span>')) +
+        (tieneTexto
+          ? (email
+              ? '<a href="' + mailtoHref + '" ' +
+                  'style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; ' +
+                  'background:var(--gpf-blue-700); color:#fff; border-radius:8px; padding:10px 16px; ' +
+                  'font-size:14px; font-weight:600; text-decoration:none; cursor:pointer;">' +
+                  I.Mail() + ' Abrir en Mail' +
+                '</a>'
+              : '<button class="btn btn-primary" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px;" ' +
+                  'onclick="window.Screens.detail._emailPedirDestinatario()">' +
+                  I.Mail() + ' Enviar (indicar email)' +
+                '</button>')
+          : '<span class="btn btn-primary" style="flex:1; opacity:.5; text-align:center;">' +
+              (email ? 'Sin plantilla seleccionada' : 'Elige una plantilla') + '</span>') +
         (tieneTexto
           ? '<button class="btn btn-ghost" style="flex:0 0 auto;" ' +
               'onclick="navigator.clipboard && navigator.clipboard.writeText(' + JSON.stringify(copyText).replace(/"/g, '&quot;') + ').then(function(){window.showNotification(\'📋 Texto copiado\', \'success\')})">' +
@@ -4067,6 +4075,18 @@
       openEmailPanel(studio, seed);
     },
     // Email panel
+    // Cuando la ficha no tiene email guardado: pide el destinatario y abre el correo.
+    _emailPedirDestinatario: function () {
+      var to = (window.prompt('¿A qué email enviamos este correo?') || '').trim();
+      if (!to) return;
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) {
+        if (window.showNotification) window.showNotification('Ese email no parece válido', 'error');
+        return;
+      }
+      var subject = window._emailPanelSubject || '';
+      var body    = window._emailPanelBody || '';
+      window.location.href = _mailtoUrl(to, subject, body);
+    },
     _emailChip: function (idx) {
       var studio = window._emailPanelStudio;
       if (!studio) return;
