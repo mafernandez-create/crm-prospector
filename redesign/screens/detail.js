@@ -736,6 +736,10 @@
                     (isHecho ? '↩ Reabrir' : '✓ Hecho') +
                   '</button>'
                 : '') +
+              (!isBandeja && act.id != null
+                ? '<button onclick="window.Screens.detail.openEditActivity(\'' + escape(studioId) + '\',\'' + escape(String(act.id)) + '\')" ' +
+                    'title="Ver / editar" style="background:none; border:none; cursor:pointer; color:var(--fg-3); font-size:13px; padding:0;">✏️</button>'
+                : '') +
               '<button onclick="window.Screens.detail.deleteActivity(\'' + escape(studioId) + '\',' + idx + ')" ' +
                 'style="background:none; border:none; cursor:pointer; color:var(--fg-3); font-size:13px; padding:0;">✕</button>' +
             '</div>' +
@@ -1056,27 +1060,53 @@
   const SELECT_STYLE = INPUT_STYLE + 'cursor:pointer;';
 
   /* ---- ACTIVIDAD ---- */
-  function openAddActivity(studioId) {
+  // Cuerpo compartido del modal (alta y edición). v = actividad existente (o {}).
+  function _actModalBody(v, opts) {
+    v = v || {}; opts = opts || {};
     const today = new Date().toISOString().slice(0, 10);
-    showModal(modalWrap('Nueva actividad',
+    const cdat = v.createdAt ? String(v.createdAt) : '';
+    const date = v.date || (cdat ? cdat.slice(0, 10) : today);
+    const hora = v.hora || (/T(\d\d:\d\d)/.test(cdat) ? cdat.match(/T(\d\d:\d\d)/)[1] : '09:00');
+    const followup = v.followupDate ? String(v.followupDate).slice(0, 10) : '';
+    const sel = v.type || 'llamada';
+    return (
       field('Tipo', '<select id="m-act-type" style="' + SELECT_STYLE + '">' +
         ['llamada','email','reunion','nota','evento'].map(function (t) {
-          return '<option value="' + t + '">' + (ACT_LABELS[t] || t) + '</option>';
+          return '<option value="' + t + '"' + (t === sel ? ' selected' : '') + '>' + (ACT_LABELS[t] || t) + '</option>';
         }).join('') +
       '</select>') +
       '<div style="display:flex; gap:10px;">' +
-        '<div style="flex:1;">' + field('Fecha', '<input type="date" id="m-act-date" value="' + today + '" style="' + INPUT_STYLE + '">') + '</div>' +
-        '<div style="flex:0 0 130px;">' + field('Hora', '<input type="time" id="m-act-hora" value="09:00" style="' + INPUT_STYLE + '">') + '</div>' +
+        '<div style="flex:1;">' + field('Fecha', '<input type="date" id="m-act-date" value="' + date + '" style="' + INPUT_STYLE + '">') + '</div>' +
+        '<div style="flex:0 0 130px;">' + field('Hora', '<input type="time" id="m-act-hora" value="' + hora + '" style="' + INPUT_STYLE + '">') + '</div>' +
       '</div>' +
       field('Descripción / Notas', '<textarea id="m-act-text" rows="4" placeholder="Qué ocurrió, próximos pasos…" ' +
-        'style="' + INPUT_STYLE + ' resize:vertical; min-height:90px;"></textarea>') +
-      field('Seguimiento (opcional)', '<input type="date" id="m-act-followup" style="' + INPUT_STYLE + '">') +
+        'style="' + INPUT_STYLE + ' resize:vertical; min-height:90px;">' + escape(v.text || '') + '</textarea>') +
+      field('Seguimiento (opcional)', '<input type="date" id="m-act-followup" value="' + followup + '" style="' + INPUT_STYLE + '">') +
       '<div style="display:flex; align-items:center; gap:8px; margin:2px 0 14px;">' +
-        '<input type="checkbox" id="m-act-sync" checked style="width:16px;height:16px;">' +
-        '<label for="m-act-sync" style="font-size:14px; color:var(--fg-2);">📅 Añadir a mi Google Calendar (con enlace a la ficha)</label>' +
-      '</div>',
+        '<input type="checkbox" id="m-act-sync"' + (opts.syncChecked ? ' checked' : '') + ' style="width:16px;height:16px;">' +
+        '<label for="m-act-sync" style="font-size:14px; color:var(--fg-2);">📅 ' +
+          (opts.syncLabel || 'Añadir a mi Google Calendar (con enlace a la ficha)') + '</label>' +
+      '</div>'
+    );
+  }
+
+  function openAddActivity(studioId) {
+    showModal(modalWrap('Nueva actividad',
+      _actModalBody({}, { syncChecked: true }),
       '<button class="btn btn-primary btn-block" ' +
         'onclick="window.Screens.detail.saveActivity(\'' + escape(studioId) + '\')">Guardar actividad</button>'
+    ));
+  }
+
+  // Ver detalle / editar una actividad existente (localizada por id estable).
+  function openEditActivity(studioId, actId) {
+    const s = getStudio(studioId);
+    const act = arr(s && s.activities).filter(function (a) { return String(a.id) === String(actId); })[0];
+    if (!act) { alert('No se encontró la actividad.'); return; }
+    showModal(modalWrap('Editar actividad',
+      _actModalBody(act, { syncChecked: false, syncLabel: 'Crear un evento en mi Google Calendar con estos datos' }),
+      '<button class="btn btn-primary btn-block" ' +
+        'onclick="window.Screens.detail.updateActivity(\'' + escape(studioId) + '\',\'' + escape(String(actId)) + '\')">Guardar cambios</button>'
     ));
   }
 
@@ -1108,6 +1138,41 @@
       closeModal();
       notif('Actividad guardada', 'success');
       // Sincronizar con Google Calendar (con enlace a la ficha) si se marcó.
+      if (sync && date && window.Screens.planificador && window.Screens.planificador.agendarActividadCalendar) {
+        try { await window.Screens.planificador.agendarActividadCalendar(s, { date: date, hora: hora || '09:00', tipo: type, text: text }); } catch (_) {}
+      }
+      switchTab('actividades', studioId);
+    } catch (e) { alert('Error al guardar: ' + e.message); }
+  }
+
+  async function updateActivity(studioId, actId) {
+    const type = document.getElementById('m-act-type').value;
+    const date = document.getElementById('m-act-date').value;
+    const horaEl = document.getElementById('m-act-hora');
+    const hora = (horaEl && horaEl.value || '').trim();
+    const text = (document.getElementById('m-act-text').value || '').trim();
+    const followup = document.getElementById('m-act-followup').value;
+    const syncEl = document.getElementById('m-act-sync');
+    const sync = !!(syncEl && syncEl.checked);
+    if (!text) { alert('Escribe una descripción.'); return; }
+    const s = getStudio(studioId);
+    const activities = arr(s && s.activities).slice();
+    let i = -1;
+    for (let k = 0; k < activities.length; k++) { if (String(activities[k].id) === String(actId)) { i = k; break; } }
+    if (i < 0) { alert('No se encontró la actividad.'); return; }
+    const at = date ? (date + 'T' + (hora || '12:00') + ':00') : (activities[i].createdAt || new Date().toISOString());
+    activities[i] = Object.assign({}, activities[i], {
+      type: type,
+      text: text,
+      createdAt: at,
+      hora: hora || null,
+      followupDate: followup ? followup + 'T00:00:00Z' : null,
+    });
+    try {
+      await saveDataField(studioId, 'activities', activities);
+      closeModal();
+      notif('Actividad actualizada', 'success');
+      // Solo crea evento de calendario si se marca expresamente (evita duplicados al editar).
       if (sync && date && window.Screens.planificador && window.Screens.planificador.agendarActividadCalendar) {
         try { await window.Screens.planificador.agendarActividadCalendar(s, { date: date, hora: hora || '09:00', tipo: type, text: text }); } catch (_) {}
       }
@@ -3901,6 +3966,8 @@
     // Actividades
     openAddActivity: openAddActivity,
     saveActivity: saveActivity,
+    openEditActivity: openEditActivity,
+    updateActivity: updateActivity,
     deleteActivity: deleteActivity,
     // Equipo
     openAddTeamMember: openAddTeamMember,
