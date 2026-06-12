@@ -1103,8 +1103,12 @@
     const s = getStudio(studioId);
     const act = arr(s && s.activities).filter(function (a) { return String(a.id) === String(actId); })[0];
     if (!act) { alert('No se encontró la actividad.'); return; }
+    const tieneEvento = !!act.gcalEventId;
     showModal(modalWrap('Editar actividad',
-      _actModalBody(act, { syncChecked: false, syncLabel: 'Crear un evento en mi Google Calendar con estos datos' }),
+      _actModalBody(act, {
+        syncChecked: tieneEvento,
+        syncLabel: tieneEvento ? 'Actualizar el evento en mi Google Calendar' : 'Crear un evento en mi Google Calendar con estos datos',
+      }),
       '<button class="btn btn-primary btn-block" ' +
         'onclick="window.Screens.detail.updateActivity(\'' + escape(studioId) + '\',\'' + escape(String(actId)) + '\')">Guardar cambios</button>'
     ));
@@ -1123,9 +1127,10 @@
     const s = getStudio(studioId);
     // createdAt con la hora indicada (Europe/Madrid); si no hay hora, mediodía local.
     const at = date ? (date + 'T' + (hora || '12:00') + ':00') : new Date().toISOString();
+    const newId = Date.now();
     const activities = arr(s && s.activities).slice();
     activities.unshift({
-      id: Date.now(),
+      id: newId,
       type: type,
       text: text,
       createdAt: at,
@@ -1138,8 +1143,9 @@
       closeModal();
       notif('Actividad guardada', 'success');
       // Sincronizar con Google Calendar (con enlace a la ficha) si se marcó.
+      // Al crearse el evento, guardamos su id en la actividad para poder ACTUALIZARLO al editar.
       if (sync && date && window.Screens.planificador && window.Screens.planificador.agendarActividadCalendar) {
-        try { await window.Screens.planificador.agendarActividadCalendar(s, { date: date, hora: hora || '09:00', tipo: type, text: text }); } catch (_) {}
+        try { await window.Screens.planificador.agendarActividadCalendar(s, { date: date, hora: hora || '09:00', tipo: type, text: text, onResult: function (info) { _persistGcalId(studioId, newId, info && info.eventId); } }); } catch (_) {}
       }
       switchTab('actividades', studioId);
     } catch (e) { alert('Error al guardar: ' + e.message); }
@@ -1161,6 +1167,7 @@
     for (let k = 0; k < activities.length; k++) { if (String(activities[k].id) === String(actId)) { i = k; break; } }
     if (i < 0) { alert('No se encontró la actividad.'); return; }
     const at = date ? (date + 'T' + (hora || '12:00') + ':00') : (activities[i].createdAt || new Date().toISOString());
+    const eventId = activities[i].gcalEventId || null;
     activities[i] = Object.assign({}, activities[i], {
       type: type,
       text: text,
@@ -1172,12 +1179,28 @@
       await saveDataField(studioId, 'activities', activities);
       closeModal();
       notif('Actividad actualizada', 'success');
-      // Solo crea evento de calendario si se marca expresamente (evita duplicados al editar).
+      // Si se marca el check: actualiza el evento existente (eventId) o crea uno nuevo si no había.
       if (sync && date && window.Screens.planificador && window.Screens.planificador.agendarActividadCalendar) {
-        try { await window.Screens.planificador.agendarActividadCalendar(s, { date: date, hora: hora || '09:00', tipo: type, text: text }); } catch (_) {}
+        try { await window.Screens.planificador.agendarActividadCalendar(s, { date: date, hora: hora || '09:00', tipo: type, text: text, eventId: eventId, onResult: function (info) { _persistGcalId(studioId, actId, info && info.eventId); } }); } catch (_) {}
       }
       switchTab('actividades', studioId);
     } catch (e) { alert('Error al guardar: ' + e.message); }
+  }
+
+  // Guarda en la actividad (por id) el id del evento de Google Calendar, para poder
+  // actualizarlo en futuras ediciones en lugar de crear duplicados.
+  async function _persistGcalId(studioId, actId, eventId) {
+    if (!eventId) return;
+    const s = getStudio(studioId);
+    const activities = arr(s && s.activities).slice();
+    let changed = false;
+    for (let k = 0; k < activities.length; k++) {
+      if (String(activities[k].id) === String(actId) && activities[k].gcalEventId !== eventId) {
+        activities[k] = Object.assign({}, activities[k], { gcalEventId: eventId });
+        changed = true; break;
+      }
+    }
+    if (changed) { try { await saveDataField(studioId, 'activities', activities); } catch (_) {} }
   }
 
   async function deleteActivity(studioId, idx) {

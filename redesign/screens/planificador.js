@@ -1048,22 +1048,35 @@
       reminders: { useDefault: false, overrides: [ { method: 'popup', minutes: 60 }, { method: 'popup', minutes: 15 } ] },
     };
     const calendarId = calSettings.calendarId || 'primary';
+    const baseUrl = 'https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(calendarId) + '/events';
+    const actualizar = !!opts.eventId;
+    const url = actualizar ? baseUrl + '/' + encodeURIComponent(opts.eventId) : baseUrl;
+    const metodo = actualizar ? 'PATCH' : 'POST';
     try {
-      const resp = await fetch(
-        'https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(calendarId) + '/events',
-        { method: 'POST', headers: { 'Authorization': 'Bearer ' + calSettings.accessToken, 'Content-Type': 'application/json' }, body: JSON.stringify(event) }
-      );
+      const resp = await fetch(url, {
+        method: metodo,
+        headers: { 'Authorization': 'Bearer ' + calSettings.accessToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify(event),
+      });
       if (resp.status === 401) {
         calSettings.accessToken = null; calSettings.tokenExpiry = 0;
         localStorage.setItem('ferroplast_test_calendar_settings', JSON.stringify(calSettings));
         window.showNotification('⚠️ Sesión de calendario caducada. Vuelve a guardar la actividad para reconectar.', 'warning');
         return false;
       }
+      // Si íbamos a actualizar pero el evento ya no existe → crear uno nuevo.
+      if (actualizar && (resp.status === 404 || resp.status === 410)) {
+        const nuevoOpts = Object.assign({}, opts, { eventId: null });
+        return agendarActividadCalendar(studio, nuevoOpts);
+      }
       if (!resp.ok) { const err = await resp.json().catch(function () { return {}; }); throw new Error((err.error && err.error.message) || resp.statusText); }
-      window.showNotification('📅 Añadido a tu Google Calendar', 'success');
-      return true;
+      const json = await resp.json().catch(function () { return {}; });
+      const eventId = json.id || opts.eventId || null;
+      window.showNotification(actualizar ? '📅 Evento actualizado en tu Google Calendar' : '📅 Añadido a tu Google Calendar', 'success');
+      if (typeof opts.onResult === 'function') { try { opts.onResult({ eventId: eventId, actualizado: actualizar }); } catch (_) {} }
+      return eventId || true;
     } catch (e) {
-      window.showNotification('No se pudo añadir al calendario: ' + e.message, 'error');
+      window.showNotification('No se pudo ' + (actualizar ? 'actualizar' : 'añadir') + ' en el calendario: ' + e.message, 'error');
       return false;
     }
   }
