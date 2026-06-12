@@ -377,13 +377,12 @@
           '</div>'
         ) : '') +
 
-        /* Contacto rápido */
-        (s.phone || s.email
-          ? '<div style="display:grid; grid-template-columns:' + (s.phone && s.email ? '1fr 1fr' : '1fr') + '; gap:8px; margin-bottom:4px;">' +
-              (s.phone ? '<a class="btn btn-ghost" style="height:46px;" href="tel:' + escape(s.phone.replace(/[^\d+]/g, '')) + '">' + I.Phone() + ' Llamar</a>' : '') +
-              (s.email ? '<button class="btn btn-ghost" style="height:46px;" data-action="email" data-email="' + escape(s.email) + '">' + I.Mail() + ' Email</button>' : '') +
-            '</div>'
-          : '') +
+        /* Contacto rápido — el botón Email se muestra SIEMPRE (aunque no haya email
+           guardado): abre el panel de plantillas/IA igualmente. */
+        '<div style="display:grid; grid-template-columns:' + (s.phone ? '1fr 1fr' : '1fr') + '; gap:8px; margin-bottom:4px;">' +
+          (s.phone ? '<a class="btn btn-ghost" style="height:46px;" href="tel:' + escape(s.phone.replace(/[^\d+]/g, '')) + '">' + I.Phone() + ' Llamar</a>' : '') +
+          '<button class="btn btn-ghost" style="height:46px;" data-action="email" data-email="' + escape(s.email || '') + '">' + I.Mail() + ' Email</button>' +
+        '</div>' +
       '</div>'
     );
   }
