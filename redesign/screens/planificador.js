@@ -864,7 +864,7 @@
         const endHora  = String(Math.floor(endTot / 60)).padStart(2, '0') + ':' + String(endTot % 60).padStart(2, '0');
 
         const location = addr || [city, prov].filter(Boolean).join(', ');
-        const crmLink  = 'https://mafernandez-create.github.io/crm-prospector/#studio/' + sid;
+        const crmLink  = 'https://mafernandez-create.github.io/crm-prospector/#detail/' + sid;
 
         let desc = '🏢 ' + nombre + '\n📍 ' + (location || '—');
         if (phone)  desc += '\n📞 ' + phone;
