@@ -645,7 +645,9 @@
         _pedirClientId(function (id) { subirVisitasSheet(); });
         return;
       }
-      const redirectUri = window.location.href.split('?')[0].split('#')[0];
+      // Normaliza a la URL canónica autorizada en Google (sin query, sin hash y sin
+      // "index.html"); si no, abrir la app como …/index.html da redirect_uri_mismatch.
+      const redirectUri = window.location.href.split('?')[0].split('#')[0].replace(/index\.html?$/i, '');
       const scope = 'https://www.googleapis.com/auth/spreadsheets';
       const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' +
         'client_id=' + encodeURIComponent(clientId) +
@@ -810,7 +812,9 @@
         _pedirClientId(function (id) { subirCalendario(); });
         return;
       }
-      const redirectUri = window.location.href.split('?')[0].split('#')[0];
+      // Normaliza a la URL canónica autorizada en Google (sin query, sin hash y sin
+      // "index.html"); si no, abrir la app como …/index.html da redirect_uri_mismatch.
+      const redirectUri = window.location.href.split('?')[0].split('#')[0].replace(/index\.html?$/i, '');
       const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' +
         'client_id=' + encodeURIComponent(clientId) +
         '&redirect_uri=' + encodeURIComponent(redirectUri) +
@@ -1006,7 +1010,9 @@
     if (!tokenValido) {
       const clientId = calSettings.clientId || calSettings.client_id || '';
       if (!clientId) { _pedirClientId(function () { agendarActividadCalendar(studio, opts); }); return false; }
-      const redirectUri = window.location.href.split('?')[0].split('#')[0];
+      // Normaliza a la URL canónica autorizada en Google (sin query, sin hash y sin
+      // "index.html"); si no, abrir la app como …/index.html da redirect_uri_mismatch.
+      const redirectUri = window.location.href.split('?')[0].split('#')[0].replace(/index\.html?$/i, '');
       const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' +
         'client_id=' + encodeURIComponent(clientId) +
         '&redirect_uri=' + encodeURIComponent(redirectUri) +
