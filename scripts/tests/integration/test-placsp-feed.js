@@ -58,7 +58,10 @@ async function fetchFeed() {
   A.contains(xml, '<entry', 'PLACSP ATOM: cuerpo XML contiene tag <entry');
 
   const entryMatches = xml.match(/<entry[\s>]/g) || [];
-  A.greaterThan(entryMatches.length, 50, `PLACSP ATOM: >50 entries en el feed (obtenidas ${entryMatches.length})`);
+  // Umbral conservador: 10 en vez de 50. Los fines de semana, festivos y días
+  // tranquilos de la administración el feed puede traer ~40 entries (visto el
+  // 28 jun 2026, domingo). <10 sí indica problema real (feed roto o servicio caído).
+  A.greaterThan(entryMatches.length, 10, `PLACSP ATOM: >10 entries en el feed (obtenidas ${entryMatches.length})`);
 
   const s = A.summary();
   console.log(JSON.stringify(s));
