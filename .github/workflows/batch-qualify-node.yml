@@ -13,8 +13,8 @@
 #   - SUPABASE_URL              → https://<ref>.supabase.co
 #   - SUPABASE_SERVICE_ROLE_KEY → service role (ignora RLS)
 #
-# ESTADO: paralelo al cron viejo (batch-qualify.yml) durante validación.
-# Tras 1 semana de runs verdes, desactivar el cron viejo.
+# ESTADO: único batch nocturno. El cron viejo GAS/Firestore (batch-qualify.yml)
+# se retiró en 2026-06; este workflow lo reemplaza por completo.
 # ============================================================
 
 name: Batch Qualify Studios (Node)

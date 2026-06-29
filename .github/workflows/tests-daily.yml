@@ -40,8 +40,6 @@ jobs:
       - name: Run test battery
         id: tests
         env:
-          BATCH_ENDPOINT: ${{ secrets.BATCH_ENDPOINT }}
-          BATCH_API_KEY:  ${{ secrets.BATCH_API_KEY }}
           GH_TOKEN:       ${{ secrets.GITHUB_TOKEN }}
           CRM_URL:        ${{ vars.CRM_URL || 'https://mafernandez-create.github.io/crm-prospector/' }}
           TESTS_REPO:     ${{ github.repository }}

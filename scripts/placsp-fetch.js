@@ -6,18 +6,15 @@
 // 1. Descarga feed ATOM diario incremental
 // 2. Parsea XML
 // 3. Filtra por CPV relevantes (ingeniería + obra hidráulica)
-// 4. POSTea las adjudicaciones nuevas al endpoint GAS
-//    (action=placspCrosscheck) que cruza con cartera
+// 4. Cruza las adjudicaciones nuevas contra la cartera en Supabase
 // ──────────────────────────────────────────────────────────────────────
 
-const ENDPOINT = process.env.BATCH_ENDPOINT;
-const API_KEY = process.env.BATCH_API_KEY;
 const DESDE = process.env.DESDE || '';
 const HASTA = process.env.HASTA || '';
 const LIMITE = parseInt(process.env.LIMITE || '500', 10);
 
-// Supabase — dual-write desde Node.js (cierre migración 2026-05-25).
-// Si no están configurados, el script sigue funcionando con sólo el GAS.
+// Supabase — única escritura del cross-check (Firestore/GAS retirado 2026-06).
+// El script falla más abajo si SUPABASE_URL/KEY no están configurados.
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const SUPABASE_ENABLED = !!(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
@@ -354,8 +351,8 @@ async function supaWriteHeartbeat(stats) {
   }
 }
 
-// Cruce completo contra Supabase. Mismo contrato que postToGAS:
-// devuelve { matched, created, errorsCount, errors }.
+// Cruce completo contra Supabase (única escritura del cross-check).
+// Devuelve { matched, created, errorsCount, errors }.
 async function crosscheckSupabase(adjudicaciones) {
   if (!SUPABASE_ENABLED) {
     log('Supabase no configurado (SUPABASE_URL/SERVICE_ROLE_KEY ausentes) — skipping');
@@ -454,7 +451,6 @@ async function crosscheckSupabase(adjudicaciones) {
 }
 
 async function main() {
-  if (!ENDPOINT || !API_KEY) throw new Error('BATCH_ENDPOINT y BATCH_API_KEY requeridos');
 
   log('PLACSP Daily Crosscheck');
   log(`Filtros: desde=${DESDE||'incremental_24h'} hasta=${HASTA||'now'} limite=${LIMITE}`);

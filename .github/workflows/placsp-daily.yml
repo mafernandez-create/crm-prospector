@@ -43,11 +43,11 @@ jobs:
 
       - name: Verify secrets present
         run: |
-          if [ -z "${{ secrets.BATCH_ENDPOINT }}" ]; then
-            echo "❌ BATCH_ENDPOINT secret no configurado"; exit 1
+          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
+            echo "❌ SUPABASE_URL secret no configurado"; exit 1
           fi
-          if [ -z "${{ secrets.BATCH_API_KEY }}" ]; then
-            echo "❌ BATCH_API_KEY secret no configurado"; exit 1
+          if [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then
+            echo "❌ SUPABASE_SERVICE_ROLE_KEY secret no configurado"; exit 1
           fi
           echo "✅ Secrets configurados"
 
@@ -58,8 +58,6 @@ jobs:
 
       - name: Run PLACSP fetch + filter + cross-check (Supabase)
         env:
-          BATCH_ENDPOINT: ${{ secrets.BATCH_ENDPOINT }}
-          BATCH_API_KEY: ${{ secrets.BATCH_API_KEY }}
           # Supabase es la única escritura del cross-check (Firestore/GAS retirado
           # 2026-06). El script falla si estos secrets no están configurados.
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

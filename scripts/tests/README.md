@@ -29,8 +29,6 @@ El orquestador devuelve `exit 1` si algún test falla, `exit 0` si todos pasan.
 
 | Variable          | Capa            | Efecto si no está                            |
 |-------------------|-----------------|----------------------------------------------|
-| `BATCH_ENDPOINT`  | integration GAS | Skip limpio (no fallo) en `test-gas-endpoint.js` |
-| `BATCH_API_KEY`   | integration GAS | El test 3 (auth) lo asume vacío y verifica rechazo |
 | `CRM_URL`         | smoke           | Por defecto `https://mafernandez-create.github.io/crm-prospector/` |
 | `TESTS_REPO`      | e2e             | Por defecto `mafernandez-create/crm-prospector`  |
 | `GH_TOKEN`        | e2e             | `gh` CLI usa keyring local — sin token también funciona si está autenticado; skip si no |
@@ -53,18 +51,17 @@ El orquestador devuelve `exit 1` si algún test falla, `exit 0` si todos pasan.
 - **parsers** — `getValor`, `unwrap` Firestore (string/int/bool/array/map),
   `docFieldsToObj` anidado.
 
-### `integration/` — red, Firestore público + GAS + PLACSP
+### `integration/` — red, Firestore público + PLACSP
 
 - **firestore-read** — cartera > 1000 docs, `_meta/batch_checkpoint`,
   `_meta/search_metrics`, formato timestamps. Solo lectura REST pública.
-- **gas-endpoint** — `batchQualify` con `dryRun=true&limite=5`, rechazo sin
-  apiKey. **Skip** si falta `BATCH_ENDPOINT`.
+  (Legado: chat.html aún lee de Firestore; pendiente de migrar a Supabase.)
 - **placsp-feed** — descarga ATOM oficial, parseo de >50 entries.
 
 ### `e2e/` — workflows GitHub Actions
 
 - **workflows** — `gh run list` sobre los 5 runs más recientes de
-  `batch-qualify.yml`, `placsp-daily.yml`, `tests-daily.yml`. **Skip** si `gh`
+  `placsp-daily.yml`, `tests-daily.yml`. **Skip** si `gh`
   no está autenticado.
 
 ### `smoke/` — CRM público

@@ -1,5 +1,11 @@
 # Setup del endpoint nocturno — Bloque 2B del plan v1.1
 
+> ⚠️ **OBSOLETO (2026-06).** Esta guía monta el batch GAS/Firestore, que se
+> retiró. La cualificación nocturna la hace ahora `batch-qualify-node.yml`
+> (Node → Supabase); ver `.github/workflows/batch-qualify-node.yml`. Los secrets
+> `BATCH_ENDPOINT`/`BATCH_API_KEY` y el web app de `gas-batch-qualify` ya no se
+> usan. Se conserva solo como referencia histórica.
+
 Pasos manuales para activar la cualificación batch server-side. Se hace **una sola vez**.
 
 Tiempo estimado: **20-30 minutos**.

@@ -17,12 +17,13 @@
 - Enlace CRM del export a calendario apunta a `#detail/{id}`.
 
 ## Escalado a humanos (necesita decisión de Manolo)
-- ⚠️ `chat.html` (asistente IA móvil, accesible por URL en GitHub Pages) SIGUE
-  usando Firebase Firestore directamente: inicializa el SDK, escribe un ping en
-  `_meta/ping` en cada conexión y lee los studios desde Firestore. Es el ÚNICO
-  consumidor vivo de Firebase. DECISIÓN pendiente: migrarlo a Supabase, retirarlo,
-  o confirmar que aún funciona (Firestore quedó sin dual-write y con RLS cerrada
-  en 2026-06, así que podría estar leyendo datos congelados o fallando).
+- ⚠️ `chat.html` (asistente IA móvil, accesible por URL en GitHub Pages) usa
+  Firebase Firestore directamente y está CASI CON SEGURIDAD ROTO desde 2026-06:
+  una lectura anónima a Firestore (igual que hace chat.html, sin login) devuelve
+  HTTP 403 PERMISSION_DENIED — los permisos se cerraron en la migración. No lee
+  studios ni escribe su ping `_meta/ping`. DECISIÓN: reconstruirlo sobre Supabase
+  (no es "migrar código que funciona") o retirarlo. Es el último resto vivo de
+  Firebase y ahora mismo es una página caída.
 - Resto de Firebase (web rediseño, batch nocturno, cruce PLACSP) ya es solo
   Supabase. Limpieza pendiente de código/textos muertos: `firestore.mjs`,
   `postToGAS()`, scripts de migración/export, tests de Firestore, el workflow

@@ -6,7 +6,7 @@ const A = require('../_lib/assert');
 const { spawnSync } = require('child_process');
 
 const REPO       = process.env.TESTS_REPO || 'mafernandez-create/crm-prospector';
-const WORKFLOWS  = ['batch-qualify.yml', 'placsp-daily.yml', 'tests-daily.yml'];
+const WORKFLOWS  = ['placsp-daily.yml', 'tests-daily.yml'];
 
 function ghAvailable() {
   const r = spawnSync('gh', ['--version'], { encoding: 'utf8' });
@@ -37,7 +37,7 @@ if (!ghAvailable()) {
 
 if (!process.env.GH_TOKEN && !process.env.GITHUB_TOKEN) {
   // gh puede estar autenticado vía keyring local — solo skip si la primera llamada falla con auth error
-  const probe = ghRunList('batch-qualify.yml', 1);
+  const probe = ghRunList('placsp-daily.yml', 1);
   if (!probe.ok && /auth|login|token/i.test(probe.error || '')) {
     console.error('SKIP: gh CLI sin auth (no GH_TOKEN). Tests de workflows no ejecutados.');
     const s = A.summary();
