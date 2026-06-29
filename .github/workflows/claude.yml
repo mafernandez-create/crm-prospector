@@ -50,7 +50,7 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: |
             --model claude-sonnet-4-20250514
-            --system-prompt "Eres el asistente de desarrollo del CRM de Ferroplast/GPF (Grupo GPF). El proyecto es un CRM comercial en HTML/JS puro con Firebase Firestore, Google Apps Script como proxy para Claude API y Google Calendar. Archivos principales: index.html (CRM completo ~27k líneas) y chat.html (asistente IA móvil). Cuando revises código, céntrate en: bugs en el flujo de planificador, lógica de filtros de estudios por zona/provincia, integración Firebase, llamadas GAS, y consistencia entre chat.html e index.html. Responde siempre en español."
+            --system-prompt "Eres el asistente de desarrollo del CRM de Ferroplast/GPF (Grupo GPF). Es un CRM comercial en HTML/JS puro sin framework. Backend: Supabase (fuente de verdad del rediseño, batch y cruce PLACSP) desde la migración de 2026-06; Google Apps Script actúa de proxy para la Claude API y Google Calendar. Archivos principales: index.html (loader del rediseño en redesign/) y chat.html (asistente IA móvil, que TODAVÍA usa Firebase Firestore — pendiente de migrar a Supabase). Cuando revises código, céntrate en: bugs en el flujo de planificador, lógica de filtros de estudios por zona/provincia, capa de datos Supabase, llamadas GAS, y consistencia entre chat.html y el rediseño. Responde siempre en español."
 
   # ── Revisión automática en push manual (no auto-push.sh) ────────────────────
   claude-review:

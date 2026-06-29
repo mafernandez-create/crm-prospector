@@ -4,18 +4,16 @@
  *   loadAll, getDoc, listCollection, patchDoc, getBriefingItems,
  *   savePlanificador.
  *
- * Se selecciona desde data.js según el flag:
- *   localStorage.setItem('redesign:backend', 'supabase')  → activa
- *   localStorage.setItem('redesign:backend', 'firebase')  → vuelve
+ * Backend único de la web del rediseño: data.js fuerza Supabase
+ * (`_activeBackend()` devuelve 'supabase'; el flag 'firebase' quedó muerto al
+ * retirar Firestore en 2026-06).
  *
  * Diseño:
  *   - Las pantallas siguen leyendo objetos con la forma "Firestore-like"
- *     (camelCase: priorityQuadrant, data.contact.email, …). Por dentro,
- *     este adapter mapea entre el shape Postgres (snake_case + JSONB data)
- *     y el shape interno antes de devolverlo.
- *   - Escrituras: mapeo inverso. Sólo studios + meta_planificador
- *     soportan patch en esta fase. Subcolecciones (reports, items)
- *     siguen yendo a Firestore mientras NO migremos completamente.
+ *     (camelCase: priorityQuadrant, data.contact.email, …) por compatibilidad
+ *     histórica. Por dentro, este adapter mapea entre el shape Postgres
+ *     (snake_case + JSONB data) y el shape interno antes de devolverlo.
+ *   - Escrituras: mapeo inverso (studios, meta_planificador, briefings).
  *
  * Endpoints REST de Supabase usados:
  *   GET    /rest/v1/studios?select=*&...filtros

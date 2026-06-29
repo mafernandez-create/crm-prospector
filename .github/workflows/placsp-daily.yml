@@ -56,13 +56,12 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Run PLACSP fetch + filter + dual-write (GAS + Supabase)
+      - name: Run PLACSP fetch + filter + cross-check (Supabase)
         env:
           BATCH_ENDPOINT: ${{ secrets.BATCH_ENDPOINT }}
           BATCH_API_KEY: ${{ secrets.BATCH_API_KEY }}
-          # Supabase opcional — si los secrets están, el script hace
-          # cross-check dual-write contra Supabase. Si no, se salta y sigue
-          # funcionando con sólo Firestore (vía GAS).
+          # Supabase es la única escritura del cross-check (Firestore/GAS retirado
+          # 2026-06). El script falla si estos secrets no están configurados.
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           DESDE: ${{ inputs.desde }}
@@ -70,9 +69,9 @@ jobs:
           LIMITE: ${{ inputs.limite_adjudicaciones || '500' }}
         run: |
           if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-            echo "ℹ️  SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY no configurados — se ejecutará sólo el lado Firestore (GAS)."
+            echo "❌ SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY no configurados — el cross-check fallará."
           else
-            echo "✅ Dual-write activo (GAS → Firestore + Node → Supabase)"
+            echo "✅ Cross-check contra Supabase (única fuente de verdad)."
           fi
           node scripts/placsp-fetch.js
 

@@ -214,36 +214,11 @@ function filterByCPV(adjudicaciones) {
   return adjudicaciones.filter(a => a.cpvCodes.some(code => CPV_RELEVANTES.includes(code)));
 }
 
-async function postToGAS(adjudicaciones) {
-  log(`POSTing ${adjudicaciones.length} adjudicaciones al endpoint GAS...`);
-  const params = new URLSearchParams({
-    action: 'placspCrosscheck',
-    apiKey: API_KEY,
-    payload: JSON.stringify({ adjudicaciones }),
-  });
-  // GAS Web App devuelve 302, manejo manual del redirect (mismo patrón que batch-qualify.yml)
-  const postRes = await fetch(ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params.toString(),
-    redirect: 'manual',
-  });
-  if (postRes.status !== 302) {
-    log(`POST inicial no devolvió 302: ${postRes.status}`);
-    const text = await postRes.text();
-    log('Respuesta:', text.slice(0, 500));
-    throw new Error('GAS respuesta inesperada');
-  }
-  const location = postRes.headers.get('location');
-  if (!location) throw new Error('Sin Location header');
-  const getRes = await fetch(location);
-  const resp = await getRes.text();
-  log('Respuesta GAS:', resp.slice(0, 500));
-  return JSON.parse(resp);
-}
+// NOTA (2026-06): postToGAS() eliminada. El cruce PLACSP escribe SOLO en Supabase
+// (ver crosscheckSupabase más abajo). Firestore/GAS quedó retirado de este flujo.
 
 // ──────────────────────────────────────────────────────────────────────
-// SUPABASE — dual-write del cross-check
+// SUPABASE — cross-check (única escritura)
 //
 // Replica la lógica de handlePlacspCrosscheck (gas-batch-qualify.gs:775)
 // pero contra Supabase. No depende del GAS — si SUPABASE_URL/KEY están
