@@ -172,7 +172,7 @@
       if (!Data || !Data.callGAS) throw new Error('Data.callGAS no disponible');
 
       var res = await Data.callGAS('claudeProxy', {
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 2048,
         system: _buildSystemPrompt(),
         messages: messages,

@@ -4148,7 +4148,7 @@
         var Data = window.Data;
         if (!Data || !Data.callGAS) throw new Error('Data.callGAS no disponible');
         var res = await Data.callGAS('claudeProxy', {
-          model: 'claude-sonnet-4-20250514', max_tokens: 1024,
+          model: 'claude-sonnet-4-6', max_tokens: 1024,
           system: systemPrompt, messages: [{ role: 'user', content: userMsg }],
         });
         var raw = (res && res.content && res.content[0] && res.content[0].text) || (res && res.text) || '';

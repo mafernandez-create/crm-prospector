@@ -903,7 +903,7 @@ async function callClaude(msgs) {
   const r = await fetch(GAS + '?action=claudeProxy', {
     method:'POST', headers:{'Content-Type':'text/plain'},
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1500,
       system: [{ type:'text', text:SYS, cache_control:{ type:'ephemeral' } }],
       messages: msgs
@@ -946,7 +946,7 @@ async function callClaudeIntent(userText) {
   const r = await fetch(GAS + '?action=claudeProxy', {
     method:'POST', headers:{'Content-Type':'text/plain'},
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 120,
       system: [{ type:'text', text: SYS_INTENT.replace('{{HOY}}', hoy), cache_control:{ type:'ephemeral' } }],
       messages: [{ role:'user', content: userText }]

@@ -95,7 +95,7 @@
      o lanza con el mensaje de error. */
   async function _claudeCall(systemPrompt, userMsg, maxTokens) {
     const res = await callGAS('claudeProxy', {
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: maxTokens || 4096,
       messages: [{ role: 'user', content: userMsg }],
       system: systemPrompt,
