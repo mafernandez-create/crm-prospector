@@ -1,4 +1,5 @@
-# Sincroniza main → gh-pages para desplegar en GitHub Pages (legacy builder)
+# Sincroniza main → gh-pages para desplegar en GitHub Pages (legacy builder).
+# El deploy está GATEADO: solo publica si la batería unitaria (offline) pasa.
 name: Deploy Pages
 
 on:
@@ -10,7 +11,28 @@ permissions:
   contents: write
 
 jobs:
+  # ── Gate: batería unitaria (offline, sin secretos ni red) ──────────────────
+  # Solo el subconjunto --unit: es determinista y no necesita Supabase, PLACSP,
+  # GitHub API ni la web ya desplegada. integration/e2e/smoke SÍ salen a la red
+  # y son circulares antes del deploy (validarían el deploy viejo) → viven en
+  # tests-daily.yml, que corre post-deploy contra producción.
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '20'
+
+      - name: Gate — batería unitaria
+        run: node scripts/tests/run-all.js --unit
+
+  # ── Deploy: solo si el gate pasa ───────────────────────────────────────────
   deploy:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
