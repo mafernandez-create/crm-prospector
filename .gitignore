@@ -32,4 +32,8 @@ dunsSegmentacion_fix.js
 .reorg_backup_*/
 
 # Documentos con datos de clientes — solo local, nunca al repo público
+# (el repo se despliega a gh-pages PÚBLICO: nada con PII aquí)
 *.docx
+planning_*.html
+agentes/output/
+AUDITORIA.md
