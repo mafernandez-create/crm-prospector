@@ -250,11 +250,11 @@ function detectIntent(txt) {
 
   // studio ID directo (ej: "estudio 277", "studio 28")
   const idM = t.match(/estudio\s+(\d+)|studio\s+(\d+)|id\s+(\d+)/);
-  if (idM) intent.studioId = parseInt(idM[1] || idM[2] || idM[3]);
+  if (idM) intent.studioId = parseInt(idM[1] || idM[2] || idM[3], 10);
 
   // días sin visita
   const diasM = t.match(/(\d+)\s*d[ií]as/);
-  if (diasM) intent.dias = parseInt(diasM[1]);
+  if (diasM) intent.dias = parseInt(diasM[1], 10);
 
   // fecha
   const hoy = new Date();
@@ -280,7 +280,7 @@ function detectIntent(txt) {
 }
 
 // ══════════════════════════════════════════
-// FIREBASE QUERIES
+// CONSULTAS AL CRM (Supabase)
 // ══════════════════════════════════════════
 async function fetchCRMData(intent, rawText) {
   const result = {};
@@ -302,7 +302,7 @@ async function fetchCRMData(intent, rawText) {
       for (const [fecha, entries] of Object.entries(proximos)) {
         enriched[fecha] = entries.map(e => {
           const s = todosEstudios.find(x => x.id == e.id);
-          if (!s) console.warn(`[planificador] studio id=${e.id} ("${e.name}") no encontrado en Firestore`);
+          if (!s) console.warn(`[planificador] studio id=${e.id} ("${e.name}") no encontrado en el CRM`);
           return {
             id:        e.id,
             nombre:    e.name || s?.name || `Estudio ${e.id}`,
@@ -314,7 +314,7 @@ async function fetchCRMData(intent, rawText) {
             telefono:  s?.phone || s?.data?.contact?.phone || '',
             email:     s?.email || s?.data?.contact?.email || '',
             direccion: s?.address || s?.data?.contact?.address || '',
-            _sinDatos: !s  // flag si el estudio no está en Firestore
+            _sinDatos: !s  // flag si el estudio no está en el CRM
           };
         });
       }
@@ -1031,14 +1031,26 @@ async function runAgent(userText) {
     return finishReply(reply);
   }
 
-  // ── Paso 2: Cargar datos de Firebase según lo que Claude decidió ──
+  // ── Paso 2: Cargar datos del CRM (Supabase) según lo que Claude decidió ──
   const intent = intentToLegacy(claudeIntent);
   const isExternalSearch = intent.actions.includes('search_new');
   addTool(isExternalSearch ? '🌐 Iniciando búsqueda externa…' : '🔍 Consultando el CRM…');
   let crmData = {};
+  let crmError = null;
   try { crmData = await fetchCRMData(intent, userText); }
-  catch(e) { removeTool(); addTool('⚠️ Error Firebase: ' + e.message); }
+  catch(e) { crmError = e; }
   removeTool();
+
+  // Si la consulta al CRM falla, NO seguimos llamando a Claude con datos vacíos:
+  // una respuesta "no hay resultados" sobre un error de red parecería válida y
+  // podría llevar a una decisión comercial equivocada. Cortamos y avisamos.
+  if (crmError) {
+    const expirada = /401|403|unauthor|sesi[oó]n|token|jwt/i.test(crmError.message || '');
+    addMsg('assistant', '', expirada
+      ? '⚠️ Tu sesión ha caducado. Vuelve a iniciar sesión en el CRM y recarga esta página.'
+      : '⚠️ No he podido consultar el CRM (' + crmError.message + '). No te doy datos para no arriesgar información no fiable; inténtalo de nuevo en un momento.');
+    return;
+  }
 
   // ── Paso 3: Claude responde con los datos reales ──
   const dataBlock = Object.keys(crmData).length
