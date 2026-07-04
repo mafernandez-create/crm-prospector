@@ -1,0 +1,20 @@
+{
+  "name": "CRM Prospector · GPF",
+  "short_name": "CRM GPF",
+  "description": "CRM de prospección comercial de Grupo Plásticos Ferro (Ferroplast / Tuyper).",
+  "lang": "es",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a2d52",
+  "theme_color": "#0a2d52",
+  "icons": [
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

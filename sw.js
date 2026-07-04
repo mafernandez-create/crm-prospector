@@ -6,14 +6,22 @@
  *
  * Reglas:
  *   - HTML, JS, CSS del rediseño → siempre red (network-only). Si falla,
- *     se cae a un fallback offline mínimo.
+ *     y la petición es una navegación (documento), se sirve offline.html.
  *   - Recursos terceros (fuentes Google, CDN Leaflet/XLSX) → cache-first
  *     porque son inmutables por URL.
  *   - Firestore / GAS → pasan tal cual (no se interceptan).
  */
-const CACHE_NAME = 'crm-prospector-v35';
+const CACHE_NAME = 'crm-prospector-v36';
+const OFFLINE_URL = new URL('offline.html', self.location).href;
 
 self.addEventListener('install', function (e) {
+  // Precachea SOLO la página de fallback offline (no el shell: seguimos
+  // network-only para HTML/JS/CSS y así nunca servimos código viejo).
+  e.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(function (c) { return c.add(OFFLINE_URL); })
+      .catch(function () { /* si falla el precache, no bloquear la instalación */ })
+  );
   self.skipWaiting();
 });
 
@@ -52,7 +60,13 @@ self.addEventListener('fetch', function (e) {
   if (isAppScript(url)) {
     e.respondWith(
       fetch(e.request, { cache: 'no-store' }).catch(function () {
-        return caches.match(e.request);
+        return caches.match(e.request).then(function (hit) {
+          if (hit) return hit;
+          // Navegación (documento) sin red ni cache → página offline amigable
+          // en vez del error genérico del navegador. Para JS/CSS, sin fallback.
+          if (e.request.mode === 'navigate') return caches.match(OFFLINE_URL);
+          return Response.error();
+        });
       })
     );
     return;

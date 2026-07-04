@@ -221,6 +221,33 @@
   })();
 
   /* ============================================================
+     MENÚ DE CUENTA — ver email · cerrar sesión
+     Reutiliza el bottom sheet (cierra con Escape / backdrop, vive dentro de
+     .crm-root → accesible). Punto de entrada: .sidebar-user (desktop) y
+     #mobile-account-btn (móvil).
+     ============================================================ */
+  window.openAccountMenu = function () {
+    var email = (window.Auth && window.Auth.currentEmail && window.Auth.currentEmail()) || '';
+    var html =
+      '<div role="dialog" aria-label="Cuenta" style="padding:4px 4px 8px;">' +
+        '<div style="font-size:15px; font-weight:700; color:var(--fg-1); margin-bottom:2px;">Cuenta</div>' +
+        '<div style="font-size:13px; color:var(--fg-3); margin-bottom:16px; word-break:break-all;">' +
+          escapeHtml(email || 'Sesión iniciada') +
+        '</div>' +
+        '<button type="button" class="btn btn-primary" style="width:100%; justify-content:center; margin-bottom:8px;" ' +
+          'onclick="window._accountSignOut()">Cerrar sesión</button>' +
+        '<button type="button" class="btn btn-ghost" style="width:100%; justify-content:center;" ' +
+          'onclick="closeSheet()">Cancelar</button>' +
+      '</div>';
+    if (window.openSheet) window.openSheet(html);
+  };
+
+  window._accountSignOut = function () {
+    if (window.closeSheet) window.closeSheet();
+    if (window.Auth && window.Auth.signOut) window.Auth.signOut();
+  };
+
+  /* ============================================================
      NUEVO ANÁLISIS — sheet de alta rápida de empresa
      ============================================================ */
   window.openNuevoAnalisis = function () {
@@ -645,11 +672,21 @@
         State.loading = false;
         hideLoader();
         navigateFromHash();
+        // Datos cargados PERO desde cache stale (Supabase no respondió):
+        // avisar en vez de mostrar datos viejos en silencio.
+        if (State.error && window.showNotification) {
+          window.showNotification('⚠️ ' + State.error, 'warning');
+        }
       }).catch(function (e) {
         State.error = e.message || String(e);
         State.loading = false;
         hideLoader();
         navigateFromHash();
+        // Fallo total de carga (Supabase caído y sin cache): mostrarlo como
+        // error, no como pantalla vacía sin explicación.
+        if (window.showNotification) {
+          window.showNotification('No se pudieron cargar los datos: ' + State.error, 'error');
+        }
       });
     } else {
       // Sin capa de datos aún (Fase B no tiene Data.loadAll) — pinta vacío

@@ -50,13 +50,15 @@
           '<div class="sidebar-section-title">Herramientas</div>' +
           itemsTools.map(navItem).join('') +
         '</nav>' +
-        '<div class="sidebar-user">' +
+        '<button type="button" class="sidebar-user" ' +
+          'aria-haspopup="dialog" aria-label="Cuenta y cerrar sesión" ' +
+          'onclick="window.openAccountMenu && window.openAccountMenu()">' +
           '<div class="avatar">' + State.user.initials + '</div>' +
           '<div class="user-meta">' +
             '<div class="user-name">' + State.user.name + '</div>' +
             '<div class="user-role">' + State.user.role + '</div>' +
           '</div>' +
-        '</div>' +
+        '</button>' +
       '</aside>'
     );
   }
@@ -110,6 +112,9 @@
           '<section class="view" id="view-asistente"></section>' +
         '</div>' +
 
+        /* Botón de cuenta móvil — visible < 700px (sidebar/topbar ocultos ahí) */
+        mobileAccountBtn() +
+
         /* Tab bar global móvil — visible < 700px */
         mobileTabBar() +
 
@@ -118,6 +123,21 @@
 
       '</div>' +
       '</div>'  // cierre .shell
+    );
+  }
+
+  /* ============================================================
+     BOTÓN DE CUENTA MÓVIL
+     En < 700px se ocultan sidebar y topbar, así que el acceso a la cuenta
+     (ver email · cerrar sesión) vive en un botón fijo arriba-derecha.
+     ============================================================ */
+  function mobileAccountBtn() {
+    return (
+      '<button type="button" class="mobile-account-btn" id="mobile-account-btn" ' +
+        'aria-haspopup="dialog" aria-label="Cuenta y cerrar sesión" ' +
+        'onclick="window.openAccountMenu && window.openAccountMenu()">' +
+        (State.user.initials || '·') +
+      '</button>'
     );
   }
 
