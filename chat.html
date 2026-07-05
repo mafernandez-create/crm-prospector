@@ -152,6 +152,19 @@ const GAS = 'https://script.google.com/macros/s/AKfycbzh2oFEM2QcL0OFef1dqz36b0C1
 // Backend de datos: Supabase, vía el adaptador compartido del rediseño
 // (window.DataSupabase, incluido arriba). Firebase retirado 2026-06.
 
+// URL del GAS con el token de sesión Supabase en la query (?sbToken=…) para que
+// el GAS valide que la llamada viene de un usuario logueado (protege claudeProxy
+// —cuota de Claude— y fetchUrl —SSRF—). Va en la query, no en el body, porque el
+// body de claudeProxy es el payload de Anthropic y no admite campos extra.
+// Compatible hacia atrás: mientras el GAS no lo valide, lo ignora.
+async function gasUrl(action) {
+  let t = null;
+  if (window.Auth && typeof window.Auth.getValidToken === 'function') {
+    try { t = await window.Auth.getValidToken(); } catch (_) {}
+  }
+  return GAS + '?action=' + encodeURIComponent(action) + (t ? '&sbToken=' + encodeURIComponent(t) : '');
+}
+
 // ══════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════
@@ -328,7 +341,7 @@ async function fetchCRMData(intent, rawText) {
     const dateMin = fecha + 'T00:00:00Z';
     const dateMax = fecha + 'T23:59:59Z';
     try {
-      const r = await fetch(GAS + '?action=getCalendarEvents', {
+      const r = await fetch(await gasUrl('getCalendarEvents'), {
         method: 'POST', headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({ dateMin, dateMax })
       });
@@ -527,7 +540,7 @@ function toSlug(str) {
 
 // Fetch externo via GAS (UrlFetchApp — servidores Google, evita Incapsula)
 async function fetchWithProxy(url) {
-  const r = await fetch(GAS + '?action=fetchUrl', {
+  const r = await fetch(await gasUrl('fetchUrl'), {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ url })
@@ -729,9 +742,14 @@ async function addActivity(studioId, tipo, notas, resultado, fecha) {
   const s = estudios.find(x => x.id == studioId);
   if (!s) return { ok:false, msg:`Studio ${studioId} no encontrado` };
   const act = { id: Date.now(), type: tipo, date: fecha||new Date().toISOString().split('T')[0], notes: notas, result: resultado||'pendiente', createdAt: new Date().toISOString() };
-  const newActs = [...(s.activities||[]), act];
-  // En Supabase las activities viven en el JSONB data: mergear y reescribir data.
-  const newData = Object.assign({}, s.data || {}, { activities: newActs });
+  // Releer el studio FRESCO justo antes de escribir: el patch reemplaza la
+  // columna JSONB `data` entera, así que si mergeáramos sobre la caché (hasta
+  // 5 min) pisaríamos cambios que el rediseño/batch hayan hecho entre medias
+  // (contact, reports, notas…). Con getDoc mergeamos sobre el estado real.
+  const fresh = await window.DataSupabase.getDoc('studios/' + s._docId);
+  const freshData = (fresh && fresh.data) || s.data || {};
+  const newActs = [...(freshData.activities||[]), act];
+  const newData = Object.assign({}, freshData, { activities: newActs });
   await window.DataSupabase.patchDoc('studios/' + s._docId, { data: newData });
   s.activities = newActs;            // caché coherente
   if (s.data) s.data.activities = newActs;
@@ -769,7 +787,7 @@ async function addToPlan(studioId, fecha, reserva=false, priority='principal', h
       description: `🏢 ${s.name}\n📍 ${direccion || (s.city||'') + ' (' + (s.province||'') + ')'}\n📞 ${s.phone||s.data?.contact?.phone||'-'}\n📧 ${s.email||s.data?.contact?.email||'-'}\n\n${reserva?'⚠️ RESERVA':'✅ VISITA PRINCIPAL'}${!direccion?' · ⚠️ Sin dirección en CRM':''}\n\nCreado desde GPF Chat Assistant`,
       duration: 60
     };
-    const r = await fetch(GAS + '?action=createCalendarEvent', {
+    const r = await fetch(await gasUrl('createCalendarEvent'), {
       method:'POST', headers:{'Content-Type':'text/plain'},
       body: JSON.stringify({ data: eventData })
     });
@@ -795,9 +813,17 @@ async function delFromPlan(studioId, fecha) {
 }
 
 async function addStudio(nombre, ciudad, provincia, tipo, telefono, email, direccion) {
-  const estudios = await getStudios();
-  const maxId = estudios.reduce((m, s) => Math.max(m, typeof s.id === 'number' ? s.id : 0), 0);
-  const newId = maxId + 1;
+  // Cartera FRESCA (no la caché de 5 min) para no calcular el ID sobre datos
+  // viejos y pisar una ficha creada por el rediseño/PLACSP mientras tanto.
+  const estudios = await getStudios(true);
+  // Cuenta TODOS los IDs (numéricos y string-numéricos), con suelo 3000 como el
+  // alta del rediseño (app.js), para no colisionar con su secuencia.
+  let maxId = 3000;
+  for (const s of estudios) {
+    const n = parseInt(s.id, 10);
+    if (!isNaN(n) && n > maxId) maxId = n;
+  }
+  const newId = String(maxId + 1);
   // En Supabase: campos planos (name/type/city/province/score) → columnas;
   // el resto (contact, activities, createdAt) → JSONB data.
   await window.DataSupabase.patchDoc('studios/' + newId, {
@@ -841,7 +867,7 @@ async function addCalendarEvent(studioId, fecha, hora, titulo) {
     duration: 60
   };
   if (!direccion) eventData.description += '\n\n⚠️ Dirección no registrada en el CRM';
-  const r = await fetch(GAS + '?action=createCalendarEvent', {
+  const r = await fetch(await gasUrl('createCalendarEvent'), {
     method: 'POST', headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ data: eventData })
   });
@@ -900,7 +926,7 @@ Solo incluye bloques ACTION si el usuario pide EXPLÍCITAMENTE registrar o guard
 <ACTION>{"op":"add_calendar","studio_id":N,"fecha":"YYYY-MM-DD","hora":"HH:MM","titulo":"Visita ..."}</ACTION>`;
 
 async function callClaude(msgs) {
-  const r = await fetch(GAS + '?action=claudeProxy', {
+  const r = await fetch(await gasUrl('claudeProxy'), {
     method:'POST', headers:{'Content-Type':'text/plain'},
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
@@ -943,7 +969,7 @@ Reglas:
 
 async function callClaudeIntent(userText) {
   const hoy = new Date().toISOString().split('T')[0];
-  const r = await fetch(GAS + '?action=claudeProxy', {
+  const r = await fetch(await gasUrl('claudeProxy'), {
     method:'POST', headers:{'Content-Type':'text/plain'},
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',

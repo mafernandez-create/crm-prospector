@@ -38,7 +38,17 @@
     params = params || {};
     // Body como JSON; el GAS endpoint espera doPost con e.postData.contents
     const body = JSON.stringify(Object.assign({ action: action }, params));
-    const res = await fetch(GAS_URL, {
+    // Token de sesión Supabase en la QUERY (no en el body: el body de claudeProxy
+    // es el payload de Anthropic y no debe llevar campos extra). El GAS lo lee de
+    // e.parameter.sbToken y valida que la llamada viene de un usuario logueado
+    // (protege claudeProxy/fetchUrl: cuota de Claude + SSRF). Compatible hacia
+    // atrás: mientras el GAS no lo valide, lo ignora.
+    let sbToken = null;
+    if (window.Auth && typeof window.Auth.getValidToken === 'function') {
+      try { sbToken = await window.Auth.getValidToken(); } catch (_) {}
+    }
+    const url = GAS_URL + (sbToken ? '?sbToken=' + encodeURIComponent(sbToken) : '');
+    const res = await fetch(url, {
       method: 'POST',
       // GAS Web App suele requerir text/plain para evitar preflight CORS
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
