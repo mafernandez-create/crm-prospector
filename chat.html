@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>GPF CRM</title>
 
   <!-- iOS Home Screen / PWA -->
@@ -138,8 +138,8 @@
 </div>
 
 <div id="input-bar">
-  <textarea id="userInput" placeholder="Pregunta sobre el CRM…" rows="1"></textarea>
-  <button id="sendBtn" onclick="sendMessage()">↑</button>
+  <textarea id="userInput" placeholder="Pregunta sobre el CRM…" rows="1" aria-label="Escribe tu pregunta sobre el CRM"></textarea>
+  <button id="sendBtn" onclick="sendMessage()" aria-label="Enviar mensaje">↑</button>
 </div>
 
 <script src="redesign/auth.js"></script>
