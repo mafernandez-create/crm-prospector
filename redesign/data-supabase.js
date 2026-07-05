@@ -156,6 +156,13 @@
       body: opts.body,
     });
     if (!res.ok) {
+      // 401 = JWT ausente/inválido/caducado (el RLS filtra con [] , no con 401):
+      // la sesión ha muerto a mitad de uso → repintar la verja de login en vez
+      // de dejar que el error crudo de Supabase acabe en un toast incomprensible.
+      if (res.status === 401 && window.Auth && typeof window.Auth.expire === 'function') {
+        window.Auth.expire();
+        throw new Error('Sesión caducada. Vuelve a iniciar sesión.');
+      }
       const txt = await res.text().catch(function () { return ''; });
       throw new Error('Supabase ' + res.status + ' ' + res.statusText + ' (' + pathQ + ') ' + txt.slice(0, 300));
     }

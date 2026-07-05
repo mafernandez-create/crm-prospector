@@ -109,6 +109,18 @@
     location.reload();
   }
 
+  /* Sesión caducada/rechazada a mitad de uso (p.ej. un 401 en sbFetch): limpia
+     la sesión local (sin red) y repinta la verja de login. Al reautenticar,
+     recarga para reanudar con la sesión nueva. Guard anti-reentrada para que
+     varias peticiones fallidas en paralelo no repinten la verja varias veces. */
+  let _expiring = false;
+  function expire() {
+    _save(null);
+    if (_expiring) return;
+    _expiring = true;
+    renderGate(function () { location.reload(); });
+  }
+
   /* ============================================================
      GATE — formulario de login (se muestra si no hay sesión)
      ============================================================ */
@@ -154,6 +166,7 @@
   window.Auth = {
     signIn: signIn,
     signOut: signOut,
+    expire: expire,
     getValidToken: getValidToken,
     isAuthenticated: isAuthenticated,
     currentEmail: currentEmail,
