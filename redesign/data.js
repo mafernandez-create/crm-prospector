@@ -40,8 +40,11 @@
      ============================================================ */
   async function callGAS(action, params) {
     params = params || {};
-    // Body como JSON; el GAS endpoint espera doPost con e.postData.contents
-    const body = JSON.stringify(Object.assign({ action: action }, params));
+    // Body = solo el payload (SIN 'action'): el GAS lee la acción de la query
+    // (e.parameter.action) y el body como e.postData.contents. Meter 'action' en
+    // el body contaminaría el payload de claudeProxy (lo rechazaría la API de
+    // Claude). Mismo patrón que chat.html.
+    const body = JSON.stringify(params);
     // Token de sesión Supabase en la QUERY (no en el body: el body de claudeProxy
     // es el payload de Anthropic y no debe llevar campos extra). El GAS lo lee de
     // e.parameter.sbToken y valida que la llamada viene de un usuario logueado
@@ -51,7 +54,12 @@
     if (window.Auth && typeof window.Auth.getValidToken === 'function') {
       try { sbToken = await window.Auth.getValidToken(); } catch (_) {}
     }
-    const url = GAS_URL + (sbToken ? '?sbToken=' + encodeURIComponent(sbToken) : '');
+    // La 'action' va en la QUERY: el GAS despacha por e.parameter.action (no lee
+    // el body para eso). El body sigue llevando el payload (p.ej. de Claude en
+    // claudeProxy). Antes iba solo en el body → el GAS respondía "Acción no
+    // válida: undefined". Alineado con el patrón de chat.html.
+    const url = GAS_URL + '?action=' + encodeURIComponent(action) +
+      (sbToken ? '&sbToken=' + encodeURIComponent(sbToken) : '');
     const res = await fetch(url, {
       method: 'POST',
       // GAS Web App suele requerir text/plain para evitar preflight CORS
