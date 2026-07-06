@@ -12,10 +12,17 @@ Consolidación de deployments: `data.js` repuntado de `AKfycbxx6` (huérfano/des
 a `AKfycbzh2` (el mismo que chat.html) y **arreglado `callGAS`** para mandar
 `?action=...&sbToken=...` en la QUERY con body limpio (antes la action iba solo en el
 body → el GAS respondía "Acción no válida: undefined"). `sw` v36→v37 para propagar.
-Verificado en vivo: chat.html responde con sesión y devuelve "No autorizado" sin ella.
-PENDIENTE menor: (a) el rediseño en un cliente ya cargado puede seguir con el `data.js`
-viejo hasta que refresque el SW (Cmd+Shift+R lo fuerza); (b) queda una `_testAuth`
-inofensiva en el GAS; (c) archivar los web apps GAS sin uso (`AKfycbwsYsbo`, `AKfycbz3humr`).
+Verificado en vivo: chat.html Y el asistente del rediseño responden con sesión y
+devuelven "No autorizado" sin ella.
+**Cierre total del proxy (07-06):** los 3 web apps del CRM están guardados —
+`AKfycbzh2` (v62), `AKfycbwsYsbo` (v63) y `AKfycbz3humr` (v47→v64) reimplantados a
+versión con guard; verificado por curl que los tres rechazan `claudeProxy` sin token.
+Nota: `AKfycbxx6` (la URL vieja de data.js) es de OTRO proyecto (calculadora de
+hipoteca), no del CRM → no era un proxy de Claude.
+PENDIENTE menor: `_testAuth` (test) sigue en la versión desplegada `AKfycbzh2` v62
+(quitada del código fuente; se irá en el próximo redeploy de esa). Inofensiva.
+Olas B/C/D de la auditoría cerradas por mi parte (queda el modal del planificador,
+que trabaja otra rama).
 
 ## Anterior
 2026-07-05 · Auditoría completa (verificador + código + UX) y remediación:
