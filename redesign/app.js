@@ -191,6 +191,9 @@
         '.crm-toast.info{background:#1e40af;}',
         '@keyframes crm-toast-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}',
         '@keyframes crm-toast-out{from{opacity:1}to{opacity:0;transform:translateY(8px)}}',
+        /* Móvil: por encima de la tab bar y a la izquierda (fuera del FAB de voz) */
+        '@media(max-width:700px){.crm-toast-wrap{left:12px;right:auto;',
+          'bottom:calc(83px + env(safe-area-inset-bottom,0px) + 12px);align-items:flex-start;}}',
       ].join('');
       document.head.appendChild(s);
     }
@@ -200,6 +203,9 @@
       if (!w) {
         w = document.createElement('div');
         w.className = 'crm-toast-wrap';
+        w.setAttribute('role', 'status');        // región live: los toasts se anuncian
+        w.setAttribute('aria-live', 'polite');
+        w.setAttribute('aria-atomic', 'false');
         document.body.appendChild(w);
       }
       return w;
@@ -210,6 +216,9 @@
       var wrap = getWrap();
       var el = document.createElement('div');
       el.className = 'crm-toast ' + type;
+      // Errores/avisos interrumpen (assertive) via role=alert; el resto se anuncia
+      // en 'polite' a través del wrap (role=status).
+      if (type === 'error' || type === 'warning') el.setAttribute('role', 'alert');
       el.textContent = msg;
       wrap.appendChild(el);
       var dur = type === 'error' ? 6000 : type === 'warning' ? 5000 : 4000;

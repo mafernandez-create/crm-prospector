@@ -78,7 +78,7 @@
           '<span style="margin-left:auto; font-size:12px; color:var(--fg-3); font-family:var(--font-mono);">' + items.length + '</span>' +
         '</div>' +
         (items.length ? items.map(card).join('')
-          : '<div style="font-size:12px; color:var(--fg-4); padding:14px 4px; text-align:center;">—</div>') +
+          : '<div style="font-size:12px; color:var(--fg-3); padding:14px 4px; text-align:center;">—</div>') +
       '</div>'
     );
   }
