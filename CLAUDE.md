@@ -49,7 +49,7 @@ npm install
 
 **Despliegue:** push a `main` → el workflow `deploy-pages.yml` hace force-push de `main` a
 `gh-pages` (deploy en ~10s). El Service Worker cachea agresivamente: si un cambio no aparece
-en cliente, **subir la versión de `CACHE_NAME` en `sw.js`** (actualmente `crm-prospector-v16`)
+en cliente, **subir la versión de `CACHE_NAME` en `sw.js`** (actualmente `crm-prospector-v37`)
 y recargar (en móvil, cerrar y reabrir la PWA).
 
 ## Arquitectura (resumen)

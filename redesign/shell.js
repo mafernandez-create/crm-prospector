@@ -89,7 +89,7 @@
           '</div>' +
           '<div class="actions">' +
             '<button class="btn btn-ghost" onclick="window.open(\'https://calendar.google.com\', \'_blank\')">' + I.Calendar() + ' Calendario</button>' +
-            '<button class="btn btn-primary" onclick="openNuevoAnalisis()">' + I.Plus() + ' Nuevo análisis</button>' +
+            '<button class="btn btn-primary" onclick="openNuevoAnalisis()">' + I.Plus() + ' Nueva empresa</button>' +
             '<button class="icon-btn" aria-label="Notificaciones" ' +
               'onclick="window.showNotification && window.showNotification(\'Sin notificaciones pendientes\', \'info\')">' +
               I.Bell() +

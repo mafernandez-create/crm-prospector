@@ -5,7 +5,7 @@
  *   - Parser con XLSX.js (carga diferida desde CDN)
  *   - Mapeo automático de columnas (heurística por header)
  *   - Vista previa con resumen y warnings
- *   - Commit a Firestore via Data.patchDoc('studios/{id}', obj)
+ *   - Commit a Supabase via Data.patchDoc('studios/{id}', obj)
  *   - Exportar cartera actual a XLSX y a JSON
  *
  * El importer respeta las reglas:
@@ -248,7 +248,7 @@
         '</div>' +
         '<div style="margin-top:12px; display:flex; gap:8px; align-items:center;">' +
           '<button class="btn btn-primary" ' + (Local.importando ? 'disabled' : '') + ' onclick="window.Screens.importar.commit()">' +
-            (Local.importando ? 'Importando…' : 'Importar a Firestore') +
+            (Local.importando ? 'Importando…' : 'Importar a Supabase') +
           '</button>' +
           '<button class="btn btn-ghost" onclick="window.Screens.importar.cancelar()">Descartar</button>' +
           '<span style="font-size:12px; color:var(--fg-3); margin-left:auto;">Cada fila escribirá un documento. Esto puede tardar unos segundos.</span>' +
@@ -305,7 +305,7 @@
   async function commit() {
     if (Local.importando) return;
     if (!Local.parsed || !Local.parsed.length) return;
-    if (!confirm('Vas a escribir ' + Local.parsed.length + ' documento(s) a Firestore. ¿Continuar?')) return;
+    if (!confirm('Vas a escribir ' + Local.parsed.length + ' documento(s) a Supabase. ¿Continuar?')) return;
     Local.importando = true;
     render();
 

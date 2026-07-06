@@ -25,7 +25,7 @@
      DATOS — Fase G/v1.1: lee de State.studios real.
               Si la cartera no está cargada, mock fallback.
      ============================================================ */
-  // Normaliza priorityQuadrant a "Q{n}" (Firestore lo guarda como número 1-9)
+  // Normaliza priorityQuadrant a "Q{n}" (el backend lo guarda como número 1-9)
   function normalizeQ(v) {
     if (v == null) return null;
     if (typeof v === 'string' && /^Q[1-9]$/.test(v)) return v;

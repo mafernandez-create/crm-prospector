@@ -15,7 +15,7 @@ redesign/
 ├── components.css      ← Fase B · estilos de componentes base
 ├── icons.js            ← Fase B · librería SVG inline (Lucide-style)
 ├── app.js              ← Fase B · router, state global, init
-├── data.js             ← Fase G · capa Firestore + GAS endpoints
+├── data.js             ← Fase G · capa Supabase + GAS endpoints
 ├── states.js           ← Fase F · helpers Empty/Loading/Error/Success/Keyboard
 ├── _demo.html          ← Fase B · página de inspección de componentes (storybook)
 └── screens/
