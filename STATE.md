@@ -3,12 +3,27 @@
 > El agente olvida; este archivo no. Actualízalo al final de cada sesión.
 
 ## Última ejecución
+2026-07-06 · **Ola A (seguridad): CERRADO el proxy GAS de Claude.** Guard en el
+Apps Script "CRM Prospector API" (`Código.gs` → `handleRequest`) que valida el
+`sbToken` de Supabase (`/auth/v1/user`) en las acciones `claudeProxy` y `fetchUrl`;
+helper `_verificarSupabaseAuth`. Desplegado en el deployment **AKfycbzh2 → v62**
+(los `/exec` sirven versiones fijadas; hubo que reimplementar, no basta con guardar).
+Consolidación de deployments: `data.js` repuntado de `AKfycbxx6` (huérfano/desalineado)
+a `AKfycbzh2` (el mismo que chat.html) y **arreglado `callGAS`** para mandar
+`?action=...&sbToken=...` en la QUERY con body limpio (antes la action iba solo en el
+body → el GAS respondía "Acción no válida: undefined"). `sw` v36→v37 para propagar.
+Verificado en vivo: chat.html responde con sesión y devuelve "No autorizado" sin ella.
+PENDIENTE menor: (a) el rediseño en un cliente ya cargado puede seguir con el `data.js`
+viejo hasta que refresque el SW (Cmd+Shift+R lo fuerza); (b) queda una `_testAuth`
+inofensiva en el GAS; (c) archivar los web apps GAS sin uso (`AKfycbwsYsbo`, `AKfycbz3humr`).
+
+## Anterior
 2026-07-05 · Auditoría completa (verificador + código + UX) y remediación:
 cerrada la fuga de PII (B1), arreglos de robustez del chat.html (fallo silencioso,
 re-login al caducar sesión, concurrencia) y preparado el lado cliente de B2
 (token al GAS). Informe en `AUDITORIA.md` (gitignored, no se publica).
 
-## Anterior
+## Anterior²
 2026-06-30 · Loop engineering Ola 1: gate de CI en `deploy-pages.yml` (job `test`
 con `--unit`, Node 20; `deploy` con `needs: test`), Stop hook en `.claude/settings.json`
 (`run-all.js --unit || exit 2`), y sub-agente `verifier`. Antes: arreglado el
