@@ -192,8 +192,8 @@ async function initBackend() {
     // puede leer la cartera, así que pedimos iniciar sesión en el CRM.
     const token = window.Auth ? await window.Auth.getValidToken() : null;
     if (!token) {
-      setStatus('err', 'Inicia sesión en el CRM');
-      addMsg('assistant','','Para usar el asistente necesitas haber iniciado sesión en el CRM en este móvil. Abre el CRM (index.html), entra con tu cuenta y vuelve a recargar esta página.');
+      // Login propio del Chat (independiente): no hace falta abrir el CRM antes.
+      promptLogin('Introduce tu cuenta del CRM (GPF) para usar el asistente.');
       return false;
     }
     // Lectura ligera (ya autenticada) para confirmar conexión.
@@ -1171,6 +1171,52 @@ function scrollDown() { setTimeout(() => msgsEl.scrollTop = msgsEl.scrollHeight,
 function setStatus(type, text) {
   document.getElementById('stDot').className = 'dot ' + type;
   document.getElementById('stTxt').textContent = text;
+}
+
+// Login propio del Chat (independiente del CRM): usa Auth.signIn (auth.js). Al
+// entrar, la sesión Supabase queda en localStorage (mismo origen) y el asistente
+// conecta sin necesidad de abrir el CRM primero.
+function promptLogin(reason) {
+  setStatus('err', 'Inicia sesión');
+  if (document.getElementById('chatLogin')) return;
+  const d = document.createElement('div');
+  d.className = 'msg assistant'; d.id = 'chatLogin';
+  d.innerHTML =
+    '<div class="bubble" style="max-width:92%;">' +
+      '<div style="font-weight:600;margin-bottom:6px;">Inicia sesión</div>' +
+      (reason ? '<div style="font-size:12.5px;color:#64748b;margin-bottom:10px;">' + reason + '</div>' : '') +
+      '<input id="loginEmail" type="email" inputmode="email" autocomplete="username" placeholder="Email" ' +
+        'style="width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid var(--border);border-radius:10px;font-size:16px;margin-bottom:8px;">' +
+      '<input id="loginPass" type="password" autocomplete="current-password" placeholder="Contraseña" ' +
+        'style="width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid var(--border);border-radius:10px;font-size:16px;margin-bottom:10px;">' +
+      '<div id="loginErr" style="display:none;color:#dc2626;font-size:12.5px;margin-bottom:8px;"></div>' +
+      '<button id="loginBtn" type="button" style="width:100%;background:var(--blue);color:#fff;border:none;border-radius:12px;padding:12px;font-size:15px;font-weight:600;cursor:pointer;">Entrar</button>' +
+    '</div>';
+  msgsEl.appendChild(d); scrollDown();
+  const emailEl = d.querySelector('#loginEmail');
+  const passEl  = d.querySelector('#loginPass');
+  const errEl   = d.querySelector('#loginErr');
+  const btn     = d.querySelector('#loginBtn');
+  async function doLogin() {
+    errEl.style.display = 'none';
+    const email = (emailEl.value || '').trim(), pass = passEl.value || '';
+    if (!email || !pass) { errEl.textContent = 'Introduce email y contraseña.'; errEl.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = 'Entrando…';
+    try {
+      await window.Auth.signIn(email, pass);
+      d.remove();
+      const ok = await initBackend();
+      if (ok) addMsg('assistant', '', '✅ Sesión iniciada. ¿En qué te ayudo?');
+    } catch (e) {
+      errEl.textContent = (e && e.status === 400) ? 'Email o contraseña incorrectos.'
+        : ('No se pudo entrar: ' + ((e && e.message) || e));
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Entrar';
+    }
+  }
+  btn.addEventListener('click', doLogin);
+  passEl.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') doLogin(); });
+  try { emailEl.focus(); } catch (_) {}
 }
 
 // Markdown mínimo
