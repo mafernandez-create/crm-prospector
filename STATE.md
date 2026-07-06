@@ -3,6 +3,17 @@
 > El agente olvida; este archivo no. Actualízalo al final de cada sesión.
 
 ## Última ejecución
+2026-07-06 · **Chat IA (chat.html): 2 fixes en producción.** (1) Header respeta
+`safe-area-inset-top` de iOS — ya no lo tapa el reloj/batería del iPhone (notch/
+Dynamic Island); `header` con `height: calc(var(--header) + env(safe-area-inset-top))`
++ `padding-top` y `#messages` `top` equivalente (commit `9123baa`). (2) **Login
+propio e independiente del CRM**: si no hay sesión, `initBackend` llama a
+`promptLogin()` (formulario email+contraseña que usa `Auth.signIn` de auth.js);
+al entrar, la sesión Supabase queda en localStorage (mismo origen) y conecta sin
+abrir el CRM (commit `37fed33`). `sw` v37→v38→v39. Deploy verde (gate `--unit`
+235/235). Reabrir la PWA en el iPhone para coger el SW nuevo.
+
+## Anterior
 2026-07-06 · **Ola A (seguridad): CERRADO el proxy GAS de Claude.** Guard en el
 Apps Script "CRM Prospector API" (`Código.gs` → `handleRequest`) que valida el
 `sbToken` de Supabase (`/auth/v1/user`) en las acciones `claudeProxy` y `fetchUrl`;
@@ -24,13 +35,13 @@ PENDIENTE menor: `_testAuth` (test) sigue en la versión desplegada `AKfycbzh2` 
 Olas B/C/D de la auditoría cerradas por mi parte (queda el modal del planificador,
 que trabaja otra rama).
 
-## Anterior
+## Anterior²
 2026-07-05 · Auditoría completa (verificador + código + UX) y remediación:
 cerrada la fuga de PII (B1), arreglos de robustez del chat.html (fallo silencioso,
 re-login al caducar sesión, concurrencia) y preparado el lado cliente de B2
 (token al GAS). Informe en `AUDITORIA.md` (gitignored, no se publica).
 
-## Anterior²
+## Anterior³
 2026-06-30 · Loop engineering Ola 1: gate de CI en `deploy-pages.yml` (job `test`
 con `--unit`, Node 20; `deploy` con `needs: test`), Stop hook en `.claude/settings.json`
 (`run-all.js --unit || exit 2`), y sub-agente `verifier`. Antes: arreglado el
