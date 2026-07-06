@@ -29,7 +29,11 @@
   /* ============================================================
      CONFIG (extraída del index.html actual)
      ============================================================ */
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxx6KIUavnMAVn3eUtX4SKMoVAnOQ3YAsIYofiMufkw6tkbQDaG3-jDku_Z8kEsNY_6aQ/exec';
+  // Repuntado a la implementación activa AKfycbzh2 (misma que chat.html) el
+  // 2026-07: el AKfycbxx6 anterior había quedado huérfano/desalineado entre los
+  // deployments del GAS. Ambos clientes usan ahora el MISMO deployment con el
+  // guard de sesión Supabase (valida sbToken en claudeProxy/fetchUrl).
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzh2oFEM2QcL0OFef1dqz36b0C1f8qTMlvGdhoWATMwF5r2umlZpYdrq-7w86i6GF8/exec';
 
   /* ============================================================
      GAS WEB APP PROXY (no-CORS via form-encoded)
