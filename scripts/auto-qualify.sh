@@ -3,6 +3,10 @@
 # Llamado por launchd: a las 02:00 diarias y al encender el ordenador.
 # Guard de 20 h: evita ejecuciones dobles si launchd y el cron coinciden.
 
+# El repo se deriva de la ubicación del script (scripts/ -> raíz del repo)
+CRM_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+LOG="$CRM_DIR/.auto-qualify.log"
+
 GUARD_FILE="$HOME/.crm_batch_lastrun"
 TWENTY_HOURS=72000  # 20 * 3600 segundos
 NOW=$(date +%s)
@@ -11,13 +15,13 @@ if [ -f "$GUARD_FILE" ]; then
     LAST=$(cat "$GUARD_FILE" 2>/dev/null || echo 0)
     DIFF=$((NOW - LAST))
     if [ "$DIFF" -lt "$TWENTY_HOURS" ]; then
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Auto-qualify omitido — última ejecución hace ${DIFF}s (mín 72000s)" >> /Users/ma.fernandez/Documents/02_Proyectos_Claude/Trabajo_GPF/crm/.auto-qualify.log
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Auto-qualify omitido — última ejecución hace ${DIFF}s (mín 72000s)" >> "$LOG"
         exit 0
     fi
 fi
 
 echo "$NOW" > "$GUARD_FILE"
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Abriendo CRM con auto-qualify=1..." >> /Users/ma.fernandez/Documents/02_Proyectos_Claude/Trabajo_GPF/crm/.auto-qualify.log
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Abriendo CRM con auto-qualify=1..." >> "$LOG"
 
 # Abre en Chrome (crea nueva pestaña si ya está abierto)
-open -a "Google Chrome" "file:///Users/ma.fernandez/Documents/02_Proyectos_Claude/Trabajo_GPF/crm/index.html?auto-qualify=1"
+open -a "Google Chrome" "file://$CRM_DIR/index.html?auto-qualify=1"

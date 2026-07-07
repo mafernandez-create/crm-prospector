@@ -1,6 +1,7 @@
 #!/bin/bash
 # Auto-commit y push del CRM cuando se detectan cambios
-CRM_DIR="/Users/ma.fernandez/Documents/02_Proyectos_Claude/Trabajo_GPF/crm"
+# La ruta se deriva de la ubicación del propio script (independiente de dónde esté el repo)
+CRM_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG="$CRM_DIR/.auto-push.log"
 
 cd "$CRM_DIR" || exit 1
