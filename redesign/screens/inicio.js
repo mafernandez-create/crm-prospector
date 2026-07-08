@@ -241,18 +241,17 @@
     const subtitulo = n > 0
       ? n + ' visita' + (n === 1 ? '' : 's') + ' hoy'
       : 'Sin visitas programadas';
+    // Nota: el avatar de cuenta NO se pinta aquí — lo aporta el botón global
+    // .mobile-account-btn del shell (arriba-derecha, fijo). Antes había un
+    // segundo avatar aquí que se solapaba con ese botón en el iPhone.
+    // Se reserva padding-right para que el título no quede bajo el botón fijo.
     return (
-      '<div style="display:flex; justify-content:space-between; align-items:flex-start; padding-top:8px;">' +
-        '<div>' +
-          '<div style="font-size:12px; color:var(--fg-3); font-weight:500; text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">' +
-            escape(fechaCap) +
-          '</div>' +
-          '<div style="font-size:26px; font-weight:800; letter-spacing:-.01em; color:var(--fg-1);">Hoy</div>' +
-          '<div style="font-size:13px; color:var(--fg-3); margin-top:1px;">' + escape(subtitulo) + '</div>' +
+      '<div style="padding-top:8px; padding-right:52px;">' +
+        '<div style="font-size:12px; color:var(--fg-3); font-weight:500; text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">' +
+          escape(fechaCap) +
         '</div>' +
-        '<div style="width:38px; height:38px; border-radius:50%; background:var(--gpf-blue-900); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px;">' +
-          escape(State.user.initials) +
-        '</div>' +
+        '<div style="font-size:26px; font-weight:800; letter-spacing:-.01em; color:var(--fg-1);">Hoy</div>' +
+        '<div style="font-size:13px; color:var(--fg-3); margin-top:1px;">' + escape(subtitulo) + '</div>' +
       '</div>'
     );
   }

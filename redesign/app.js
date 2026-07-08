@@ -52,6 +52,10 @@
   const VOICE_FAB_VIEWS = { inicio: true, studios: true, detail: true, bandeja: true };
   /* Vistas que ocultan la tab bar global (pantalla completa) */
   const FULLSCREEN_VIEWS = { briefing: true, informe: true };
+  /* Vistas que ocultan el botón de cuenta móvil (fijo arriba-derecha) porque
+     tienen su propia UI en esa esquina (Estado/Editar en la ficha) o van a
+     pantalla completa. Evita el solape con el botón rojo global en el iPhone. */
+  const ACCOUNT_BTN_HIDDEN_VIEWS = { detail: true, briefing: true, informe: true };
 
   function showView(name, params) {
     params = params || {};
@@ -80,9 +84,17 @@
     var tabbar = document.getElementById('mobile-tabbar');
     if (tabbar) tabbar.style.display = FULLSCREEN_VIEWS[name] ? 'none' : '';
 
-    // Mostrar/ocultar Voice FAB
+    // Mostrar/ocultar Voice FAB. En la ficha lo subimos para que no tape la
+    // barra de acciones inferior (Llamar/Briefing/Informe).
     var fab = document.getElementById('voice-fab');
-    if (fab) fab.classList.toggle('hidden', !VOICE_FAB_VIEWS[name]);
+    if (fab) {
+      fab.classList.toggle('hidden', !VOICE_FAB_VIEWS[name]);
+      fab.classList.toggle('over-actionbar', name === 'detail');
+    }
+
+    // Mostrar/ocultar botón de cuenta móvil (evita solape en ficha/fullscreen)
+    var acctBtn = document.getElementById('mobile-account-btn');
+    if (acctBtn) acctBtn.style.display = ACCOUNT_BTN_HIDDEN_VIEWS[name] ? 'none' : '';
 
     // Render
     const screen = window.Screens[name];

@@ -1158,6 +1158,11 @@ body {
   .voice-fab svg { width: 22px; height: 22px; }
   /* Ocultar en pantallas donde no tiene sentido */
   .voice-fab.hidden { display: none !important; }
+  /* En la ficha hay una barra de acciones fija encima de la tab bar
+     (Llamar/Briefing/Informe, ~62px). Subimos el FAB para que no la tape. */
+  .voice-fab.over-actionbar {
+    bottom: calc(83px + env(safe-area-inset-bottom, 0px) + 62px + 14px);
+  }
 }
 
 /* ============================================================
