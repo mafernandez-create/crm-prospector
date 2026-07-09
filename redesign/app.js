@@ -644,9 +644,85 @@
     return u;                                          // relativo sin esquema
   }
 
+  /* ============================================================
+     PROVINCIAS — lista canónica, normalizador y mapa de limítrofes.
+     Fuente única compartida por bandeja.js (referencias cruzadas) y
+     planificador.js (panel "Pendiente en la zona"). El mapa cubre la
+     zona de trabajo (Andalucía, Extremadura, Castilla-La Mancha,
+     Levante, Madrid); provincias fuera de esa zona simplemente no
+     tienen limítrofes definidas (se devuelven solas).
+     ============================================================ */
+  var PROVINCIAS = [
+    'Almería','Cádiz','Córdoba','Granada','Huelva','Jaén','Málaga','Sevilla',
+    'Cáceres','Badajoz','Toledo','Cuenca','Ciudad Real','Albacete','Guadalajara',
+    'Madrid','Alicante','Valencia','Castellón','Murcia','Zaragoza','Tarragona',
+    'Barcelona','Girona','Lleida','Navarra','La Rioja','Burgos','Valladolid',
+    'Salamanca','León','Palencia','Soria','Segovia','Ávila','Zamora',
+    'Las Palmas','Santa Cruz de Tenerife','Baleares','Ceuta','Melilla',
+  ];
+
+  // Adyacencia terrestre entre provincias (simétrica). Solo la zona de trabajo.
+  var LIMITROFES = {
+    'Almería':     ['Granada','Murcia'],
+    'Cádiz':       ['Huelva','Sevilla','Málaga'],
+    'Córdoba':     ['Sevilla','Málaga','Granada','Jaén','Badajoz','Ciudad Real'],
+    'Granada':     ['Málaga','Córdoba','Jaén','Almería','Murcia','Albacete'],
+    'Huelva':      ['Sevilla','Cádiz','Badajoz'],
+    'Jaén':        ['Córdoba','Granada','Ciudad Real','Albacete'],
+    'Málaga':      ['Cádiz','Sevilla','Córdoba','Granada'],
+    'Sevilla':     ['Huelva','Cádiz','Málaga','Córdoba','Badajoz'],
+    'Badajoz':     ['Cáceres','Huelva','Sevilla','Córdoba','Ciudad Real','Toledo'],
+    'Cáceres':     ['Badajoz','Toledo','Ávila','Salamanca'],
+    'Toledo':      ['Madrid','Ávila','Cáceres','Badajoz','Ciudad Real','Cuenca'],
+    'Ciudad Real': ['Toledo','Cuenca','Albacete','Jaén','Córdoba','Badajoz'],
+    'Cuenca':      ['Guadalajara','Madrid','Toledo','Ciudad Real','Albacete','Valencia','Teruel'],
+    'Albacete':    ['Ciudad Real','Cuenca','Valencia','Alicante','Murcia','Jaén','Granada'],
+    'Guadalajara': ['Madrid','Cuenca','Teruel','Zaragoza','Soria','Segovia'],
+    'Madrid':      ['Toledo','Ávila','Segovia','Guadalajara','Cuenca'],
+    'Valencia':    ['Castellón','Teruel','Cuenca','Albacete','Alicante'],
+    'Alicante':    ['Valencia','Albacete','Murcia'],
+    'Castellón':   ['Valencia','Teruel','Tarragona'],
+    'Murcia':      ['Almería','Granada','Albacete','Alicante'],
+  };
+
+  function normProv(s) {
+    return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  // Índice de adyacencia simétrico derivado de LIMITROFES: añade las aristas
+  // inversas (si A lista a B como limítrofe, B queda limítrofe de A aunque no
+  // tenga entrada propia). Así basta con declarar cada adyacencia una vez.
+  var _ADJ = (function () {
+    var adj = {};
+    function add(a, b) { (adj[a] = adj[a] || new Set()).add(b); }
+    Object.keys(LIMITROFES).forEach(function (a) {
+      LIMITROFES[a].forEach(function (b) { add(a, b); add(b, a); });
+    });
+    return adj;
+  })();
+
+  /* Devuelve un Set de provincias NORMALIZADAS: las de entrada y, si
+     incluirLimitrofes, también sus limítrofes (simétricas). */
+  function provinciasCercanas(provs, incluirLimitrofes) {
+    var out = new Set();
+    (provs || []).forEach(function (p) {
+      if (!p) return;
+      out.add(normProv(p));
+      if (incluirLimitrofes && _ADJ[p]) {
+        _ADJ[p].forEach(function (v) { out.add(normProv(v)); });
+      }
+    });
+    return out;
+  }
+
   window.Util = {
     escapeHtml: escapeHtml,
     safeHref: safeHref,
+    PROVINCIAS: PROVINCIAS,
+    LIMITROFES: LIMITROFES,
+    normProv: normProv,
+    provinciasCercanas: provinciasCercanas,
     formatDateES: formatDateES,
     diasDesde: diasDesde,
     studioInitials: studioInitials,

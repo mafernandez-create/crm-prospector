@@ -38,7 +38,15 @@
     dirty: false,
     // Mientras guarda
     guardando: false,
+    // Panel "Pendiente en la zona"
+    zonaOpen: false,          // plegado por defecto
+    zonaProvincias: null,     // null = auto (provincias de la semana); array = manual
+    zonaLimitrofes: true,     // incluir provincias limítrofes
+    _zonaLoading: false,
   };
+
+  // id → acción, para resolver/completar/descartar desde el botón sin escapar texto
+  var _zonaAccionesById = {};
 
   /* ============================================================
      BÚSQUEDA DIFUSA DE STUDIO POR NOMBRE
@@ -161,11 +169,15 @@
         header() +
         toolbar() +
         weekGrid(dias) +
+        zonaPanel() +
       '</div>'
     );
 
     // Wire drag-drop
     wireDragDrop(v);
+
+    // Cargar el panel de zona si está abierto (async, patrón bandeja)
+    if (Local.zonaOpen) _loadZona();
   }
 
   function header() {
@@ -1087,6 +1099,331 @@
     }
   }
 
+  /* ============================================================
+     PANEL "PENDIENTE EN LA ZONA"
+     Acotado a la zona de la ruta (provincia + limítrofes) reúne, sin
+     duplicar lógica:
+       · acciones pendientes de informes y bandeja (AccionesEngine)
+       · anotaciones de los informes de clientes de la zona
+       · referencias cruzadas (menciones de terceros de la zona)
+     ============================================================ */
+
+  // Provincias distintas de las visitas de la semana mostrada (autosugerencia).
+  function _provinciasSemana() {
+    var set = [];
+    for (var i = 0; i < 7; i++) {
+      var iso = toISO(addDays(Local.semanaLunes, i));
+      (Local.schedule[iso] || []).forEach(function (v) {
+        var p = (v.province || '').trim();
+        if (p && set.indexOf(p) < 0) set.push(p);
+      });
+    }
+    return set;
+  }
+
+  // Provincias activas del panel: manuales si las hay, si no autosugeridas.
+  function _zonaProvsActivas() {
+    if (Local.zonaProvincias != null) return Local.zonaProvincias;
+    return _provinciasSemana();
+  }
+
+  function zonaPanel() {
+    return '<div id="planner-zona" style="margin-top:24px;">' + _zonaPanelInner() + '</div>';
+  }
+
+  function _zonaPanelInner() {
+    var chevron = Local.zonaOpen ? '▾' : '▸';
+    var head = (
+      '<div onclick="window.Screens.planificador.toggleZona()" ' +
+        'style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:12px 14px; ' +
+        'background:var(--bg-2); border-radius:8px; user-select:none;">' +
+        '<span style="font-family:var(--font-mono); color:var(--fg-3);">' + chevron + '</span>' +
+        '<span style="font-size:16px;">🧭</span>' +
+        '<strong style="font-family:var(--font-display); font-size:16px; text-transform:uppercase; letter-spacing:.01em;">Pendiente en la zona</strong>' +
+        '<span style="font-size:12px; color:var(--fg-3);">acciones y anotaciones de informes cercanas a tu ruta</span>' +
+      '</div>'
+    );
+    if (!Local.zonaOpen) return head;
+    return head +
+      '<div style="border:1px solid var(--line); border-top:none; border-radius:0 0 8px 8px; padding:14px;">' +
+        _zonaControls() +
+        '<div id="planner-zona-body" style="margin-top:14px;">' +
+          '<span style="font-size:13px; color:var(--fg-3);">⏳ Cargando pendientes de la zona…</span>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function _zonaControls() {
+    var activas = _zonaProvsActivas();
+    var esAuto = Local.zonaProvincias == null;
+    var chips = activas.length
+      ? activas.map(function (p) {
+          return '<span style="display:inline-flex; align-items:center; gap:4px; background:var(--gpf-blue-100); color:var(--gpf-blue-900); font-size:12px; padding:3px 6px 3px 9px; border-radius:999px;">' +
+            escape(p) +
+            '<button onclick="window.Screens.planificador.zonaRemoveProv(\'' + escape(p) + '\')" title="Quitar" ' +
+              'style="border:none; background:none; cursor:pointer; color:var(--gpf-blue-700); font-size:13px; line-height:1; padding:0 2px;">✕</button>' +
+          '</span>';
+        }).join('')
+      : '<span style="font-size:12px; color:var(--fg-3);">Sin provincias en la semana. Añade una →</span>';
+    var addOptions = '<option value="">+ Añadir provincia…</option>' +
+      U.PROVINCIAS.map(function (p) { return '<option value="' + escape(p) + '">' + escape(p) + '</option>'; }).join('');
+    return (
+      '<div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">' +
+        '<span style="font-size:12px; color:var(--fg-3); text-transform:uppercase; letter-spacing:.05em;">Zona' + (esAuto ? ' (auto)' : '') + ':</span>' +
+        chips +
+        '<select onchange="window.Screens.planificador.zonaAddProv(this.value); this.value=\'\';" ' +
+          'style="padding:4px 8px; border:1px solid var(--line); border-radius:6px; font-size:12px; background:var(--bg-card); color:var(--fg-1);">' +
+          addOptions +
+        '</select>' +
+        (esAuto ? '' : '<button class="btn btn-ghost" style="font-size:11px; padding:3px 8px;" onclick="window.Screens.planificador.zonaAuto()">↺ Auto</button>') +
+        '<label style="display:inline-flex; align-items:center; gap:5px; font-size:12px; color:var(--fg-2); margin-left:auto; cursor:pointer;">' +
+          '<input type="checkbox" ' + (Local.zonaLimitrofes ? 'checked' : '') + ' ' +
+            'onchange="window.Screens.planificador.toggleLimitrofes(this.checked)"> incluir limítrofes' +
+        '</label>' +
+      '</div>'
+    );
+  }
+
+  function _rerenderZonaPanel() {
+    var host = document.getElementById('planner-zona');
+    if (host) host.innerHTML = _zonaPanelInner();
+  }
+
+  function _loadZona(force) {
+    var body = document.getElementById('planner-zona-body');
+    if (!body) return;
+    var activas = _zonaProvsActivas();
+    var zonaSet = U.provinciasCercanas(activas, Local.zonaLimitrofes);
+    // Anotaciones (síncronas) — se calculan ya para no dejar el panel vacío
+    var anotaciones = _zonaAnotacionesHtml(zonaSet);
+    var engine = window.AccionesEngine;
+    if (!engine) {
+      body.innerHTML = _zonaAccionesVacio('Motor de acciones no disponible (requiere JSZip).') + anotaciones;
+      return;
+    }
+    if (zonaSet.size === 0) {
+      body.innerHTML = _zonaAccionesVacio('Define la zona (provincias) para ver lo pendiente.') + anotaciones;
+      return;
+    }
+    body.innerHTML = '<span style="font-size:13px; color:var(--fg-3);">⏳ Detectando pendientes en la zona…</span>';
+    Local._zonaLoading = true;
+    var studios = State.studios || [];
+    engine.cargarAcciones(studios, !!force).then(function (allItems) {
+      Local._zonaLoading = false;
+      var vigentes = engine.filtrarVigentes(allItems, studios).filter(function (it) {
+        return zonaSet.has(U.normProv(it.studioProvince));
+      });
+      var b = document.getElementById('planner-zona-body');
+      if (b) b.innerHTML = _zonaAccionesHtml(vigentes) + anotaciones;
+    }).catch(function (e) {
+      Local._zonaLoading = false;
+      var b = document.getElementById('planner-zona-body');
+      if (b) b.innerHTML = _zonaAccionesVacio('Error al procesar informes: ' + escape(e.message)) + anotaciones;
+    });
+  }
+
+  function _zonaSeccion(titulo, n) {
+    return '<div class="eyebrow" style="margin-bottom:8px;">' + escape(titulo) + (n != null ? ' · ' + n : '') + '</div>';
+  }
+
+  function _zonaAccionesVacio(msg) {
+    return _zonaSeccion('Acciones pendientes') +
+      '<p style="font-size:13px; color:var(--fg-3); margin:0 0 16px;">' + escape(msg) + '</p>';
+  }
+
+  function _zonaAccionesHtml(items) {
+    _zonaAccionesById = {};
+    if (!items.length) {
+      return _zonaSeccion('Acciones pendientes', 0) +
+        '<p style="font-size:13px; color:var(--fg-3); margin:0 0 16px;">Sin acciones pendientes en esta zona. 🎉</p>';
+    }
+    var hoy = new Date().toISOString().slice(0, 10);
+    var tipoBg = { llamada: '#3b82f6', email: '#8b5cf6', material: '#f59e0b', reunion: '#10b981' };
+    var resolveLabels = { email: '✨ Redactar email', reunion: '📅 Proponer fecha', material: '📦 Coordinar entrega', llamada: '📞 Llamar' };
+    var cards = items.slice(0, 40).map(function (it) {
+      _zonaAccionesById[it.id] = it;
+      var bg = tipoBg[it.tipo] || (it._fromActivity ? '#16a34a' : '#64748b');
+      var urgente = it.fechaLimite && it.fechaLimite <= hoy;
+      var plazoHtml = it.fechaLimite
+        ? '<span style="background:' + (urgente ? '#fef2f2' : '#eff6ff') + ';color:' + (urgente ? '#991b1b' : '#1e40af') + ';padding:2px 7px;border-radius:6px;font-size:11px;font-weight:600;">' + (urgente ? '🔴' : '📅') + ' ' + escape(it.fechaLimite) + '</span>'
+        : '';
+      var esActiv = !!it._fromActivity;
+      var borderStyle = esActiv ? 'border-left:3px solid #16a34a;' : (urgente ? 'border-left:3px solid #dc2626;' : '');
+      var btnCompletar = esActiv
+        ? '<button class="btn btn-primary" style="font-size:11px; padding:4px 10px; background:#16a34a; border-color:#16a34a;" onclick="window.Screens.planificador._completarZona(\'' + escape(it._studioId) + '\',' + it._activityIdx + ')">✓ Hecho</button>'
+        : '';
+      var resolveLabel = resolveLabels[it.tipo];
+      var btnResolver = resolveLabel
+        ? '<button class="btn btn-primary" style="font-size:11px; padding:4px 10px;" onclick="window.Screens.planificador._resolverZona(\'' + escape(String(it.id)) + '\')">' + resolveLabel + '</button>'
+        : '';
+      return (
+        '<div style="background:var(--bg-card); border:1px solid var(--line); border-radius:10px; padding:12px; ' + borderStyle + '">' +
+          '<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px;">' +
+            '<span style="background:' + bg + ';color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;">' + it.tipoIcon + ' ' + escape(it.tipo.toUpperCase()) + '</span>' +
+            (esActiv ? '<span style="background:#dcfce7;color:#166534;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;">BANDEJA</span>' : '') +
+            '<strong style="font-size:13px; color:var(--gpf-blue-700); cursor:pointer;" onclick="showView(\'detail\',{studioId:\'' + escape(it.studioId) + '\'})">' + escape(it.studioName) + '</strong>' +
+            '<span style="font-size:11px; color:var(--fg-3);">(' + escape(it.studioProvince) + ')</span>' +
+            plazoHtml +
+          '</div>' +
+          '<div style="font-size:12px; color:var(--fg-2); margin-bottom:8px; ' + (esActiv ? 'font-weight:500;color:var(--fg-1);' : 'font-style:italic;') + '">' + (esActiv ? '' : '"') + escape(it.descripcion) + (esActiv ? '' : '"') + '</div>' +
+          '<div style="display:flex; gap:6px; flex-wrap:wrap;">' +
+            btnResolver + btnCompletar +
+            '<button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="window.Screens.planificador._descartarZona(\'' + escape(String(it.id)) + '\'' + (esActiv ? ',\'' + escape(it._studioId) + '\',' + it._activityIdx : '') + ')">✕ Descartar</button>' +
+            '<a href="#detail/' + escape(it.studioId) + '" class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="showView(\'detail\',{studioId:\'' + escape(it.studioId) + '\'});return false;">Ver ficha →</a>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join('');
+    return _zonaSeccion('Acciones pendientes', items.length) +
+      '<div class="planner-zona-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">' + cards + '</div>' +
+      (items.length > 40 ? '<p style="font-size:12px; color:var(--fg-3); margin-top:8px; text-align:center;">… y ' + (items.length - 40) + ' más.</p>' : '');
+  }
+
+  function _reportSnippet(r) {
+    var txt = r.notes || r.resumen_ejecutivo || r.markdown || r.markdownContent || r.notes_raw || '';
+    txt = U.stripTimestamps(String(txt))
+      .replace(/[#*_>`]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (txt.length > 180) txt = txt.slice(0, 180) + '…';
+    return txt;
+  }
+
+  function _zonaAnotacionesHtml(zonaSet) {
+    // A) Notas de informes de clientes ubicados en la zona
+    var studios = State.studios || [];
+    var conNotas = [];
+    for (var i = 0; i < studios.length; i++) {
+      var s = studios[i];
+      if (!zonaSet.has(U.normProv(s.province))) continue;
+      var reps = U.reports(s);
+      if (!reps.length) continue;
+      var ordenados = reps.slice().sort(function (a, b) { return (a.date || '') < (b.date || '') ? 1 : -1; });
+      var snippet = '', fecha = '';
+      for (var ri = 0; ri < ordenados.length; ri++) {
+        var sn = _reportSnippet(ordenados[ri]);
+        if (sn) { snippet = sn; fecha = ordenados[ri].date || ''; break; }
+      }
+      if (!snippet) continue;
+      conNotas.push({ id: s.id, name: s.name || s.id, province: s.province || '', fecha: fecha, snippet: snippet });
+    }
+    conNotas.sort(function (a, b) { return (a.fecha || '') < (b.fecha || '') ? 1 : -1; });
+    var notasHtml = conNotas.length
+      ? '<div class="planner-zona-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">' +
+          conNotas.slice(0, 20).map(function (n) {
+            return '<div style="background:var(--bg-card); border:1px solid var(--line); border-radius:8px; padding:10px; cursor:pointer;" onclick="showView(\'detail\',{studioId:\'' + escape(n.id) + '\'})">' +
+              '<div style="display:flex; gap:6px; align-items:baseline; flex-wrap:wrap;">' +
+                '<strong style="font-size:13px; color:var(--gpf-blue-700);">' + escape(n.name) + '</strong>' +
+                '<span style="font-size:11px; color:var(--fg-3);">' + escape(n.province) + (n.fecha ? ' · ' + escape(n.fecha) : '') + '</span>' +
+              '</div>' +
+              '<div style="font-size:12px; color:var(--fg-2); margin-top:4px; font-style:italic;">' + escape(n.snippet) + '</div>' +
+            '</div>';
+          }).join('') +
+        '</div>'
+      : '<p style="font-size:13px; color:var(--fg-3); margin:0;">Sin anotaciones de informes en la zona.</p>';
+
+    // B) Referencias cruzadas de la zona (menciones de terceros)
+    var refs = [];
+    try { refs = (window.Screens.bandeja && window.Screens.bandeja.getRefCruz) ? window.Screens.bandeja.getRefCruz() : []; } catch (e) { refs = []; }
+    refs = (refs || []).filter(function (r) {
+      if (r.provinciaInferida && zonaSet.has(U.normProv(r.provinciaInferida))) return true;
+      return (r.origenes || []).some(function (o) { return zonaSet.has(U.normProv(o.origenProvincia)); });
+    });
+    var TIPO_COLORS = {
+      CCRR: { bg: '#e0f2fe', fg: '#0369a1', label: 'C.R.' },
+      EDAR: { bg: '#ede9fe', fg: '#5b21b6', label: 'EDAR/ETAP' },
+      AAPP: { bg: '#fef9c3', fg: '#854d0e', label: 'AAPP' },
+      CICA: { bg: '#dcfce7', fg: '#166534', label: 'Ciclo Agua' },
+      ARQ:  { bg: '#fff7ed', fg: '#9a3412', label: 'Arquitectura' },
+      ING:  { bg: '#fce7f3', fg: '#9d174d', label: 'Ingeniería' },
+    };
+    var refsHtml = refs.length
+      ? '<div class="planner-zona-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:0 24px;">' +
+          refs.slice(0, 20).map(function (r) {
+            var tc = TIPO_COLORS[r.tipo] || { bg: '#f0f0f0', fg: '#555', label: r.tipo };
+            var origenes = r.origenes || [];
+            var origDesc = origenes.slice(0, 2).map(function (o) { return o.origenName; }).join(', ');
+            if (origenes.length > 2) origDesc += ' +' + (origenes.length - 2);
+            var enCartera = r.matchStudioId ? '<span style="font-size:11px; color:var(--gpf-blue-600); font-weight:600; margin-left:4px;">↗ cartera</span>' : '';
+            var clickable = !!r.matchStudioId;
+            return '<div ' + (clickable ? 'onclick="showView(\'detail\',{studioId:\'' + escape(r.matchStudioId) + '\'})" ' : '') +
+              'style="padding:8px 0; border-top:1px solid var(--line); cursor:' + (clickable ? 'pointer' : 'default') + ';">' +
+              '<div style="display:flex; align-items:center; gap:6px;">' +
+                '<span style="font-size:10px; font-weight:600; font-family:var(--font-mono); padding:2px 6px; border-radius:4px; background:' + tc.bg + '; color:' + tc.fg + ';">' + escape(tc.label) + '</span>' +
+                '<span style="font-size:13px; font-weight:600; color:var(--fg-1);" title="' + escape(r.nombre) + '">' + escape(r.nombre) + '</span>' +
+                enCartera +
+              '</div>' +
+              '<div style="font-size:11px; color:var(--fg-3); margin-top:2px;">' + (r.provinciaInferida ? '<span style="color:var(--fg-2);">' + escape(r.provinciaInferida) + '</span> · ' : '') + 'visto en: ' + escape(origDesc) + '</div>' +
+            '</div>';
+          }).join('') +
+        '</div>'
+      : '<p style="font-size:13px; color:var(--fg-3); margin:0;">Sin menciones de terceros de la zona en tus informes.</p>';
+
+    return (
+      '<div style="margin-top:18px;">' + _zonaSeccion('Anotaciones de informes de la zona', conNotas.length) + notasHtml + '</div>' +
+      '<div style="margin-top:16px;">' + _zonaSeccion('Referencias cruzadas de la zona', refs.length) + refsHtml + '</div>'
+    );
+  }
+
+  /* Handlers del panel de zona */
+  function toggleZona() {
+    Local.zonaOpen = !Local.zonaOpen;
+    _rerenderZonaPanel();
+    if (Local.zonaOpen) _loadZona();
+  }
+  function zonaAddProv(prov) {
+    if (!prov) return;
+    var base = _zonaProvsActivas().slice();
+    if (base.indexOf(prov) < 0) base.push(prov);
+    Local.zonaProvincias = base;
+    _rerenderZonaPanel();
+    _loadZona();
+  }
+  function zonaRemoveProv(prov) {
+    Local.zonaProvincias = _zonaProvsActivas().filter(function (p) { return p !== prov; });
+    _rerenderZonaPanel();
+    _loadZona();
+  }
+  function zonaAuto() {
+    Local.zonaProvincias = null;
+    _rerenderZonaPanel();
+    _loadZona();
+  }
+  function toggleLimitrofes(checked) {
+    Local.zonaLimitrofes = !!checked;
+    _loadZona();
+  }
+  function _completarZona(studioId, actIdx) {
+    var engine = window.AccionesEngine;
+    if (!engine || !engine.completarActividad) return;
+    engine.completarActividad(studioId, actIdx).then(function () {
+      window.showNotification && window.showNotification('✓ Acción completada', 'success');
+      _loadZona(true);
+    }).catch(function (e) {
+      window.showNotification && window.showNotification('Error al completar: ' + e.message, 'error');
+    });
+  }
+  function _descartarZona(id, studioId, actIdx) {
+    var engine = window.AccionesEngine;
+    if (studioId !== undefined && actIdx !== undefined) {
+      engine && engine.completarActividad && engine.completarActividad(studioId, actIdx).then(function () {
+        window.showNotification && window.showNotification('✕ Acción descartada', 'info');
+        _loadZona(true);
+      });
+      return;
+    }
+    if (engine && engine.descartar) engine.descartar(id);
+    window.showNotification && window.showNotification('✕ Acción descartada', 'info');
+    _loadZona();
+  }
+  function _resolverZona(id) {
+    var it = _zonaAccionesById[id];
+    if (!it) return;
+    if (window.Screens && window.Screens.detail && window.Screens.detail.resolverAccion) {
+      window.Screens.detail.resolverAccion(it.studioId, it.tipo, it.descripcion);
+    }
+  }
+
   window.Screens.planificador = {
     render: render,
     cambiarSemana: cambiarSemana,
@@ -1100,5 +1437,14 @@
     subirSheet: subirVisitasSheet,
     subirCalendario: subirCalendario,
     agendarActividadCalendar: agendarActividadCalendar,
+    // Panel "Pendiente en la zona"
+    toggleZona: toggleZona,
+    zonaAddProv: zonaAddProv,
+    zonaRemoveProv: zonaRemoveProv,
+    zonaAuto: zonaAuto,
+    toggleLimitrofes: toggleLimitrofes,
+    _completarZona: _completarZona,
+    _descartarZona: _descartarZona,
+    _resolverZona: _resolverZona,
   };
 })();

@@ -199,14 +199,8 @@
   var _RC_CACHE_KEY = 'crm_refcruz_redesign_v1';
   var _RC_TTL = 24 * 60 * 60 * 1000;
 
-  var _RC_PROVINCIAS = [
-    'Almería','Cádiz','Córdoba','Granada','Huelva','Jaén','Málaga','Sevilla',
-    'Cáceres','Badajoz','Toledo','Cuenca','Ciudad Real','Albacete','Guadalajara',
-    'Madrid','Alicante','Valencia','Castellón','Murcia','Zaragoza','Tarragona',
-    'Barcelona','Girona','Lleida','Navarra','La Rioja','Burgos','Valladolid',
-    'Salamanca','León','Palencia','Soria','Segovia','Ávila','Zamora',
-    'Las Palmas','Santa Cruz de Tenerife','Baleares','Ceuta','Melilla',
-  ];
+  // Lista canónica centralizada en window.Util (compartida con el planificador).
+  var _RC_PROVINCIAS = U.PROVINCIAS;
 
   var _RC_PATRONES = [
     { tipo: 'CCRR', re: /\b(Comunidad de Regantes (?:de |del? )?[A-ZÁÉÍÓÚÑ][a-záéíóúñ\-]+(?:[\s\-][A-ZÁÉÍÓÚÑA-Za-z]+){0,4})/g },
@@ -221,9 +215,8 @@
     { tipo: 'ING',  re: /\b([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+ (?:Ingenieros?|Consultores?|Ingeniería|Técnicos?))\b/g },
   ];
 
-  function _rcNorm(s) {
-    return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
-  }
+  // Normalizador centralizado en window.Util (compartido con el planificador).
+  var _rcNorm = U.normProv;
 
   function _rcInferirProvincia(txt) {
     for (var i = 0; i < _RC_PROVINCIAS.length; i++) {
@@ -831,6 +824,9 @@
     render: render,
     filtrarProvincia: function (prov) { _provFiltro = prov; render(); },
     refrescar: refrescarRefCruz,
+    // Getter de solo lectura del escáner de referencias cruzadas (lo consume el
+    // panel "Pendiente en la zona" del planificador). Usa la caché (24h TTL).
+    getRefCruz: function () { return _getRefCruz(false); },
     _descartar: _descartarAccion,
     _completar: _completarAccion,
     _refrescarAcciones: _refrescarAcciones,

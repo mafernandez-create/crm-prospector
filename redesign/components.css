@@ -1250,6 +1250,13 @@ body {
   }
 }
 
+/* Panel "Pendiente en la zona": grids a 1 columna en pantallas estrechas */
+@media (max-width: 700px) {
+  .crm-root .planner-zona-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* Modal del planificador (alta/edición de visita) — full-screen en mobile */
 @media (max-width: 600px) {
   .planner-modal-overlay > div {
