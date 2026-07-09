@@ -383,6 +383,15 @@
           (s.phone ? '<a class="btn btn-ghost" style="height:46px;" href="tel:' + escape(s.phone.replace(/[^\d+]/g, '')) + '">' + I.Phone() + ' Llamar</a>' : '') +
           '<button class="btn btn-ghost" style="height:46px;" data-action="email" data-email="' + escape(s.email || '') + '">' + I.Mail() + ' Email</button>' +
         '</div>' +
+
+        /* Sincronizar con Google Contacts (→ iPhone/Mac vía la cuenta de Google). */
+        (function () {
+          var synced = s._data && s._data.contactSync && s._data.contactSync.resourceName;
+          return '<button class="btn ' + (synced ? 'btn-strong' : 'btn-ghost') +
+            '" style="height:44px; width:100%; margin-top:4px;" data-action="toggle-contact-sync">' +
+            I.User() + ' ' + (synced ? 'En tus Contactos ✓ · quitar' : 'Añadir a mis Contactos (iPhone)') +
+          '</button>';
+        })() +
       '</div>'
     );
   }
@@ -1617,9 +1626,27 @@
       window.closeSheet();
       notif('Ficha actualizada ✓', 'success');
       render({ studioId: studioId, tab: _tab });
+      _resyncContactIfNeeded(studioId);   // si estaba en Contactos, re-empuja a Google
     } catch (e) {
       if (btn) { btn.disabled = false; btn.textContent = '✓ Guardar cambios'; }
       if (errEl) { errEl.textContent = '⚠️ Error: ' + (e.message || e); errEl.style.display = 'block'; }
+    }
+  }
+
+  /* Si el estudio ya está sincronizado con Google Contacts, re-empuja los datos
+     actualizados (fire-and-forget: no bloquea el guardado de la ficha). */
+  async function _resyncContactIfNeeded(studioId) {
+    try {
+      const raw = State.studiosById && State.studiosById[studioId];
+      const sync = raw && raw.data && raw.data.contactSync;
+      if (!sync || !sync.resourceName) return;
+      const res = await window.Data.syncContact('upsert', _contactSyncPayload(getStudio(studioId)), sync.resourceName);
+      await saveDataField(studioId, 'contactSync', {
+        resourceName: res.resourceName, etag: res.etag, syncedAt: new Date().toISOString(),
+      });
+      notif('Contacto actualizado en tu agenda de Google', 'success');
+    } catch (e) {
+      notif('No se pudo actualizar el contacto en Google: ' + (e && e.message || e), 'error');
     }
   }
 
@@ -3769,9 +3796,55 @@
           _enrichStudioUI(el, studio);
         } else if (action === 'importar-visita') {
           openImportarVisitaModal(studio);
+        } else if (action === 'toggle-contact-sync') {
+          _toggleContactSync(el, studio);
         }
       });
     });
+  }
+
+  /* Payload plano que consume el GAS de contactos (People API). */
+  function _contactSyncPayload(s) {
+    return {
+      id: s.id, name: s.name, type: s.type,
+      phone: s.phone, email: s.email, web: s.web,
+      address: s.address, city: s.city, province: s.province,
+      team: s.team,
+    };
+  }
+
+  /* Añade/quita el estudio de Google Contacts (y por tanto del iPhone/Mac).
+     Guarda resourceName+etag en studio.data.contactSync para poder actualizar
+     o borrar después. Actualiza el botón in situ sin re-render completo. */
+  async function _toggleContactSync(btn, studio) {
+    const raw = State.studiosById && State.studiosById[studio.id];
+    const existing = raw && raw.data && raw.data.contactSync;
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    try {
+      if (existing && existing.resourceName) {
+        btn.innerHTML = '⏳ Quitando…';
+        await window.Data.syncContact('delete', { id: studio.id }, existing.resourceName);
+        await saveDataField(studio.id, 'contactSync', null);
+        btn.className = 'btn btn-ghost';
+        btn.innerHTML = I.User() + ' Añadir a mis Contactos (iPhone)';
+        notif('Contacto quitado de tu agenda de Google', 'success');
+      } else {
+        btn.innerHTML = '⏳ Añadiendo…';
+        const res = await window.Data.syncContact('upsert', _contactSyncPayload(studio), null);
+        await saveDataField(studio.id, 'contactSync', {
+          resourceName: res.resourceName, etag: res.etag, syncedAt: new Date().toISOString(),
+        });
+        btn.className = 'btn btn-strong';
+        btn.innerHTML = I.User() + ' En tus Contactos ✓ · quitar';
+        notif('Añadido a tus Contactos — llegará al iPhone en unos minutos', 'success');
+      }
+    } catch (e) {
+      notif('Error al sincronizar contacto: ' + (e && e.message || e), 'error');
+      btn.innerHTML = orig;
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   /* Lanza enrichStudio con feedback visual en el botón.

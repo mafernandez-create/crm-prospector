@@ -35,6 +35,12 @@
   // guard de sesión Supabase (valida sbToken en claudeProxy/fetchUrl).
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbzh2oFEM2QcL0OFef1dqz36b0C1f8qTMlvGdhoWATMwF5r2umlZpYdrq-7w86i6GF8/exec';
 
+  // GAS Web App INDEPENDIENTE para sincronizar contactos a Google Contacts vía
+  // People API. Se ejecuta COMO ma.fernandez@grupogpf.com, así que escribe en
+  // SUS contactos de Google (los que el iPhone/Mac ya sincronizan). Fuente:
+  // scripts/gas-sync-contact/. Valida el sbToken igual que el proxy del CRM.
+  const GAS_CONTACTS_URL = 'https://script.google.com/macros/s/AKfycbwUZfwYRzuM9RNLVIB0pyk0SgkGw30sSRFg_O28ieAgZQOwUKBflkYx8tOoHfFgs5M/exec';
+
   /* ============================================================
      GAS WEB APP PROXY (no-CORS via form-encoded)
      ============================================================ */
@@ -71,6 +77,30 @@
     const txt = await res.text();
     try { return JSON.parse(txt); }
     catch (_) { return { raw: txt }; }
+  }
+
+  /* Sincroniza un contacto del CRM a Google Contacts a través del GAS de
+     contactos. op = 'upsert' | 'delete'. En upsert pasa el studio (payload
+     plano) y opcionalmente el resourceName previo (para actualizar). Devuelve
+     { ok, resourceName, etag } en upsert. Mismo patrón de auth que callGAS. */
+  async function syncContact(op, studio, resourceName) {
+    let sbToken = null;
+    if (window.Auth && typeof window.Auth.getValidToken === 'function') {
+      try { sbToken = await window.Auth.getValidToken(); } catch (_) {}
+    }
+    const url = GAS_CONTACTS_URL + '?action=syncContact' +
+      (sbToken ? '&sbToken=' + encodeURIComponent(sbToken) : '');
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ op: op, studio: studio, resourceName: resourceName || null }),
+      redirect: 'follow',
+    });
+    if (!res.ok) throw new Error('GAS contacts ' + res.status + ' ' + res.statusText);
+    const txt = await res.text();
+    let json; try { json = JSON.parse(txt); } catch (_) { json = { raw: txt }; }
+    if (json && json.error) throw new Error(json.error);
+    return json;
   }
 
   /* ============================================================
@@ -1916,6 +1946,7 @@
     deleteDoc: _routeDeleteDoc,
     enrichStudio: enrichStudio,
     callGAS: callGAS,
+    syncContact: syncContact,
     generateBriefing: generateBriefing,
     CARGOS_POR_TIPO: CARGOS_POR_TIPO,
     getCargoOverlay: getCargoOverlay,
