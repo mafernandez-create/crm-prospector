@@ -41,7 +41,9 @@
   function computeVisitasHoy() {
     if (!State.planificador || !State.planificador.schedule) return [];
     const hoyISO = State.today.toISOString().slice(0, 10);
-    const arr = State.planificador.schedule[hoyISO] || [];
+    // Excluir pernoctas/alojamientos (reserva:true): no son visitas ni enlazan
+    // a una ficha de estudio. Igual que hace el planificador con !s.reserva.
+    const arr = (State.planificador.schedule[hoyISO] || []).filter(function (v) { return !v.reserva; });
     return arr.map(function (v) {
       const studio = State.studiosById[v.id];
       return {
@@ -70,8 +72,8 @@
     const hoyISO = State.today.toISOString().slice(0, 10);
     const ahora = State.today.getHours() * 60 + State.today.getMinutes();
 
-    // 1. Buscar próxima visita de HOY que no haya pasado aún
-    const hoy = sched[hoyISO] || [];
+    // 1. Buscar próxima visita de HOY que no haya pasado aún (sin pernoctas)
+    const hoy = (sched[hoyISO] || []).filter(function (v) { return !v.reserva; });
     for (const v of hoy) {
       const hora = (v.data && v.data.hora) || '';
       const [hh, mm] = hora.split(':').map(Number);
@@ -96,7 +98,7 @@
     // 2. Sin visitas pendientes hoy: buscar la próxima fecha futura
     const fechas = Object.keys(sched).filter(function (f) { return f > hoyISO; }).sort();
     for (const f of fechas) {
-      const arr = sched[f] || [];
+      const arr = (sched[f] || []).filter(function (v) { return !v.reserva; });
       if (arr.length) {
         const v = arr[0];
         const studio = State.studiosById[v.id];

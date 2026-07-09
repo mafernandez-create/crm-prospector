@@ -179,7 +179,10 @@
     const v = document.getElementById('view-detail');
     if (!v) return;
 
-    const id = (params && params.studioId) || State.currentStudioId || '3012';
+    // Sin fallback a una ficha demo: si no llega un studioId válido, getStudio
+    // devolverá null y se mostrará el emptyState (antes caía a '3012' = J. Huesa,
+    // por lo que pernoctas/entradas sin ficha abrían esa tarjeta por error).
+    const id = (params && params.studioId) || State.currentStudioId || '';
     if (params && params.tab) _tab = params.tab;
     _studioId = id;
 
