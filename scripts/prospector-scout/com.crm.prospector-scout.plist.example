@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  PLANTILLA, NO es un .plist activo. Vive en el repo (scripts/prospector-scout/),
+  NO en ~/Library/LaunchAgents/. Para activarlo de verdad, sigue el README.md de
+  esta misma carpeta (copiar, editar la zona/cadencia, y recién entonces cargar
+  con launchctl). Mientras esté aquí, launchd nunca lo ve ni lo ejecuta.
+
+  Sigue el mismo patrón que los .plist hermanos ya existentes del repo:
+    ~/Library/LaunchAgents/com.crm.autopush.plist
+    ~/Library/LaunchAgents/_retirados-crm/com.crm.batch-qualify.plist.retirado-2026-07-10
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.crm.prospector-scout</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/ma.fernandez/Proyectos/Trabajo_GPF/crm/scripts/prospector-scout/run-scout.sh</string>
+        <!--
+          TODO (Manolo, al activar): añade aquí la zona fija que quieres que el
+          scout recorra en cada disparo, por ejemplo:
+            <string>Córdoba</string>
+            <string>indistinto</string>
+          O sustituye este ProgramArguments por una llamada a un script propio
+          que rote de zona (por ejemplo la de menor cobertura según la accion
+          "stats" de crm_query.py), si prefieres que no sea siempre la misma
+          provincia. NO se ha construido ese rotador: es una decision de
+          producto pendiente, no un detalle tecnico.
+        -->
+    </array>
+
+    <!--
+      TODO (Manolo, al activar): cadencia. El uso real de prospector nuevos
+      hoy es en RAFAGAS antes de cada ruta, no constante (evidencia: 5 dias
+      de uso en agentes/output/ entre 11 mayo y 8 julio de 2026). Un cron fijo
+      semanal puede no encajar. Ejemplo de StartCalendarInterval comentado
+      aqui abajo como texto (NO como XML activo): copialo fuera de este
+      comentario y descomentalo tu mismo cuando decidas la cadencia real.
+
+      StartCalendarInterval de ejemplo (lunes 07:00 hora local):
+        Weekday = 1
+        Hour = 7
+        Minute = 0
+    -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <!--
+      TODO (Manolo, al activar): decide si el guard de ejecucion headless
+      (SCOUT_HEADLESS_VERIFIED, ver cabecera de run-scout.sh) se pone aqui
+      como variable de entorno permanente, SOLO despues de haber probado el
+      modo de medicion a mano y confirmado que no se cuelga esperando un
+      permiso. Ejemplo de bloque a anadir (fuera de este comentario):
+
+        EnvironmentVariables:
+          SCOUT_HEADLESS_VERIFIED = 1
+    -->
+
+    <key>StandardOutPath</key>
+    <string>/Users/ma.fernandez/Proyectos/Trabajo_GPF/crm/.prospector-scout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/ma.fernandez/Proyectos/Trabajo_GPF/crm/.prospector-scout.log</string>
+</dict>
+</plist>
