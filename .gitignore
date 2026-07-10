@@ -2,6 +2,7 @@ node_modules/
 .DS_Store
 *.log
 .auto-push.log
+.prospector-scout-last-result.json
 google_credentials.json
 .sheets_token.json
 *.py

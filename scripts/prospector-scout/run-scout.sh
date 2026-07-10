@@ -47,7 +47,7 @@ RESULT_JSON="$CRM_DIR/.prospector-scout-last-result.json"
 
 # ── Configuración (override por variable de entorno si hace falta) ─────────
 MODEL="${SCOUT_MODEL:-claude-sonnet-4-6}"          # mismo modelo que claude.yml (CONFIRMAR que sigue vivo)
-MAX_BUDGET_USD="${SCOUT_MAX_BUDGET_USD:-1.00}"     # flag CONFIRMADO: --max-budget-usd (solo con --print)
+MAX_BUDGET_USD="${SCOUT_MAX_BUDGET_USD:-2.00}"     # flag CONFIRMADO: --max-budget-usd (solo con --print). Default $2: medición real de un scout de provincia = $1.63 (Córdoba, 2026-07-10), $1 truncaba.
 TIMEOUT_SECONDS="${SCOUT_TIMEOUT_SECONDS:-1800}"   # parada dura de reloj: 30 min por defecto
 ALLOWED_TOOLS="Bash Read Write WebSearch WebFetch" # calcado del frontmatter de prospector-nuevos.md — nada más
 

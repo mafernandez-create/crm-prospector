@@ -28,6 +28,21 @@ y escribe el plan completo en `.prospector-scout.log` — sin tocar la API.
 
 ## 2. Medir el prototipo desechable (regla del ecosistema: medir, no estimar)
 
+> ### ✅ Medición ya realizada — Córdoba, 2026-07-10
+> Primera ejecución `--medir` real (foco MUTE), resultados verificados en
+> `.prospector-scout-last-result.json`:
+> - **Coste real: $1.63** por un scout completo de una provincia. Por eso el
+>   `--max-budget-usd` por defecto se subió de $1 (truncaba) a **$2** (margen).
+> - **Duración:** ~6 min de reloj (búsqueda web + cruce + redacción).
+> - **`claude -p` headless NO se cuelga** sin TTY: `permission_denials: []`,
+>   exit 0. Este era el gran TODO de permisos — resuelto.
+> - **Modelo `claude-sonnet-4-6`: confirmado vigente** (resolvió y respondió).
+> - Informe generado en `agentes/output/prospectos-2026-07-10-scout-córdoba.md`
+>   (10 prospectos, formato idéntico al del agente manual).
+>
+> Repite este paso para una zona nueva solo si quieres re-medir; el harness ya
+> está validado de punta a punta.
+
 **Antes de programar cualquier cadencia**, ejecuta una vez el modo `--medir`,
 en primer plano, para ver con tus propios ojos si `claude -p` headless se
 comporta bien (no se cuelga pidiendo un permiso que nadie puede aprobar) y
@@ -35,21 +50,25 @@ cuánto cuesta/tarda de verdad:
 
 ```bash
 cd ~/Proyectos/Trabajo_GPF/crm
-SCOUT_MAX_BUDGET_USD=0.50 ./scripts/prospector-scout/run-scout.sh --medir "Córdoba" "MUTE"
+SCOUT_MAX_BUDGET_USD=2.00 ./scripts/prospector-scout/run-scout.sh --medir "Córdoba" "MUTE"
 ```
 
-Esto SÍ invoca la API (acotado por `--max-budget-usd`, por defecto 1,00 $, y
-por un timeout de proceso de 30 min por defecto — ambos configurables por
-variable de entorno, ver cabecera de `run-scout.sh`). Al terminar:
+Esto SÍ invoca la API (acotado por `--max-budget-usd`, por defecto 2,00 $ —
+medido: un scout de provincia cuesta ~$1,63 —, y por un timeout de proceso de
+30 min por defecto; ambos configurables por variable de entorno, ver cabecera
+de `run-scout.sh`). Al terminar:
 
 1. Revisa `.prospector-scout.log` (en la raíz del repo, ya gitignored).
 2. Abre `.prospector-scout-last-result.json` (también gitignored) y anota
-   coste real, duración y nº de turnos — el nombre exacto de esos campos en
-   el JSON de `--output-format json` **no se ha verificado todavía** (ver TODO
-   en la cabecera del script); esta es la primera vez que se sabrá con
-   certeza.
+   coste real, duración y nº de turnos. Campos verificados en el JSON de
+   `--output-format json`: `total_cost_usd`, `duration_ms`, `num_turns`,
+   `is_error`, `subtype`, `permission_denials`, `errors`.
 3. Comprueba que el informe apareció en `agentes/output/prospectos-<fecha>-scout-<zona>.md`
    con el mismo formato que ya produce el agente cuando lo invoca Manolo a mano.
+4. **Verifica los prospectos antes de actuar**: son datos de búsqueda web sin
+   contrastar. Pásalos por el subagente `verificador-resultados` (o revisa la
+   sección "Pendientes de verificar" del propio informe) antes de llamar a
+   nadie. El scout descubre; no confirma.
 
 ## 3. Activar la ejecución real sin supervisión (solo cuando el paso 2 salga bien)
 
@@ -108,5 +127,5 @@ de este proyecto para retiradas reversibles — ver
 - Decidir la cadencia (el uso actual es en ráfagas antes de cada ruta, no
   constante).
 - Decidir si la zona es fija o rotativa (no hay rotador construido).
-- Confirmar si `claude-sonnet-4-6` sigue siendo el modelo vigente en el
-  momento de activar esto (mismo modelo que usa `claude.yml` hoy).
+- (Re)confirmar `claude-sonnet-4-6` si pasa mucho tiempo hasta activarlo — a
+  2026-07-10 está confirmado vigente (mismo modelo que `claude.yml`).
