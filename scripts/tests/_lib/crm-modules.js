@@ -149,6 +149,65 @@ const _SV2_ACTIONS = {
 };
 
 // ── calculateScoringV2 (index.html ~6320) ────────────────────────────────────
+// ── v2.1: engagement (informes/visitas) y confianza ─────────────────────────
+// Port fiel de batch-qualify/scoring.mjs (fuente de producción). Mantener en
+// paridad — lo verifica tests/unit/test-scoring-parity.js.
+function _todayISO() { return new Date().toISOString().slice(0, 10); }
+function _daysBetween(isoA, isoB) {
+  const a = new Date(isoA + 'T00:00:00Z').getTime();
+  const b = new Date(isoB + 'T00:00:00Z').getTime();
+  return Math.round((b - a) / 86400000);
+}
+function _reports(studio)    { return (studio.data && studio.data.reports)    || []; }
+function _activities(studio) { return (studio.data && studio.data.activities) || []; }
+function _lastInteractionISO(studio) {
+  const ds = [];
+  _reports(studio).forEach(r => { if (r && r.date) ds.push(String(r.date).slice(0, 10)); });
+  _activities(studio).forEach(a => { if (a && a.date) ds.push(String(a.date).slice(0, 10)); });
+  return ds.length ? ds.sort().pop() : null;
+}
+function calculateEngagement(studio, todayISO) {
+  let e = 0;
+  const last = _lastInteractionISO(studio);
+  if (last) {
+    const days = _daysBetween(last, todayISO);
+    if (days <= 90) e += 2; else if (days <= 180) e += 1;
+  }
+  const reps = _reports(studio).filter(r => r && r.date)
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const lastRep = reps.length ? reps[reps.length - 1] : null;
+  if (lastRep) {
+    const prob = Number(lastRep.probabilidad_cierre_pct);
+    const temp = Number(lastRep.temperatura);
+    if (!Number.isNaN(prob) && lastRep.probabilidad_cierre_pct != null) {
+      if (prob >= 60) e += 2; else if (prob >= 30) e += 1;
+    } else if (!Number.isNaN(temp) && lastRep.temperatura != null) {
+      if (temp >= 4) e += 2; else if (temp >= 3) e += 1;
+    }
+    const prox = lastRep.fecha_proxima_visita;
+    if (prox && /^\d{4}-\d{2}-\d{2}/.test(String(prox)) && String(prox).slice(0, 10) >= todayISO) e += 1;
+    const comp = lastRep.compromisos && lastRep.compromisos.por_nuestra_parte;
+    const proxAcc = lastRep.proxima_accion && String(lastRep.proxima_accion).trim() && lastRep.proxima_accion !== '—';
+    if ((Array.isArray(comp) && comp.length > 0) || proxAcc) e += 1;
+  }
+  return Math.min(e, 6);
+}
+function calculateConfianza(studio) {
+  const data = studio.data || {};
+  const contact = data.contact || {};
+  const checks = [
+    ((data.projects || []).length > 0),
+    (!!getValor(contact.phone) || !!getValor(contact.email)),
+    (!!studio.type),
+    ((parseInt(getValor((data.studio || {}).employees), 10) || 0) > 0),
+    ((data.reports || []).length > 0),
+  ];
+  const have = checks.filter(Boolean).length;
+  if (have >= 4) return 'alta';
+  if (have >= 2) return 'media';
+  return 'baja';
+}
+
 function calculateScoringV2(studio) {
   const data     = studio.data || {};
   const social   = data.social  || {};
@@ -302,8 +361,15 @@ function calculateScoringV2(studio) {
 
   const esCandidatoPuente = rawDirect < 6 && rawNetwork >= 6 && projects.length >= 5;
   const puenteActivo = studio.es_cliente_puente === true;
-  const rawDirectFinal = puenteActivo ? rawDirect + 4 : rawDirect;
+  // v2.1: ENGAGEMENT (informes de visita) suma al eje directo.
+  const engagementScore = calculateEngagement(studio, _todayISO());
+  const rawDirectFinal = rawDirect + (puenteActivo ? 4 : 0) + engagementScore;
   const priorityDirect = rawDirectFinal >= 10 ? 'Alto' : rawDirectFinal >= 6 ? 'Medio' : 'Bajo';
+  // v2.1: distancia al siguiente umbral del eje directo ("casi sube de cuadrante").
+  const directDistanceToNext = priorityDirect === 'Alto' ? 0
+    : (priorityDirect === 'Medio' ? Math.max(0, 10 - rawDirectFinal) : Math.max(0, 6 - rawDirectFinal));
+  // v2.1: confianza por completitud de datos.
+  const scoringConfianza = calculateConfianza(studio);
 
   const priorityQuadrant = _SV2_QUADRANT_MAP[`${priorityDirect}_${priorityNetwork}`] || 5;
 
@@ -318,6 +384,10 @@ function calculateScoringV2(studio) {
     priorityQuadrant,
     priorityQuadrantName: _SV2_QUADRANT_NAMES[priorityQuadrant],
     priorityRecommendedAction: _SV2_ACTIONS[priorityQuadrant],
+    // v2.1
+    engagementScore,
+    scoringConfianza,
+    directDistanceToNext,
     _dims: { d1, d2, d3, d4, d5, d6, r1, r2, r3, r4, r5, d4Recent, d4Effective, d5Fits, r2TargetCount, r2Pct, r3Hits, r4Signals, r5ProvCount, empVal },
   };
 }
