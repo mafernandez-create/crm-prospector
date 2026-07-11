@@ -161,6 +161,23 @@ EXIT_CODE=$?
 
 END_TS="$(date '+%Y-%m-%d %H:%M:%S')"
 echo "[$END_TS] Scout terminado — exit=$EXIT_CODE. JSON completo en $RESULT_JSON" >> "$LOG"
+
+# ── Copia del informe a Descargas ──────────────────────────────────────────
+# Solo si la ejecución salió bien (exit 0) y el informe se generó de verdad.
+# Descargas es local (el runner ES el Mac de Manolo); no afecta a la regla de
+# no commitear PII: agentes/output/ sigue gitignored y esta copia no entra al
+# repo. Carpeta configurable por SCOUT_DOWNLOADS_DIR (default ~/Downloads).
+DOWNLOADS_DIR="${SCOUT_DOWNLOADS_DIR:-$HOME/Downloads}"
+if [ "$EXIT_CODE" -eq 0 ] && [ -f "$OUT_FILE" ]; then
+    if cp "$OUT_FILE" "$DOWNLOADS_DIR/" 2>> "$LOG"; then
+        echo "[$END_TS] 📥 Copia del informe guardada en $DOWNLOADS_DIR/$(basename "$OUT_FILE")" >> "$LOG"
+    else
+        echo "[$END_TS] ⚠️  No se pudo copiar el informe a $DOWNLOADS_DIR (ver error arriba)." >> "$LOG"
+    fi
+else
+    echo "[$END_TS] ℹ️  No se copia a Descargas: exit=$EXIT_CODE, informe presente=$([ -f "$OUT_FILE" ] && echo sí || echo no)." >> "$LOG"
+fi
+
 if [ "$MODE" = "medir" ]; then
     echo "[$END_TS] TODO(medir): abre $RESULT_JSON a mano, anota coste/duración/nº" >> "$LOG"
     echo "[$END_TS]   de turnos reales, y decide con Manolo la cadencia antes de" >> "$LOG"
