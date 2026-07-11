@@ -6,6 +6,7 @@ node_modules/
 google_credentials.json
 .sheets_token.json
 *.py
+!scripts/prospector-scout/desktop-app/make_icon.py
 *.js
 !index.js
 !cors-proxy.js
