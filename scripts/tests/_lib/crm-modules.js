@@ -111,10 +111,20 @@ function evaluarPuenteAcademico(result, webEmails) {
 }
 
 // ── Helpers de tipo y valor (index.html ~5135) ───────────────────────────────
+/* Espejo de normalizeTipoKey en scripts/batch-qualify/scoring.mjs — mantener
+   idénticos (test-scoring-parity.js los compara). */
+function normalizeTipoKey(tipo) {
+  return String(tipo)
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
 function getTiposArray(studio) {
   if (!studio || !studio.type) return ['ARQ'];
   if (Array.isArray(studio.type)) return studio.type.length > 0 ? studio.type : ['ARQ'];
-  const code = TIPO_LEGACY_MAP[studio.type] || studio.type;
+  const code = TIPO_LEGACY_MAP[normalizeTipoKey(studio.type)] || studio.type;
   return [code];
 }
 function getTipoPrincipal(studio) { return getTiposArray(studio)[0]; }

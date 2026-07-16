@@ -82,10 +82,22 @@ function getValor(campo) {
   return '';
 }
 
+/* Normaliza la clave antes de buscar en TIPO_LEGACY_MAP: el mapa está en
+   minúsculas y sin acentos, pero las fichas guardan el tipo tal y como se
+   escribió al darlas de alta ("Constructora", "Ingeniería"). Sin normalizar,
+   la búsqueda falla y el tipo cae al fallback → d1=0 → Bajo/Baja → Q9. */
+function normalizeTipoKey(tipo) {
+  return String(tipo)
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
 export function getTipoPrincipal(studio) {
   if (!studio || !studio.type) return 'ARQ';
   if (Array.isArray(studio.type)) return studio.type.length > 0 ? studio.type[0] : 'ARQ';
-  return TIPO_LEGACY_MAP[studio.type] || studio.type;
+  return TIPO_LEGACY_MAP[normalizeTipoKey(studio.type)] || studio.type;
 }
 
 // ── v2.1: helpers de engagement (informes/visitas) y confianza ──

@@ -2,7 +2,7 @@
 // Replica el cálculo de index.html ~6320 via _lib/crm-modules.js.
 
 const A = require('../_lib/assert');
-const { calculateScoringV2 } = require('../_lib/crm-modules');
+const { calculateScoringV2, getTipoPrincipal } = require('../_lib/crm-modules');
 
 A.reset();
 
@@ -11,6 +11,22 @@ A.eq(calculateScoringV2({ type: 'ARQ',  data: {} })._dims.d1, 3, 'D1: ARQ → 3 
 A.eq(calculateScoringV2({ type: 'ING',  data: {} })._dims.d1, 3, 'D1: ING → 3 pts');
 A.eq(calculateScoringV2({ type: 'OCV',  data: {} })._dims.d1, 2, 'D1: OCV → 2 pts');
 A.eq(calculateScoringV2({ type: 'AAPP', data: {} })._dims.d1, 1, 'D1: AAPP → 1 pt');
+
+// ── D1: tipos legacy en el formato en que los guardan las altas del scout ──
+// El mapa TIPO_LEGACY_MAP está en minúsculas y sin acentos; las fichas guardan
+// el tipo tal cual se escribió. Sin normalizar la clave, la búsqueda fallaba y
+// el tipo caía al fallback → d1=0 → Bajo/Baja → Q9 "Congelar" indebido.
+A.eq(calculateScoringV2({ type: 'Constructora',  data: {} })._dims.d1, 2, 'D1: "Constructora" (mayúscula) → OCV → 2 pts');
+A.eq(calculateScoringV2({ type: 'constructora',  data: {} })._dims.d1, 2, 'D1: "constructora" (minúscula) → OCV → 2 pts');
+A.eq(calculateScoringV2({ type: 'Promotora',     data: {} })._dims.d1, 2, 'D1: "Promotora" → OCV → 2 pts');
+A.eq(calculateScoringV2({ type: 'Arquitectura',  data: {} })._dims.d1, 3, 'D1: "Arquitectura" → ARQ → 3 pts');
+A.eq(calculateScoringV2({ type: 'Ingeniería',    data: {} })._dims.d1, 3, 'D1: "Ingeniería" (con acento) → ING → 3 pts');
+A.eq(calculateScoringV2({ type: '  Regantes  ',  data: {} })._dims.d1, 1, 'D1: "  Regantes  " (espacios) → CCRR → 1 pt');
+// Los códigos canónicos no deben verse alterados por la normalización
+A.eq(getTipoPrincipal({ type: 'ARQ' }),  'ARQ',  'Tipo: código canónico ARQ se mantiene');
+A.eq(getTipoPrincipal({ type: 'CICA' }), 'CICA', 'Tipo: código canónico CICA se mantiene');
+// Un tipo desconocido se devuelve tal cual (no se inventa mapeo)
+A.eq(getTipoPrincipal({ type: 'Distribuidor' }), 'Distribuidor', 'Tipo: desconocido cae al fallback sin cambios');
 
 // ── D2: Empleados (umbrales según tipo) ────────────────────────────────────
 A.eq(calculateScoringV2({ type: 'ING', data: { studio: { employees: '25' } } })._dims.d2, 3, 'D2: ING 25 emp → 3 pts');
