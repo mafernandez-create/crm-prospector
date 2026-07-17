@@ -216,7 +216,7 @@
             '</button>'
           : '') +
         '<button class="btn btn-ghost" onclick="window.Screens.planificador.subirSheet()" ' +
-          'title="Subir visitas al Google Sheet del jefe" ' +
+          'title="Subir o retirar días en el Google Sheet del jefe" ' +
           'style="font-family:var(--font-mono); font-size:12px; color:var(--fg-2);">☁️ Sheet Jefe</button>' +
         '<button class="btn btn-ghost" onclick="window.Screens.planificador.subirCalendario()" ' +
           'title="Exportar visitas a Google Calendar" ' +
@@ -492,28 +492,28 @@
     ].join(';');
 
     overlay.innerHTML = [
-      '<div style="background:var(--bg-card,#1e2130);border:1px solid var(--border,#2d3148);',
+      '<div style="background:var(--bg-card,#ffffff);border:1px solid var(--border-1,#d7dde3);',
         'border-radius:12px;padding:28px 32px;max-width:480px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.5)">',
-        '<h3 style="margin:0 0 8px;font-size:16px;color:var(--fg,#e2e8f0)">🔑 Client ID de Google OAuth</h3>',
-        '<p style="margin:0 0 16px;font-size:13px;color:var(--fg-2,#94a3b8);line-height:1.5">',
+        '<h3 style="margin:0 0 8px;font-size:16px;color:var(--fg-1,#101418)">🔑 Client ID de Google OAuth</h3>',
+        '<p style="margin:0 0 16px;font-size:13px;color:var(--fg-2,#2a3138);line-height:1.5">',
           'Para sincronizar con Google Calendar y la hoja del jefe necesitas un ',
           '<strong>Client ID</strong> de Google Cloud Console. ',
           'Puedes encontrarlo en <em>APIs &amp; Services → Credentials</em> de tu proyecto.',
         '</p>',
         '<input id="_client-id-input" type="text" placeholder="xxxxxx.apps.googleusercontent.com"',
           ' style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;',
-          'border:1px solid var(--border,#2d3148);background:var(--bg,#151728);',
-          'color:var(--fg,#e2e8f0);font-size:13px;font-family:var(--font-mono,monospace);',
+          'border:1px solid var(--border-1,#d7dde3);background:var(--bg-1,#ffffff);',
+          'color:var(--fg-1,#101418);font-size:13px;font-family:var(--font-mono,monospace);',
           'outline:none;margin-bottom:16px"/>',
         '<div style="display:flex;gap:10px;justify-content:flex-end">',
           '<button onclick="document.getElementById(\'_client-id-overlay\').remove()"',
-            ' style="padding:8px 16px;border-radius:8px;border:1px solid var(--border,#2d3148);',
-            'background:transparent;color:var(--fg-2,#94a3b8);cursor:pointer;font-size:13px">',
+            ' style="padding:8px 16px;border-radius:8px;border:1px solid var(--border-1,#d7dde3);',
+            'background:transparent;color:var(--fg-2,#2a3138);cursor:pointer;font-size:13px">',
             'Cancelar',
           '</button>',
           '<button id="_client-id-confirm"',
             ' style="padding:8px 18px;border-radius:8px;border:none;',
-            'background:var(--accent,#6366f1);color:#fff;cursor:pointer;font-size:13px;font-weight:600">',
+            'background:var(--cta,#124b8a);color:#fff;cursor:pointer;font-size:13px;font-weight:600">',
             'Guardar y continuar',
           '</button>',
         '</div>',
@@ -604,14 +604,47 @@
     }, 800);
   }
 
+  // Fila de la cabecera de cada bloque trimestral en la pestaña 2026. Los bloques
+  // NO están equiespaciados: van 2 → 37 → 72 → 106, o sea 35, 35 y 34 filas.
+  // Calcularlo como 2 + trimestre*35 desplaza Oct/Nov/Dic una fila hacia abajo y
+  // escribe la visita en el día siguiente. Verificado celda a celda contra la hoja.
+  const _BLOQUE_BASE = [2, 37, 72, 106];
+
   function _getCellRef(dateStr) {
     const parts = dateStr.split('-').map(Number);
     const year = parts[0]; const month = parts[1]; const day = parts[2];
     if (year !== 2026) return null;
+    if (!(month >= 1 && month <= 12)) return null;
+    if (!(day >= 1 && day <= 31)) return null;
+    // Rechazar días que no existen (30 de febrero, 31 de abril…): la hoja no tiene
+    // casilla para ellos y _cellRefToDate tampoco los reconoce.
+    const real = new Date(year, month - 1, day);
+    if (real.getMonth() + 1 !== month || real.getDate() !== day) return null;
     const m   = month - 1;
     const col = _COL_LETTERS[m % 3];
-    const row = (2 + Math.floor(m / 3) * 35) + day;
+    const row = _BLOQUE_BASE[Math.floor(m / 3)] + day;
     return col + row;
+  }
+
+  // Inverso de _getCellRef: 'M59' → '2026-06-22'. Devuelve null si la celda no
+  // cae en ninguna casilla de día.
+  function _cellRefToDate(ref) {
+    const col = ref[0];
+    const row = parseInt(ref.slice(1), 10);
+    const colIdx = _COL_LETTERS.indexOf(col);
+    if (colIdx < 0 || !row) return null;
+    for (let b = 0; b < _BLOQUE_BASE.length; b++) {
+      const day = row - _BLOQUE_BASE[b];
+      if (day >= 1 && day <= 31) {
+        const month = b * 3 + colIdx + 1;
+        const iso = '2026-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+        // Descarta días que no existen (p.ej. 31 de febrero)
+        const d = new Date(iso + 'T00:00:00');
+        if (d.getMonth() + 1 !== month || d.getDate() !== day) return null;
+        return iso;
+      }
+    }
+    return null;
   }
 
   function _cellTo0Based(ref) {
@@ -632,47 +665,129 @@
     return runs;
   }
 
-  async function subirVisitasSheet() {
+  /* ------------------------------------------------------------
+     Acceso a la API de Sheets (compartido por subir y vaciar)
+     ------------------------------------------------------------ */
+
+  // Resuelve un token con scope spreadsheets y llama a onReady(settings).
+  // Si falta el Client ID lo pide; si falta el token abre el popup de OAuth.
+  function _conTokenSheets(onReady) {
+    let s;
+    try { s = JSON.parse(localStorage.getItem('ferroplast_sheets_settings') || '{}'); } catch (e) { s = {}; }
+    if (s.accessToken && s.tokenExpiry > Date.now()) { onReady(s); return; }
+
+    // El Client ID vive en calendar_settings (mismo proyecto OAuth)
+    let calSettings;
+    try { calSettings = JSON.parse(localStorage.getItem('ferroplast_test_calendar_settings') || '{}'); } catch (e) { calSettings = {}; }
+    const clientId = calSettings.clientId || calSettings.client_id || '';
+    if (!clientId) { _pedirClientId(function () { _conTokenSheets(onReady); }); return; }
+
+    // Normaliza a la URL canónica autorizada en Google (sin query, sin hash y sin
+    // "index.html"); si no, abrir la app como …/index.html da redirect_uri_mismatch.
+    const redirectUri = window.location.href.split('?')[0].split('#')[0].replace(/index\.html?$/i, '');
+    const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' +
+      'client_id=' + encodeURIComponent(clientId) +
+      '&redirect_uri=' + encodeURIComponent(redirectUri) +
+      '&response_type=token' +
+      '&scope=' + encodeURIComponent('https://www.googleapis.com/auth/spreadsheets') +
+      '&state=sheets_auth' +
+      '&prompt=consent';
+    _abrirOAuthPopup(authUrl, function () { _conTokenSheets(onReady); });
+  }
+
+  function _invalidarTokenSheets(e) {
+    const msg = String((e && e.message) || e);
+    if (!/401|invalid|unauthor/i.test(msg)) return;
+    let s = {};
+    try { s = JSON.parse(localStorage.getItem('ferroplast_sheets_settings') || '{}'); } catch (_) {}
+    s.accessToken = null; s.tokenExpiry = 0;
+    localStorage.setItem('ferroplast_sheets_settings', JSON.stringify(s));
+  }
+
+  async function _sheetsFetch(token, url, opts) {
+    const o = opts || {};
+    o.headers = Object.assign({ Authorization: 'Bearer ' + token }, o.headers || {});
+    const resp = await fetch(url, o);
+    if (!resp.ok) {
+      let detalle = resp.statusText;
+      try { const j = await resp.json(); detalle = (j.error && j.error.message) || detalle; } catch (_) {}
+      throw new Error(resp.status + ' · ' + detalle);
+    }
+    return resp.json();
+  }
+
+  async function _sheetGid(token) {
+    const meta = await _sheetsFetch(token,
+      'https://sheets.googleapis.com/v4/spreadsheets/' + _SHEET_JEFE_ID +
+      '?fields=sheets(properties(sheetId,title))');
+    const hoja = (meta.sheets || []).find(function (s) { return s.properties.title === _SHEET_NAME; });
+    if (!hoja) throw new Error('No existe la pestaña "' + _SHEET_NAME + '" en la hoja');
+    return hoja.properties.sheetId;
+  }
+
+  // Lee las tres columnas de anotación de 2026 y devuelve { '2026-06-22': 'texto', … }
+  // Solo incluye celdas con contenido.
+  async function _leerAnotaciones(token) {
+    const ranges = _COL_LETTERS.map(function (c) {
+      return 'ranges=' + encodeURIComponent("'" + _SHEET_NAME + "'!" + c + '1:' + c + '140');
+    }).join('&');
+    const data = await _sheetsFetch(token,
+      'https://sheets.googleapis.com/v4/spreadsheets/' + _SHEET_JEFE_ID +
+      '/values:batchGet?majorDimension=COLUMNS&' + ranges);
+    const out = {};
+    (data.valueRanges || []).forEach(function (vr, i) {
+      const col = _COL_LETTERS[i];
+      const valores = (vr.values && vr.values[0]) || [];
+      valores.forEach(function (texto, idx) {
+        if (!texto || !String(texto).trim()) return;
+        const iso = _cellRefToDate(col + (idx + 1));
+        if (iso) out[iso] = String(texto);
+      });
+    });
+    return out;
+  }
+
+  // Escribe celdas. items = [{ cellRef, text, links }]. text '' vacía la celda.
+  async function _escribirCeldas(token, items) {
+    const gid = await _sheetGid(token);
+    const requests = items.map(function (it) {
+      const pos = _cellTo0Based(it.cellRef);
+      return {
+        updateCells: {
+          rows: [{ values: [{
+            userEnteredValue: { stringValue: it.text },
+            textFormatRuns: _buildFormatRuns(it.links || [], it.text.length),
+          }] }],
+          fields: 'userEnteredValue,textFormatRuns',
+          range: {
+            sheetId: gid,
+            startRowIndex: pos.row, endRowIndex: pos.row + 1,
+            startColumnIndex: pos.col, endColumnIndex: pos.col + 1,
+          },
+        },
+      };
+    });
+    await _sheetsFetch(token,
+      'https://sheets.googleapis.com/v4/spreadsheets/' + _SHEET_JEFE_ID + ':batchUpdate',
+      { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requests: requests }) });
+  }
+
+  // Días del schedule con visitas reales (no reserva) que caen en 2026.
+  function _diasSubibles() {
     const schedule = Local.schedule || {};
-    const days = Object.keys(schedule).filter(function (d) {
+    return Object.keys(schedule).filter(function (d) {
+      if (!_getCellRef(d)) return false;
       return (schedule[d] || []).some(function (s) { return !s.reserva; });
     }).sort();
+  }
 
-    if (!days.length) {
-      window.showNotification('⚠️ No hay visitas planificadas', 'warning');
-      return;
-    }
+  // Construye el texto y los hipervínculos de un día tal como van a la hoja.
+  function _textoDia(dateStr) {
+    const schedule = Local.schedule || {};
+    const studios = (schedule[dateStr] || []).filter(function (s) { return !s.reserva; });
+    if (!studios.length) return null;
 
-    // 1. Comprobar token Sheets
-    let sheetsSettings;
-    try { sheetsSettings = JSON.parse(localStorage.getItem('ferroplast_sheets_settings') || '{}'); } catch (e) { sheetsSettings = {}; }
-    const tokenValido = sheetsSettings.accessToken && sheetsSettings.tokenExpiry > Date.now();
-
-    if (!tokenValido) {
-      // Necesitamos el Client ID — lo sacamos de calendar_settings (mismo proyecto OAuth)
-      let calSettings;
-      try { calSettings = JSON.parse(localStorage.getItem('ferroplast_test_calendar_settings') || '{}'); } catch (e) { calSettings = {}; }
-      const clientId = calSettings.clientId || calSettings.client_id || '';
-      if (!clientId) {
-        _pedirClientId(function (id) { subirVisitasSheet(); });
-        return;
-      }
-      // Normaliza a la URL canónica autorizada en Google (sin query, sin hash y sin
-      // "index.html"); si no, abrir la app como …/index.html da redirect_uri_mismatch.
-      const redirectUri = window.location.href.split('?')[0].split('#')[0].replace(/index\.html?$/i, '');
-      const scope = 'https://www.googleapis.com/auth/spreadsheets';
-      const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' +
-        'client_id=' + encodeURIComponent(clientId) +
-        '&redirect_uri=' + encodeURIComponent(redirectUri) +
-        '&response_type=token' +
-        '&scope=' + encodeURIComponent(scope) +
-        '&state=sheets_auth' +
-        '&prompt=consent';
-      _abrirOAuthPopup(authUrl, function () { subirVisitasSheet(); });
-      return;
-    }
-
-    // 2. Mapa web/provincia por studio id
     const allStudios = State.studios || [];
     const studioUrlMap = {};
     const studioProvMap = {};
@@ -686,116 +801,286 @@
       studioProvMap[sid] = typeof provRaw === 'object' ? (provRaw.valor || '') : String(provRaw || '');
     });
 
-    // 3. Construir texto + hipervínculos por día
-    const visitasDia = [];
-    days.forEach(function (dateStr) {
-      const studios = (schedule[dateStr] || []).filter(function (s) { return !s.reserva; });
-      if (!studios.length) return;
-      const byProv = {};
-      studios.forEach(function (s) {
-        function _str(v) { return v && typeof v === 'object' ? (v.valor || '') : String(v || ''); }
-        const prov = _str(s.province) || studioProvMap[String(s.id || '')] || 'Sin provincia';
-        if (!byProv[prov]) byProv[prov] = [];
-        byProv[prov].push({ name: _str(s.name), url: studioUrlMap[String(s.id || '')] || '' });
-      });
-      let text = '';
-      const links = [];
-      const provEntries = Object.entries(byProv);
-      provEntries.forEach(function (entry, pi) {
-        const prov = entry[0]; const provStudios = entry[1];
-        text += prov + ': ';
-        provStudios.forEach(function (s, si) {
-          const start = text.length;
-          text += s.name;
-          if (s.url) links.push([start, text.length, s.url]);
-          if (si < provStudios.length - 1) text += ', ';
-        });
-        if (pi < provEntries.length - 1) text += ' | ';
-      });
-      const cellRef = _getCellRef(dateStr);
-      if (cellRef) visitasDia.push({ dateStr: dateStr, cellRef: cellRef, text: text, links: links });
+    function _str(v) { return v && typeof v === 'object' ? (v.valor || '') : String(v || ''); }
+
+    const byProv = {};
+    studios.forEach(function (s) {
+      const prov = _str(s.province) || studioProvMap[String(s.id || '')] || 'Sin provincia';
+      if (!byProv[prov]) byProv[prov] = [];
+      byProv[prov].push({ name: _str(s.name), url: studioUrlMap[String(s.id || '')] || '' });
     });
 
-    if (!visitasDia.length) {
-      window.showNotification('⚠️ No hay celdas que actualizar (solo hay visitas de años ≠ 2026)', 'warning');
+    let text = '';
+    const links = [];
+    const provEntries = Object.entries(byProv);
+    provEntries.forEach(function (entry, pi) {
+      const prov = entry[0]; const provStudios = entry[1];
+      text += prov + ': ';
+      provStudios.forEach(function (s, si) {
+        const start = text.length;
+        text += s.name;
+        if (s.url) links.push([start, text.length, s.url]);
+        if (si < provStudios.length - 1) text += ', ';
+      });
+      if (pi < provEntries.length - 1) text += ' | ';
+    });
+    return { text: text, links: links };
+  }
+
+  function _etiquetaDia(dateStr) {
+    const p = dateStr.split('-').map(Number);
+    return new Date(p[0], p[1] - 1, p[2])
+      .toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+
+  // Sube a la hoja los días indicados. Sin argumento sube todos los subibles.
+  async function subirVisitasSheet(dias) {
+    const days = (dias && dias.length ? dias.slice() : _diasSubibles()).sort();
+    if (!days.length) {
+      window.showNotification('⚠️ No hay visitas planificadas de 2026', 'warning');
       return;
     }
 
-    window.showNotification('☁️ Subiendo ' + visitasDia.length + ' días al Sheet del jefe…', 'info');
-
-    try {
-      // 4. Obtener gid de la hoja CALENDARIO 2026 MANOLO
-      const metaResp = await fetch(
-        'https://sheets.googleapis.com/v4/spreadsheets/' + _SHEET_JEFE_ID +
-        '?fields=sheets(properties(sheetId,title))',
-        { headers: { 'Authorization': 'Bearer ' + sheetsSettings.accessToken } }
-      );
-      if (!metaResp.ok) {
-        const err = await metaResp.json();
-        throw new Error(err.error && err.error.message ? err.error.message : metaResp.statusText);
+    const items = [];
+    days.forEach(function (d) {
+      const cellRef = _getCellRef(d);
+      const contenido = _textoDia(d);
+      if (cellRef && contenido) {
+        items.push({ dateStr: d, cellRef: cellRef, text: contenido.text, links: contenido.links });
       }
-      const meta = await metaResp.json();
-      const sheetObj = (meta.sheets || []).find(function (s) { return s.properties.title === _SHEET_NAME; });
-      const sheetGid = sheetObj ? sheetObj.properties.sheetId : 0;
-
-      // 5. Construir requests batchUpdate
-      const requests = visitasDia.map(function (vd) {
-        const pos = _cellTo0Based(vd.cellRef);
-        return {
-          updateCells: {
-            rows: [{ values: [{
-              userEnteredValue: { stringValue: vd.text },
-              textFormatRuns: _buildFormatRuns(vd.links, vd.text.length),
-            }] }],
-            fields: 'userEnteredValue,textFormatRuns',
-            range: {
-              sheetId: sheetGid,
-              startRowIndex: pos.row, endRowIndex: pos.row + 1,
-              startColumnIndex: pos.col, endColumnIndex: pos.col + 1,
-            },
-          },
-        };
-      });
-
-      // 6. Llamar batchUpdate
-      const resp = await fetch(
-        'https://sheets.googleapis.com/v4/spreadsheets/' + _SHEET_JEFE_ID + ':batchUpdate',
-        {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + sheetsSettings.accessToken, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ requests: requests }),
-        }
-      );
-      if (!resp.ok) {
-        const err2 = await resp.json();
-        throw new Error(err2.error && err2.error.message ? err2.error.message : resp.statusText);
-      }
-
-      // 7. Resumen
-      const resumen = visitasDia.map(function (vd) {
-        const partes = vd.dateStr.split('-').map(Number);
-        const fechaObj = new Date(partes[0], partes[1] - 1, partes[2]);
-        const label = fechaObj.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
-        const n = (schedule[vd.dateStr] || []).filter(function (s) { return !s.reserva; }).length;
-        return label + ' → ' + n + ' visita' + (n === 1 ? '' : 's') + ' (' + vd.cellRef + ')';
-      }).join('\n');
-
-      window.showNotification('✅ Sheet del jefe actualizado · ' + visitasDia.length + ' días', 'success');
-      console.info('[planificador] Sheet jefe OK:\n' + resumen);
-
-      // Abrir sheet en nueva pestaña para confirmación visual
-      window.open('https://docs.google.com/spreadsheets/d/' + _SHEET_JEFE_ID, '_blank');
-
-    } catch (e) {
-      console.error('[planificador] subirVisitasSheet error:', e);
-      // Si el token expiró, limpiar para forzar reauth la próxima vez
-      if (String(e.message).includes('401') || String(e.message).toLowerCase().includes('invalid')) {
-        sheetsSettings.accessToken = null;
-        sheetsSettings.tokenExpiry = 0;
-        localStorage.setItem('ferroplast_sheets_settings', JSON.stringify(sheetsSettings));
-      }
-      window.showNotification('❌ Error al subir al Sheet: ' + (e.message || e), 'error');
+    });
+    if (!items.length) {
+      window.showNotification('⚠️ No hay celdas que actualizar', 'warning');
+      return;
     }
+
+    _conTokenSheets(async function (s) {
+      window.showNotification('☁️ Subiendo ' + items.length + ' día' + (items.length === 1 ? '' : 's') + ' al Sheet del jefe…', 'info');
+      try {
+        await _escribirCeldas(s.accessToken, items);
+        const resumen = items.map(function (it) {
+          const n = ((Local.schedule || {})[it.dateStr] || []).filter(function (v) { return !v.reserva; }).length;
+          return _etiquetaDia(it.dateStr) + ' → ' + n + ' visita' + (n === 1 ? '' : 's') + ' (' + it.cellRef + ')';
+        }).join('\n');
+        window.showNotification('✅ Sheet del jefe actualizado · ' + items.length + ' día' + (items.length === 1 ? '' : 's'), 'success');
+        console.info('[planificador] Sheet jefe OK:\n' + resumen);
+        window.open('https://docs.google.com/spreadsheets/d/' + _SHEET_JEFE_ID, '_blank');
+      } catch (e) {
+        console.error('[planificador] subirVisitasSheet error:', e);
+        _invalidarTokenSheets(e);
+        window.showNotification('❌ Error al subir al Sheet: ' + (e.message || e), 'error');
+      }
+    });
+  }
+
+  // Vacía en la hoja las celdas de los días indicados.
+  async function vaciarDiasSheet(dias) {
+    const days = (dias || []).filter(function (d) { return !!_getCellRef(d); }).sort();
+    if (!days.length) {
+      window.showNotification('⚠️ No hay días seleccionados', 'warning');
+      return;
+    }
+
+    _conTokenSheets(async function (s) {
+      window.showNotification('🧹 Vaciando ' + days.length + ' día' + (days.length === 1 ? '' : 's') + ' en el Sheet del jefe…', 'info');
+      try {
+        const items = days.map(function (d) {
+          return { dateStr: d, cellRef: _getCellRef(d), text: '', links: [] };
+        });
+        await _escribirCeldas(s.accessToken, items);
+        const resumen = items.map(function (it) {
+          return _etiquetaDia(it.dateStr) + ' → vaciada (' + it.cellRef + ')';
+        }).join('\n');
+        window.showNotification('✅ ' + days.length + ' día' + (days.length === 1 ? '' : 's') + ' retirado' + (days.length === 1 ? '' : 's') + ' de la hoja', 'success');
+        console.info('[planificador] Sheet jefe vaciado:\n' + resumen);
+        window.open('https://docs.google.com/spreadsheets/d/' + _SHEET_JEFE_ID, '_blank');
+      } catch (e) {
+        console.error('[planificador] vaciarDiasSheet error:', e);
+        _invalidarTokenSheets(e);
+        window.showNotification('❌ Error al vaciar en el Sheet: ' + (e.message || e), 'error');
+      }
+    });
+  }
+
+  /* ============================================================
+     MODAL "SHEET DEL JEFE"
+     Elegir qué días se suben y cuáles se vacían, viendo antes lo que
+     hay ahora mismo en cada celda. Sin esto la subida iba en bloque:
+     una ruta que se caía se reescribía sola en el calendario del jefe.
+     ============================================================ */
+  const _MODAL_ID = '_sheet-jefe-overlay';
+  let _sheetEstado = { anotaciones: {}, filas: [] };
+
+  function _esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function abrirModalSheet() {
+    _conTokenSheets(async function (s) {
+      window.showNotification('📖 Leyendo la hoja del jefe…', 'info');
+      try {
+        const anotaciones = await _leerAnotaciones(s.accessToken);
+
+        // Días a mostrar: los del planificador + los que ya están escritos en la hoja.
+        const delPlan = _diasSubibles();
+        const enHoja = Object.keys(anotaciones);
+        const todos = [...new Set(delPlan.concat(enHoja))].sort();
+
+        _sheetEstado = {
+          anotaciones: anotaciones,
+          filas: todos.map(function (iso) {
+            const delDia = (Local.schedule || {})[iso] || [];
+            const nVisitas = delDia.filter(function (v) { return !v.reserva; }).length;
+            return {
+              iso: iso,
+              cellRef: _getCellRef(iso),
+              nVisitas: nVisitas,
+              enPlan: delPlan.indexOf(iso) >= 0,
+              actual: anotaciones[iso] || '',
+            };
+          }),
+        };
+        _pintarModalSheet();
+      } catch (e) {
+        console.error('[planificador] abrirModalSheet error:', e);
+        _invalidarTokenSheets(e);
+        window.showNotification('❌ No se pudo abrir el Sheet del jefe: ' + (e.message || e), 'error');
+      }
+    });
+  }
+
+  function _pintarModalSheet() {
+    const prev = document.getElementById(_MODAL_ID);
+    if (prev) prev.remove();
+
+    const filas = _sheetEstado.filas.map(function (f) {
+      // Por defecto solo van marcados los días del planificador: lo que ya está en
+      // la hoja y no está planificado suele ser festivos o notas del jefe.
+      const checked = f.enPlan ? 'checked' : '';
+      const etiqueta = _etiquetaDia(f.iso);
+      const estado = f.enPlan
+        ? '<span style="color:var(--fg-2,#2a3138)">' + f.nVisitas + ' visita' + (f.nVisitas === 1 ? '' : 's') + ' en el planificador</span>'
+        : '<span style="color:#b45309">solo en la hoja — no está en el planificador</span>';
+      const actual = f.actual
+        ? '<div style="font-size:11px;color:var(--fg-3,#5b6672);margin-top:3px;line-height:1.4;' +
+            'overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + _esc(f.actual) + '">' +
+            'En la hoja: ' + _esc(f.actual) + '</div>'
+        : '<div style="font-size:11px;color:var(--fg-3,#5b6672);margin-top:3px">Celda vacía</div>';
+      return (
+        '<label style="display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:8px;' +
+          'border:1px solid var(--border-1,#d7dde3);margin-bottom:6px;cursor:pointer">' +
+          '<input type="checkbox" class="_sheet-dia" value="' + f.iso + '" ' + checked + ' style="margin-top:3px">' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-size:13px;color:var(--fg-1,#101418)">' +
+              '<strong>' + etiqueta + '</strong> ' +
+              '<span style="font-family:var(--font-mono,monospace);font-size:11px;color:var(--fg-3,#5b6672)">' + f.cellRef + '</span>' +
+              ' · ' + estado +
+            '</div>' + actual +
+          '</div>' +
+        '</label>'
+      );
+    }).join('');
+
+    const overlay = document.createElement('div');
+    overlay.id = _MODAL_ID;
+    overlay.style.cssText = [
+      'position:fixed', 'inset:0', 'z-index:9999', 'background:rgba(0,0,0,.55)',
+      'display:flex', 'align-items:center', 'justify-content:center',
+    ].join(';');
+    overlay.innerHTML = [
+      '<div style="background:var(--bg-card,#ffffff);border:1px solid var(--border-1,#d7dde3);',
+        'border-radius:12px;padding:24px 26px;max-width:640px;width:92%;max-height:82vh;',
+        'display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.5)">',
+        '<h3 style="margin:0 0 6px;font-size:16px;color:var(--fg-1,#101418)">☁️ Sheet del jefe · CALENDARIO 2026</h3>',
+        '<p style="margin:0 0 14px;font-size:12px;color:var(--fg-2,#2a3138);line-height:1.5">',
+          'Elige qué días tocar. <strong>Subir</strong> sobrescribe la celda con lo que haya en el planificador; ',
+          '<strong>Vaciar</strong> la deja en blanco. Todo queda en el historial de versiones de la hoja a tu nombre.',
+        '</p>',
+        (filas
+          ? '<div style="flex:1;overflow-y:auto;margin-bottom:14px">' + filas + '</div>'
+          : '<p style="font-size:13px;color:var(--fg-2,#2a3138);margin-bottom:14px">No hay días de 2026 ni en el planificador ni en la hoja.</p>'),
+        '<div style="display:flex;gap:10px;align-items:center">',
+          '<button id="_sheet-none" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border-1,#d7dde3);',
+            'background:transparent;color:var(--fg-2,#2a3138);cursor:pointer;font-size:12px">Ninguno</button>',
+          '<div style="flex:1"></div>',
+          '<button id="_sheet-cancel" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border-1,#d7dde3);',
+            'background:transparent;color:var(--fg-2,#2a3138);cursor:pointer;font-size:13px">Cancelar</button>',
+          '<button id="_sheet-vaciar" style="padding:8px 16px;border-radius:8px;border:1px solid var(--cta-strong,#c8102e);',
+            'background:transparent;color:var(--cta-strong,#c8102e);cursor:pointer;font-size:13px;font-weight:600">🧹 Vaciar</button>',
+          '<button id="_sheet-subir" style="padding:8px 18px;border-radius:8px;border:none;',
+            'background:var(--cta,#124b8a);color:#fff;cursor:pointer;font-size:13px;font-weight:600">☁️ Subir</button>',
+        '</div>',
+      '</div>',
+    ].join('');
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
+    document.getElementById('_sheet-cancel').addEventListener('click', function () { overlay.remove(); });
+    document.getElementById('_sheet-none').addEventListener('click', function () {
+      [...document.querySelectorAll('._sheet-dia')].forEach(function (c) { c.checked = false; });
+    });
+    document.getElementById('_sheet-subir').addEventListener('click', function () {
+      const dias = _diasMarcados();
+      if (!dias.length) { window.showNotification('⚠️ No has seleccionado ningún día', 'warning'); return; }
+      const sinPlan = dias.filter(function (d) {
+        const f = _sheetEstado.filas.find(function (x) { return x.iso === d; });
+        return f && !f.enPlan;
+      });
+      if (sinPlan.length) {
+        window.showNotification('⚠️ ' + sinPlan.map(_etiquetaDia).join(', ') + ' no tiene visitas en el planificador — desmárcalo o vacíalo', 'warning');
+        return;
+      }
+      // Si la celda ya tiene algo distinto de lo que vamos a escribir, avisar: puede
+      // ser una nota del jefe. Si es idéntico (resubida del mismo día) no molestamos.
+      const pisados = dias.filter(function (d) {
+        const actual = _sheetEstado.anotaciones[d];
+        if (!actual) return false;
+        const nuevo = _textoDia(d);
+        return !nuevo || actual !== nuevo.text;
+      });
+      if (pisados.length) {
+        const detalle = pisados.map(function (d) {
+          const nuevo = _textoDia(d);
+          return '· ' + _etiquetaDia(d) + ' (' + _getCellRef(d) + ')\n' +
+                 '    ahora: ' + _sheetEstado.anotaciones[d] + '\n' +
+                 '    pasará a: ' + (nuevo ? nuevo.text : '(vacío)');
+        }).join('\n');
+        const ok = window.confirm(
+          'En ' + pisados.length + ' celda' + (pisados.length === 1 ? '' : 's') +
+          ' ya hay texto distinto del que vas a escribir. Puede ser una nota de tu jefe.\n\n' +
+          detalle + '\n\n¿Sobrescribir?'
+        );
+        if (!ok) return;
+      }
+      overlay.remove();
+      subirVisitasSheet(dias);
+    });
+    document.getElementById('_sheet-vaciar').addEventListener('click', function () {
+      const dias = _diasMarcados();
+      if (!dias.length) { window.showNotification('⚠️ No has seleccionado ningún día', 'warning'); return; }
+      const conTexto = dias.filter(function (d) { return !!_sheetEstado.anotaciones[d]; });
+      const detalle = conTexto.length
+        ? conTexto.map(function (d) {
+            return '· ' + _etiquetaDia(d) + ' (' + _getCellRef(d) + '): ' + _sheetEstado.anotaciones[d];
+          }).join('\n')
+        : '(las celdas ya están vacías)';
+      const ok = window.confirm(
+        'Vas a dejar en blanco ' + dias.length + ' celda' + (dias.length === 1 ? '' : 's') +
+        ' en la hoja de tu jefe.\n\nSe borrará esto:\n\n' + detalle +
+        '\n\nQueda registrado en el historial de versiones a tu nombre. ¿Continuar?'
+      );
+      if (!ok) return;
+      overlay.remove();
+      vaciarDiasSheet(dias);
+    });
+  }
+
+  function _diasMarcados() {
+    return [...document.querySelectorAll('._sheet-dia')]
+      .filter(function (c) { return c.checked; })
+      .map(function (c) { return c.value; });
   }
 
   /* ============================================================
@@ -1434,7 +1719,9 @@
     cerrarModal: cerrarModal,
     confirmarGuardarModal: confirmarGuardarModal,
     confirmarBorrar: confirmarBorrar,
-    subirSheet: subirVisitasSheet,
+    subirSheet: abrirModalSheet,
+    subirVisitasSheet: subirVisitasSheet,
+    vaciarDiasSheet: vaciarDiasSheet,
     subirCalendario: subirCalendario,
     agendarActividadCalendar: agendarActividadCalendar,
     // Panel "Pendiente en la zona"
