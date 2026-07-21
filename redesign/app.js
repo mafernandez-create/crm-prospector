@@ -339,6 +339,19 @@
               '<input id="na-score" type="number" min="1" max="10" value="5" ' + fld + '/>' +
             '</div>' +
 
+            // Origen — de dónde sale esta empresa. Vocabulario cerrado: si cada alta
+            // inventa el suyo, el campo deja de servir para agrupar en los informes.
+            '<div>' +
+              '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">¿De dónde sale?</label>' +
+              '<select id="na-origen" ' + fld + '>' +
+                '<option value="manual" selected>Contacto directo / prensa / feria</option>' +
+                '<option value="referencia">Me la refirió otro cliente</option>' +
+                '<option value="comercial">La abrió un comercial de Ferro/Tuyper</option>' +
+                '<option value="scout">La encontró el scout</option>' +
+                '<option value="placsp">Salió en una licitación (PLACSP)</option>' +
+              '</select>' +
+            '</div>' +
+
             // Teléfono
             '<div>' +
               '<label style="font-size:12px;color:var(--fg-3);display:block;margin-bottom:4px;">Teléfono</label>' +
@@ -419,6 +432,8 @@
     var web      = ((document.getElementById('na-web')     || {}).value || '').trim();
     if (web && !/^https?:\/\//i.test(web)) web = 'https://' + web;
 
+    var origen = (document.getElementById('na-origen') || {}).value || 'manual';
+
     var studioObj = {
       name: nombre,
       type: tipo,
@@ -427,6 +442,15 @@
       score: score,
       priority: score >= 7 ? 'alta' : score >= 4 ? 'media' : 'baja',
       status: 'nuevo',
+      // Sellar el origen SIEMPRE. Hasta jul-2026 el alta manual no lo escribía y el
+      // 90% de la cartera acabó con una etiqueta que no significaba nada; sin esto,
+      // el informe de prescripción no puede decir de dónde sale cada empresa.
+      fuente_descubrimiento: {
+        valor: origen,
+        fuente_tipo: 'alta_manual',
+        fecha_captura: new Date().toISOString().slice(0, 10),
+        nivel_confianza: 'confirmado',
+      },
       data: {
         contact: { address: '', phone: tel, email: email, web: web },
         team: [],
