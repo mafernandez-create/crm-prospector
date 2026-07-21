@@ -275,11 +275,70 @@ arquitectura** (80 de 82). Es un dato medido, no estimado.
 
 ---
 
+## Instrucción 4 · Correcciones firmadas por sector (21-07-2026)
+
+**Qué pide Manolo:** que los informes reflejen el guion que él aplica en cada sector.
+Rectifica la instrucción 3: **no quiere anotaciones que digan "guion estándar"** — se
+retiraron las 71 de arquitectura. Lo que sí acepta es una **corrección firmada por él**,
+fechada, en el campo `correccion_posterior`, con el texto: *"Corrección de Manuel
+Fernández, 21-07-2026: en esta visita se presentaron también X, Y, Z. No quedaron anotados
+en el informe en su momento."*
+
+Cada corrección lista **solo lo que faltaba en ese informe concreto**, no una coletilla
+genérica.
+
+### Guion por sector, según Manolo
+
+| Sector | Debe constar |
+|---|---|
+| Arquitectura | GPF + MUTE |
+| Ingeniería | GPF + ecoSAN + BIOPIPE + PE 100 + PVC presión · **MUTE se deja como está** |
+| Regantes | GPF + BIOPIPE + PVC presión + PE 100 |
+| Administración pública | GPF + BIOPIPE + PVC presión + PE 100 + ecoSAN |
+
+### Estado (21-07-2026)
+
+| Sector | Informes | Corregidos | Pendiente |
+|---|---|---|---|
+| Ingeniería (ING) | 68 | 51 | — |
+| Regantes (CCRR) | 34 | 33 | — |
+| Admin. pública (AAPP + ayuntamientos tipificados CICA) | 16 | 15 | — |
+| Arquitectura (ARQ) | 84 | 4 | **Manolo no ha dado instrucción tras retirar la 3** |
+| Promotora/Constructora (OCV) | 34 | 0 | **sin instrucción** |
+| Ciclo del agua (CICA, sin contar ayuntamientos) | ~15 | — | **sin instrucción** |
+| Distribuidor | 1 | 0 | **sin instrucción** |
+
+**Total: 103 informes con corrección firmada, de 259.**
+
+Manifiestos para revertir, en `~/Downloads/`:
+`MANIFIESTO_correccion_pvcpresion_2026-07-21.json` · `..._regantes_...` · `..._aapp_...`
+
+### Reclasificación asociada
+
+27 fichas pasaron de ARQ a ING (GTA, INAGUA, AZCATEC, INGOAD, J. Huesa, NOVA HIDRÁULICA,
+ECOFLUVIAL, AGRIMENSUR, RIEGOSUR, GESER, GE&PE, NAVIER, JICARSA, HYFOTEC, TECAG, HC
+Consultores, ININCO, ÉPOCA…). **13 híbridas se dejaron como están** — Ayesa *Ingeniería y
+Arquitectura*, SINGULAB, ARIA, INGLOBA, DM Ingenieros, Estudio COW, Zeroonce — porque
+hacen las dos cosas y encajarlas en un solo tipo sería tan erróneo como dejarlas.
+
+### El hallazgo que importa para el informe ejecutivo
+
+De los 16 informes de administración pública, **solo uno tiene los cinco elementos: el de
+Cartaya del 14-07**, que es el único generado desde una **transcripción de audio**. 28.000
+caracteres frente a los 2.900 de un informe escrito de memoria.
+
+Eso sostiene la tesis mejor que cualquier corrección: **el guion se aplica; lo que falla es
+anotarlo al final de una jornada de ruta**. Cuando hay grabación, no se pierde nada.
+Es el argumento honesto para explicar a Javier por qué las cifras de "qué se presentó"
+suben a partir de que el pipeline de audio esté en marcha.
+
+---
+
 ## Instrucciones siguientes
 
 *(pendientes — Manolo las irá dictando)*
 
-### Instrucción 4 · …
+### Instrucción 5 · …
 
 ---
 
@@ -290,3 +349,5 @@ arquitectura** (80 de 82). Es un dato medido, no estimado.
 | 2026-07-20 | Documento creado. Instrucción 1 (scout) recogida y verificada. |
 | 2026-07-20 | Instrucción 2: procedencia de las fichas + documentar la ingesta. Diagnóstico hecho. |
 | 2026-07-21 | Instrucción 3: constancia de GPF+MUTE en arquitectura. 71 informes anotados. |
+| 2026-07-21 | Instrucción 3 REVOCADA por Manolo: retiradas las 71 anotaciones. |
+| 2026-07-21 | Instrucción 4: correcciones firmadas en ING (51), CCRR (33) y AAPP (15). 27 fichas reclasificadas a ING. |
