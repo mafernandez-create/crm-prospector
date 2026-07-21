@@ -409,6 +409,40 @@ Las 3 contradicciones se corrigieron:
    `OCV` sigue mezclando ambas cosas en Supabase. La lista explícita usada está en
    `scratchpad/grupos.py`; conviene decidir si se limpia el campo `type`.
 
+### Decisión de Manolo sobre las cifras de producto (21-07-2026)
+
+Las enmiendas de hoy **cuentan como dato bueno**: son anotaciones que no pudieron hacerse en su
+momento (el informe se escribía al final de una jornada de ruta) y se han actualizado hoy. El
+informe da por tanto **cifra única**, no el desdoble "registrado / corregido":
+
+| Producto | Visitas | % de 259 |
+|---|---|---|
+| EcoSAN | 224 | 86 % |
+| PVC presión | 188 | 73 % |
+| BIOPIPE PVC-O | 181 | 70 % |
+| PE 100 / Tuyper | 174 | 67 % |
+| Ferroplast MUTE | 150 | 58 % |
+| Presentación de GPF | 148 | 57 % |
+
+El apartado 10 se reenfocó en consecuencia: ya no habla de "fallo de registro" sino de lo que
+aporta el informe generado desde la propia reunión (objeciones literales, compromisos con fecha,
+competencia, estructura SPIN).
+
+### Segunda pasada del verificador
+
+Encontró dos fallos más, corregidos:
+
+- **La nota de MUTE se contradecía con su propia tabla.** Decía que MUTE "no forma parte del guion
+  en ingeniería, regantes ni ciclo del agua", pero ahí hay 25 + 2 + 2 visitas con MUTE — y ninguna
+  viene de enmienda, son registros originales. Reescrito: MUTE se concentra en edificación y aparece
+  en las ingenierías con componente de edificación.
+- **La aritmética del reparto del cajón OCV no cuadraba** (37 → "20 + 14"). Lo correcto: 20 promotoras
+  + 13 distribución + 4 instalación/servicios; la fila de distribución suma 14 porque incorpora una
+  ficha que ya estaba etiquetada como distribuidor.
+
+Pendiente menor anotado: la columna "empresas" cuenta **fichas** distintas, y quedan duplicados de
+razón social sin fusionar (Dielfon Costa, GIAHSA, CD Ingeniería). El informe ya lo advierte.
+
 También se comprobó que el scout lleva **12 lanzamientos** (12 ficheros `prospectos-*.md` en
 `agentes/output/`), que era la cifra en duda entre este documento y `INGESTA-DE-DATOS.md`.
 
