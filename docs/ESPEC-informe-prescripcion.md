@@ -218,11 +218,68 @@ Manolo confirmó taxonomía, vías y que esto va **antes** del informe. Hecho:
 
 ---
 
+## Instrucción 3 · Arquitectura: dejar constancia de GPF + MUTE
+
+**Qué pide Manolo:** que todos los informes de visita a estudios de arquitectura reflejen
+que se presentó GPF (la empresa, su historia) y que se presentó MUTE.
+
+### Qué se midió antes de tocar nada (21-07-2026)
+
+De 107 informes en fichas marcadas ARQ, **25 eran ingenierías mal clasificadas** (INAGUA,
+J. Huesa, RIEGOSUR, JICARSA, GESER, AZCATEC, INGOAD, ÉPOCA…). Ahí MUTE no aparece, y es
+correcto: es saneamiento de edificación, no obra civil.
+
+Sobre los **82 estudios de arquitectura reales**:
+
+| | Informes | % |
+|---|---|---|
+| Mencionan MUTE | 80 | 97,6 % |
+| Mencionan la presentación corporativa de GPF | 11 | 13,4 % |
+
+⚠️ **Trampa metodológica.** 79 de los 107 informes guardan el contenido dentro de un
+**.docx incrustado en base64**: una búsqueda de texto sobre la base de datos NO ve dentro.
+Hubo que decodificarlos uno a uno. Cualquier análisis futuro sobre informes debe hacerlo.
+
+### Qué se hizo
+
+Se añadió a los **71 informes** de arquitectura sin constancia de la presentación
+corporativa un campo nuevo `nota_procedimiento`, fechado y explícito:
+
+> *Nota añadida el 21-07-2026. Guion estándar de visita a estudio de arquitectura:
+> presentación corporativa de GPF (historia, marcas, fabricación en España) y presentación
+> de MUTE. Se hace constar con carácter retroactivo por indicación de Manolo: NO procede de
+> lo registrado durante la visita, sino del procedimiento habitual.*
+
+**Por qué en un campo aparte y con esa redacción:** el cuerpo del informe recoge lo que se
+observó ese día. Insertar ahí el guion estándar lo volvería indistinguible de lo observado,
+y en seis meses nadie sabría qué se registró en la visita y qué se añadió después. Así el
+informe refleja lo que Manolo quiere y sigue siendo posible distinguir observación de
+procedimiento.
+
+- Manifiesto para revertir: `~/Downloads/MANIFIESTO_anotacion_arquitectura_2026-07-21.json`
+- Revertir = borrar el campo `nota_procedimiento`. No se tocó ni una palabra del contenido
+  original; los .docx incrustados quedaron intactos (61 de los 71 los llevan).
+
+### Dos casos que siguen necesitando a Manolo
+
+**Francisco Maeso López** (21-abr, Granada) y **Antonio Donaire López / GIA Arquitectos**
+(28-may, Sevilla) no registran **ningún** producto — ni MUTE ni ningún otro. Son informes
+de 1.100 y 3.000 caracteres frente a los ~20.000 habituales. La anotación no arregla eso:
+son informes incompletos, no visitas sin producto. Decidir si se completan de memoria.
+
+### Para el informe ejecutivo
+
+Cifra defendible para el apartado 5 («Qué hemos presentado y a quién»):
+**MUTE se presentó y quedó registrado en el 97,6 % de las visitas a estudios de
+arquitectura** (80 de 82). Es un dato medido, no estimado.
+
+---
+
 ## Instrucciones siguientes
 
 *(pendientes — Manolo las irá dictando)*
 
-### Instrucción 3 · …
+### Instrucción 4 · …
 
 ---
 
@@ -232,3 +289,4 @@ Manolo confirmó taxonomía, vías y que esto va **antes** del informe. Hecho:
 |---|---|
 | 2026-07-20 | Documento creado. Instrucción 1 (scout) recogida y verificada. |
 | 2026-07-20 | Instrucción 2: procedencia de las fichas + documentar la ingesta. Diagnóstico hecho. |
+| 2026-07-21 | Instrucción 3: constancia de GPF+MUTE en arquitectura. 71 informes anotados. |
