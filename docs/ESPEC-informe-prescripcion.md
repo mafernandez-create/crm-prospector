@@ -10,6 +10,7 @@
 - **Referencia anterior:** `Informe_Prescripcion_GPF_8meses_2026-06.odt`, enviado el
   9-jun-2026 13:36. Cubría nov-2025 → jun-2026. Copia en `~/Downloads/`.
 - **Estado:** recogiendo instrucciones. **No generar todavía.**
+- **Instrucción 2 EJECUTADA** el 20-jul-2026: toda la cartera tiene origen. Ver `INGESTA-DE-DATOS.md`.
 
 ---
 
@@ -186,13 +187,34 @@ identificadas hasta ahora:
 | Referencias cruzadas | Automático al leer informes | Terceros mencionados en las visitas |
 | Comerciales GPF | Manual | Cuentas que abren Ferroplast/Tuyper |
 
-### Decisiones pendientes de Manolo
+### ✅ Ejecutado el 20-jul-2026
 
-1. ¿Se ejecutan los tres pasos antes del informe, o el informe se escribe con lo que hay
-   y esto se aborda después?
-2. ¿Falta alguna vía de entrada en la tabla de arriba? (¿importaciones de Excel, ferias,
-   listados de asociaciones?)
-3. La taxonomía propuesta, ¿le vale o quiere otros valores?
+Manolo confirmó taxonomía, vías y que esto va **antes** del informe. Hecho:
+
+1. **Copia previa** → `~/Downloads/BACKUP_origen_fichas_2026-07-20.json` (1.750 fichas).
+2. **Sellado al entrar** → el formulario de "Nueva empresa" pregunta el origen y lo guarda
+   (`redesign/app.js`, commit `af7386d`). Probado en navegador: elegir "referencia" produce
+   el sello correcto.
+3. **`geografica` → `migracion`** en 1.569 fichas. Sin residuos.
+4. **Atribución del scout** → 20 fichas, cruzando nombre contra los 12 informes de
+   `agentes/output/` con la regla "la ficha se creó el mismo día o después del rastreo".
+   Esa regla descartó a GTA Ingeniería y CR Fresno, que el scout menciona pero ya existían.
+5. **75 restantes** → `manual` con `nivel_confianza: sin_confirmar`, para no fingir certeza.
+6. **Documentación** → `docs/INGESTA-DE-DATOS.md`, una ficha por vía.
+
+**Resultado: 1.750 fichas, el 100 % con origen.**
+
+| Origen | Fichas | % |
+|---|---|---|
+| migracion | 1.569 | 89,7 % |
+| placsp | 85 | 4,9 % |
+| manual *(sin confirmar)* | 75 | 4,3 % |
+| scout | 20 | 1,1 % |
+| referencia | 1 | 0,1 % |
+
+**Lo que esto desbloquea para el informe:** ya se puede decir que el scout ha aportado
+**20 empresas** — la opción (b) de la instrucción 1. Y se puede separar la herencia
+(el 90 % que ya estaba) del trabajo de captación real de estos meses (181 fichas).
 
 ---
 
