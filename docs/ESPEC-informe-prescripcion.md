@@ -352,7 +352,36 @@ suben a partir de que el pipeline de audio esté en marcha.
 
 *(pendientes — Manolo las irá dictando)*
 
-### Instrucción 5 · …
+### Instrucción 6 · …
+
+---
+
+## Entrega · versión 2 del informe (21-07-2026)
+
+Generados y dejados en `~/Downloads`:
+
+| Fichero | Qué es |
+|---|---|
+| `Informe_Prescripcion_GPF_9meses_2026-07.docx` | Informe ejecutivo v2 — 12 secciones, 10 tablas, 15 imágenes |
+| `Mapas_calor_GPF_2026-07.pdf` | Los 15 gráficos, A4 apaisado, uno por página |
+| `Mapas_calor_GPF_2026-07/` | Los PNG sueltos, por si hacen falta para una presentación |
+
+**Qué cambia respecto al de junio (8 meses):**
+
+- Cifras actualizadas: 259 visitas · 246 empresas · 1.750 fichas · 12 provincias.
+- Apartado 3 **nuevo**: de dónde salen las empresas (las seis vías + el scout) — instrucciones 1 y 2.
+- Apartado 6 reescrito: las cifras de producto se dan **en dos columnas**, "registrado en el
+  informe" y "tras las correcciones", con nota explicando las 156 correcciones del 21-07.
+- Apartado 10 **nuevo**: calidad del registro — informe de memoria frente a informe generado
+  desde la reunión. Es donde se explica de forma honesta por qué las cifras suben.
+- Apartado 4: se dice abiertamente que el cuadrante de prioridad hoy no informa (80 % en "Congelar").
+- Apartado 8: acuerdos nuevos de junio y julio, con Guadalmellato (BIOPIPE ya en obra) como
+  el mejor caso documentable.
+- Se cubre la zona real trabajada: se ha quitado Canarias del ámbito, que no se ha visitado.
+
+**Decisión pendiente de Manolo:** el informe presenta las dos columnas de producto
+(registrado / corregido). Si prefiere titular solo con la corregida, es un cambio de una tabla
+y un párrafo — pero pierde la explicación de por qué suben, que es lo que la hace creíble.
 
 ---
 
@@ -365,3 +394,4 @@ suben a partir de que el pipeline de audio esté en marcha.
 | 2026-07-21 | Instrucción 3: constancia de GPF+MUTE en arquitectura. 71 informes anotados. |
 | 2026-07-21 | Instrucción 3 REVOCADA por Manolo: retiradas las 71 anotaciones. |
 | 2026-07-21 | Instrucción 4: correcciones firmadas en ING (51), CCRR (33) y AAPP (15). 27 fichas reclasificadas a ING. |
+| 2026-07-21 | **Informe v2 generado** (docx + PDF de mapas) con instrucciones 1, 2 y 4 incorporadas. |
