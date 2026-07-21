@@ -385,6 +385,35 @@ y un párrafo — pero pierde la explicación de por qué suben, que es lo que l
 
 ---
 
+### Verificación independiente (21-07-2026)
+
+El informe pasó por el subagente `verificador-resultados` antes de darse por entregado.
+Recalculó tabla a tabla contra `datos.json`: **30 afirmaciones verificadas sin un solo error
+aritmético**, 3 contradichas y 8 no confirmables sin acceso SQL (esas se comprobaron a mano
+contra Supabase: 241/17/1, niveles de interés y las cifras de PLACSP son correctas).
+
+Las 3 contradicciones se corrigieron:
+
+1. **«6 sectores» con 7 filas en la tabla.** Ahora son 8 frentes y la tabla cruzada
+   producto×sector incluye todas las filas y su TOTAL, que cuadra con los totales de producto.
+2. **«extensión media ≈ 2.900 caracteres».** Era un caso concreto, no una media. Reetiquetado
+   como «extensión (caso medido)» con nota de que son dos informes del mismo tipo de cliente.
+3. **La etiqueta «Promotora / Constructora» era falsa.** El tipo `OCV` del CRM es un cajón
+   mezclado: de las 37 visitas, 14 eran distribución/almacén (Saniplast, Frans Bonhomme,
+   Suministros Jotri, Hnos. Alférez, Saneamientos José Gómez, CSIPVC, Prefabricados Ibafersan)
+   y 4 instalación/servicios/logística. El informe de junio le decía a Javier que 37 visitas
+   fueron a promotoras y solo 1 a distribución. Lo real: **20 promotoras, 14 distribución,
+   4 otros**. Corregido en tabla, tabla cruzada y mapas, con nota explicando el cambio.
+
+   ⚠️ **Pendiente en el CRM:** esto es una corrección del informe, no de las fichas. El tipo
+   `OCV` sigue mezclando ambas cosas en Supabase. La lista explícita usada está en
+   `scratchpad/grupos.py`; conviene decidir si se limpia el campo `type`.
+
+También se comprobó que el scout lleva **12 lanzamientos** (12 ficheros `prospectos-*.md` en
+`agentes/output/`), que era la cifra en duda entre este documento y `INGESTA-DE-DATOS.md`.
+
+---
+
 ## Registro
 
 | Fecha | Cambio |
