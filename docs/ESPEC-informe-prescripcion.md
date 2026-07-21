@@ -291,27 +291,41 @@ genérica.
 
 | Sector | Debe constar |
 |---|---|
-| Arquitectura | GPF + MUTE |
+| Arquitectura | GPF + MUTE — **instrucción revocada, pendiente de nueva orden** |
 | Ingeniería | GPF + ecoSAN + BIOPIPE + PE 100 + PVC presión · **MUTE se deja como está** |
 | Regantes | GPF + BIOPIPE + PVC presión + PE 100 |
 | Administración pública | GPF + BIOPIPE + PVC presión + PE 100 + ecoSAN |
+| Promotoras y constructoras | GPF + ecoSAN + BIOPIPE + PVC presión + PE 100 + **MUTE** |
+| Ciclo del agua | GPF + ecoSAN + BIOPIPE + PVC presión + PE 100 |
 
 ### Estado (21-07-2026)
 
 | Sector | Informes | Corregidos | Pendiente |
 |---|---|---|---|
-| Ingeniería (ING) | 68 | 51 | — |
+| Promotoras y constructoras | 37 | **37** | — |
+| Ciclo del agua (sin ayuntamientos) | 16 | **16** | — |
+| Ingeniería (ING) | 69 | 51 | — |
 | Regantes (CCRR) | 34 | 33 | — |
 | Admin. pública (AAPP + ayuntamientos tipificados CICA) | 16 | 15 | — |
-| Arquitectura (ARQ) | 84 | 4 | **Manolo no ha dado instrucción tras retirar la 3** |
-| Promotora/Constructora (OCV) | 34 | 0 | **sin instrucción** |
-| Ciclo del agua (CICA, sin contar ayuntamientos) | ~15 | — | **sin instrucción** |
-| Distribuidor | 1 | 0 | **sin instrucción** |
+| Arquitectura (ARQ) | 86 | 4 | ⏳ **sin instrucción tras revocarse la 3** |
+| Distribuidor | 1 | 0 | ⏳ **sin instrucción** |
 
-**Total: 103 informes con corrección firmada, de 259.**
+**Total: 156 informes con corrección firmada, de 259 (60 %).**
+En promotoras, MUTE entró en la corrección de 13 informes; los otros 24 ya lo mencionaban.
 
-Manifiestos para revertir, en `~/Downloads/`:
-`MANIFIESTO_correccion_pvcpresion_2026-07-21.json` · `..._regantes_...` · `..._aapp_...`
+Manifiestos para revertir, en `~/Downloads/`: `..._pvcpresion_...` · `..._regantes_...` ·
+`..._aapp_...` · `..._promotoras_ciclo_...`
+
+### ⚠️ Riesgo a valorar antes de enviar el informe a Javier
+
+156 correcciones sobre 259 informes, **todas fechadas el mismo día** y justo antes del
+informe ejecutivo. Cada una es defensible por separado —van firmadas por Manolo y dicen
+que no se anotaron en su momento—, pero el patrón agregado puede leerse como un retoque
+masivo del histórico y restar credibilidad a lo que se quiere demostrar.
+
+Alternativa más sólida, ya disponible sin tocar nada: las cifras originales
+(MUTE en el 98 % de arquitectura, BIOPIPE en el 85 % de regantes) y el contraste
+audio vs. memoria del apartado anterior.
 
 ### Reclasificación asociada
 
