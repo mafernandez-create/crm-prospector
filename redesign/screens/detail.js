@@ -381,7 +381,7 @@
         ) : '') +
 
         /* Contacto rápido — el botón Email se muestra SIEMPRE (aunque no haya email
-           guardado): abre el panel de plantillas/IA igualmente. */
+           guardado): abre el panel de correo igualmente. */
         '<div style="display:grid; grid-template-columns:' + (s.phone ? '1fr 1fr' : '1fr') + '; gap:8px; margin-bottom:4px;">' +
           (s.phone ? '<a class="btn btn-ghost" style="height:46px;" href="tel:' + escape(s.phone.replace(/[^\d+]/g, '')) + '">' + I.Phone() + ' Llamar</a>' : '') +
           '<button class="btn btn-ghost" style="height:46px;" data-action="email" data-email="' + escape(s.email || '') + '">' + I.Mail() + ' Email</button>' +
@@ -1701,91 +1701,55 @@
      CTAs
      ============================================================ */
   /* ============================================================
-     PANEL DE EMAIL — plantillas + historial + Mac Mail
-     ============================================================ */
+     PANEL DE EMAIL v3 — ARQUETIPOS, no plantillas
+     ------------------------------------------------------------
+     Antes aquí había 6 textos enlatados. Se quitaron por dos razones:
+     ignoraban al destinatario (el mismo párrafo para un arquitecto que
+     para una comunidad de regantes) y contradecían las preferencias del
+     propio Manolo — saludaban por nombre de pila cuando pide apellido,
+     firmaban "Delegado Zona Sur" sin Tuyper, y la de catálogo colaba un
+     "no dude en pedirlo", que está en su lista de muletillas prohibidas.
 
-  // 6 plantillas personalizables para cada ocasión de venta
-  /* ============================================================
-     EMAIL PANEL v2
+     Ahora cada chip es un ARQUETIPO de CoachDoctrine: el correo lo
+     redacta el coach con la doctrina, el perfil detectado del
+     destinatario y el historial de la ficha. No queda texto fijo.
      ============================================================ */
 
   var _FROM_EMAIL = 'ma.fernandez@grupogpf.com';
 
-  function _emailTemplates(s) {
-    var nombre   = s.name || 'su empresa';
-    var ciudad   = (typeof s.city === 'object'     ? (s.city && s.city.valor)       : s.city)     || '';
-    var prov     = (typeof s.province === 'object' ? (s.province && s.province.valor) : s.province) || '';
-    var loc      = ciudad || prov || 'su localidad';
-    var contacto = (s.team && s.team[0] && s.team[0].name) ? s.team[0].name.split(' ')[0] : 'estimado/a';
-    var saludo   = 'Estimado/a ' + contacto;
-    var firma    = '\n\nUn cordial saludo,\nManuel Fernández\nFerroplast · Delegado Zona Sur\n+34 655 810 836\nma.fernandez@grupogpf.com';
-
-    // Extraer datos del último informe de visita para enriquecer la plantilla de seguimiento
-    var informeRep = null;
-    var sortedReps = (s.reports || []).slice().sort(function (a, b) {
-      return (b.date || b.generated_at || '') > (a.date || a.generated_at || '') ? 1 : -1;
-    });
-    if (sortedReps.length > 0 && sortedReps[0].report) {
-      informeRep = sortedReps[0].report;
-    }
-    var seguimientoBody = (function () {
-      if (!informeRep) {
-        return saludo + ',\n\nGracias por recibirme en ' + loc + '. Tal y como comentamos, le adjunto la información solicitada sobre nuestros productos GPF.\n\nQuedo a su disposición para resolver cualquier duda técnica o para facilitar muestras físicas.\n\n¿Le parece bien que retomemos contacto la próxima semana para ver si puedo ayudarles en algún proyecto concreto?' + firma;
-      }
-      var temasStr = '';
-      var temas = informeRep.temas_tratados || [];
-      if (temas.length) temasStr = 'Repasamos temas como ' + temas.slice(0, 3).join(', ') + '.';
-      var compLines = (informeRep.compromisos || []).filter(function (c) { return c && c.que; }).map(function (c) { return '• ' + c.que; });
-      var compStr   = compLines.length ? '\n\nComo acordamos, le confirmo que por nuestra parte procedemos a:\n' + compLines.join('\n') : '';
-      var accionStr = informeRep.proxima_accion ? '\n\n' + informeRep.proxima_accion : '';
-      return saludo + ',\n\nGracias por recibirme en ' + loc + '. ' +
-        (temasStr || 'Fue un placer conocernos y repasar los detalles.') +
-        compStr +
-        '\n\nQuedo a su disposición para cualquier duda técnica o para facilitar muestras de producto.' +
-        accionStr +
-        firma;
-    })();
-
+  /* Los ids coinciden con las claves de CoachDoctrine.TIPOS, salvo 'libre',
+     que no fija arquetipo: deja que se deduzca de la instrucción y del
+     historial (_inferirTipoCorreo). La `pista` es el placeholder del campo
+     de instrucción, y va redactada para empujar hacia lo que ese arquetipo
+     necesita saber. */
+  function _emailArquetipos() {
     return [
-      {
-        id: 'primera', icon: '👋', label: 'Primera toma de contacto',
-        subject: 'Sistemas de tuberías GPF · ' + nombre,
-        body: saludo + ',\n\nMe pongo en contacto con usted desde Ferroplast (Grupo GPF), empresa especializada en sistemas de tuberías y accesorios de polietileno, PVC y fundición para proyectos de infraestructura, edificación y ciclo del agua.\n\nConocemos el trabajo de ' + nombre + ' en ' + loc + ' y nos gustaría presentarles nuestro catálogo técnico y las soluciones que ofrecemos para estudios como el suyo.\n\n¿Tendría disponibilidad para una breve llamada o para recibirme en ' + loc + '? Puedo adaptar la visita a su agenda.\n\nQuedo a su disposición.' + firma,
-      },
-      {
-        id: 'seguimiento', icon: '🔄', label: 'Seguimiento tras visita',
-        subject: 'Seguimiento visita · ' + nombre,
-        body: seguimientoBody,
-      },
-      {
-        id: 'catalogo', icon: '📋', label: 'Envío de catálogo',
-        subject: 'Catálogo técnico GPF · ' + nombre,
-        body: saludo + ',\n\nComo le comenté, le hago llegar nuestro catálogo técnico GPF con la gama completa de tubería y accesorios de polietileno, PVC, fundición y materiales especiales.\n\nDestacamos especialmente nuestras soluciones para:\n- Redes de distribución de agua\n- Instalaciones de riego y comunidades de regantes\n- Saneamiento y pluviales\n- Sistemas de presión para edificación\n\nSi necesita fichas técnicas específicas, cálculos o muestras físicas de algún producto, no dude en pedirlo.' + firma,
-      },
-      {
-        id: 'reunion', icon: '📅', label: 'Concertar visita',
-        subject: 'Propuesta de visita técnica · ' + nombre,
-        body: saludo + ',\n\nMe gustaría concertar una visita para presentarles en detalle las novedades de nuestro catálogo GPF y hablar sobre posibles proyectos en los que podamos colaborar.\n\nEstoy disponible cualquier día de la semana en ' + loc + '. ¿Qué fecha y hora le va mejor?\n\nAlternativamente, si prefiere una videollamada también puedo adaptarme.' + firma,
-      },
-      {
-        id: 'agradecimiento', icon: '🤝', label: 'Agradecimiento reunión',
-        subject: 'Gracias por la reunión · ' + nombre,
-        body: saludo + ',\n\nGracias por su tiempo en la reunión de hoy. Ha sido un placer conocerles y entender mejor los proyectos en los que están trabajando.\n\nComo acordamos, les haré llegar [documentación / presupuesto / muestras] en los próximos días.\n\nQuedo a su disposición para cualquier consulta. ¡Hasta pronto!' + firma,
-      },
-      {
-        id: 'reactivacion', icon: '💫', label: 'Reactivación',
-        subject: 'Retomamos contacto · ' + nombre + ' y Ferroplast',
-        body: saludo + ',\n\nHacía tiempo que no teníamos noticias mutuas y quería retomar el contacto. En Ferroplast hemos incorporado nuevos productos a nuestra gama GPF que creo que pueden interesarles.\n\nAdemás, me gustaría ponerme al día sobre los proyectos en los que estén trabajando actualmente para ver si puedo serles de utilidad.\n\n¿Podríamos hablar brevemente esta semana?' + firma,
-      },
-      {
-        id: 'ia', icon: '✨', label: 'Redactar con IA',
-        subject: '',   // Se genera con IA
-        body: '',      // Idem
-        esIA: true,
-      },
+      { id: 'libre',          icon: '✨', label: 'Libre',
+        pista: 'Describe qué quieres decir… ej: «recordarle que me prometió el plano del embalse»' },
+      { id: 'primera',        icon: '👋', label: 'Primer contacto',
+        pista: 'Algo concreto y verificable de ellos: una obra suya, su especialidad, su zona' },
+      { id: 'seguimiento',    icon: '🔄', label: 'Seguimiento',
+        pista: 'Qué aporta de nuevo este correo (un «¿lo vio?» no es un seguimiento)' },
+      { id: 'catalogo',       icon: '📋', label: 'Fichas técnicas',
+        pista: 'Qué fichas le mandas y para qué proyecto suyo' },
+      { id: 'documentacion',  icon: '📎', label: 'Lo que me pidió',
+        pista: 'Qué documentos envías y para qué le sirve cada uno' },
+      { id: 'herramienta',    icon: '🛠️', label: 'Herramienta útil',
+        pista: 'Qué le resuelve la hoja o la herramienta que le mandas' },
+      { id: 'reunion',        icon: '📅', label: 'Pedir visita',
+        pista: 'Motivo real de la visita y qué gana él con ella' },
+      { id: 'agradecimiento', icon: '🤝', label: 'Agradecimiento',
+        pista: 'Qué agradeces exactamente (específico gana a genérico)' },
+      { id: 'reactivacion',   icon: '💫', label: 'Reactivación',
+        pista: 'Qué ha cambiado desde la última vez y justifica escribir ahora' },
     ];
   }
 
+  /* Devuelve el arquetipo activo del panel. */
+  function _arquetipoActivo() {
+    var arqs = _emailArquetipos();
+    return arqs[window._emailPanelActive] || arqs[0];
+  }
   /* Modelo para la redacción con IA. Aislado aquí para poder cambiarlo de un
      tirón (el proxy GAS es passthrough, así que acepta cualquier id válido). */
   var _IA_MODEL = 'claude-opus-5';
@@ -1828,12 +1792,12 @@
   /* Renderiza el sheet completo y lo mete en #sheet-content */
   function _renderEmailSheet(studio, activeIdx, iaSubject, iaBody) {
     var email     = studio.email || '';
-    var templates = _emailTemplates(studio);
+    var templates = _emailArquetipos();
     var tpl       = templates[activeIdx] || templates[0];
 
-    // Para la plantilla IA usamos el texto generado si está disponible
-    var subject = tpl.esIA ? (iaSubject || '') : tpl.subject;
-    var body    = tpl.esIA ? (iaBody    || '') : tpl.body;
+    // Ya no hay texto enlatado: todo correo se genera. Vacío = aún sin generar.
+    var subject = iaSubject || '';
+    var body    = iaBody    || '';
     // Guardar el texto activo para poder enviarlo aunque la ficha no tenga email
     // (el usuario indica el destinatario en el momento).
     window._emailPanelSubject = subject;
@@ -1864,64 +1828,49 @@
                 : 'background:transparent;color:var(--fg-2);border-color:var(--line);');
     };
 
-    // Zona central — diferente para plantilla IA vs normal
+    /* Zona central. Un solo camino: o hay correo generado, o hay que generarlo.
+       Antes había una rama distinta para las plantillas fijas; ya no existen. */
     var previewZone;
-    if (tpl.esIA) {
-      var iaGenerado = iaSubject || iaBody;
-      if (iaGenerado) {
-        // Ya hay texto generado — mostrar preview + botón regenerar
-        // Aviso del coach: canal equivocado, descuadre de adjuntos o suposición
-        // relevante. La doctrina obliga a decirlo en vez de redactar por inercia,
-        // así que se muestra ARRIBA, donde no se pueda pasar por alto.
-        var avisoHtml = window._emailPanelIAAviso
-          ? '<div style="background:#fffbeb; border:1.5px solid #fcd34d; border-radius:10px; padding:10px 12px; margin-bottom:10px; ' +
-              'font-size:12.5px; color:#92400e; line-height:1.5;">' +
-              '<strong>⚠️ Aviso del coach:</strong> ' + escape(window._emailPanelIAAviso) +
-            '</div>'
-          : '';
-        var metaHtml = window._emailPanelIAMeta
-          ? '<div style="font-size:11px; color:var(--fg-3); margin-bottom:8px; letter-spacing:.02em;">' +
-              escape(window._emailPanelIAMeta) +
-            '</div>'
-          : '';
-        previewZone = (
-          avisoHtml + metaHtml +
-          '<div style="background:var(--bg-1); border:1.5px solid var(--line); border-radius:10px; padding:14px; margin-bottom:12px;" id="ep-preview">' +
-            '<div style="font-size:12px; font-weight:700; color:var(--fg-3); margin-bottom:6px;">Asunto: <span style="color:var(--fg-1); font-weight:400;" id="ep-subject">' + escape(subject) + '</span></div>' +
-            '<div style="font-size:13px; color:var(--fg-1); line-height:1.6; white-space:pre-wrap; max-height:200px; overflow-y:auto;" id="ep-body">' + escape(body) + '</div>' +
-          '</div>' +
-          '<textarea id="ep-ia-input" placeholder="Describe qué quieres decir… ej: «recordarle que me prometió el plano del proyecto del embalse»" ' +
-            'style="width:100%; box-sizing:border-box; padding:10px 12px; border:1.5px solid var(--line); border-radius:10px; font-size:13px; ' +
-            'background:var(--bg-card); color:var(--fg-1); resize:none; min-height:64px; margin-bottom:10px; font-family:inherit;"></textarea>' +
-          '<button class="btn btn-ghost" style="width:100%; margin-bottom:12px;" ' +
-            'onclick="window.Screens.detail._emailGenerar()">' +
-            '✨ Regenerar con IA' +
-          '</button>'
-        );
-      } else {
-        // Primera vez — mostrar solo el textarea
-        previewZone = (
-          '<div style="background:var(--bg-1); border:1.5px dashed var(--line); border-radius:10px; padding:14px; margin-bottom:12px; ' +
-            'text-align:center; color:var(--fg-3); font-size:13px;" id="ep-preview">' +
-            '✨ El texto del correo aparecerá aquí una vez generado con IA.' +
-          '</div>' +
-          '<textarea id="ep-ia-input" placeholder="Describe qué quieres decir… ej: «enviarle el catálogo de tuberías PE100 que me pidió y preguntarle por el proyecto del polígono»" ' +
-            'style="width:100%; box-sizing:border-box; padding:10px 12px; border:1.5px solid var(--line); border-radius:10px; font-size:13px; ' +
-            'background:var(--bg-card); color:var(--fg-1); resize:none; min-height:80px; margin-bottom:10px; font-family:inherit;">' + escape(window._emailPanelSeed || '') + '</textarea>' +
-          '<button class="btn btn-primary" style="width:100%; margin-bottom:12px;" ' +
-            'onclick="window.Screens.detail._emailGenerar()">' +
-            '✨ Generar con IA' +
-          '</button>'
-        );
-      }
-    } else {
-      previewZone = (
-        '<div style="background:var(--bg-1); border:1.5px solid var(--line); border-radius:10px; padding:14px; margin-bottom:16px;" id="ep-preview">' +
+    var yaGenerado = !!(subject || body);
+
+    // Aviso del coach: canal equivocado, descuadre de adjuntos o suposición
+    // relevante. La doctrina obliga a decirlo en vez de redactar por inercia,
+    // así que va ARRIBA, donde no se pueda pasar por alto.
+    var avisoHtml = (yaGenerado && window._emailPanelIAAviso)
+      ? '<div style="background:#fffbeb; border:1.5px solid #fcd34d; border-radius:10px; padding:10px 12px; margin-bottom:10px; ' +
+          'font-size:12.5px; color:#92400e; line-height:1.5;">' +
+          '<strong>⚠️ Aviso del coach:</strong> ' + escape(window._emailPanelIAAviso) +
+        '</div>'
+      : '';
+    var metaHtml = (yaGenerado && window._emailPanelIAMeta)
+      ? '<div style="font-size:11px; color:var(--fg-3); margin-bottom:8px; letter-spacing:.02em;">' +
+          escape(window._emailPanelIAMeta) +
+        '</div>'
+      : '';
+
+    var cajaTexto = yaGenerado
+      ? '<div style="background:var(--bg-1); border:1.5px solid var(--line); border-radius:10px; padding:14px; margin-bottom:12px;" id="ep-preview">' +
           '<div style="font-size:12px; font-weight:700; color:var(--fg-3); margin-bottom:6px;">Asunto: <span style="color:var(--fg-1); font-weight:400;" id="ep-subject">' + escape(subject) + '</span></div>' +
           '<div style="font-size:13px; color:var(--fg-1); line-height:1.6; white-space:pre-wrap; max-height:200px; overflow-y:auto;" id="ep-body">' + escape(body) + '</div>' +
         '</div>'
-      );
-    }
+      : '<div style="background:var(--bg-1); border:1.5px dashed var(--line); border-radius:10px; padding:16px; margin-bottom:12px; ' +
+          'text-align:center; color:var(--fg-3); font-size:13px; line-height:1.5;" id="ep-preview">' +
+          escape(tpl.icon + ' ' + tpl.label) + '<br>' +
+          '<span style="font-size:12px;">El coach escribirá el correo con tu doctrina, el perfil del destinatario y lo que haya en la ficha.</span>' +
+        '</div>';
+
+    previewZone = (
+      avisoHtml + metaHtml + cajaTexto +
+      '<textarea id="ep-ia-input" placeholder="' + escape(tpl.pista) + '" ' +
+        'style="width:100%; box-sizing:border-box; padding:10px 12px; border:1.5px solid var(--line); border-radius:10px; font-size:13px; ' +
+        'background:var(--bg-card); color:var(--fg-1); resize:none; min-height:' + (yaGenerado ? '64' : '80') + 'px; margin-bottom:10px; font-family:inherit;">' +
+        escape(yaGenerado ? '' : (window._emailPanelSeed || '')) +
+      '</textarea>' +
+      '<button class="btn ' + (yaGenerado ? 'btn-ghost' : 'btn-primary') + '" style="width:100%; margin-bottom:12px;" ' +
+        'onclick="window.Screens.detail._emailGenerar()">' +
+        (yaGenerado ? '✨ Regenerar' : '✨ Escribir con el coach') +
+      '</button>'
+    );
 
     // Botones de acción — <a href="mailto:"> nativo para que Chrome lo honre siempre
     var tieneTexto = !!(subject || body);
@@ -1942,7 +1891,7 @@
                   I.Mail() + ' Enviar (indicar email)' +
                 '</button>')
           : '<span class="btn btn-primary" style="flex:1; opacity:.5; text-align:center;">' +
-              (email ? 'Sin plantilla seleccionada' : 'Elige una plantilla') + '</span>') +
+              'Genera el correo para poder enviarlo' + '</span>') +
         (tieneTexto
           ? '<button class="btn btn-ghost" style="flex:0 0 auto;" ' +
               'onclick="navigator.clipboard && navigator.clipboard.writeText(' + JSON.stringify(copyText).replace(/"/g, '&quot;') + ').then(function(){window.showNotification(\'📋 Texto copiado\', \'success\')})">' +
@@ -1977,8 +1926,8 @@
           '<div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-3); margin-bottom:6px;">📬 Historial</div>' +
           histHtml +
         '</div>' +
-        // Chips de plantilla
-        '<div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-3); margin-bottom:8px;">✍️ Plantilla</div>' +
+        // Chips de arquetipo
+        '<div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-3); margin-bottom:8px;">✍️ Tipo de correo</div>' +
         '<div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px;">' +
           templates.map(function (t, i) {
             return '<button style="' + chip(i === activeIdx) + '" onclick="window.Screens.detail._emailChip(' + i + ')">' + t.icon + ' ' + escape(t.label) + '</button>';
@@ -2001,13 +1950,10 @@
     window._emailPanelIABody  = '';
     window._emailPanelIAAviso = '';
     window._emailPanelIAMeta  = '';
-    // Si llega una instrucción "semilla" (desde una acción pendiente de la
-    // Bandeja), abrir directamente en la plantilla "✨ Redactar con IA" con el
-    // texto de la acción precargado en el campo de instrucción.
-    var _tpls = _emailTemplates(studio);
-    var _iaIdx = -1;
-    for (var _i = 0; _i < _tpls.length; _i++) { if (_tpls[_i].esIA) { _iaIdx = _i; break; } }
-    window._emailPanelActive = (seedInstruction && _iaIdx >= 0) ? _iaIdx : 0;
+    // Se abre siempre en 'libre' (índice 0): si llega una semilla desde la
+    // Bandeja, el coach deduce el arquetipo de ese texto; y si no llega, lo
+    // deduce del historial de la ficha. Elegir chip es opcional, no un paso.
+    window._emailPanelActive = 0;
     window.openSheet('<div class="handle"></div>');  // abre el sheet vacío para que la animación arranque
     _renderEmailSheet(studio, window._emailPanelActive, '', '');
   }
@@ -4214,9 +4160,16 @@
     _emailChip: function (idx) {
       var studio = window._emailPanelStudio;
       if (!studio) return;
+      // Cambiar de arquetipo invalida lo generado: un agradecimiento y una
+      // petición de visita no son el mismo correo con otro título. Se limpia
+      // para no dejar en pantalla un texto que ya no corresponde al chip.
+      if (window._emailPanelActive !== idx) {
+        window._emailPanelIASub   = '';
+        window._emailPanelIABody  = '';
+        window._emailPanelIAAviso = '';
+        window._emailPanelIAMeta  = '';
+      }
       window._emailPanelActive = idx;
-      var templates = _emailTemplates(studio);
-      if (!templates[idx].esIA) { window._emailPanelIASub = ''; window._emailPanelIABody = ''; window._emailPanelIAAviso = ''; window._emailPanelIAMeta = ''; }
       _renderEmailSheet(studio, idx, window._emailPanelIASub || '', window._emailPanelIABody || '');
     },
     _emailGenerar: async function () {
@@ -4263,8 +4216,10 @@
 
       /* ---- Doctrina: perfil + arquetipo ---- */
       var perfil = C.detectarPerfil(studio);
-      var tipo   = _inferirTipoCorreo(studio, instruccion);
-      var doc    = C.build({ tipo: tipo, perfil: perfil });
+      // El chip manda; 'libre' delega la decisión en la instrucción y el historial.
+      var arq  = _arquetipoActivo();
+      var tipo = (arq.id === 'libre') ? _inferirTipoCorreo(studio, instruccion) : arq.id;
+      var doc  = C.build({ tipo: tipo, perfil: perfil });
 
       /* Regla del proyecto: ningún texto que venga de un informe puede arrastrar
          marcas de tiempo de la transcripción. Se limpia ANTES de mandarlo a la IA
