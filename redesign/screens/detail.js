@@ -1786,6 +1786,28 @@
     ];
   }
 
+  /* Modelo para la redacción con IA. Aislado aquí para poder cambiarlo de un
+     tirón (el proxy GAS es passthrough, así que acepta cualquier id válido). */
+  var _IA_MODEL = 'claude-opus-5';
+
+  /* Deduce el arquetipo de correo (claves de CoachDoctrine.TIPOS) a partir de lo
+     que Manolo escribe en el campo de instrucción y del historial del estudio.
+     Sin historial → primer contacto en frío, que es el caso con reglas propias. */
+  function _inferirTipoCorreo(studio, instruccion) {
+    var txt = String(instruccion || '').toLowerCase();
+    if (/gracias|agradec/.test(txt))                                        return 'agradecimiento';
+    if (/hoja de c[aá]lculo|calculadora|herramienta|te calcula/.test(txt))   return 'herramienta';
+    if (/cat[aá]logo|ficha|dossier|documentaci[oó]n/.test(txt)) {
+      return /me pidi|solicit|ped[ií]a?\b|hab[ií]a pedido|que me pidi/.test(txt) ? 'documentacion' : 'catalogo';
+    }
+    if (/visita|reuni[oó]n|cita|vernos|quedar|pasarme a verle/.test(txt))    return 'reunion';
+    if (/retomar|hace tiempo|reactivar|volver a contactar/.test(txt))        return 'reactivacion';
+    var tieneHistorial =
+      ((studio.reports    || []).length > 0) ||
+      ((studio.activities || []).length > 0);
+    return tieneHistorial ? 'seguimiento' : 'primera';
+  }
+
   /* Construye la URL mailto con from= para Apple Mail */
   function _mailtoUrl(toEmail, subject, body) {
     return 'mailto:' + encodeURIComponent(toEmail) +
@@ -1839,7 +1861,22 @@
       var iaGenerado = iaSubject || iaBody;
       if (iaGenerado) {
         // Ya hay texto generado — mostrar preview + botón regenerar
+        // Aviso del coach: canal equivocado, descuadre de adjuntos o suposición
+        // relevante. La doctrina obliga a decirlo en vez de redactar por inercia,
+        // así que se muestra ARRIBA, donde no se pueda pasar por alto.
+        var avisoHtml = window._emailPanelIAAviso
+          ? '<div style="background:#fffbeb; border:1.5px solid #fcd34d; border-radius:10px; padding:10px 12px; margin-bottom:10px; ' +
+              'font-size:12.5px; color:#92400e; line-height:1.5;">' +
+              '<strong>⚠️ Aviso del coach:</strong> ' + escape(window._emailPanelIAAviso) +
+            '</div>'
+          : '';
+        var metaHtml = window._emailPanelIAMeta
+          ? '<div style="font-size:11px; color:var(--fg-3); margin-bottom:8px; letter-spacing:.02em;">' +
+              escape(window._emailPanelIAMeta) +
+            '</div>'
+          : '';
         previewZone = (
+          avisoHtml + metaHtml +
           '<div style="background:var(--bg-1); border:1.5px solid var(--line); border-radius:10px; padding:14px; margin-bottom:12px;" id="ep-preview">' +
             '<div style="font-size:12px; font-weight:700; color:var(--fg-3); margin-bottom:6px;">Asunto: <span style="color:var(--fg-1); font-weight:400;" id="ep-subject">' + escape(subject) + '</span></div>' +
             '<div style="font-size:13px; color:var(--fg-1); line-height:1.6; white-space:pre-wrap; max-height:200px; overflow-y:auto;" id="ep-body">' + escape(body) + '</div>' +
@@ -1953,6 +1990,8 @@
     window._emailPanelSeed    = seedInstruction || '';
     window._emailPanelIASub   = '';
     window._emailPanelIABody  = '';
+    window._emailPanelIAAviso = '';
+    window._emailPanelIAMeta  = '';
     // Si llega una instrucción "semilla" (desde una acción pendiente de la
     // Bandeja), abrir directamente en la plantilla "✨ Redactar con IA" con el
     // texto de la acción precargado en el campo de instrucción.
@@ -4168,33 +4207,41 @@
       if (!studio) return;
       window._emailPanelActive = idx;
       var templates = _emailTemplates(studio);
-      if (!templates[idx].esIA) { window._emailPanelIASub = ''; window._emailPanelIABody = ''; }
+      if (!templates[idx].esIA) { window._emailPanelIASub = ''; window._emailPanelIABody = ''; window._emailPanelIAAviso = ''; window._emailPanelIAMeta = ''; }
       _renderEmailSheet(studio, idx, window._emailPanelIASub || '', window._emailPanelIABody || '');
     },
     _emailGenerar: async function () {
       var studio = window._emailPanelStudio;
       if (!studio) return;
-      var input = document.getElementById('ep-ia-input');
+      var input       = document.getElementById('ep-ia-input');
       var instruccion = input ? input.value.trim() : '';
-      var preview = document.getElementById('ep-preview');
-      if (preview) preview.innerHTML = '<div style="text-align:center; padding:20px; color:var(--fg-3); font-size:13px;">✨ Generando con IA…</div>';
+      var preview     = document.getElementById('ep-preview');
+      if (preview) preview.innerHTML = '<div style="text-align:center; padding:20px; color:var(--fg-3); font-size:13px;">✨ Generando con FerroCom Coach…</div>';
+
+      var C = window.CoachDoctrine;
+      if (!C) {
+        if (preview) preview.innerHTML = '<div style="color:var(--mute-red-dark); font-size:13px; padding:10px;">⚠️ CoachDoctrine no cargado. Revisa que index.html incluya redesign/coach-doctrine.js.</div>';
+        return;
+      }
+
+      /* ---- Contexto del estudio ---- */
       var nombre  = studio.name || '';
       var ciudad  = (typeof studio.city === 'object' ? (studio.city && studio.city.valor) : studio.city) || '';
       var prov    = (typeof studio.province === 'object' ? (studio.province && studio.province.valor) : studio.province) || '';
-      var tipo    = studio.type || '';
-      var score   = studio.score || '';
+      var tipoOrg = studio.type || '';
       var ctc     = (studio.team && studio.team[0]) ? (studio.team[0].name || '') + (studio.team[0].role ? ' (' + studio.team[0].role + ')' : '') : '';
       var lastAct = U.lastInteraction(studio);
       var diasSin = lastAct ? U.diasDesde(lastAct) + ' días sin contacto' : 'sin contacto registrado';
-      // Buscar el último informe de visita para enriquecer el correo de seguimiento
+
+      /* ---- Último informe de visita (personaliza el seguimiento) ---- */
       var ultimoInformeCtx = '';
       var repsOrdenados = (studio.reports || []).slice().sort(function (a, b) {
         return (b.date || b.generated_at || '') > (a.date || a.generated_at || '') ? 1 : -1;
       });
       if (repsOrdenados.length > 0) {
-        var repObj = repsOrdenados[0];
+        var repObj  = repsOrdenados[0];
         var repData = repObj.report || {};
-        var lineas = [];
+        var lineas  = [];
         if (repObj.date) lineas.push('Fecha visita: ' + repObj.date);
         if (repData.resumen) lineas.push('Resumen: ' + repData.resumen);
         if (repData.temas_tratados && repData.temas_tratados.length) lineas.push('Temas: ' + repData.temas_tratados.join('; '));
@@ -4202,42 +4249,76 @@
         if (repData.proxima_accion) lineas.push('Próxima acción: ' + repData.proxima_accion);
         if (repData.nivel_interes) lineas.push('Nivel interés: ' + repData.nivel_interes);
         if (!repData.resumen && repObj.notes_raw) lineas.push('Notas: ' + String(repObj.notes_raw).substring(0, 400));
-        if (lineas.length) {
-          ultimoInformeCtx = '\n\nÚLTIMO INFORME DE VISITA:\n' + lineas.join('\n');
-        }
+        if (lineas.length) ultimoInformeCtx = '\n\nÚLTIMO INFORME DE VISITA:\n' + lineas.join('\n');
       }
 
-      var systemPrompt = 'Eres el asistente de redacción de correos de Manuel Fernández, ' +
-        'comercial de Ferroplast (Grupo GPF), que vende tuberías y accesorios de polietileno, PVC y fundición ' +
-        'a estudios de arquitectura, ingenierías, comunidades de regantes y ciclo del agua en el sur de España. ' +
-        'Redacta correos profesionales, directos y cercanos, en español. ' +
-        'Si hay un informe de visita, úsalo para personalizar el correo con detalles reales de la reunión. ' +
-        'Firma siempre como: Manuel Fernández · Ferroplast · Delegado Zona Sur · +34 655 810 836 · ma.fernandez@grupogpf.com. ' +
-        'Devuelve SOLO un JSON con la forma {"subject":"...","body":"..."} sin markdown ni texto extra.';
-      var userMsg = 'Redacta un correo para:\n' +
-        '- Empresa: ' + nombre + ' (' + tipo + ') · ' + ciudad + ' (' + prov + ')\n' +
-        (ctc ? '- Contacto: ' + ctc + '\n' : '') +
-        '- Score CRM: ' + score + ' · ' + diasSin + '\n' +
+      /* ---- Doctrina: perfil + arquetipo ---- */
+      var perfil = C.detectarPerfil(studio);
+      var tipo   = _inferirTipoCorreo(studio, instruccion);
+      var doc    = C.build({ tipo: tipo, perfil: perfil });
+
+      /* Regla del proyecto: ningún texto que venga de un informe puede arrastrar
+         marcas de tiempo de la transcripción. Se limpia ANTES de mandarlo a la IA
+         para que no las reproduzca en el correo. */
+      var strip = (window.Util && window.Util.stripTimestamps) ? window.Util.stripTimestamps : function (s) { return s; };
+
+      var userMsg = strip(
+        'Redacta un correo para:\n' +
+        '- Empresa: ' + nombre + (tipoOrg ? ' (' + tipoOrg + ')' : '') + ' · ' + ciudad + (prov ? ' (' + prov + ')' : '') + '\n' +
+        (ctc ? '- Contacto: ' + ctc + '\n' : '- Contacto: sin persona identificada\n') +
+        '- Estado en el CRM: ' + diasSin + '\n' +
+        '- Arquetipo detectado: ' + doc.tipo + (doc.esFrio ? ' (PRIMER CONTACTO EN FRÍO)' : '') + '\n' +
         ultimoInformeCtx +
-        '\n- Instrucción: ' + (instruccion || (ultimoInformeCtx ? 'correo de seguimiento personalizado tras la última visita, basándote en el informe adjunto' : 'correo de contacto genérico presentando Ferroplast GPF'));
-      try {
-        var Data = window.Data;
-        if (!Data || !Data.callGAS) throw new Error('Data.callGAS no disponible');
-        var res = await Data.callGAS('claudeProxy', {
-          model: 'claude-sonnet-4-6', max_tokens: 1024,
-          system: systemPrompt, messages: [{ role: 'user', content: userMsg }],
+        '\n\n- Instrucción de Manolo: ' +
+        (instruccion || (ultimoInformeCtx
+          ? 'correo de seguimiento personalizado tras la última visita, apoyándote en el informe de arriba'
+          : 'primer contacto para pedir una cita, siguiendo la estructura obligatoria'))
+      );
+
+      /* ---- Llamada al proxy. Se intenta con `system` como ARRAY (permite
+         prompt caching del núcleo). Si el GAS no lo reenvía bien, se reintenta
+         una vez con `system` como string plano. ---- */
+      async function _pedir(systemPayload) {
+        var res = await window.Data.callGAS('claudeProxy', {
+          model: _IA_MODEL,
+          max_tokens: 4096,
+          system: systemPayload,
+          messages: [{ role: 'user', content: userMsg }],
         });
+        if (res && res.error) {
+          throw new Error(typeof res.error === 'string' ? res.error : (res.error.message || 'Error IA'));
+        }
+        return res;
+      }
+
+      try {
+        if (!window.Data || !window.Data.callGAS) throw new Error('Data.callGAS no disponible');
+
+        var res, via = 'array (con caché)';
+        try {
+          res = await _pedir(doc.system);
+        } catch (eArray) {
+          // El proxy no ha digerido el array → reintento plano, sin caché.
+          if (window.debugLog) window.debugLog('[coach] system-array rechazado (' + eArray.message + '); reintento en plano');
+          via = 'plano (sin caché)';
+          res = await _pedir(C.buildPlano({ tipo: tipo, perfil: perfil }).system);
+        }
+        if (window.debugLog) window.debugLog('[coach] generado vía ' + via + ' · arquetipo=' + doc.tipo + ' · perfil=' + perfil);
+
         var raw = (res && res.content && res.content[0] && res.content[0].text) || (res && res.text) || '';
-        if (res && res.error) throw new Error(typeof res.error === 'string' ? res.error : (res.error.message || 'Error IA'));
         var cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
         var parsed;
         try { parsed = JSON.parse(cleaned); } catch (_) {
-          var s = cleaned.indexOf('{'), e = cleaned.lastIndexOf('}');
-          if (s >= 0 && e > s) parsed = JSON.parse(cleaned.slice(s, e + 1));
+          var s = cleaned.indexOf('{'), e2 = cleaned.lastIndexOf('}');
+          if (s >= 0 && e2 > s) parsed = JSON.parse(cleaned.slice(s, e2 + 1));
           else throw new Error('La IA no devolvió JSON parseable');
         }
-        window._emailPanelIASub  = parsed.subject || '';
-        window._emailPanelIABody = parsed.body    || '';
+
+        // Cinturón: el correo tampoco puede llevar marcas de tiempo.
+        window._emailPanelIASub   = strip(parsed.subject || '');
+        window._emailPanelIABody  = strip(parsed.body    || '');
+        window._emailPanelIAAviso = parsed.aviso || '';
+        window._emailPanelIAMeta  = 'Arquetipo: ' + doc.tipo + ' · Perfil: ' + (parsed.perfil || perfil);
         _renderEmailSheet(studio, window._emailPanelActive, window._emailPanelIASub, window._emailPanelIABody);
       } catch (e) {
         if (preview) preview.innerHTML = '<div style="color:var(--mute-red-dark); font-size:13px; padding:10px;">⚠️ Error: ' + escape(e.message) + '</div>';

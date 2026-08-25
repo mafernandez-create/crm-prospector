@@ -21,6 +21,7 @@ const A = require('../_lib/assert');
     'data.js',
     'data-supabase.js',
     'app.js',
+    'coach-doctrine.js',
     'shell.js',
     'screens/inicio.js',
     'screens/studios.js',
@@ -60,6 +61,7 @@ const A = require('../_lib/assert');
     { file: 'data.js',                   globals: ['window.Data'] },
     { file: 'data-supabase.js',          globals: ['window.DataSupabase'] },
     { file: 'app.js',                    globals: ['window.State', 'window.Cmdk', 'window.openSheet', 'window.closeSheet', 'window.Util', 'window.showView'] },
+    { file: 'coach-doctrine.js',         globals: ['window.CoachDoctrine'] },
     { file: 'shell.js',                  globals: ['window.Shell'] },
     { file: 'screens/inicio.js',         globals: ['window.Screens'] },
     { file: 'screens/studios.js',        globals: ['window.Screens'] },
@@ -108,6 +110,7 @@ const A = require('../_lib/assert');
   A.contains(indexHtml, 'redesign/components.css', 'index.html carga components.css');
   A.contains(indexHtml, 'redesign/icons.js', 'index.html carga icons.js');
   A.contains(indexHtml, 'redesign/app.js', 'index.html carga app.js');
+  A.contains(indexHtml, 'redesign/coach-doctrine.js', 'index.html carga coach-doctrine.js');
   A.contains(indexHtml, 'redesign/screens/inicio.js', 'index.html carga inicio.js');
   A.contains(indexHtml, 'redesign/screens/informe.js', 'index.html carga informe.js');
   A.contains(indexHtml, "register(swUrl", 'index.html registra el SW (archivo externo)');
