@@ -72,10 +72,37 @@ A.falsy(
 );
 
 // ── 5) Firma canónica (PREFERENCIAS, cuatro líneas con las dos marcas) ────
-A.contains(C.FIRMA_CLIENTE, 'Reciban un cordial saludo', 'firma: cierre correcto');
-A.contains(C.FIRMA_CLIENTE, 'Prescripción', 'firma: función es Prescripción');
-A.contains(C.FIRMA_CLIENTE, 'Ferroplast · Tuyper', 'firma: incluye ambas marcas');
-A.falsy(/Delegado Zona Sur/.test(C.FIRMA_CLIENTE), 'firma: NO usa el cargo antiguo de las plantillas estáticas');
+// Firma verificada el 25-ago-2026 contra los correos realmente enviados desde
+// ma.fernandez@grupogpf.com. La doctrina la tenía mal y el CRM firmaba mal en
+// producción: decía "Prescripción" y una línea de marcas que Manolo no usa.
+A.contains(C.FIRMA_CLIENTE, 'Reciban un cordial saludo', 'firma: cierre formal correcto');
+A.contains(C.FIRMA_CLIENTE, 'Manuel Fernández García', 'firma: nombre completo');
+A.contains(C.FIRMA_CLIENTE, 'Promotor/Prescriptor.', 'firma: el cargo real, con el punto final');
+A.contains(C.FIRMA_CLIENTE, 'Ctra. Atarfe a Sta. Fe s/n, 18230 Atarfe, Granada', 'firma: dirección postal');
+A.contains(C.FIRMA_CLIENTE, 'T. +34 958438611', 'firma: teléfono fijo');
+A.contains(C.FIRMA_CLIENTE, 'M. +34 647403603', 'firma: móvil');
+A.contains(C.FIRMA_CLIENTE, 'ma.fernandez@grupogpf.com', 'firma: correo corporativo');
+A.falsy(/Delegado Zona Sur/.test(C.FIRMA_CLIENTE), 'firma: NO usa el cargo de las plantillas estáticas retiradas');
+A.falsy(/^Prescripción$/m.test(C.FIRMA_CLIENTE), 'firma: NO usa "Prescripción" a secas (era el error de la doctrina)');
+A.falsy(/Ferroplast · Tuyper/.test(C.FIRMA_CLIENTE), 'firma: NO lleva la línea de marcas que Manolo no usa');
+// El bloque de firma es el mismo en interno; lo que cambia es el cierre.
+A.contains(C.FIRMA_INTERNA, 'Un abrazo', 'firma interna: cierre cercano');
+A.contains(C.FIRMA_INTERNA, 'Manolo', 'firma interna: nombre corto');
+A.contains(C.FIRMA_INTERNA, 'M. +34 647403603', 'firma interna: mantiene el bloque completo (es la firma de Mail)');
+
+// ── Corpus de voz: real, presente y SIN nombres (este fichero se sirve público) ──
+const nucleo = C.build({ tipo: 'seguimiento', perfil: 'X' }).system[0].text;
+A.contains(nucleo, 'CORPUS DE VOZ', 'el núcleo incluye el corpus de voz');
+A.contains(nucleo, 'me ahorráis medio día de rastreo', 'el corpus trae frases textuales suyas');
+A.contains(nucleo, 'LA EXTENSIÓN SE GANA', 'el corpus destila los rasgos de su voz');
+A.falsy(/inventado|EJEMPLO ILUSTRATIVO/i.test(nucleo), 'no queda rastro del ejemplo inventado');
+// coach-doctrine.js se descarga sin login desde GitHub Pages: aquí no puede haber
+// nombres de clientes ni de particulares. Si esto falla, hay una fuga de datos.
+const nombresProhibidos = ['We Project', 'DAIA', 'Slow Beach', 'Harmonia', 'van Veen',
+  'Aalt', 'La Herradura', 'Jarquil', 'Guadalsur', 'Zurita', 'Vilar', 'Vilella'];
+for (const n of nombresProhibidos) {
+  A.falsy(nucleo.indexOf(n) >= 0, 'privacidad: el núcleo público no filtra "' + n + '"');
+}
 
 // ── 6) detectarPerfil() sobre formas reales del CRM ───────────────────────
 const casos = [
