@@ -8,10 +8,17 @@
    escriba con la doctrina del coach, la doctrina tiene que viajar dentro del
    repo. Esto es esa copia.
 
-   FUENTE DE VERDAD
-   ~/.claude/skills/ferrocom-coach/references/*.md  (copia `references/`, no la
-   copia `Trabajo_GPF/ferrocom-coach/` que tiene otra estructura y está sin git).
-   Si cambias la doctrina allí, hay que resincronizar aquí a mano. Sube VERSION.
+   FUENTE DE VERDAD (decidido el 25-ago-2026)
+   ~/Proyectos/Trabajo_GPF/ferrocom-coach/skill/ferrocom-coach/references/*.md
+   Esa carpeta es el original; la de ~/.claude/skills/ferrocom-coach/ es la copia
+   INSTALADA para que Claude Code la vea (así lo describe el 00_README del
+   proyecto: se guarda ahí y se instala en la carpeta de skills).
+
+   Si cambias la doctrina, hay que resincronizar este fichero a mano — la copia
+   de aquí no es literal, está condensada y reordenada para caber en un prompt.
+   Para que el desfase no pase desapercibido, DOCTRINA_SHA sella el estado de los
+   9 ficheros vendorizados; scripts/tests/unit/test-coach-sync.js avisa si el
+   original cambia y esto no. Al resincronizar: actualizar el sello y subir VERSION.
 
    DISEÑO PARA PROMPT CACHING
    `build()` devuelve el `system` partido en dos bloques:
@@ -40,8 +47,18 @@
 (function () {
   'use strict';
 
-  var VERSION = '1.0.0';
+  var VERSION = '1.1.0';
   var SINCRONIZADO = '2026-08-25';
+
+  /* Sello de la doctrina original: sha256 de la concatenación, en orden, de
+     PRINCIPIOS + ESTILO + ESTRATEGIA + PREFERENCIAS + PERFILES + TIPOS_CORREO +
+     BLOQUES + CORREO_FRIO + AUDITOR (primeros 16 caracteres). Si el original
+     cambia y esto no, test-coach-sync.js lo canta. */
+  var DOCTRINA_SHA = '5106b2b69166f826';
+  var DOCTRINA_FICHEROS = [
+    'PRINCIPIOS', 'ESTILO', 'ESTRATEGIA', 'PREFERENCIAS', 'PERFILES',
+    'TIPOS_CORREO', 'BLOQUES', 'CORREO_FRIO', 'AUDITOR',
+  ];
 
   /* --------------------------------------------------------------------------
      FIRMA — según PREFERENCIAS.md (cuatro líneas, marcas incluidas).
@@ -664,6 +681,8 @@ señálalo en el campo "aviso".`;
   window.CoachDoctrine = {
     VERSION: VERSION,
     SINCRONIZADO: SINCRONIZADO,
+    DOCTRINA_SHA: DOCTRINA_SHA,
+    DOCTRINA_FICHEROS: DOCTRINA_FICHEROS,
     FIRMA_CLIENTE: FIRMA_CLIENTE,
     FIRMA_INTERNA: FIRMA_INTERNA,
     TIPOS: TIPOS,
