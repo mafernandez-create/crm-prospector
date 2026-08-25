@@ -4317,16 +4317,8 @@
 
         /* El texto NO está siempre en content[0]: con pensamiento activado (por
            defecto en Opus 5) el bloque 0 es de tipo "thinking" y el correo viene
-           después. Hay que buscar el primer bloque de texto, no asumir el 0. */
-        var bloques   = (res && res.content) || [];
-        var bloqueTxt = null;
-        for (var bi = 0; bi < bloques.length; bi++) {
-          if (bloques[bi] && bloques[bi].type === 'text' && bloques[bi].text) { bloqueTxt = bloques[bi]; break; }
-        }
-        var raw = (bloqueTxt && bloqueTxt.text) || (res && res.text) || '';
-        if (!raw && res && res.stop_reason === 'max_tokens') {
-          throw new Error('La IA agotó el presupuesto de tokens razonando y no llegó a escribir. Baja _IA_EFFORT o sube max_tokens.');
-        }
+           después. Centralizado en Util.extractClaudeText. */
+        var raw = U.extractClaudeText(res);
         var cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
         var parsed;
         try { parsed = JSON.parse(cleaned); } catch (_) {

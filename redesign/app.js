@@ -624,6 +624,38 @@
   }
 
   /* ------------------------------------------------------------
+     REGLA GLOBAL: el texto de una respuesta de Claude NO está siempre
+     en content[0]. Los modelos que razonan (Opus 5 y la familia 4.6+
+     llevan el pensamiento activado por defecto) devuelven primero un
+     bloque de tipo "thinking" y el texto después. Leer content[0].text
+     a ciegas devuelve vacío y falla en silencio — le pasó al generador
+     de correos al subir de modelo, y era invisible en la traza.
+     Úsalo en TODO sitio que lea una respuesta de claudeProxy.
+     Lanza con un mensaje útil si el razonamiento agotó max_tokens.
+     ------------------------------------------------------------ */
+  function extractClaudeText(res) {
+    if (!res) return '';
+    if (res.error) {
+      throw new Error(typeof res.error === 'string' ? res.error : (res.error.message || 'Error IA'));
+    }
+    var bloques = res.content || [];
+    for (var i = 0; i < bloques.length; i++) {
+      var b = bloques[i];
+      if (b && b.type === 'text' && (b.text || b.value)) return b.text || b.value;
+    }
+    // Sin bloque marcado como texto: algunos proxies devuelven la forma vieja
+    // (content[0] sin `type`) o un `text` suelto. Se aceptan como respaldo.
+    if (bloques[0] && !bloques[0].type && (bloques[0].text || bloques[0].value)) {
+      return bloques[0].text || bloques[0].value;
+    }
+    if (res.text) return res.text;
+    if (res.stop_reason === 'max_tokens') {
+      throw new Error('La IA agotó el presupuesto de tokens razonando y no llegó a responder. Baja el esfuerzo (output_config.effort) o sube max_tokens.');
+    }
+    return '';
+  }
+
+  /* ------------------------------------------------------------
      REGLA GLOBAL: ningún informe puede contener marcas de tiempo.
      Un informe es un registro comercial, NO una transcripción —
      no puede parecer que proviene de una reunión grabada.
@@ -758,6 +790,7 @@
     stripTimestampsDeep: stripTimestampsDeep,
     productosEnInforme: productosEnInforme,
     productosEstudio: productosEstudio,
+    extractClaudeText: extractClaudeText,
   };
 
   /* ============================================================

@@ -178,14 +178,10 @@
         messages: messages,
       });
 
-      var text = '';
-      if (res && res.content && res.content[0]) {
-        text = res.content[0].text || res.content[0].value || '';
-      } else if (res && res.text) {
-        text = res.text;
-      } else if (res && res.error) {
-        throw new Error(typeof res.error === 'string' ? res.error : (res.error.message || 'Error IA'));
-      }
+      // El texto NO está siempre en content[0]: con los modelos que razonan el
+      // bloque 0 es de tipo "thinking". Util.extractClaudeText lo centraliza y
+      // además lanza si la respuesta trae error o si se agotó max_tokens.
+      var text = window.Util.extractClaudeText(res);
       if (!text) throw new Error('Respuesta vacía de la IA');
 
       // Extraer comandos de planificador si los hay

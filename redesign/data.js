@@ -156,7 +156,13 @@
       const msg = typeof res.error === 'string' ? res.error : (res.error.message || JSON.stringify(res.error));
       throw new Error(msg);
     }
-    const text = (res && res.content && res.content[0] && (res.content[0].text || res.content[0].value)) || res.text || '';
+    // El texto NO está siempre en content[0]: con los modelos que razonan el
+    // bloque 0 es de tipo "thinking". Util.extractClaudeText lo resuelve en un
+    // solo sitio. (app.js se carga después que este fichero, pero esta función
+    // solo se ejecuta en runtime, cuando Util ya existe.)
+    const text = window.Util && window.Util.extractClaudeText
+      ? window.Util.extractClaudeText(res)
+      : (res && res.content && res.content[0] && (res.content[0].text || res.content[0].value)) || res.text || '';
     if (!text) throw new Error('Respuesta vacía de la IA');
     return text;
   }
