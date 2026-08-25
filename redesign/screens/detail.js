@@ -1790,6 +1790,15 @@
      tirón (el proxy GAS es passthrough, así que acepta cualquier id válido). */
   var _IA_MODEL = 'claude-opus-5';
 
+  /* Esfuerzo de razonamiento. En Opus 5 el pensamiento va ACTIVADO por defecto,
+     y con el esfuerzo por defecto (high) se comía el presupuesto de tokens antes
+     de escribir el correo (stop_reason: max_tokens).
+     Medido en vivo sobre el mismo caso (KR Arquitectura, arquetipo reunion):
+       medium → 38,3 s · low → 30,8 s (1.100 tokens de pensamiento, 231 palabras)
+     Se deja en 'medium': son correos a cliente real y 7 segundos no compensan
+     arriesgar calidad. Bájalo a 'low' si prefieres velocidad. */
+  var _IA_EFFORT = 'medium';
+
   /* Deduce el arquetipo de correo (claves de CoachDoctrine.TIPOS) a partir de lo
      que Manolo escribe en el campo de instrucción y del historial del estudio.
      Sin historial → primer contacto en frío, que es el caso con reglas propias. */
@@ -4281,7 +4290,8 @@
       async function _pedir(systemPayload) {
         var res = await window.Data.callGAS('claudeProxy', {
           model: _IA_MODEL,
-          max_tokens: 4096,
+          max_tokens: 8192,
+          output_config: { effort: _IA_EFFORT },
           system: systemPayload,
           messages: [{ role: 'user', content: userMsg }],
         });
@@ -4305,7 +4315,18 @@
         }
         if (window.debugLog) window.debugLog('[coach] generado vía ' + via + ' · arquetipo=' + doc.tipo + ' · perfil=' + perfil);
 
-        var raw = (res && res.content && res.content[0] && res.content[0].text) || (res && res.text) || '';
+        /* El texto NO está siempre en content[0]: con pensamiento activado (por
+           defecto en Opus 5) el bloque 0 es de tipo "thinking" y el correo viene
+           después. Hay que buscar el primer bloque de texto, no asumir el 0. */
+        var bloques   = (res && res.content) || [];
+        var bloqueTxt = null;
+        for (var bi = 0; bi < bloques.length; bi++) {
+          if (bloques[bi] && bloques[bi].type === 'text' && bloques[bi].text) { bloqueTxt = bloques[bi]; break; }
+        }
+        var raw = (bloqueTxt && bloqueTxt.text) || (res && res.text) || '';
+        if (!raw && res && res.stop_reason === 'max_tokens') {
+          throw new Error('La IA agotó el presupuesto de tokens razonando y no llegó a escribir. Baja _IA_EFFORT o sube max_tokens.');
+        }
         var cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
         var parsed;
         try { parsed = JSON.parse(cleaned); } catch (_) {

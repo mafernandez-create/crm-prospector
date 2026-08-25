@@ -30,6 +30,10 @@ A.matches(C.VERSION, /^\d+\.\d+\.\d+$/, 'VERSION tiene forma semver');
 const r = C.build({ tipo: 'seguimiento', perfil: 'Arquitecto / proyectista' });
 A.eq(r.system.length, 2, 'build() devuelve exactamente 2 bloques de system');
 A.truthy(r.system[0].cache_control, 'el bloque 0 lleva cache_control');
+// TTL de 1h, no los 5 min por defecto: verificado en vivo que el proxy lo respeta
+// (ephemeral_1h_input_tokens > 0). Con 5 min la caché expiraría entre correo y
+// correo y el cache_control sería decorativo.
+A.eq(r.system[0].cache_control.ttl, '1h', 'la caché usa TTL de 1h, no el de 5 min por defecto');
 A.falsy(r.system[1].cache_control, 'el bloque 1 (variable) NO lleva cache_control');
 
 // El bloque 0 debe ser idéntico byte a byte pase lo que pase: es lo que se cachea.
@@ -85,6 +89,28 @@ const casos = [
 for (const [studio, esperado] of casos) {
   A.eq(C.detectarPerfil(studio), esperado, 'detectarPerfil: ' + studio.name);
 }
+// Códigos de tipo del CRM: mandan sobre el nombre. Sin este mapa, el 28% de la
+// cartera (517 de 1.842, medido en vivo) caía al perfil genérico.
+const codigos = [
+  ['ARQ',  'Bueno & Asociados SLP',   'Arquitecto / proyectista'],
+  ['ING',  'Ingenostrum SL',          'Ingeniería del agua / obra civil'],
+  ['OCV',  'RECO Construcciones',     'Constructora / promotora'],
+  ['CICA', 'Aguas de Jaén',           'Operador del ciclo del agua'],
+  ['CCRR', 'CR del Genil',            'Comunidad de regantes'],
+  ['AAPP', 'Diputación de Cádiz',     'Técnico municipal'],
+];
+for (const [code, name, esperado] of codigos) {
+  A.eq(C.detectarPerfil({ type: code, name }), esperado, 'código ' + code + ' → ' + esperado);
+}
+A.eq(C.detectarPerfil({ type: 'arq', name: 'X' }), 'Arquitecto / proyectista',
+  'el código de tipo no distingue mayúsculas');
+A.eq(C.detectarPerfil({ type: { valor: 'CCRR', fuente_url: 'x' }, name: 'X' }), 'Comunidad de regantes',
+  'el código funciona también en la forma {valor, fuente_url}');
+// El código gana al nombre: una ficha ARQ cuyo nombre suene a constructora
+// sigue siendo arquitecto, porque el tipo es dato clasificado a mano.
+A.eq(C.detectarPerfil({ type: 'ARQ', name: 'Construcciones y Promociones del Sur' }),
+  'Arquitecto / proyectista', 'el código de tipo tiene prioridad sobre el nombre');
+
 A.eq(C.detectarPerfil({ name: 'Nosecuántos SL', type: '' }),
   'Decisor técnico (perfil no identificado)', 'detectarPerfil: fallback documentado');
 A.eq(C.detectarPerfil(null), 'Decisor técnico (perfil no identificado)', 'detectarPerfil: tolera null');

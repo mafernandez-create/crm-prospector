@@ -16,6 +16,11 @@
    DISEÑO PARA PROMPT CACHING
    `build()` devuelve el `system` partido en dos bloques:
      [0] NÚCLEO — idéntico byte a byte en TODAS las llamadas → se cachea.
+         Medido en vivo contra el proxy: 4.671 tokens (no 2.100; el conteo por
+         palabras se queda corto en español). TTL de 1 HORA, no los 5 min por
+         defecto: Manolo no escribe correos en ráfaga, así que con 5 min la
+         caché habría expirado casi siempre y el cache_control sería decorativo.
+         Verificado: devuelve ephemeral_1h_input_tokens > 0.
      [1] Específico del tipo de correo → varía, va después, no rompe la caché.
    El orden importa: la caché de Anthropic es un match de PREFIJO. Cualquier
    byte que cambie en el bloque 0 invalida todo lo que venga detrás.
@@ -527,6 +532,20 @@ señálalo en el campo "aviso".`;
      DETECCIÓN DE PERFIL desde los datos del CRM
      ========================================================================== */
 
+  /* Códigos de `type` del CRM. Mandan sobre cualquier heurística de nombre: son
+     el dato clasificado a mano, no una adivinanza. Significados según
+     docs/metodo_unificado_busqueda_CRM_Prospector_v1.1.md §"Bloques".
+     Sin este mapa, el 28% de la cartera (517 de 1.842) caía al perfil genérico
+     porque el detector solo miraba el nombre y el CRM guarda siglas. */
+  var MAPA_CODIGO = {
+    ARQ:  'Arquitecto / proyectista',
+    ING:  'Ingeniería del agua / obra civil',
+    OCV:  'Constructora / promotora',          // Obra Civil / Constructora / Promotora
+    CICA: 'Operador del ciclo del agua',
+    CCRR: 'Comunidad de regantes',
+    AAPP: 'Técnico municipal',
+  };
+
   var MAPA_PERFIL = [
     [/regant|comunidad de regantes/i,                       'Comunidad de regantes'],
     [/ayuntamiento|municipal|diputaci|consorcio|mancomun/i, 'Técnico municipal'],
@@ -541,6 +560,11 @@ señálalo en el campo "aviso".`;
      Si no hay señal, devuelve el fallback documentado en PERFILES. */
   function detectarPerfil(studio) {
     if (!studio) return 'Decisor técnico (perfil no identificado)';
+    // 1º el código de tipo, que es dato clasificado y no adivinanza.
+    var codigo = _val(studio.type).trim().toUpperCase();
+    if (MAPA_CODIGO[codigo]) return MAPA_CODIGO[codigo];
+    // 2º heurística sobre nombre y cargo, para las fichas sin código o con
+    // tipo escrito a mano ("Promotora", "Ingeniería"…).
     var campos = [
       _val(studio.type),
       _val(studio.name),
@@ -616,7 +640,7 @@ señálalo en el campo "aviso".`;
 
     return {
       system: [
-        { type: 'text', text: NUCLEO, cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: NUCLEO, cache_control: { type: 'ephemeral', ttl: '1h' } },
         { type: 'text', text: variable.join('\n\n') },
       ],
       perfil: perfil,
