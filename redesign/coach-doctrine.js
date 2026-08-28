@@ -52,14 +52,14 @@
 (function () {
   'use strict';
 
-  var VERSION = '1.2.0';
-  var SINCRONIZADO = '2026-08-25';
+  var VERSION = '1.3.0';
+  var SINCRONIZADO = '2026-08-28';
 
   /* Sello de la doctrina original: sha256 de la concatenación, en orden, de
      PRINCIPIOS + ESTILO + ESTRATEGIA + PREFERENCIAS + PERFILES + TIPOS_CORREO +
      BLOQUES + CORREO_FRIO + AUDITOR (primeros 16 caracteres). Si el original
      cambia y esto no, test-coach-sync.js lo canta. */
-  var DOCTRINA_SHA = '0959341e159ad119';
+  var DOCTRINA_SHA = '5415a1556d933957';
   var DOCTRINA_FICHEROS = [
     'PRINCIPIOS', 'ESTILO', 'ESTRATEGIA', 'PREFERENCIAS', 'PERFILES',
     'TIPOS_CORREO', 'BLOQUES', 'CORREO_FRIO', 'AUDITOR',
@@ -279,7 +279,14 @@ por el problema del cliente y sonaba a reproche.)
   al cliente.
 - Citar siempre las certificaciones AENOR en perfiles que redactan pliego: es el
   argumento que más trabaja.
-- La cita se pide, no se anuncia. «Estaré allí el martes» sin pregunta suena impositivo.`;
+- La cita se pide, no se anuncia. «Estaré allí el martes» sin pregunta suena impositivo.
+- Fuera el andamiaje: los rótulos numerados que solo repiten lo que ya dice el párrafo, y el
+  meta-comentario sobre el propio correo («no hace falta que contestes punto por punto»,
+  «te llamo por si esto se traspapela»). Alargan sin aclarar nada.
+- No te disculpes por adelantado ni prometas no molestar: hacerlo sugiere que había motivo
+  para pensarlo. Si tu papel no compite con el del lector, no hace falta decirlo.
+- Lo delicado —un fallecimiento, una deuda, una obra mal atribuida— no va por escrito, y
+  menos a varios destinatarios. Se dice por teléfono.`;
 
   var PERFILES_TEXTO = `## PERFILES DE DESTINATARIO
 El perfil gobierna tres palancas: registro y tratamiento, nivel de detalle técnico, y
