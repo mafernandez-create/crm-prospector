@@ -52,6 +52,23 @@ por studio (al abrir la ficha) o directo de Supabase.
   ruta de visitas de la semana. El **Google Calendar** (`ma.fernandez@grupogpf.com`) es la fuente
   humana: las visitas se crean ahí y el planificador se reconstruye a partir del calendario.
 - Tabla **`briefings`** (paginada; respuestas REST pueden venir con HTTP 206).
+- Tabla **`visitas`** — histórico de visitas, **solo añade**. Existe porque `meta_planificador.schedule`
+  se reescribe entero en cada guardado: al replanificar, las semanas viejas desaparecen. Sin este
+  histórico el CRM **no guarda en ningún sitio que una visita se haya celebrado** —el único rastro
+  sería su informe—, así que «¿qué visitas no tienen informe?» solo podía contestarse cruzando a mano
+  la hoja del jefe contra los nombres de las fichas.
+  - Columnas: `fecha`, `studio_id` (nulo si la empresa nunca se dio de alta), `empresa`, `ruta`,
+    `estado` (`planificada` | `realizada` | `anulada`), `origen` (`planificador` | `hoja-jefe` | `manual`).
+  - Lo rellena `data-supabase.js → archivarVisitas()` en cada `savePlanificador`, vía el RPC
+    `archivar_visitas(jsonb)` (idempotente; las claves de unicidad son parciales y PostgREST no sabe
+    expresar ese `ON CONFLICT`). **Omite las entradas con `reserva: true`** — son clientes de reserva
+    y notas de logística (pernoctas, regresos), no visitas.
+  - Sembrada en sep-2026 con el cruce de la hoja del jefe de ene–jul 2026.
+  - Vista **`visitas_sin_informe`**: visitas pasadas, no anuladas, sin informe fechado en la visita o
+    después (margen de 3 días). Tiende a señalar de más: las fechas de informe no son fiables —hay
+    días de carga masiva con 18 informes—, así que es una lista de deuda, no una acusación.
+  - Una ruta anunciada y no ejecutada se marca `estado='anulada'`, para distinguir «no la hice» de
+    «no la escribí». Es lo que pasó con febrero de 2026.
 
 ---
 

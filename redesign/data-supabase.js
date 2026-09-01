@@ -256,6 +256,55 @@
   }
 
   /* ============================================================
+     archivarVisitas — histórico que el schedule no guarda
+     ============================================================ */
+  // Se llama en segundo plano: si falla, el guardado del planificador NO debe
+  // fallar con ella. Las entradas marcadas `reserva` se omiten — son clientes
+  // de reserva y notas de logística (pernoctas, regresos), no visitas.
+  function visitasDeSchedule(schedule) {
+    const filas = [];
+    Object.keys(schedule || {}).forEach(function (fecha) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return;
+      const dia = schedule[fecha];
+      if (!Array.isArray(dia)) return;
+      dia.forEach(function (v) {
+        if (!v || v.reserva === true) return;
+        const nombre = String(v.name || '').trim();
+        if (!nombre) return;
+        filas.push({
+          fecha: fecha,
+          studio_id: v.id || null,
+          empresa: nombre,
+          ruta: v.province ? 'Planificador · ' + v.province : null,
+        });
+      });
+    });
+    return filas;
+  }
+
+  function archivarVisitas(schedule) {
+    try {
+      const filas = visitasDeSchedule(schedule);
+      if (!filas.length) return Promise.resolve(0);
+      return sbFetch('/rpc/archivar_visitas', {
+        method: 'POST',
+        body: JSON.stringify({ p: filas }),
+      }).then(function (res) { return res.json(); })
+        .then(function (n) {
+          if (n) console.info('[visitas] ' + n + ' visita(s) nuevas al histórico');
+          return n;
+        })
+        .catch(function (e) {
+          console.warn('[visitas] no se pudo archivar el histórico:', e && e.message);
+          return 0;
+        });
+    } catch (e) {
+      console.warn('[visitas] no se pudo archivar el histórico:', e && e.message);
+      return Promise.resolve(0);
+    }
+  }
+
+  /* ============================================================
      patchDoc — UPSERT
      ============================================================ */
   async function patchDoc(path, obj /*, opts */) {
@@ -287,6 +336,12 @@
         body: JSON.stringify(body),
       });
       const arr = await r.json();
+      // El schedule se reescribe entero en cada guardado, así que no sirve de
+      // historia: al replanificar, las semanas viejas desaparecen. Por eso cada
+      // guardado vuelca además las visitas a la tabla `visitas`, que solo añade.
+      // Sin esto, "¿qué visitas no tienen informe?" no se puede contestar desde
+      // el CRM: el único rastro de una reunión sería su informe.
+      archivarVisitas(body.schedule);
       return arr[0] ? { schedule: arr[0].schedule || {} } : null;
     }
 
@@ -408,6 +463,7 @@
     savePlanificador: savePlanificador,
     flagReportAudit: flagReportAudit,
     // Helpers para tests / debugging
+    visitasDeSchedule: visitasDeSchedule,
     rowToInternal: rowToInternal,
     internalToRow: internalToRow,
   };
