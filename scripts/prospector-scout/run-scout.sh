@@ -20,20 +20,20 @@
 # (vive en el repo, no en ~/Library/LaunchAgents/). Ver README.md de esta
 # carpeta para el procedimiento de activación.
 #
-# ⚠️ TODOs marcados explícitamente (NO se han inventado flags/valores):
-#   - TODO(permisos headless): NO se ha verificado empíricamente si
-#     `--allowedTools`/permisos por defecto bloquean o cuelgan sin TTY para
-#     las tools que necesita el agente (Bash, WebSearch, WebFetch). Por eso
-#     la ejecución REAL está detrás de un guard explícito
-#     (SCOUT_HEADLESS_VERIFIED=1, ver más abajo) que solo debe activarse tras
-#     comprobar `--medir` una vez a mano y confirmar que no se queda colgado
-#     esperando un permiso que nadie puede aprobar.
-#   - TODO(coste real): `--max-budget-usd` y `--output-format json` son
-#     flags CONFIRMADOS con `claude --help` (versión 2.1.197 instalada en
-#     este Mac), pero el esquema exacto del JSON de salida (nombres de campo
-#     de coste/duración/turnos) NO se ha verificado con una llamada real. Se
-#     vuelca el JSON completo a fichero para poder inspeccionarlo la primera
-#     vez y ajustar el parseo si hace falta.
+# ✅ Los dos TODO de la primera versión están RESUELTOS empíricamente:
+#   - permisos headless: `claude -p` NO se cuelga sin TTY. Medido en Córdoba
+#     (10-jul-2026) y reconfirmado en Teruel (5-sep-2026): en ambos pases
+#     `permission_denials: []` y exit 0. El guard SCOUT_HEADLESS_VERIFIED se
+#     mantiene igualmente, pero ya no por esto: es para no dejar un cron
+#     desatendido sin haber decidido antes la cadencia.
+#   - esquema del JSON: verificado. `total_cost_usd`, `duration_ms`,
+#     `num_turns`, `is_error`, `subtype`, `permission_denials`. Este script ya
+#     los parsea al log; no hay que abrir el JSON a mano.
+#
+# ⚠️ OJO con `usage.server_tool_use` del JSON: cuenta el ÚLTIMO mensaje y solo
+#   herramientas de servidor. Marca 0 búsquedas cuando se han hecho 23, y no
+#   ve WebFetch (corre en el cliente). Para saber QUÉ hizo de verdad un pase,
+#   contar los `tool_use` de ~/.claude/projects/<proyecto>/<session_id>.jsonl.
 # ============================================================
 
 set -uo pipefail
@@ -46,7 +46,7 @@ OUTPUT_DIR="$CRM_DIR/agentes/output"   # gitignored — nunca se commitea (PII)
 RESULT_JSON="$CRM_DIR/.prospector-scout-last-result.json"
 
 # ── Configuración (override por variable de entorno si hace falta) ─────────
-MODEL="${SCOUT_MODEL:-claude-sonnet-4-6}"          # mismo modelo que claude.yml (CONFIRMAR que sigue vivo)
+MODEL="${SCOUT_MODEL:-claude-sonnet-4-6}"          # mismo modelo que claude.yml. Vigente: resolvió y respondió en Córdoba (10-jul-2026) y Teruel (5-sep-2026)
 MAX_BUDGET_USD="${SCOUT_MAX_BUDGET_USD:-3.00}"     # flag CONFIRMADO: --max-budget-usd (solo con --print). Default $3 desde 2026-07-31: un scout sin foco (portfolio completo) gasta ~$2.21 (Granada) y $2 truncaba al cierre; con foco ~$1.63. Sobreescribible con SCOUT_MAX_BUDGET_USD.
 TIMEOUT_SECONDS="${SCOUT_TIMEOUT_SECONDS:-1800}"   # parada dura de reloj: 30 min por defecto
 ALLOWED_TOOLS="Bash Read Write WebSearch WebFetch" # calcado del frontmatter de prospector-nuevos.md — nada más
@@ -54,7 +54,7 @@ ALLOWED_TOOLS="Bash Read Write WebSearch WebFetch" # calcado del frontmatter de 
 # Guard de activación para ejecución REAL no supervisada (la que dispararía
 # el launchd, una vez Manolo lo active). Por defecto NO está puesto: obliga a
 # pasar por `--medir` (manual, supervisado) al menos una vez antes de dejar
-# que esto corra solo. Ver TODO(permisos headless) arriba y README.md.
+# que esto corra solo, sin haber decidido antes la cadencia. Ver README.md.
 SCOUT_HEADLESS_VERIFIED="${SCOUT_HEADLESS_VERIFIED:-0}"
 
 # ── Argumentos ───────────────────────────────────────────────────────────
@@ -80,6 +80,38 @@ if [ -z "$ZONA" ]; then
     echo "Ej:  $0 --dry-run \"Córdoba\"" >&2
     echo "Ej:  $0 --medir \"Córdoba\" \"MUTE\"" >&2
     exit 1
+fi
+
+# Guard de erratas: el 31-jul-2026 un pase gastó 2,21 $ buscando en 'Granda'.
+# Si la zona no es una provincia conocida puede ser legítimo (comarcas, zonas
+# como "Bajo Aragón"), así que solo se avisa y se pide confirmación, y solo si
+# hay terminal: en headless no hay nadie a quien preguntar.
+PROVINCIAS="alava araba albacete alicante alacant almeria asturias avila badajoz barcelona burgos caceres cadiz cantabria castellon castello ceuta ciudad-real cordoba cuenca girona gerona granada guadalajara guipuzcoa gipuzkoa huelva huesca jaen leon lleida lerida lugo madrid malaga melilla murcia navarra nafarroa ourense orense palencia pontevedra rioja la-rioja salamanca segovia sevilla soria tarragona tenerife santa-cruz-de-tenerife teruel toledo valencia valencia-comunitat valladolid vizcaya bizkaia zamora zaragoza baleares illes-balears islas-baleares palmas las-palmas coruna a-coruna la-coruna"
+# El `sed` de macOS cuenta BYTES en `y///`, asi que con acentos falla con
+# "transform strings are not the same length" y dejaba ZONA_NORM vacio: el
+# aviso saltaba con TODAS las zonas, incluidas las validas. Un aviso que salta
+# siempre es un aviso que se ignora. Se normaliza con python3, que este script
+# ya necesita mas abajo.
+ZONA_NORM="$(printf '%s' "$ZONA" | python3 -c "
+import sys, unicodedata
+s = unicodedata.normalize('NFD', sys.stdin.read().strip().lower())
+s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
+print(s.replace(' ', '-'))
+")"
+if ! echo " $PROVINCIAS " | grep -q " $ZONA_NORM "; then
+    echo "⚠️  '$ZONA' no es una provincia española conocida." >&2
+    echo "    Puede ser correcto (comarca, zona) o una errata: un pase con" >&2
+    echo "    la zona mal escrita gasta lo mismo y no sirve de nada." >&2
+    if [ -t 0 ]; then
+        printf "    ¿Seguimos con '%s'? [s/N] " "$ZONA" >&2
+        read -r RESP
+        case "$RESP" in
+            [sS]|[sS][iI]) ;;
+            *) echo "    Cancelado." >&2; exit 1 ;;
+        esac
+    else
+        echo "    (sin terminal: sigo adelante, pero queda avisado en el log)" >&2
+    fi
 fi
 
 TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -150,7 +182,10 @@ run_with_hard_timeout() {
     local watchdog=$!
     wait "$pid"
     local exit_code=$?
-    kill "$watchdog" 2>/dev/null
+    # Matar Y recoger el watchdog en silencio. Sin el `wait`, el shell anuncia
+    # "Terminated: 15 ... sleep" al acabar; llevaba meses documentado como
+    # "ruido cosmetico" cuando era solo un proceso sin recoger.
+    { kill "$watchdog" && wait "$watchdog"; } 2>/dev/null
     return $exit_code
 }
 
@@ -166,6 +201,34 @@ EXIT_CODE=$?
 
 END_TS="$(date '+%Y-%m-%d %H:%M:%S')"
 echo "[$END_TS] Scout terminado — exit=$EXIT_CODE. JSON completo en $RESULT_JSON" >> "$LOG"
+
+# ── Archivo del resultado ──────────────────────────────────────────────────
+# El JSON se sobrescribía en cada pase, así que el coste de cada ejecución se
+# perdía y solo quedaba anotado a mano en el README. Ahora se guarda una copia
+# fechada y el histórico de gasto es recuperable.
+RESULTS_DIR="$CRM_DIR/agentes/output/_ejecuciones"
+mkdir -p "$RESULTS_DIR"
+cp "$RESULT_JSON" "$RESULTS_DIR/$(date '+%Y%m%d-%H%M%S')-$ZONA_NORM.json" 2>> "$LOG"
+
+# ── Medición al log, sin abrir el JSON a mano ──────────────────────────────
+# Campos verificados en dos pases reales. Ojo: `usage.server_tool_use` NO sirve
+# para saber qué herramientas se usaron (ver cabecera).
+python3 - "$RESULT_JSON" >> "$LOG" 2>/dev/null <<'PYEOF'
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+except Exception as e:
+    print("           medición: no se pudo leer el JSON (%s)" % e); raise SystemExit
+ms = d.get("duration_ms") or 0
+print("           coste=%.4f $ · duración=%dm%02ds · turnos=%s · subtype=%s · denegados=%d" % (
+    d.get("total_cost_usd") or 0, ms // 60000, (ms % 60000) // 1000,
+    d.get("num_turns"), d.get("subtype"), len(d.get("permission_denials") or [])))
+for m, v in (d.get("modelUsage") or {}).items():
+    print("             %s: %.4f $ · %s búsquedas web" % (
+        m, v.get("costUSD") or 0, v.get("webSearchRequests")))
+print("           sesión=%s  (traza: ~/.claude/projects/<proyecto>/%s.jsonl)" % (
+    d.get("session_id"), d.get("session_id")))
+PYEOF
 
 # ── Copia del informe a Descargas ──────────────────────────────────────────
 # Solo si la ejecución salió bien (exit 0) y el informe se generó de verdad.
@@ -183,10 +246,26 @@ else
     echo "[$END_TS] ℹ️  No se copia a Descargas: exit=$EXIT_CODE, informe presente=$([ -f "$OUT_FILE" ] && echo sí || echo no)." >> "$LOG"
 fi
 
-if [ "$MODE" = "medir" ]; then
-    echo "[$END_TS] TODO(medir): abre $RESULT_JSON a mano, anota coste/duración/nº" >> "$LOG"
-    echo "[$END_TS]   de turnos reales, y decide con Manolo la cadencia antes de" >> "$LOG"
-    echo "[$END_TS]   poner SCOUT_HEADLESS_VERIFIED=1 en el .plist." >> "$LOG"
+# ── Un pase sin informe NO es un pase bueno ────────────────────────────────
+# El fallo del 20-ago-2026 pasó desapercibido porque `claude` devolvía exit 0 y
+# subtype "success" habiendo escrito nada: el script lo daba por bueno y solo
+# una línea perdida del log decía "informe presente=no". El trabajo de este
+# script es dejar un informe; si no está, tiene que decirlo y fallar.
+if [ ! -f "$OUT_FILE" ]; then
+    echo "" >&2
+    echo "❌ EL PASE NO HA DEJADO NINGÚN INFORME." >&2
+    echo "   Esperado: $OUT_FILE" >&2
+    echo "   El proceso terminó con exit=$EXIT_CODE, pero eso no basta: si claude" >&2
+    echo "   contestó 'sigo trabajando' o agotó el presupuesto antes de escribir," >&2
+    echo "   sale con éxito igualmente. Se ha gastado dinero para nada." >&2
+    echo "   Mira la medición en $LOG y, si hace falta, la traza de la sesión." >&2
+    echo "[$END_TS] ❌ SIN INFORME — exit del proceso=$EXIT_CODE, pero no hay fichero en $OUT_FILE" >> "$LOG"
+    exit 3
 fi
+
+echo "✅ Informe en $OUT_FILE"
+echo "   Medición y coste, en $LOG"
+echo "   ⚠️  Son datos de búsqueda web SIN verificar: pásalos por verificador-resultados"
+echo "       antes de llamar a nadie o darlos de alta."
 
 exit $EXIT_CODE
