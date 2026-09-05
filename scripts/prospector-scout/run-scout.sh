@@ -42,7 +42,13 @@ set -uo pipefail
 # scripts/prospector-scout/run-scout.sh -> dos niveles arriba = raíz del repo
 CRM_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 LOG="$CRM_DIR/.prospector-scout.log"
-OUTPUT_DIR="$CRM_DIR/agentes/output"   # gitignored — nunca se commitea (PII)
+# SCOUT_OUTPUT_DIR aisla la salida de un pase. Hace falta para comparar
+# variantes: con el directorio compartido, un pase LEE los informes de los
+# anteriores y deja de ser independiente. Medido el 5-sep-2026 — vA2 escribio
+# "se incorporan 6 prospectos nuevos no incluidos en vA1" y vB excluyo a
+# proposito lo que ya habian encontrado los otros. Dos de cuatro pases
+# inservibles como comparacion.
+OUTPUT_DIR="${SCOUT_OUTPUT_DIR:-$CRM_DIR/agentes/output}"   # gitignored — nunca se commitea (PII)
 RESULT_JSON="$CRM_DIR/.prospector-scout-last-result.json"
 
 # ── Configuración (override por variable de entorno si hace falta) ─────────
@@ -145,6 +151,8 @@ crm_query.py (--accion candidatos, campo tiene_informe) y descarta solo lo ya \
 visitado. IMPORTANTE: NO termines tu turno hasta haber COMPLETADO la búsqueda y \
 ESCRITO el informe con Write en '$OUT_FILE' (ruta ya gitignored, NUNCA propongas \
 commitearla); no respondas 'sigo trabajando' ni prometas avisar después. \
+NO LEAS ningun otro informe de prospeccion de esta carpeta ni de otra: \
+tienes que buscar por ti mismo, no continuar el trabajo de nadie. \
 Regla dura: NO des de alta nada en Supabase, NO envíes correos, \
 NO ejecutes ninguna escritura en el CRM — solo el informe en ese fichero."
 
