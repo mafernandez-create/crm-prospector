@@ -192,7 +192,21 @@ Y comprueba a quién pertenece de verdad la obra: **beneficiario ≠ órgano de 
 - El **organismo autonómico del agua** (Instituto Aragonés del Agua, ESAMUR en Murcia, y su equivalente en cada comunidad): licita la depuración y el saneamiento de la región, y a veces paga la REDACCIÓN de proyectos, que es prescripción pura.
 - La **Diputación provincial** y sus planes de obra municipal.
 - La **Confederación Hidrográfica** de la cuenca.
-- **MANCOMUNIDADES y COMARCAS de agua.** ⚠️ Es un punto ciego demostrado: se han dado por inexistentes dos veces (Zaragoza y Teruel) cuando sí las había, alguna de más de 55.000 habitantes. Búscalas por su nombre en el inventario de aglomeraciones urbanas de la confederación y en los perfiles de contratante de la diputación. **No concluyas que no hay hasta haber mirado ahí.**
+- **MANCOMUNIDADES y COMARCAS de agua. 🔴 EMPIEZA POR AQUÍ, Y NO BUSCÁNDOLAS EN LA WEB.**
+  Este es un punto ciego demostrado: se dieron por inexistentes dos veces (Zaragoza y Teruel) cuando sí las había, una de 55.526 habitantes. Buscarlas por web NO funciona —sus censos oficiales dan error de certificado o exigen navegador—, así que hay un **censo local ya descargado**:
+
+  ```bash
+  ls scripts/prospector-scout/censo/           # ¿hay censo de esta comunidad autónoma?
+  ```
+
+  Si existe uno para la zona (hoy solo **`censo-aragon.json`**), **LÉELO CON `Read` ANTES de buscar nada**. Es un listado CERRADO y oficial, con nombre, finalidad registrada, municipios, presidente, dirección y teléfono. Trae 31 mancomunidades y 33 comarcas de Aragón, 14 de ellas con competencia de agua explícita.
+
+  Tres reglas al usarlo:
+  1. **Si una mancomunidad no está en el censo, no existe** como entidad local registrada. Eso sí es un negativo válido, y el único que puedes afirmar.
+  2. **`agua: "posible"` NO es un no.** Son las de finalidad genérica («fines varios», «servicios en común»). Dos de las tres que el barrido dio por inexistentes están justo en ese grupo: la Ribera Bajo Huerva y la Ribera Izquierda del Ebro **sí gestionan agua** pese a su finalidad genérica. Trátalas como candidatas.
+  3. **Que esté en el censo no garantiza que siga activa** — mira el campo `disuelta` y avisa de que hay que confirmarlo por teléfono.
+
+  Si NO hay censo de esa comunidad, dilo en «Pendientes de verificar» y sigue con el inventario de aglomeraciones de la confederación y los perfiles de contratante de la diputación. **Nunca concluyas que no hay mancomunidades sin haber mirado un censo.**
 - El **operador del ciclo del agua** de la capital y su forma jurídica real (concesión, UTE, empresa mixta): quién manda ahí decide el material.
 
 **Para empresas fuera de zona pero con operativa dentro:**
@@ -292,6 +306,14 @@ Y comprueba a quién pertenece de verdad la obra: **beneficiario ≠ órgano de 
 - Score 4-5 → Media (siempre frío)
 
 ## Paso 8-bis: CUPO POR TIPO Y BARRIDO DE HUECOS (OBLIGATORIO antes de escribir)
+
+> Este paso NO es una idea: se midió. El 5-sep-2026 se compararon cuatro barridos de Zaragoza —el
+> guion sin él dos veces, una variante de censos, y este—. Con este paso: **10 de 24 entidades
+> conocidas encontradas (frente a 8, 8 y 6), 7 tipos de cuenta (frente a 5) y el tipo dominante baja
+> al 24% (frente a 38%, 37% y 47%)**. Aparecieron por primera vez Ecociudad Zaragoza, INGEOBRAS y el
+> Servicio de Agua del Ayuntamiento. Coste: 2,10 $ y 9m42s, igual que sin él.
+> ⚠️ Tiene un precio medido: **bajan los contactos completos** — 65% de fichas con teléfono y 47%
+> con correo, frente al 92% y 69% del guion sin este paso. Trae más entidades y menos rellenas.
 
 Un barrido medido de esta provincia acabó con **9 de 15 fichas de arquitectura, ninguna administración y ninguna promotora**. No es que no las hubiera: es que nadie comprobó el reparto antes de dar el trabajo por terminado. La arquitectura es el tipo más fácil de encontrar, así que el barrido se va solo hacia ella.
 

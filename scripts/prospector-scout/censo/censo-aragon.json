@@ -1,0 +1,1740 @@
+{
+ "_generado": "2026-09-05",
+ "_fuente": "opendata.aragon.es (Gobierno de Aragón), recursos 24/60/53/57",
+ "_alcance": "SOLO ARAGÓN. No incluye comunidades de regantes: no son entidades locales y no figuran en este registro.",
+ "_como_usarlo": "Es un censo CERRADO: si una mancomunidad no está aquí, no existe como entidad local registrada en Aragón. Al revés NO vale: que esté aquí no garantiza que siga activa — mira el campo 'disuelta' y confirma por teléfono antes de visitar.",
+ "_clasificacion": {
+  "si": "la finalidad registrada nombra el agua",
+  "posible": "finalidad genérica (fines varios, servicios en común…): NO descartarla, hay que comprobarlo. Dos de las tres mancomunidades que el barrido dio por inexistentes están aquí",
+  "no": "finalidad concreta y ajena al agua (transporte, residuos, piscinas…)"
+ },
+ "mancomunidades": [
+  {
+   "id": "14821",
+   "nombre": "ABASTEC. AGUAS GUADALOPE-MEZQUIN",
+   "finalidad": "ABASTECIMIENTO DE AGUAS",
+   "agua": "si",
+   "presidente": "FRANCISCO JAVIER BAIGORRI NAVARRO",
+   "direccion": "PZA. DE ESPAÑA Nº 1, 2ª PLANTA - TORRECILLA DE ALCAÑIZ",
+   "telefono": "978 857 000",
+   "email": "",
+   "cp": "44640",
+   "cif": "P4400035-D",
+   "disuelta": false,
+   "provincias": [
+    "Teruel"
+   ],
+   "municipios": [
+    "ALCAÑIZ",
+    "BELMONTE DE SAN JOSE",
+    "CALANDA",
+    "CASTELSERAS",
+    "CODOÑERA, LA",
+    "TORRECILLA DE ALCAÑIZ",
+    "TORREVELILLA",
+    "VALDEALGORFA"
+   ]
+  },
+  {
+   "id": "7901",
+   "nombre": "ABASTECIMIENTO NONASPE-FABARA",
+   "finalidad": "ABASTECIMIENTO AGUA",
+   "agua": "si",
+   "presidente": "FRANCISCO JAVIER DOMENECH VILLAGRASA",
+   "direccion": "Pza. España, nº 3",
+   "telefono": "976 63 50 01",
+   "email": "",
+   "cp": "50793",
+   "cif": "G-50683234",
+   "disuelta": false,
+   "provincias": [
+    "Zaragoza"
+   ],
+   "municipios": [
+    "FABARA",
+    "NONASPE"
+   ]
+  },
+  {
+   "id": "25022",
+   "nombre": "AGUAS DE ALERRE, BANASTAS Y CHIMILLAS",
+   "finalidad": "ABASTECIMIENTO DE AGUA",
+   "agua": "si",
+   "presidente": "FRANCISCO SANTOLARIA ALASTRUE",
+   "direccion": "",
+   "telefono": "",
+   "email": "",
+   "cp": "",
+   "cif": "",
+   "disuelta": false,
+   "provincias": [
+    "Huesca"
+   ],
+   "municipios": [
+    "ALERRE",
+    "BANASTAS",
+    "CHIMILLAS"
+   ]
+  },
+  {
+   "id": "5038",
+   "nombre": "AGUAS DE ANTILLON Y 6 PUEBLOS MAS",
+   "finalidad": "Abastecimiento agua",
+   "agua": "si",
+   "presidente": "JOSE LUIS FERRANDO FERRANDO",
+   "direccion": "Pza Mayor. TORRES DE MONTES",
+   "telefono": "974 260150",
+   "email": "",
+   "cp": "22134",
+   "cif": "P-7203501G",
+   "disuelta": false,
+   "provincias": [
+    "Huesca"
+   ],
+   "municipios": [
+    "ANGUES",
+    "ANTILLON",
+    "BLECUA Y TORRES",
+    "SIETAMO"
+   ]
+  },
+  {
+   "id": "5039",
+   "nombre": "AGUAS DE CALCON",
+   "finalidad": "Abastecimiento agua",
+   "agua": "si",
+   "presidente": "MARIA PILAR VIU BESCOS",
+   "direccion": "Pza. San Nicolás nº 2",
+   "telefono": "974 260 397",
+   "email": "",
+   "cp": "22142",
+   "cif": "P-7210901-J",
+   "disuelta": false,
+   "provincias": [
+    "Huesca"
+   ],
+   "municipios": [
+    "ANGUES",
+    "CASBAS DE HUESCA",
+    "IBIECA",
+    "LOPORZANO"
+   ]
+  },
+  {
+   "id": "5070",
+   "nombre": "AGUAS DE CUARTE-CADRETE Y MARIA DE HUERVA",
+   "finalidad": "Abastecimiento agua",
+   "agua": "si",
+   "presidente": "JESUS PEREZ PEREZ",
+   "direccion": "C/ Monasterio de Siresa, nº 7 CUARTE DE HUERVA",
+   "telefono": "976 503 067",
+   "email": "",
+   "cp": "50410",
+   "cif": "G-50218106",
+   "disuelta": false,
+   "provincias": [
+    "Zaragoza"
+   ],
+   "municipios": [
+    "CADRETE",
+    "CUARTE DE HUERVA",
+    "MARIA DE HUERVA"
+   ]
+  },
+  {
+   "id": "5040",
+   "nombre": "AGUAS DE MONEGROS",
+   "finalidad": "Abastecimiento agua",
+   "agua": "si",
+   "presidente": "JOSE MANUEL USON ALCUBIERRE",
+   "direccion": "Pza. de España, 1",
+   "telefono": "976 168 301",
+   "email": "perdiguera@dpz.es",
+   "cp": "50161",
+   "cif": "E50060557",
+   "disuelta": false,
+   "provincias": [
+    "Zaragoza"
+   ],
+   "municipios": [
+    "FARLETE",
+    "LECIÑENA",
+    "MONEGRILLO",
+    "PERDIGUERA"
+   ]
+  },
+  {
+   "id": "5041",
+   "nombre": "AGUAS DE VADIELLO",
+   "finalidad": "Abastecimiento agua",
+   "agua": "si",
+   "presidente": "JESUS FRANCISCO PEREZ MUR",
+   "direccion": "Carretera s/n",
+   "telefono": "974 280 003",
+   "email": "",
+   "cp": "22135",
+   "cif": "P-2200066-E",
+   "disuelta": false,
+   "provincias": [
+    "Huesca"
+   ],
+   "municipios": [
+    "ALCALA DEL OBISPO",
+    "ARGAVIESO",
+    "LOPORZANO",
+    "NOVALES",
+    "SESA",
+    "SIETAMO"
+   ]
+  },
+  {
+   "id": "5042",
+   "nombre": "AGUAS DEL HUECHA",
+   "finalidad": "Abastecimiento agua",
+   "agua": "si",
+   "presidente": "AITOR TABUENCA LUJAMBIO",
+   "direccion": "C/Camino Marreque s/n",
+   "telefono": "651 087 357",
+   "email": "manhuecha@gmail.com",
+   "cp": "50540",
+   "cif": "P5000052-J",
+   "disuelta": false,
+   "provincias": [
+    "Zaragoza"
+   ],
+   "municipios": [
+    "AGON",
+    "AINZON",
+    "ALBERITE DE SAN JUAN",
+    "ALBETA",
+    "BISIMBRE",
+    "BORJA",
+    "BURETA",
+    "FRESCANO",
+    "MAGALLON",
+    "MALEJAN",
+    "MALLEN"
+   ]
+  },
+  {
+   "id": "5083",
+   "nombre": "AGUAS LAS TORCAS",
+   "finalidad": "Abastecimiento agua",
+   "agua": "si",
+   "presidente": "JESUS NAVAL ALCONCHEL",
+   "direccion": "C/ Barranco, nº 31",
+   "telefono": "976 147 201",
+   "email": "",
+   "cp": "50155",
+   "cif": "P-5000501-F",
+   "disuelta": false,
+   "provincias": [
+    "Zaragoza"
+   ],
+   "municipios": [
+    "AGUILON",
+    "FUENDETODOS",
+    "PUEBLA DE ALBORTON, LA",
+    "VALMADRID",
+    "VILLANUEVA DE HUERVA"
+   ]
+  },
+  {
+   "id": "24922",
+   "nombre": "PARA DEPURACION DE AGUAS DEL ENTORNO OESTE  ZARAGO",
+   "finalidad": "VERTIDO DE AGUAS RESIDUALES",
+   "agua": "si",
+   "presidente": "",
+   "direccion": "AVDA. ZARAGOZA, 2 UTEBO",
+   "telefono": "",
+   "email": "",
+   "cp": "",
+   "cif": "",
+   "disuelta": false,
+   "provincias": [
+    "Zaragoza"
+   ],
+   "municipios": [
+    "JOYOSA, LA",
+    "PINSEQUE",
+    "SOBRADIEL",
+    "TORRES DE BERRELLEN",
+    "UTEBO",
+    "ZARAGOZA"
+   ]
+  },
+  {
+   "id": "5109",
+   "nombre": "SIERRA DE LUNA-LAS PEDROSAS",
+   "finalidad": "Abastecimiento agua",
+   "agua": "si",
+   "presidente": "RAUL NAVARRO CARRILLO",
+   "direccion": "c/ Ramón y Cajal, 17",
+   "telefono": "(976) 686 001",
+   "email": "",
+   "cp": "50612",
+   "cif": "P-5000008-B",
+   "disuelta": false,
+   "provincias": [
+    "Zaragoza"
+   ],
+   "municipios": [
+    "PEDROSAS, LAS",
+    "SIERRA DE LUNA"
+   ]
+  },
+  {
+   "id": "5117",
+   "nombre": "TORRES DE BERRELLEN-LA JOYOSA",
+   "finalidad": "ABASTECIMIENTO AGUA Y SANEAMIENTO",
+   "agua": "si",
+   "presidente": "INMACULADA MARIA MERCEDES TREBOL BARTOS",
+   "direccion": "Pza. España, 4",
+   "telefono": "976 653 001",
+   "email": "",
+   "cp": "50693",
+   "cif": "G-50304278",
+   "disuelta": false,
+   "provincias": [
+    "Zaragoza"
+   ],
+   "municipios": [
+    "JOYOSA, LA",
+    "TORRES DE BERRELLEN"
+   ]
+  },
+  {
+   "id": "8201",
+   "nombre": "TUROLENSE ELEVACION AGUAS DEL EBRO",
+   "finalidad": "CAPTACION AGUAS EBRO",
+   "agua": "si",
+   "presidente": "",
+   "direccion": "PASEO DE LAS MINAS, S/N, 1ª PLANTA.-ANDORRA",
+   "telefono": "978 812 001",
+   "email": "",
+   "cp": "44500",
+   "cif": "P-4400019-H",
+   "disuelta": false,
+   "provincias": [
+    "Teruel"
+   ],
+   "municipios": [
+    "ALBALATE DEL ARZOBISPO",
+    "ALCORISA",
+    "ALLOZA",
+    "ANDORRA",
+    "ARIÑO"
+   ]
+  },
+  {
+   "id": "5045",
+   "nombre": "ALTAS CINCO VILLAS",
+   "finalidad": "Fines varios",
+   "agua": "posible",
+   "presidente": "",
+   "direccion": "Pza. de la Villa, nº 1",
+   "telefono": "(948) 888 329",
+   "email": "info@altascincovillas.com",
+   "cp": "50680",
+   "cif": "P-5000004-A",
+   "disuelta": false,
+   "provincias": [
+    "Zaragoza"
+   ],
+   "municipios": [
+    "ISUERRE",
+    "LOBERA DE ONSELLA",
+    "LONGAS",
+    "NAVARDUN",
+    "PINTANOS, LOS",
+    "SOS DEL REY CATOLICO",
+    "UNDUES DE LERDA"
+   ]
+  },
+  {
+   "id": "16301",
+   "nombre": "ALTIPLANO DE TERUEL",
+   "finalidad": "FINES GENERALES",
+   "agua": "posible",
+   "presidente": "FRANCISCO JAVIER LAHOZ VILLALBA",
+   "direccion": "C/LA PLAZA, 1 ARGENTE",
+   "telefono": "978 775 101",
+   "email": "",
+   "cp": "44165",
+   "cif": "P4400007C",
+   "disuelta": false,
+   "provincias": [
+    "Teruel"
+   ],
+   "municipios": [
+    "ALPEÑES",
+    "ARGENTE",
+    "CAMAÑAS",
+    "CAÑADA VELLIDA",
+    "FUENTES CALIENTES",
+    "GALVE",
+    "LIDON",
+    "ORRIOS",
+    "PANCRUDO",
+    "PERALES DEL ALFAMBRA",
+    "RILLO",
+    "VISIEDO"
+   ]
+  },
+  {
+   "id": "5063",
+   "nombre": "CLARINA DE LAS CINCO VILLAS",
+   "finalidad": "Servicios Municipales",
+   "agua": "posible",
+   "presidente": "EZEQUIEL MARCO ELORRI",
+   "direccion": "Pza. Aragón, nº 1",
+   "telefono": "976 675 055",
+   "email": "sadaba.1@arrakis.es",
+   "cp": "50670",
+   "cif": "P-5000013-B",
+   "disuelta": false,
+   "provincias": [
+    "Zaragoza"
+   ],
+   "municipios": [
+    "BIOTA",
+    "LAYANA",
+    "SADABA"
+   ]
+  },
+  {
+   "id": "5080",
+   "nombre": "LA FUENTE",
+   "finalidad": "Servicios en común",
+   "agua": "posible",
+   "presidente": "JUAN SANCHEZ HERNANDEZ",
+   "direccion": "Pza. Mayor, nº 1",
+   "telefono": "(978) 650 002",
+   "email": "",
+   "cp": "44370",
+   "cif": "P-9407601-E",
+   "disuelta": false,
+   "provincias": [
+    "Teruel"
+   ],
+   "municipios": [
+    "CELADAS",
+    "CELLA",
+    "GEA DE ALBARRACIN",
+    "VILLARQUEMADO"
+   ]
+  },
+  {
+   "id": "5082",
+   "nombre": "LA SABINA",
+   "finalidad": "Fines varios",
+   "agua": "posible",
+   "presidente": "FELICIDAD PEREZ SICILIA",
+   "direccion": "Pza. Afán de Rivera, nº 3",
+   "telefono": "976 872 823",
+   "email": "",
+   "cp": "50237",
+   "cif": "P-5013001-B",
+   "disuelta": false,
+   "provincias": [
+    "Zaragoza"
+   ],
+   "municipios": [
+    "ABANTO",
+    "ALCONCHEL DE ARIZA",
+    "BORDALBA",
+    "CABOLAFUENTE",
+    "CALMARZA",
+    "CAMPILLO DE ARAGON",
+    "CIMBALLA",
+    "JARABA",
+    "MONTERDE",
+    "POZUEL DE ARIZA",
+    "SISAMON",
+    "TORREHERMOSA"
+   ]
+  },
+  {
+   "id": "5096",
+   "nombre": "RIBERA BAJO HUERVA",
+   "finalidad": "Servicios común",
+   "agua": "posible",
+   "presidente": "JOSE MARIA CASTILLO VICENTE/LAURA PERALTA SANTIAGO",
+   "direccion": "PZA. DE ESPAÑA 1-4",
+   "telefono": "976 124 106",
+   "email": "",
+   "cp": "50430",
+   "cif": "P-5000048-H",
+   "disuelta": false,
+   "provincias": [
+    "Zaragoza"
+   ],
+   "municipios": [
+    "BOTORRITA",
+    "CADRETE",
+    "CUARTE DE HUERVA",
+    "JAULIN",
+    "MARIA DE HUERVA",
+    "MEZALOCHA",
+    "MOZOTA",
+    "MUEL"
+   ]
+  },
+  {
+   "id": "5098",
+   "nombre": "RIBERA IZQUIERDA DEL EBRO",
+   "finalidad": "Servicio de Bases y otros fines",
+   "agua": "posible",
+   "presidente": "JOSE TOMAS PUEYO CONTINENTE",
+   "direccion": "Pza. España, 16 - 2ª PL.",
+   "telefono": "976 790 630",
+   "email": "lacuey@mrie.es",
+   "cp": "50172",
+   "cif": "P-5000003-C",
+   "disuelta": false,
+   "provincias": [
+    "Zaragoza"
+   ],
+   "municipios": [
+    "ALFAJARIN",
+    "NUEZ DE EBRO",
+    "OSERA DE EBRO",
+    "PASTRIZ",
+    "PUEBLA DE ALFINDEN, LA",
+    "VILLAFRANCA DE EBRO",
+    "VILLAMAYOR DE GALLEGO"
+   ]
+  },
+  {
+   "id": "5108",
+   "nombre": "SIERRA DE GUDAR",
+   "finalidad": "Servicios en común",
+   "agua": "posible",
+   "presidente": "",
+   "direccion": "C/ La Comarca, s/n- Mora de Rubielos",
+   "telefono": "(978) 800 008",
+   "email": "msgudar@aragob.es",
+   "cp": "44400",
+   "cif": "P-4400001-F",
+   "disuelta": false,
+   "provincias": [
+    "Teruel"
+   ],
+   "municipios": [
+    "ALCALA DE LA SELVA",
+    "CABRA DE MORA",
+    "CASTELLAR, EL",
+    "FORMICHE ALTO",
+    "GUDAR",
+    "VALDELINARES"
+   ]
+  },
+  {
+   "id": "15641",
+   "nombre": "TAULA DEL SENIA",
+   "finalidad": "POTENCIAR LA ZONA",
+   "agua": "posible",
+   "presidente": "",
+   "direccion": "C/ TORTOSA 1 LA SENIA (TARRAGONA)",
+   "telefono": "977 713 000",
+   "email": "gerencia@tauladelsenia.org",
+   "cp": "43560",
+   "cif": "P 4300069 D",
+   "disuelta": false,
+   "provincias": [
+    "Teruel"
+   ],
+   "municipios": [
+    "BECEITE",
+    "PEÑARROYA DE TASTAVINS",
+    "VALDERROBRES"
+   ]
+  },
+  {
+   "id": "5123",
+   "nombre": "VALLE DE CHISTAU",
+   "finalidad": "Fines Varios",
+   "agua": "posible",
+   "presidente": "FELICIANO SESE CAZCARRA",
+   "direccion": "Pza. Mayor s/n",
+   "telefono": "(974) 506 001",
+   "email": "",
+   "cp": "22367",
+   "cif": "P-2200062-D",
+   "disuelta": false,
+   "provincias": [
+    "Huesca"
+   ],
+   "municipios": [
+    "GISTAIN",
+    "PLAN",
+    "SAN JUAN DE PLAN",
+    "TELLA-SIN"
+   ]
+  },
+  {
+   "id": "25642",
+   "nombre": "ACUEDUCTO ROMANO ALBARRACIN-GEA-CELLA",
+   "finalidad": "PROTECCION ACUEDUCTO ROMANO",
+   "agua": "no",
+   "presidente": "SANTIAGO RODRIGUEZ GRACIA",
+   "direccion": "PZA. AYUNTAMIENTO 6, (GEA DE ALBARRACIN)",
+   "telefono": "978 702 100",
+   "email": "",
+   "cp": "44110",
+   "cif": "",
+   "disuelta": false,
+   "provincias": [
+    "Teruel"
+   ],
+   "municipios": [
+    "ALBARRACIN",
+    "CELLA",
+    "GEA DE ALBARRACIN"
+   ]
+  },
+  {
+   "id": "5051",
+   "nombre": "ALTO VALLE DEL ARAGON",
+   "finalidad": "TRANSPORTE VIAJEROS  ESTACIONES ASTÚN Y CANDANCHU",
+   "agua": "no",
+   "presidente": "JOSE ALVARO SALESA PUENTE",
+   "direccion": "Pza. Ayuntamiento nº 1, Bajos.   Canfranc-Estación",
+   "telefono": "974 356 980",
+   "email": "mava@mavaragon.com",
+   "cp": "22880",
+   "cif": "P-2200015-B",
+   "disuelta": false,
+   "provincias": [
+    "Huesca"
+   ],
+   "municipios": [
+    "AISA",
+    "BORAU",
+    "CANFRANC",
+    "CASTIELLO DE JACA",
+    "JACA",
+    "VILLANUA"
+   ]
+  },
+  {
+   "id": "5055",
+   "nombre": "BAJO GALLEGO",
+   "finalidad": "Residuos Sólidos Urbanos",
+   "agua": "no",
+   "presidente": "JOSÉ MANUEL SALAZAR SALAS",
+   "direccion": "Camino San Juan 4, 1ª planta",
+   "telefono": "976 681 119",
+   "email": "bajogallego@yahoo.es",
+   "cp": "50800",
+   "cif": "P-5000009-J",
+   "disuelta": false,
+   "provincias": [
+    "Zaragoza"
+   ],
+   "municipios": [
+    "SAN MATEO DE GALLEGO",
+    "VILLANUEVA DE GALLEGO",
+    "ZUERA"
+   ]
+  },
+  {
+   "id": "5077",
+   "nombre": "INDUSTRIAL ZONA BAJO MARTIN",
+   "finalidad": "Polígono Industrial",
+   "agua": "no",
+   "presidente": "PEDRO BELLO MARTINEZ",
+   "direccion": "Pza. de España, nº 1",
+   "telefono": "978 826 202",
+   "email": "",
+   "cp": "44510",
+   "cif": "G-44104115",
+   "disuelta": false,
+   "provincias": [
+    "Teruel"
+   ],
+   "municipios": [
+    "ALBALATE DEL ARZOBISPO",
+    "AZAILA",
+    "HIJAR",
+    "JATIEL",
+    "PUEBLA DE HIJAR, LA",
+    "URREA DE GAEN",
+    "VINACEITE"
+   ]
+  },
+  {
+   "id": "5110",
+   "nombre": "SIERRA DEL POBO",
+   "finalidad": "Transporte Interurbano de viajeros",
+   "agua": "no",
+   "presidente": "ROMAN IZQUIERDO FECED",
+   "direccion": "C/ La Plaza, nº 1- CAMARILLAS  (TERUEL)",
+   "telefono": "(978) 774 101",
+   "email": "",
+   "cp": "44155",
+   "cif": "P-4400002-D",
+   "disuelta": false,
+   "provincias": [
+    "Teruel"
+   ],
+   "municipios": [
+    "ABABUJ",
+    "AGUILAR DEL ALFAMBRA",
+    "CAMARILLAS",
+    "JORCAS",
+    "POBO, EL"
+   ]
+  },
+  {
+   "id": "5111",
+   "nombre": "SIERRA VICORT-ESPIGAR",
+   "finalidad": "Gestión Servicio Social de base y Ayuda domicilio",
+   "agua": "no",
+   "presidente": "",
+   "direccion": "Pza. Mayor, nº 9",
+   "telefono": "976 892 201",
+   "email": "msvicort@aragon.es",
+   "cp": "50330",
+   "cif": "G-50769389",
+   "disuelta": false,
+   "provincias": [
+    "Zaragoza"
+   ],
+   "municipios": [
+    "BELMONTE DE GRACIAN",
+    "CODOS",
+    "FRASNO, EL",
+    "MARA",
+    "MIEDES DE ARAGON",
+    "ORERA",
+    "RUESCA",
+    "SANTA CRUZ DE GRIO",
+    "SEDILES",
+    "TOBED",
+    "VILLALBA DE PEREJIL"
+   ]
+  },
+  {
+   "id": "5126",
+   "nombre": "VILLAFELICHE-MONTON",
+   "finalidad": "Piscinas",
+   "agua": "no",
+   "presidente": "IGNACIO MUÑOZ ALGAS",
+   "direccion": "Pza. de la Iglesia, 9",
+   "telefono": "976 891 101",
+   "email": "",
+   "cp": "50391",
+   "cif": "P-5050002-D",
+   "disuelta": false,
+   "provincias": [
+    "Zaragoza"
+   ],
+   "municipios": [
+    "MONTON",
+    "VILLAFELICHE"
+   ]
+  }
+ ],
+ "comarcas": [
+  {
+   "nombre": "ALTO GALLEGO",
+   "municipios": [
+    "BIESCAS",
+    "CALDEARENAS",
+    "HOZ DE JACA",
+    "PANTICOSA",
+    "SABIÑANIGO",
+    "SALLENT DE GALLEGO",
+    "YEBRA DE BASA",
+    "YESERO"
+   ],
+   "provincias": [
+    "Huesca"
+   ]
+  },
+  {
+   "nombre": "ANDORRA/SIERRA DE ARCOS",
+   "municipios": [
+    "ALACON",
+    "ALLOZA",
+    "ANDORRA",
+    "ARIÑO",
+    "CRIVILLEN",
+    "EJULVE",
+    "ESTERCUEL",
+    "GARGALLO",
+    "OLIETE"
+   ],
+   "provincias": [
+    "Teruel"
+   ]
+  },
+  {
+   "nombre": "ARANDA",
+   "municipios": [
+    "ARANDA DE MONCAYO",
+    "BREA DE ARAGON",
+    "CALCENA",
+    "GOTOR",
+    "ILLUECA",
+    "JARQUE DE MONCAYO",
+    "MESONES DE ISUELA",
+    "OSEJA",
+    "POMER",
+    "PURUJOSA",
+    "SESTRICA",
+    "TIERGA",
+    "TRASOBARES"
+   ],
+   "provincias": [
+    "Zaragoza"
+   ]
+  },
+  {
+   "nombre": "BAJO ARAGON",
+   "municipios": [
+    "AGUAVIVA",
+    "ALCAÑIZ",
+    "ALCORISA",
+    "BELMONTE DE SAN JOSE",
+    "BERGE",
+    "CALANDA",
+    "CASTELSERAS",
+    "CAÑADA DE VERICH, LA",
+    "CEROLLERA, LA",
+    "CODOÑERA, LA",
+    "FOZ-CALANDA",
+    "GINEBROSA, LA",
+    "MAS DE LAS MATAS",
+    "MATA DE LOS OLMOS, LA",
+    "OLMOS, LOS",
+    "PARRAS DE CASTELLOTE, LAS",
+    "SENO",
+    "TORRECILLA DE ALCAÑIZ",
+    "TORREVELILLA",
+    "VALDEALGORFA"
+   ],
+   "provincias": [
+    "Teruel"
+   ]
+  },
+  {
+   "nombre": "BAJO ARAGON-CASPE/BAIX ARAGO-CASP",
+   "municipios": [
+    "CASPE",
+    "CHIPRANA",
+    "FABARA",
+    "FAYON",
+    "MAELLA",
+    "NONASPE"
+   ],
+   "provincias": [
+    "Zaragoza"
+   ]
+  },
+  {
+   "nombre": "BAJO CINCA/BAIX CINCA",
+   "municipios": [
+    "BALLOBAR",
+    "BELVER DE CINCA",
+    "CANDASNOS",
+    "CHALAMERA",
+    "FRAGA",
+    "MEQUINENZA",
+    "ONTIÑENA",
+    "OSSO DE CINCA",
+    "TORRENTE DE CINCA",
+    "VELILLA DE CINCA",
+    "ZAIDIN"
+   ],
+   "provincias": [
+    "Huesca",
+    "Zaragoza"
+   ]
+  },
+  {
+   "nombre": "BAJO MARTIN",
+   "municipios": [
+    "ALBALATE DEL ARZOBISPO",
+    "AZAILA",
+    "CASTELNOU",
+    "HIJAR",
+    "JATIEL",
+    "PUEBLA DE HIJAR, LA",
+    "SAMPER DE CALANDA",
+    "URREA DE GAEN",
+    "VINACEITE"
+   ],
+   "provincias": [
+    "Teruel"
+   ]
+  },
+  {
+   "nombre": "CAMPO DE BELCHITE",
+   "municipios": [
+    "ALMOCHUEL",
+    "ALMONACID DE LA CUBA",
+    "AZUARA",
+    "BELCHITE",
+    "CODO",
+    "FUENDETODOS",
+    "LAGATA",
+    "LECERA",
+    "LETUX",
+    "MONEVA",
+    "MOYUELA",
+    "PLENAS",
+    "PUEBLA DE ALBORTON, LA",
+    "SAMPER DEL SALZ",
+    "VALMADRID"
+   ],
+   "provincias": [
+    "Zaragoza"
+   ]
+  },
+  {
+   "nombre": "CAMPO DE BORJA",
+   "municipios": [
+    "AGON",
+    "AINZON",
+    "ALBERITE DE SAN JUAN",
+    "ALBETA",
+    "AMBEL",
+    "BISIMBRE",
+    "BORJA",
+    "BULBUENTE",
+    "BURETA",
+    "FRESCANO",
+    "FUENDEJALON",
+    "MAGALLON",
+    "MALEJAN",
+    "MALLEN",
+    "NOVILLAS",
+    "POZUELO DE ARAGON",
+    "TABUENCA",
+    "TALAMANTES"
+   ],
+   "provincias": [
+    "Zaragoza"
+   ]
+  },
+  {
+   "nombre": "CAMPO DE CARIÑENA",
+   "municipios": [
+    "AGUARON",
+    "AGUILON",
+    "ALADREN",
+    "ALFAMEN",
+    "CARIÑENA",
+    "COSUENDA",
+    "ENCINACORBA",
+    "LONGARES",
+    "MEZALOCHA",
+    "MUEL",
+    "PANIZA",
+    "TOSOS",
+    "VILLANUEVA DE HUERVA",
+    "VISTABELLA"
+   ],
+   "provincias": [
+    "Zaragoza"
+   ]
+  },
+  {
+   "nombre": "CAMPO DE DAROCA",
+   "municipios": [
+    "ACERED",
+    "ALDEHUELA DE LIESTOS",
+    "ANENTO",
+    "ATEA",
+    "BADULES",
+    "BALCONCHAN",
+    "BERRUECO",
+    "CERVERUELA",
+    "CUBEL",
+    "CUERLAS, LAS",
+    "DAROCA",
+    "FOMBUENA",
+    "GALLOCANTA",
+    "HERRERA DE LOS NAVARROS",
+    "LANGA DEL CASTILLO",
+    "LECHON",
+    "LUESMA",
+    "MAINAR",
+    "MANCHONES",
+    "MURERO",
+    "NOMBREVILLA",
+    "ORCAJO",
+    "RETASCON",
+    "ROMANOS",
+    "SANTED",
+    "TORRALBA DE LOS FRAILES",
+    "TORRALBILLA",
+    "USED",
+    "VAL DE SAN MARTIN",
+    "VALDEHORNA",
+    "VILLADOZ",
+    "VILLANUEVA DE JILOCA",
+    "VILLAR DE LOS NAVARROS",
+    "VILLARREAL DE HUERVA",
+    "VILLARROYA DEL CAMPO"
+   ],
+   "provincias": [
+    "Zaragoza"
+   ]
+  },
+  {
+   "nombre": "CENTRAL",
+   "municipios": [
+    "ALFAJARIN",
+    "BOTORRITA",
+    "BURGO DE EBRO, EL",
+    "CADRETE",
+    "CUARTE DE HUERVA",
+    "FUENTES DE EBRO",
+    "JAULIN",
+    "MARIA DE HUERVA",
+    "MEDIANA DE ARAGON",
+    "MOZOTA",
+    "NUEZ DE EBRO",
+    "OSERA DE EBRO",
+    "PASTRIZ",
+    "PUEBLA DE ALFINDEN, LA",
+    "SAN MATEO DE GALLEGO",
+    "UTEBO",
+    "VILLAFRANCA DE EBRO",
+    "VILLAMAYOR DE GALLEGO",
+    "VILLANUEVA DE GALLEGO",
+    "ZARAGOZA",
+    "ZUERA"
+   ],
+   "provincias": [
+    "Zaragoza"
+   ]
+  },
+  {
+   "nombre": "CINCA MEDIO",
+   "municipios": [
+    "ALBALATE DE CINCA",
+    "ALCOLEA DE CINCA",
+    "ALFANTEGA",
+    "ALMUNIA DE SAN JUAN",
+    "BINACED",
+    "FONZ",
+    "MONZON",
+    "PUEYO DE SANTA CRUZ",
+    "SAN MIGUEL DEL CINCA"
+   ],
+   "provincias": [
+    "Huesca"
+   ]
+  },
+  {
+   "nombre": "CINCO VILLAS",
+   "municipios": [
+    "ARDISA",
+    "ASIN",
+    "BAGUES",
+    "BIEL",
+    "BIOTA",
+    "CASTEJON DE VALDEJASA",
+    "CASTILISCAR",
+    "EJEA DE LOS CABALLEROS",
+    "ERLA",
+    "FRAGO, EL",
+    "ISUERRE",
+    "LAYANA",
+    "LOBERA DE ONSELLA",
+    "LONGAS",
+    "LUESIA",
+    "LUNA",
+    "MARRACOS",
+    "NAVARDUN",
+    "ORES",
+    "PEDROSAS, LAS",
+    "PIEDRATAJADA",
+    "PINTANOS, LOS",
+    "PUENDELUNA",
+    "SADABA",
+    "SIERRA DE LUNA",
+    "SOS DEL REY CATOLICO",
+    "TAUSTE",
+    "UNCASTILLO",
+    "UNDUES DE LERDA",
+    "URRIES",
+    "VALPALMAS"
+   ],
+   "provincias": [
+    "Zaragoza"
+   ]
+  },
+  {
+   "nombre": "COMUNIDAD DE CALATAYUD",
+   "municipios": [
+    "ABANTO",
+    "ALARBA",
+    "ALCONCHEL DE ARIZA",
+    "ALHAMA DE ARAGON",
+    "ANIÑON",
+    "ARANDIGA",
+    "ARIZA",
+    "ATECA",
+    "BELMONTE DE GRACIAN",
+    "BERDEJO",
+    "BIJUESCA",
+    "BORDALBA",
+    "BUBIERCA",
+    "CABOLAFUENTE",
+    "CALATAYUD",
+    "CALMARZA",
+    "CAMPILLO DE ARAGON",
+    "CARENAS",
+    "CASTEJON DE ALARBA",
+    "CASTEJON DE LAS ARMAS",
+    "CERVERA DE LA CAÑADA",
+    "CETINA",
+    "CIMBALLA",
+    "CLARES DE RIBOTA",
+    "CODOS",
+    "CONTAMINA",
+    "EMBID DE ARIZA",
+    "FRASNO, EL",
+    "FUENTES DE JILOCA",
+    "GODOJOS",
+    "IBDES",
+    "JARABA",
+    "MALANQUILLA",
+    "MALUENDA",
+    "MARA",
+    "MIEDES DE ARAGON",
+    "MONREAL DE ARIZA",
+    "MONTERDE",
+    "MONTON",
+    "MORATA DE JILOCA",
+    "MORES",
+    "MOROS",
+    "MUNEBREGA",
+    "NIGUELLA",
+    "NUEVALOS",
+    "OLVES",
+    "ORERA",
+    "PARACUELLOS DE JILOCA",
+    "PARACUELLOS DE LA RIBERA",
+    "POZUEL DE ARIZA",
+    "RUESCA",
+    "SABIÑAN",
+    "SEDILES",
+    "SISAMON",
+    "TERRER",
+    "TOBED",
+    "TORRALBA DE RIBOTA",
+    "TORREHERMOSA",
+    "TORRELAPAJA",
+    "TORRIJO DE LA CAÑADA",
+    "VALTORRES",
+    "VELILLA DE JILOCA",
+    "VILLAFELICHE",
+    "VILLALBA DE PEREJIL",
+    "VILLALENGUA",
+    "VILLARROYA DE LA SIERRA",
+    "VILUEÑA, LA"
+   ],
+   "provincias": [
+    "Zaragoza"
+   ]
+  },
+  {
+   "nombre": "COMUNIDAD DE TERUEL",
+   "municipios": [
+    "ABABUJ",
+    "AGUATON",
+    "AGUILAR DEL ALFAMBRA",
+    "ALBA",
+    "ALFAMBRA",
+    "ALMOHAJA",
+    "ALOBRAS",
+    "ALPEÑES",
+    "ARGENTE",
+    "CAMARILLAS",
+    "CAMAÑAS",
+    "CASCANTE DEL RIO",
+    "CAÑADA VELLIDA",
+    "CEDRILLAS",
+    "CELADAS",
+    "CELLA",
+    "CORBALAN",
+    "CUBLA",
+    "CUERVO, EL",
+    "CUEVAS LABRADAS",
+    "ESCORIHUELA",
+    "FUENTES CALIENTES",
+    "GALVE",
+    "JORCAS",
+    "LIBROS",
+    "LIDON",
+    "MONTEAGUDO DEL CASTILLO",
+    "ORRIOS",
+    "PANCRUDO",
+    "PERALEJOS",
+    "PERALES DEL ALFAMBRA",
+    "POBO, EL",
+    "RILLO",
+    "RIODEVA",
+    "SANTA EULALIA",
+    "TERUEL",
+    "TORMON",
+    "TORRELACARCEL",
+    "TORREMOCHA DE JILOCA",
+    "TRAMACASTIEL",
+    "VALACLOCHE",
+    "VEGUILLAS DE LA SIERRA",
+    "VILLARQUEMADO",
+    "VILLASTAR",
+    "VILLEL",
+    "VISIEDO"
+   ],
+   "provincias": [
+    "Teruel"
+   ]
+  },
+  {
+   "nombre": "CUENCAS MINERAS",
+   "municipios": [
+    "ALCAINE",
+    "ALIAGA",
+    "ANADON",
+    "BLESA",
+    "CASTEL DE CABRA",
+    "CAÑIZAR DEL OLIVAR",
+    "CORTES DE ARAGON",
+    "CUEVAS DE ALMUDEN",
+    "ESCUCHA",
+    "FUENFERRADA",
+    "HINOJOSA DE JARQUE",
+    "HOZ DE LA VIEJA, LA",
+    "HUESA DEL COMUN",
+    "JARQUE DE LA VAL",
+    "JOSA",
+    "MAICAS",
+    "MARTIN DEL RIO",
+    "MEZQUITA DE JARQUE",
+    "MONTALBAN",
+    "MUNIESA",
+    "OBON",
+    "PALOMAR DE ARROYOS",
+    "PLOU",
+    "SALCEDILLO",
+    "SEGURA DE BAÑOS",
+    "TORRE DE LAS ARCAS",
+    "UTRILLAS",
+    "VILLANUEVA DEL REBOLLAR DE LA SIERRA",
+    "VIVEL DEL RIO MARTIN",
+    "ZOMA, LA"
+   ],
+   "provincias": [
+    "Teruel"
+   ]
+  },
+  {
+   "nombre": "GUDAR-JAVALAMBRE",
+   "municipios": [
+    "ABEJUELA",
+    "ALBENTOSA",
+    "ALCALA DE LA SELVA",
+    "ARCOS DE LAS SALINAS",
+    "CABRA DE MORA",
+    "CAMARENA DE LA SIERRA",
+    "CASTELLAR, EL",
+    "FORMICHE ALTO",
+    "FUENTES DE RUBIELOS",
+    "GUDAR",
+    "LINARES DE MORA",
+    "MANZANERA",
+    "MORA DE RUBIELOS",
+    "MOSQUERUELA",
+    "NOGUERUELAS",
+    "OLBA",
+    "PUEBLA DE VALVERDE, LA",
+    "PUERTOMINGALVO",
+    "RUBIELOS DE MORA",
+    "SAN AGUSTIN",
+    "SARRION",
+    "TORRIJAS",
+    "VALBONA",
+    "VALDELINARES"
+   ],
+   "provincias": [
+    "Teruel"
+   ]
+  },
+  {
+   "nombre": "HOYA DE HUESCA/PLANA DE UESCA",
+   "municipios": [
+    "AGUERO",
+    "ALBERO ALTO",
+    "ALCALA DE GURREA",
+    "ALCALA DEL OBISPO",
+    "ALERRE",
+    "ALMUDEVAR",
+    "ANGUES",
+    "ANTILLON",
+    "ARGAVIESO",
+    "ARGUIS",
+    "AYERBE",
+    "BANASTAS",
+    "BISCARRUES",
+    "BLECUA Y TORRES",
+    "CASBAS DE HUESCA",
+    "CHIMILLAS",
+    "GURREA DE GALLEGO",
+    "HUESCA",
+    "IBIECA",
+    "IGRIES",
+    "LOARRE",
+    "LOPORZANO",
+    "LOSCORRALES",
+    "LUPIÑEN-ORTILLA",
+    "MONFLORITE-LASCASAS",
+    "MURILLO DE GALLEGO",
+    "NOVALES",
+    "NUENO",
+    "PERTUSA",
+    "PEÑAS DE RIGLOS, LAS",
+    "PIRACES",
+    "QUICENA",
+    "SALILLAS",
+    "SANTA EULALIA DE GALLEGO",
+    "SESA",
+    "SIETAMO",
+    "SOTONERA, LA",
+    "TIERZ",
+    "TRAMACED",
+    "VICIEN"
+   ],
+   "provincias": [
+    "Huesca",
+    "Zaragoza"
+   ]
+  },
+  {
+   "nombre": "JACETANIA, LA",
+   "municipios": [
+    "AISA",
+    "ANSO",
+    "ARAGUES DEL PUERTO",
+    "ARTIEDA",
+    "BAILO",
+    "BORAU",
+    "CANAL DE BERDUN",
+    "CANFRANC",
+    "CASTIELLO DE JACA",
+    "FAGO",
+    "JACA",
+    "JASA",
+    "MIANOS",
+    "PUENTE LA REINA DE JACA",
+    "SALVATIERRA DE ESCA",
+    "SANTA CILIA",
+    "SANTA CRUZ DE LA SEROS",
+    "SIGUES",
+    "VALLE DE HECHO",
+    "VILLANUA"
+   ],
+   "provincias": [
+    "Huesca",
+    "Zaragoza"
+   ]
+  },
+  {
+   "nombre": "JILOCA",
+   "municipios": [
+    "ALLUEVA",
+    "BADENAS",
+    "BAGUENA",
+    "BARRACHINA",
+    "BAÑON",
+    "BEA",
+    "BELLO",
+    "BLANCAS",
+    "BUEÑA",
+    "BURBAGUENA",
+    "CALAMOCHA",
+    "CAMINREAL",
+    "CASTEJON DE TORNOS",
+    "COSA",
+    "CUCALON",
+    "FERRERUELA DE HUERVA",
+    "FONFRIA",
+    "FUENTES CLARAS",
+    "LAGUERUELA",
+    "LANZUELA",
+    "LOSCOS",
+    "MONFORTE DE MOYUELA",
+    "MONREAL DEL CAMPO",
+    "NOGUERAS",
+    "ODON",
+    "OJOS NEGROS",
+    "PERACENSE",
+    "POZUEL DEL CAMPO",
+    "RUBIELOS DE LA CERIDA",
+    "SAN MARTIN DEL RIO",
+    "SANTA CRUZ DE NOGUERAS",
+    "SINGRA",
+    "TORNOS",
+    "TORRALBA DE LOS SISONES",
+    "TORRE LOS NEGROS",
+    "TORRECILLA DEL REBOLLAR",
+    "TORRIJO DEL CAMPO",
+    "VILLAFRANCA DEL CAMPO",
+    "VILLAHERMOSA DEL CAMPO",
+    "VILLAR DEL SALZ"
+   ],
+   "provincias": [
+    "Teruel"
+   ]
+  },
+  {
+   "nombre": "LITERA/LA LLITERA, LA",
+   "municipios": [
+    "ALBELDA",
+    "ALCAMPELL",
+    "ALTORRICON",
+    "AZANUY-ALINS",
+    "BAELLS",
+    "BALDELLOU",
+    "BINEFAR",
+    "CAMPORRELLS",
+    "CASTILLONROY",
+    "ESPLUS",
+    "PERALTA DE CALASANZ",
+    "SAN ESTEBAN DE LITERA",
+    "TAMARITE DE LITERA",
+    "VENCILLON"
+   ],
+   "provincias": [
+    "Huesca"
+   ]
+  },
+  {
+   "nombre": "MAESTRAZGO",
+   "municipios": [
+    "ALLEPUZ",
+    "BORDON",
+    "CANTAVIEJA",
+    "CASTELLOTE",
+    "CAÑADA DE BENATANDUZ",
+    "CUBA, LA",
+    "FORTANETE",
+    "IGLESUELA DEL CID, LA",
+    "MIRAMBEL",
+    "MIRAVETE DE LA SIERRA",
+    "MOLINOS",
+    "PITARQUE",
+    "TRONCHON",
+    "VILLARLUENGO",
+    "VILLARROYA DE LOS PINARES"
+   ],
+   "provincias": [
+    "Teruel"
+   ]
+  },
+  {
+   "nombre": "MATARRAÑA/MATARRANYA",
+   "municipios": [
+    "ARENS DE LLEDO",
+    "BECEITE",
+    "CALACEITE",
+    "CRETAS",
+    "FORNOLES",
+    "FRESNEDA, LA",
+    "FUENTESPALDA",
+    "LLEDO",
+    "MAZALEON",
+    "MONROYO",
+    "PEÑARROYA DE TASTAVINS",
+    "PORTELLADA, LA",
+    "RAFALES",
+    "TORRE DE ARCAS",
+    "TORRE DEL COMPTE",
+    "VALDELTORMO",
+    "VALDERROBRES",
+    "VALJUNQUERA"
+   ],
+   "provincias": [
+    "Teruel"
+   ]
+  },
+  {
+   "nombre": "MONEGROS, LOS",
+   "municipios": [
+    "ALBALATILLO",
+    "ALBERO BAJO",
+    "ALBERUELA DE TUBO",
+    "ALCUBIERRE",
+    "ALMOLDA, LA",
+    "ALMUNIENTE",
+    "BARBUES",
+    "BUJARALOZ",
+    "CAPDESASO",
+    "CASTEJON DE MONEGROS",
+    "CASTELFLORITE",
+    "FARLETE",
+    "GRAÑEN",
+    "HUERTO",
+    "LALUEZA",
+    "LANAJA",
+    "LECIÑENA",
+    "MONEGRILLO",
+    "PERDIGUERA",
+    "PEÑALBA",
+    "POLEÑINO",
+    "ROBRES",
+    "SANGARREN",
+    "SARIÑENA",
+    "SENA",
+    "SENES DE ALCUBIERRE",
+    "TARDIENTA",
+    "TORRALBA DE ARAGON",
+    "TORRES DE BARBUES",
+    "VALFARTA",
+    "VILLANUEVA DE SIJENA"
+   ],
+   "provincias": [
+    "Huesca",
+    "Zaragoza"
+   ]
+  },
+  {
+   "nombre": "RIBAGORZA",
+   "municipios": [
+    "AREN",
+    "BENABARRE",
+    "BENASQUE",
+    "BERANUY",
+    "BISAURRI",
+    "BONANSA",
+    "CAMPO",
+    "CAPELLA",
+    "CASTEJON DE SOS",
+    "CASTIGALEU",
+    "CHIA",
+    "ESTOPIÑAN DEL CASTILLO",
+    "FORADADA DEL TOSCAR",
+    "GRAUS",
+    "ISABENA",
+    "LASCUARRE",
+    "LASPAULES",
+    "MONESMA Y CAJIGAR",
+    "MONTANUY",
+    "PERARRUA",
+    "PUEBLA DE CASTRO, LA",
+    "PUENTE DE MONTAÑANA",
+    "SAHUN",
+    "SANTA LIESTRA Y SAN QUILEZ",
+    "SECASTILLA",
+    "SEIRA",
+    "SESUE",
+    "SOPEIRA",
+    "TOLVA",
+    "TORRE LA RIBERA",
+    "VALLE DE BARDAJI",
+    "VALLE DE LIERP",
+    "VIACAMP Y LITERA",
+    "VILLANOVA"
+   ],
+   "provincias": [
+    "Huesca"
+   ]
+  },
+  {
+   "nombre": "RIBERA ALTA DEL EBRO",
+   "municipios": [
+    "ALAGON",
+    "ALCALA DE EBRO",
+    "BARBOLES",
+    "BOQUIÑENI",
+    "CABAÑAS DE EBRO",
+    "FIGUERUELAS",
+    "GALLUR",
+    "GRISEN",
+    "JOYOSA, LA",
+    "LUCENI",
+    "PEDROLA",
+    "PINSEQUE",
+    "PLEITAS",
+    "PRADILLA DE EBRO",
+    "REMOLINOS",
+    "SOBRADIEL",
+    "TORRES DE BERRELLEN"
+   ],
+   "provincias": [
+    "Zaragoza"
+   ]
+  },
+  {
+   "nombre": "RIBERA BAJA DEL EBRO",
+   "municipios": [
+    "ALBORGE",
+    "ALFORQUE",
+    "CINCO OLIVAS",
+    "ESCATRON",
+    "GELSA",
+    "PINA DE EBRO",
+    "QUINTO",
+    "SASTAGO",
+    "VELILLA DE EBRO",
+    "ZAIDA, LA"
+   ],
+   "provincias": [
+    "Zaragoza"
+   ]
+  },
+  {
+   "nombre": "SIERRA DE ALBARRACIN",
+   "municipios": [
+    "ALBARRACIN",
+    "BEZAS",
+    "BRONCHALES",
+    "CALOMARDE",
+    "FRIAS DE ALBARRACIN",
+    "GEA DE ALBARRACIN",
+    "GRIEGOS",
+    "GUADALAVIAR",
+    "JABALOYAS",
+    "MONTERDE DE ALBARRACIN",
+    "MOSCARDON",
+    "NOGUERA DE ALBARRACIN",
+    "ORIHUELA DEL TREMEDAL",
+    "POZONDON",
+    "RODENAS",
+    "ROYUELA",
+    "RUBIALES",
+    "SALDON",
+    "TERRIENTE",
+    "TORIL Y MASEGOSO",
+    "TORRES DE ALBARRACIN",
+    "TRAMACASTILLA",
+    "VALDECUENCA",
+    "VALLECILLO, EL",
+    "VILLAR DEL COBO"
+   ],
+   "provincias": [
+    "Teruel"
+   ]
+  },
+  {
+   "nombre": "SOBRARBE",
+   "municipios": [
+    "ABIZANDA",
+    "AINSA-SOBRARBE",
+    "BARCABO",
+    "BIELSA",
+    "BOLTAÑA",
+    "BROTO",
+    "FANLO",
+    "FISCAL",
+    "FUEVA, LA",
+    "GISTAIN",
+    "LABUERDA",
+    "LASPUÑA",
+    "PALO",
+    "PLAN",
+    "PUERTOLAS",
+    "PUEYO DE ARAGUAS, EL",
+    "SAN JUAN DE PLAN",
+    "TELLA-SIN",
+    "TORLA-ORDESA"
+   ],
+   "provincias": [
+    "Huesca"
+   ]
+  },
+  {
+   "nombre": "SOMONTANO DE BARBASTRO",
+   "municipios": [
+    "ABIEGO",
+    "ADAHUESCA",
+    "ALQUEZAR",
+    "AZARA",
+    "AZLOR",
+    "BARBASTRO",
+    "BARBUÑALES",
+    "BERBEGAL",
+    "BIERGE",
+    "CASTEJON DEL PUENTE",
+    "CASTILLAZUELO",
+    "COLUNGO",
+    "ESTADA",
+    "ESTADILLA",
+    "GRADO, EL-LO GRAU",
+    "HOZ Y COSTEAN",
+    "ILCHE",
+    "LALUENGA",
+    "LAPERDIGUERA",
+    "LASCELLAS-PONZANO",
+    "NAVAL",
+    "OLVENA",
+    "PERALTA DE ALCOFEA",
+    "PERALTILLA",
+    "POZAN DE VERO",
+    "SALAS ALTAS",
+    "SALAS BAJAS",
+    "SANTA MARIA DE DULCIS",
+    "TORRES DE ALCANADRE"
+   ],
+   "provincias": [
+    "Huesca"
+   ]
+  },
+  {
+   "nombre": "TARAZONA Y EL MONCAYO",
+   "municipios": [
+    "ALCALA DE MONCAYO",
+    "AÑON DE MONCAYO",
+    "BUSTE, EL",
+    "FAYOS, LOS",
+    "GRISEL",
+    "LITAGO",
+    "LITUENIGO",
+    "MALON",
+    "NOVALLAS",
+    "SAN MARTIN DE LA VIRGEN DEL MONCAYO",
+    "SANTA CRUZ DE MONCAYO",
+    "TARAZONA",
+    "TORRELLAS",
+    "TRASMOZ",
+    "VERA DE MONCAYO",
+    "VIERLAS"
+   ],
+   "provincias": [
+    "Zaragoza"
+   ]
+  },
+  {
+   "nombre": "VALDEJALON",
+   "municipios": [
+    "ALMONACID DE LA SIERRA",
+    "ALMUNIA DE DOÑA GODINA, LA",
+    "ALPARTIR",
+    "BARDALLUR",
+    "CALATORAO",
+    "CHODES",
+    "EPILA",
+    "LUCENA DE JALON",
+    "LUMPIAQUE",
+    "MORATA DE JALON",
+    "MUELA, LA",
+    "PLASENCIA DE JALON",
+    "RICLA",
+    "RUEDA DE JALON",
+    "SALILLAS DE JALON",
+    "SANTA CRUZ DE GRIO",
+    "URREA DE JALON"
+   ],
+   "provincias": [
+    "Zaragoza"
+   ]
+  }
+ ]
+}
