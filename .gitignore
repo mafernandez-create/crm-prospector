@@ -22,6 +22,7 @@ google_credentials.json
 !scripts/backup-crm.py
 !scripts/prospector-scout/censo/construir-censo-aragon.py
 !scripts/placsp-agua-informe.py
+!scripts/placsp-quien-licita.py
 *.js
 !index.js
 !cors-proxy.js

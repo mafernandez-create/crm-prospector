@@ -7,6 +7,16 @@
 // de adivinar quién puede prescribir, se mira QUIÉN HA GANADO los contratos de
 // obra hidráulica. Tres capas, por orden de valor para prescripción:
 //
+//   0. QUIEN LICITA (el organo de contratacion). Idea de Manolo, y es la capa
+//      mas estable de las tres: el redactor cambia con cada concurso y el
+//      constructor llega cuando el pliego ya esta escrito, pero el ayuntamiento
+//      o la mancomunidad que saco la renovacion de su red este año la volvera a
+//      sacar. Ademas es QUIEN APRUEBA el pliego: aunque lo redacte una
+//      ingenieria externa, es el organismo quien decide si admite una clausula
+//      de "o equivalente". El XML trae su nombre, correo, telefono, direccion y
+//      web. ⚠️ La primera version lo buscaba como `cac:LocatedContractingParty`
+//      y la etiqueta real lleva el prefijo `cac-place-ext:`: se perdio en las
+//      7.023 adjudicaciones del primer año recorrido.
 //   1. REDACTORES (servicios de ingeniería, TypeCode 2). El que redacta es el
 //      que escribe la marca en el pliego. Es el prescriptor con nombre.
 //   2. CONSTRUCTORAS (obras, TypeCode 3). El pliego ya está escrito, así que no
@@ -75,23 +85,41 @@ function analiza(entrada) {
   // Obras: cualquier obra de agua vale — ahí el filtro es el objeto, no el CPV.
   if (tipo === SERVICIOS && !(esIng || REDACTA.test(titulo))) return null;
   const ganador = uno(entrada, /<cac:WinningParty>[\s\S]*?<cbc:Name>([\s\S]*?)<\/cbc:Name>/);
-  if (!ganador) return null;                        // sin adjudicatario no sirve
+  // SIN adjudicatario ya NO se descarta: puede ser una licitación en plazo, y
+  // aunque no sirva para saber a quién visitar —el ganador no existe todavía—
+  // sí dice QUIÉN LICITA, que es lo que de verdad se repite año tras año.
   const prov = uno(entrada, /CountrySubentity[^>]*>([^<]+)/);
   if (PROV && !prov.toLowerCase().includes(PROV)) return null;
   // Las actas son donde están los nombres de quienes pujaron y no ganaron.
   const actas = [...entrada.matchAll(
     /<cbc:DocumentTypeCode[^>]*>(ACTA[^<]*)<\/cbc:DocumentTypeCode>\s*<cac:Attachment>\s*<cac:ExternalReference>\s*<cbc:URI>([^<]+)<\/cbc:URI>/g)]
     .map(m => ({ tipo: m[1], url: m[2].replace(/&amp;/g, '&') }));
+  // El organo de contratación, con su contacto. El bloque correcto es
+  // `cac-place-ext:LocatedContractingParty`, NO `cac:LocatedContractingParty`.
+  const bloque = (entrada.match(
+    /<cac-place-ext:LocatedContractingParty>[\s\S]*?<\/cac-place-ext:LocatedContractingParty>/) || [''])[0];
+  const org = {
+    nombre: uno(bloque, /<cac:PartyName>\s*<cbc:Name>([\s\S]*?)<\/cbc:Name>/) ||
+             uno(bloque, /<cbc:Name>([\s\S]*?)<\/cbc:Name>/),
+    email:  uno(bloque, /<cbc:ElectronicMail>([^<]+)/),
+    tel:    uno(bloque, /<cbc:Telephone>([^<]+)/),
+    web:    uno(bloque, /<cbc:WebsiteURI>([^<]+)/),
+    ciudad: uno(bloque, /<cbc:CityName>([^<]+)/),
+    dir:    uno(bloque, /<cbc:Line>([^<]+)/),
+    tipo:   uno(bloque, /<cbc:ContractingPartyTypeCode[^>]*>([^<]+)/),
+    matriz: uno(bloque, /<cac-place-ext:ParentLocatedParty>[\s\S]*?<cbc:Name>([\s\S]*?)<\/cbc:Name>/),
+  };
+  if (!ganador && !org.nombre) return null;         // sin ganador NI órgano no aporta nada
   return {
-    papel: tipo === SERVICIOS ? 'redacta' : 'construye',
+    papel: !ganador ? 'licita' : (tipo === SERVICIOS ? 'redacta' : 'construye'),
+    organo: org,
     fecha: uno(entrada, /<updated>([^<]+)/).slice(0, 10),
-    titulo, adjudicatario: ganador, provincia: prov,
+    titulo, adjudicatario: ganador || null, provincia: prov,
     ofertas: parseInt(uno(entrada, /<cbc:ReceivedTenderQuantity[^>]*>(\d+)/), 10) || null,
     oferta_min: parseFloat(uno(entrada, /<cbc:LowerTenderAmount[^>]*>([^<]+)/)) || null,
     oferta_max: parseFloat(uno(entrada, /<cbc:HigherTenderAmount[^>]*>([^<]+)/)) || null,
     actas,
     importe: parseFloat(uno(entrada, /<cbc:TotalAmount[^>]*>([^<]+)/)) || null,
-    organo: uno(entrada, /<cac:LocatedContractingParty>[\s\S]*?<cbc:Name>([\s\S]*?)<\/cbc:Name>/),
     cpv: [...new Set(cpvs)].slice(0, 4),
     url: uno(entrada, /<link[^>]*href="([^"]*licitacionId[^"]*)"/) || uno(entrada, /<id>([^<]+)/),
   };
@@ -131,10 +159,25 @@ function procesaZip(zip, acc) {
     try {
       if (fs.existsSync(PARCIAL) && hechos.has(ym)) { console.log('ya procesado'); continue; }
       if (!fs.existsSync(zip)) {
-        const r = await fetch(BASE + ym + '.zip');
-        if (!r.ok) { console.log(`sin fichero (HTTP ${r.status})`); continue; }
-        // stream a disco: nunca el fichero entero en memoria
-        await pipeline(Readable.fromWeb(r.body), fs.createWriteStream(zip));
+        // El servidor de PLACSP es lento e intermitente — lo dice el propio
+        // placsp-fetch.js de este repo. En la primera pasada de 12 meses,
+        // SIETE fallaron con "fetch failed" y solo entraron 5. No es un error
+        // del script: hay que reintentar, esperando mas en cada intento.
+        let ok = false;
+        for (let intento = 1; intento <= 4 && !ok; intento++) {
+          try {
+            const r = await fetch(BASE + ym + '.zip');
+            if (!r.ok) { console.log(`sin fichero (HTTP ${r.status})`); break; }
+            await pipeline(Readable.fromWeb(r.body), fs.createWriteStream(zip));
+            ok = true;
+          } catch (e) {
+            if (fs.existsSync(zip)) fs.unlinkSync(zip);   // descarga a medias
+            if (intento === 4) throw e;
+            process.stdout.write(`reintento ${intento} `);
+            await new Promise(r2 => setTimeout(r2, intento * 20000));
+          }
+        }
+        if (!ok) continue;
       }
       const mes = [];
       leidas += procesaZip(zip, mes);
@@ -150,6 +193,7 @@ function procesaZip(zip, acc) {
   const porEmpresa = {};
   for (const h of acc) {
     const k = h.adjudicatario;
+    if (!k) continue;                               // las 'licita' no tienen empresa ganadora
     (porEmpresa[k] = porEmpresa[k] || { adjudicatario: k, papeles: new Set(), contratos: 0, importe: 0, provincias: new Set(), obras: [] });
     porEmpresa[k].papeles.add(h.papel);
     porEmpresa[k].contratos++;
@@ -166,6 +210,8 @@ function procesaZip(zip, acc) {
     _entradas_leidas: leidas, _adjudicaciones: acc.length,
     _redactan: acc.filter(h => h.papel === 'redacta').length,
     _construyen: acc.filter(h => h.papel === 'construye').length,
+    _en_plazo: acc.filter(h => h.papel === 'licita').length,
+    _con_organo: acc.filter(h => h.organo && h.organo.nombre).length,
     _ofertas_perdedoras: acc.reduce((s, h) => s + Math.max(0, (h.ofertas || 1) - 1), 0),
     _actas_enlazadas: acc.reduce((s, h) => s + h.actas.length, 0),
     _que_es: 'Empresas que han GANADO contratos de agua. papel=redacta son los PRESCRIPTORES ' +
