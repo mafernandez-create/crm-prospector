@@ -12,6 +12,7 @@ google_credentials.json
 # descubrio que el marcador del banco, el constructor del censo y el cruce de
 # adjudicaciones estaban solo en el Mac de Manolo.
 !scripts/prospector-scout/banco/medir.py
+!scripts/prospector-scout/dossier.py
 !scripts/prospector-scout/censo/construir-censo-aragon.py
 !scripts/placsp-agua-informe.py
 *.js

@@ -1,0 +1,61 @@
+#!/bin/bash
+# ══════════════════════════════════════════════════════════════════════════
+# SCOUT — un solo mando para prospectar una zona
+#
+#   ./scripts/scout "Alagón"
+#   ./scripts/scout "Zaragoza" --tipo ingenieria,regantes
+#   ./scripts/scout "Granada" --solo-dossier      (gratis, sin llamar al modelo)
+#
+# Acepta MUNICIPIO, COMARCA o PROVINCIA. Sin --tipo, cubre todos los tipos.
+#
+# Hace dos cosas, en este orden y a propósito:
+#
+#   1. DOSSIER (segundos, gratis, determinista). Reúne lo que ya consta en un
+#      registro: la cartera del CRM separando visitadas de dormidas, el censo
+#      oficial de mancomunidades y comarcas, y un año de adjudicaciones
+#      públicas de obra de agua con quién redactó cada proyecto.
+#
+#   2. BARRIDO (unos 12 min, ~2 $). Lanza el agente CON EL DOSSIER YA HECHO.
+#      Esto es lo que cambia respecto a antes: el agente dejó de gastar turnos
+#      redescubriendo lo que está en un registro —dio por inexistentes las
+#      mancomunidades dos veces— y dedica su presupuesto a lo único que solo
+#      él puede hacer: lo que no consta en ningún sitio.
+#
+# Tipos válidos: arquitectura · ingenieria · regantes · aguas · aapp ·
+#                constructora · promotora · distribucion
+# ══════════════════════════════════════════════════════════════════════════
+set -uo pipefail
+CRM="$(cd "$(dirname "$0")/.." && pwd)"; cd "$CRM"
+
+ZONA=""; TIPO=""; SOLO=0; RESTO=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --tipo)  TIPO="$2"; shift 2 ;;
+    --solo-dossier) SOLO=1; shift ;;
+    --*)     RESTO+=("$1"); shift ;;
+    *)       [ -z "$ZONA" ] && ZONA="$1" || RESTO+=("$1"); shift ;;
+  esac
+done
+if [ -z "$ZONA" ]; then
+  sed -n '3,20p' "$0" | sed 's/^# \{0,1\}//'; exit 1
+fi
+
+echo "▶ Dossier previo de '$ZONA'${TIPO:+ · tipos: $TIPO}"
+if [ -n "$TIPO" ]; then
+  DOSSIER=$(python3 scripts/prospector-scout/dossier.py "$ZONA" --tipo "$TIPO" | tee /dev/stderr | tail -1 | sed 's/.*→ //')
+else
+  DOSSIER=$(python3 scripts/prospector-scout/dossier.py "$ZONA" | tee /dev/stderr | tail -1 | sed 's/.*→ //')
+fi
+[ -f "$DOSSIER" ] || { echo "❌ No se pudo construir el dossier." >&2; exit 1; }
+echo
+
+if [ "$SOLO" = "1" ]; then
+  echo "✅ Solo dossier, como se pidió. No se ha llamado al modelo ni gastado nada."
+  echo "   $DOSSIER"; exit 0
+fi
+
+# El dossier viaja al agente como PRIMERA instrucción, y el tipo como foco.
+export SCOUT_DOSSIER="$DOSSIER"
+export SCOUT_TIPOS="$TIPO"
+echo "▶ Barrido de campo (unos 12 min, ~2 $)"
+./scripts/prospector-scout/run-scout.sh --medir "$ZONA" "${RESTO[@]:-}"

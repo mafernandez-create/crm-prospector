@@ -140,7 +140,24 @@ OUT_FILE="$OUTPUT_DIR/prospectos-${STAMP_FILE}-scout-${ZONA_NORM}${SUFIJO}.md"
 echo "[$TIMESTAMP] === Scout iniciado — modo=$MODE zona='$ZONA' foco='$FOCO' ===" >> "$LOG"
 
 # ── Prompt: SOLO delega en el agente existente, no reimplementa nada ───────
-PROMPT="Eres el prospector de estudios nuevos del CRM. LEE con Read el fichero \
+# El dossier previo, si lo hay, va DELANTE de todo: es lo que evita que el
+# agente gaste turnos redescubriendo lo que ya consta en un registro.
+DOSSIER_TXT=""
+if [ -n "${SCOUT_DOSSIER:-}" ] && [ -f "${SCOUT_DOSSIER}" ]; then
+    DOSSIER_TXT="ANTES DE NADA lee con Read el fichero '${SCOUT_DOSSIER}': es el DOSSIER PREVIO de \
+esta zona, y trae lo que YA consta en registros oficiales — la cartera del CRM (separando las ya \
+visitadas, que NO puedes proponer, de la cartera dormida, que SI es objetivo), el censo oficial de \
+mancomunidades y comarcas, y un año de adjudicaciones publicas con quien REDACTO cada proyecto de \
+agua. Todo eso NO hay que volver a buscarlo: incorporalo a tu informe como punto de partida y dedica \
+tu presupuesto a lo que NO esta en ningun registro. Si el dossier dice que no hay censo para esa \
+comunidad, NO concluyas que no hay mancomunidades: dilo como pendiente. "
+fi
+TIPOS_TXT=""
+if [ -n "${SCOUT_TIPOS:-}" ]; then
+    TIPOS_TXT="LIMITA la busqueda a estos tipos de cuenta: ${SCOUT_TIPOS}. No traigas otros tipos, \
+aunque los encuentres; menciona en 'Pendientes' si viste algo relevante de otro tipo. "
+fi
+PROMPT="Eres el prospector de estudios nuevos del CRM. ${DOSSIER_TXT}${TIPOS_TXT}LEE con Read el fichero \
 $AGENT_FILE de este repo y actúa EXACTAMENTE según sus \
 reglas, haciéndolo TÚ MISMO en este mismo proceso. NO delegues en ningún subagente \
 ni uses el Task tool: en modo headless el proceso termina y el subagente muere sin \

@@ -29,7 +29,34 @@ segundo y el JSON de resultado dice `OAuth session expired`. Compruébalo con
 `claude auth status`; si da `loggedIn: false`, hace falta `claude auth login`
 (abre el navegador, lo valida Manolo). **Estado a 5-sep-2026: `loggedIn: false`.**
 
-## 1. Probar en dry-run (no gasta nada, no llama a la API)
+## 1. El mando único: `scripts/scout`
+
+```bash
+./scripts/scout "Alagón"                        # todo, todos los tipos
+./scripts/scout "Zaragoza" --tipo ingenieria    # solo un tipo de cuenta
+./scripts/scout "Granada" --solo-dossier        # gratis, sin llamar al modelo
+```
+
+Acepta **municipio, comarca o provincia** — un nombre que sea las dos cosas (Zaragoza, Granada,
+Murcia) se lee como provincia, que es la lectura útil al prospectar. Sin `--tipo` cubre todos.
+
+Hace dos cosas en este orden, y el orden es lo importante:
+
+1. **Dossier previo** (`dossier.py`, segundos, gratis). Reúne lo que ya consta en un REGISTRO: la
+   cartera del CRM separando las visitadas —que el agente tiene prohibido proponer— de la cartera
+   dormida, el censo oficial de mancomunidades y comarcas, y un año de adjudicaciones públicas con
+   quién redactó cada proyecto de agua.
+2. **Barrido** con el dossier ya hecho y entregado al agente como primera instrucción.
+
+**Por qué en ese orden.** El agente es buen buscador y mal censista: dio por inexistentes las
+mancomunidades de agua dos veces, en Zaragoza y en Teruel, y ninguna de las cuatro variantes del
+banco lo arregló. Darle el registro hecho no le mejora el criterio — le quita el trabajo en el que
+falla, y le deja el presupuesto para lo único que solo él puede hacer.
+
+Tipos válidos: `arquitectura` · `ingenieria` · `regantes` · `aguas` · `aapp` · `constructora` ·
+`promotora` · `distribucion`.
+
+## 2. Probar en dry-run (no gasta nada, no llama a la API)
 
 ```bash
 cd ~/Proyectos/Trabajo_GPF/crm
@@ -39,7 +66,7 @@ cd ~/Proyectos/Trabajo_GPF/crm
 Esto valida argumentos, construye el prompt y el nombre del fichero de salida,
 y escribe el plan completo en `.prospector-scout.log` — sin tocar la API.
 
-## 2. Medir el prototipo desechable (regla del ecosistema: medir, no estimar)
+## 3. Medir el prototipo desechable (regla del ecosistema: medir, no estimar)
 
 > ### ✅ Medición ya realizada — Córdoba, 2026-07-10
 > Primera ejecución `--medir` real (foco MUTE), resultados verificados en
@@ -105,7 +132,7 @@ medido: con foco ~$1,63, sin foco ~$2,21 —, y por un timeout de proceso de
    sección "Pendientes de verificar" del propio informe) antes de llamar a
    nadie. El scout descubre; no confirma.
 
-## 3. Activar la ejecución real sin supervisión (solo cuando el paso 2 salga bien)
+## 4. Activar la ejecución real sin supervisión (solo cuando el paso 2 salga bien)
 
 `run-scout.sh` bloquea a propósito la ejecución real por defecto (modo sin
 `--dry-run`/`--medir`) hasta que se confirme `SCOUT_HEADLESS_VERIFIED=1`. Esto
