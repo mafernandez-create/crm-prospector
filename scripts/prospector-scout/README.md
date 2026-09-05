@@ -58,10 +58,24 @@ y escribe el plan completo en `.prospector-scout.log` — sin tocar la API.
 >   (10 prospectos, formato idéntico al del agente manual).
 >
 > ⚠️ Esa validación de punta a punta **dejó de ser cierta el 20-ago-2026**, cuando
-> el fallo del Task tool (ver arriba) rompió el harness headless. El arreglo está
-> aplicado en el prompt pero sin reejecutar. Hasta que un `--medir` vuelva a
-> dejar un informe en `agentes/output/`, la vía fiable es lanzar el agente
-> `prospector-nuevos` dentro de una conversación, supervisado.
+> el fallo del Task tool (ver arriba) rompió el harness headless.
+
+> ### ✅ Reparado y reejecutado — Teruel, 2026-09-05
+> Pase `--medir` sin foco, con el prompt corregido. **El harness vuelve a
+> funcionar de punta a punta**, esta vez con la medición leída del JSON, no
+> anotada a mano:
+> - **Coste real: $1.87** (`total_cost_usd`), repartido entre sonnet-4-6 ($1.25)
+>   y haiku-4.5 ($0.62, que es quien ejecuta las 23 búsquedas web).
+> - **Duración: 8 min 35 s** de turno; 8 min 37 s de reloj según el log.
+> - **50 turnos**, `permission_denials: []`, exit 0.
+> - **Informe escrito** (26 KB, 16 prospectos: 10 sólidos + 6 fríos) y copiado
+>   a Descargas. Este es el dato que importa: es justo lo que el fallo de agosto
+>   impedía.
+>
+> ⚠️ Salvedad honesta: se ejecutó con la **CLI 2.1.210**, anterior a la 2.1.234
+> que introdujo el fallo. Que funcione aquí no demuestra que el arreglo resista
+> esa versión. **Repetir este pase después de la próxima actualización de la
+> CLI**, antes de fiarse.
 
 **Antes de programar cualquier cadencia**, ejecuta una vez el modo `--medir`,
 en primer plano, para ver con tus propios ojos si `claude -p` headless se
