@@ -30,8 +30,13 @@ print('%.2f \$ · %dm%02ds'%(d.get('total_cost_usd') or 0,(d.get('duration_ms') 
 # Guiones desde el directorio VERSIONADO, no desde la ruta de produccion: al
 # implementar una variante, ".claude/agents/prospector-nuevos.md" deja de ser
 # el control y el banco no puede reproducir su propia linea base.
-corre vA1 "scripts/prospector-scout/guiones/vA-control.md"
-corre vA2 "scripts/prospector-scout/guiones/vA-control.md"
-corre vB  "scripts/prospector-scout/guiones/vB-censo-anclado.md"
-corre vC  "scripts/prospector-scout/guiones/vC-cupo-por-tipo.md"
+# ORDEN ALEATORIO. En la tanda de Zaragoza los cuatro corrieron siempre en el
+# mismo orden, asi que la posicion en la serie estaba confundida con la
+# variante: cualquier tendencia monotona podia ser una cosa o la otra.
+PASES=("vA1:vA-control" "vA2:vA-control" "vB:vB-censo-anclado" "vC:vC-cupo-por-tipo")
+ORDEN=$(printf '%s\n' "${PASES[@]}" | awk 'BEGIN{srand()}{print rand()"\t"$0}' | sort -k1,1 | cut -f2)
+echo "orden de esta tanda: $(echo $ORDEN | tr '\n' ' ')"
+while read -r p; do
+    corre "${p%%:*}" "scripts/prospector-scout/guiones/${p##*:}.md"
+done <<< "$ORDEN"
 echo "── fin $(date '+%H:%M:%S') ──"

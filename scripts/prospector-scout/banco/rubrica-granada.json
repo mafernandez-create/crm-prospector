@@ -1,0 +1,693 @@
+{
+ "_que_es": "Rubrica para el banco de variantes sobre GRANADA. A diferencia de la de Zaragoza, NO la he construido yo: sale del propio CRM, que es anterior al experimento. Eso quita la circularidad que el contrarian reprocho al patron oro de Zaragoza.",
+ "_las_dos_metricas": {
+  "rescate": "De las 132 fichas de cartera DORMIDA (en el CRM, sin ningun informe), cuantas saca el barrido. El guion se lo MANDA explicitamente: son prospecto valido, marcadas origen=en_cartera_sin_visitar. Mide el Paso 3, que en Zaragoza no se ejecuto nunca porque alli el CRM tiene 0 fichas.",
+  "error_duro": "De las 5 ya VISITADAS (con informe), cuantas propone. El guion lo PROHIBE en su regla dura 1. Cada una es un fallo objetivo, no una opinion. Es la metrica de PRECISION que el contrarian echaba en falta: hasta ahora el marcador solo premiaba escribir mas nombres."
+ },
+ "_ojo": "98 de las 132 dormidas son de tipo 'aguas'. Es un sesgo del propio CRM, no del barrido: hay muchas entidades pequenas de agua dadas de alta y nunca trabajadas. Al leer el rescate, mirar tambien el reparto por tipo.",
+ "entidades": [],
+ "prohibidas": [
+  {
+   "id": "2597",
+   "nombre": "DIELFON COSTA S.COOP. AND"
+  },
+  {
+   "id": "277",
+   "nombre": "Francisco Maeso López"
+  },
+  {
+   "id": "470",
+   "nombre": "Aguas y servicios de la costa tropical (SECTOR MOTRIL)"
+  },
+  {
+   "id": "2513",
+   "nombre": "Dielfon Costa"
+  },
+  {
+   "id": "306",
+   "nombre": "C.R. Motril-Carchuna y Cota 200"
+  }
+ ],
+ "dormidas": [
+  {
+   "id": "2307",
+   "nombre": "HIDRALIA A TRAVES DE AGUASVIRA",
+   "tipo": "aguas"
+  },
+  {
+   "id": "2312",
+   "nombre": "HIDRALIA A TRAVES DE EMASAGRA",
+   "tipo": "aguas"
+  },
+  {
+   "id": "clnag5vl3NjV8Hv4SOjG",
+   "nombre": "AEGRA - Agua y Energía de Granada",
+   "tipo": "ingenieria"
+  },
+  {
+   "id": "QXdhlLCSsOlfU7pskiTQ",
+   "nombre": "ATECSUR Ingeniería",
+   "tipo": "ingenieria"
+  },
+  {
+   "id": "upZl2ySphJUVeuNkn4q6",
+   "nombre": "Carvajal Arquitectos",
+   "tipo": "arquitectura"
+  },
+  {
+   "id": "xtEaGWUkmh6ANx1HaBW0",
+   "nombre": "ARQUIAG Arquitectura y Construcción",
+   "tipo": "arquitectura"
+  },
+  {
+   "id": "3078",
+   "nombre": "ESPINAR ARQUITECTOS SLP",
+   "tipo": "arquitectura"
+  },
+  {
+   "id": "3085",
+   "nombre": "deLUNA GROUP",
+   "tipo": "promotora"
+  },
+  {
+   "id": "3081",
+   "nombre": "GRUPO CARJUNA",
+   "tipo": "promotora"
+  },
+  {
+   "id": "3079",
+   "nombre": "COMUNIDAD GENERAL DE REGANTES DEL BAJO GUADALFEO",
+   "tipo": "regantes"
+  },
+  {
+   "id": "3083",
+   "nombre": "BARSANT PROMOCIONES INMOBILIARIAS",
+   "tipo": "promotora"
+  },
+  {
+   "id": "3084",
+   "nombre": "SÁNCHEZ GALDÓ ARQUITECTOS",
+   "tipo": "arquitectura"
+  },
+  {
+   "id": "3086",
+   "nombre": "AMAT ARQUITECTOS",
+   "tipo": "arquitectura"
+  },
+  {
+   "id": "3092",
+   "nombre": "Fuerte La Herradura SL",
+   "tipo": "promotora"
+  },
+  {
+   "id": "3089",
+   "nombre": "Ingeniería Guadalsur SLP",
+   "tipo": "ingenieria"
+  },
+  {
+   "id": "3096",
+   "nombre": "Tuyser",
+   "tipo": "promotora"
+  },
+  {
+   "id": "3097",
+   "nombre": "Prodesur",
+   "tipo": "promotora"
+  },
+  {
+   "id": "3080",
+   "nombre": "JARQUIL CONSTRUCCIÓN SA",
+   "tipo": "promotora"
+  },
+  {
+   "id": "3090",
+   "nombre": "Grupo Mayfo",
+   "tipo": "promotora"
+  },
+  {
+   "id": "3088",
+   "nombre": "Urbana Infraestructuras e Ingeniería",
+   "tipo": "ingenieria"
+  },
+  {
+   "id": "3087",
+   "nombre": "Grupo Nacimiento (Infraestructuras y Medio Ambiente)",
+   "tipo": "ingenieria"
+  },
+  {
+   "id": "3093",
+   "nombre": "Grupo Medina Ingeniería",
+   "tipo": "ingenieria"
+  },
+  {
+   "id": "3094",
+   "nombre": "Aconser Grupo Empresarial",
+   "tipo": "promotora"
+  },
+  {
+   "id": "3091",
+   "nombre": "Albaida Infraestructuras",
+   "tipo": "promotora"
+  },
+  {
+   "id": "xA7WYYLmk5eNWEZ7bm0H",
+   "nombre": "AOS Arquitectura",
+   "tipo": "arquitectura"
+  },
+  {
+   "id": "1016",
+   "nombre": "Ayuntamiento de Cortes Y Graena",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1031",
+   "nombre": "Ayuntamiento de Cuevas Del Campo",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1034",
+   "nombre": "Ayuntamiento de Cáñar",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1037",
+   "nombre": "Ayuntamiento de Dehesas De Guadix",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1038",
+   "nombre": "Ayuntamiento de Dehesas Viejas",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1039",
+   "nombre": "Ayuntamiento de Deifontes",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1041",
+   "nombre": "Ayuntamiento de Domingo Pérez De Granada",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1047",
+   "nombre": "Ayuntamiento de Dúrcal",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1066",
+   "nombre": "Ayuntamiento de El Padul",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1087",
+   "nombre": "Ayuntamiento de El Valle",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1118",
+   "nombre": "Ayuntamiento de Ferreira",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1130",
+   "nombre": "Ayuntamiento de Fonelas",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1135",
+   "nombre": "Ayuntamiento de Fornes",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1138",
+   "nombre": "Ayuntamiento de Freila",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1177",
+   "nombre": "Ayuntamiento de Galera",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1209",
+   "nombre": "Ayuntamiento de Gobernador",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1213",
+   "nombre": "Ayuntamiento de Gor",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1214",
+   "nombre": "Ayuntamiento de Gorafe",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1222",
+   "nombre": "Ayuntamiento de Guadahortuna",
+   "tipo": "aguas"
+  },
+  {
+   "id": "3102",
+   "nombre": "CUAC Arquitectura",
+   "tipo": "arquitectura"
+  },
+  {
+   "id": "3104",
+   "nombre": "Serrano + Baquero Arquitectos",
+   "tipo": "arquitectura"
+  },
+  {
+   "id": "3099",
+   "nombre": "ED3 Arquitectos",
+   "tipo": "arquitectura"
+  },
+  {
+   "id": "3105",
+   "nombre": "Betancourt Ingenieros SLP",
+   "tipo": "ingenieria"
+  },
+  {
+   "id": "3103",
+   "nombre": "GRX Arquitectos",
+   "tipo": "arquitectura"
+  },
+  {
+   "id": "3100",
+   "nombre": "Oikos Arquitectos",
+   "tipo": "arquitectura"
+  },
+  {
+   "id": "3101",
+   "nombre": "JORVAL 2012, S.L.",
+   "tipo": "promotora"
+  },
+  {
+   "id": "1280",
+   "nombre": "Ayuntamiento de Huélago",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1236",
+   "nombre": "Ayuntamiento de Güéjar Sierra",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1282",
+   "nombre": "Ayuntamiento de Huéneja",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1285",
+   "nombre": "Ayuntamiento de Huétor De Santillán",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1292",
+   "nombre": "Ayuntamiento de Iznalloz",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1299",
+   "nombre": "Ayuntamiento de Jayena",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1307",
+   "nombre": "Ayuntamiento de Juviles",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1308",
+   "nombre": "Ayuntamiento de Játar",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1310",
+   "nombre": "Ayuntamiento de Jérez Del Marquesado",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1333",
+   "nombre": "Ayuntamiento de La Malahá",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1347",
+   "nombre": "Ayuntamiento de La Peza",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1356",
+   "nombre": "Ayuntamiento de La Taha",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1371",
+   "nombre": "Ayuntamiento de Lanjarón",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1372",
+   "nombre": "Ayuntamiento de Lanteira",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1389",
+   "nombre": "Ayuntamiento de Lecrín",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1398",
+   "nombre": "Ayuntamiento de Loja",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1421",
+   "nombre": "Ayuntamiento de Lugros",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1453",
+   "nombre": "Ayuntamiento de Marchal",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1500",
+   "nombre": "Ayuntamiento de Moclín",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1527",
+   "nombre": "Ayuntamiento de Montejícar",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1532",
+   "nombre": "Ayuntamiento de Montillana",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1535",
+   "nombre": "Ayuntamiento de Moraleda De Zafayona",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1604",
+   "nombre": "Ayuntamiento de Nevada",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1605",
+   "nombre": "Ayuntamiento de Nigüelas",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1628",
+   "nombre": "Ayuntamiento de Orce",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1649",
+   "nombre": "Ayuntamiento de Pampaneira",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1667",
+   "nombre": "Ayuntamiento de Pedro Martínez",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1712",
+   "nombre": "Ayuntamiento de Polícar",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1756",
+   "nombre": "Ayuntamiento de Purullena",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1760",
+   "nombre": "Ayuntamiento de Pórtugos",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1819",
+   "nombre": "Ayuntamiento de Salar",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1895",
+   "nombre": "Ayuntamiento de Santa Cruz Del Comercio",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1956",
+   "nombre": "Ayuntamiento de Soportújar",
+   "tipo": "aguas"
+  },
+  {
+   "id": "2002",
+   "nombre": "Ayuntamiento de Torre-Cardela",
+   "tipo": "aguas"
+  },
+  {
+   "id": "2034",
+   "nombre": "Ayuntamiento de Trevélez",
+   "tipo": "aguas"
+  },
+  {
+   "id": "2155",
+   "nombre": "Ayuntamiento de Villamena",
+   "tipo": "aguas"
+  },
+  {
+   "id": "2166",
+   "nombre": "Ayuntamiento de Villanueva De Las Torres",
+   "tipo": "aguas"
+  },
+  {
+   "id": "2175",
+   "nombre": "Ayuntamiento de Villanueva Mesía",
+   "tipo": "aguas"
+  },
+  {
+   "id": "2235",
+   "nombre": "Ayuntamiento de Válor",
+   "tipo": "aguas"
+  },
+  {
+   "id": "2259",
+   "nombre": "Ayuntamiento de Zújar",
+   "tipo": "aguas"
+  },
+  {
+   "id": "2300",
+   "nombre": "GESTÍÓN  TÉCNICAS DEL AGUA ( GESTAGUA )",
+   "tipo": "aguas"
+  },
+  {
+   "id": "2322",
+   "nombre": "Hidrofluid Energy",
+   "tipo": "aguas"
+  },
+  {
+   "id": "2361",
+   "nombre": "Mancomunidad de la comarca de Baza",
+   "tipo": "aguas"
+  },
+  {
+   "id": "2382",
+   "nombre": "Mancomunidad del rio Dílar",
+   "tipo": "aguas"
+  },
+  {
+   "id": "426",
+   "nombre": "Acciona",
+   "tipo": "aguas"
+  },
+  {
+   "id": "430",
+   "nombre": "Aegra",
+   "tipo": "aguas"
+  },
+  {
+   "id": "453",
+   "nombre": "Aguas de Guadix",
+   "tipo": "aguas"
+  },
+  {
+   "id": "468",
+   "nombre": "Aguas y servicios de la costa tropical (SECTOR ALMUÑECAR)",
+   "tipo": "aguas"
+  },
+  {
+   "id": "469",
+   "nombre": "Aguas y servicios de la costa tropical (SECTOR CONTRAVIESA)",
+   "tipo": "aguas"
+  },
+  {
+   "id": "471",
+   "nombre": "Aguas y servicios de la costa tropical (SECTOR SALOBREÑA)",
+   "tipo": "aguas"
+  },
+  {
+   "id": "535",
+   "nombre": "Ayuntamiento de Alamedilla",
+   "tipo": "aguas"
+  },
+  {
+   "id": "556",
+   "nombre": "Ayuntamiento de Albuñuelas",
+   "tipo": "aguas"
+  },
+  {
+   "id": "557",
+   "nombre": "Ayuntamiento de Albuñán",
+   "tipo": "aguas"
+  },
+  {
+   "id": "596",
+   "nombre": "Ayuntamiento de Aldeire",
+   "tipo": "aguas"
+  },
+  {
+   "id": "601",
+   "nombre": "Ayuntamiento de Algarinejo",
+   "tipo": "aguas"
+  },
+  {
+   "id": "608",
+   "nombre": "Ayuntamiento de Alhama De Granada",
+   "tipo": "aguas"
+  },
+  {
+   "id": "614",
+   "nombre": "Ayuntamiento de Alicún De Ortega",
+   "tipo": "aguas"
+  },
+  {
+   "id": "637",
+   "nombre": "Ayuntamiento de Alpujarra De La Sierra",
+   "tipo": "aguas"
+  },
+  {
+   "id": "640",
+   "nombre": "Ayuntamiento de Alquife",
+   "tipo": "aguas"
+  },
+  {
+   "id": "665",
+   "nombre": "Ayuntamiento de Arenas Del Rey",
+   "tipo": "aguas"
+  },
+  {
+   "id": "719",
+   "nombre": "Ayuntamiento de Beas De Granada",
+   "tipo": "aguas"
+  },
+  {
+   "id": "720",
+   "nombre": "Ayuntamiento de Beas De Guadix",
+   "tipo": "aguas"
+  },
+  {
+   "id": "734",
+   "nombre": "Ayuntamiento de Benalúa",
+   "tipo": "aguas"
+  },
+  {
+   "id": "735",
+   "nombre": "Ayuntamiento de Benalúa De Las Villas",
+   "tipo": "aguas"
+  },
+  {
+   "id": "736",
+   "nombre": "Ayuntamiento de Benamaurel",
+   "tipo": "aguas"
+  },
+  {
+   "id": "795",
+   "nombre": "Ayuntamiento de Bubión",
+   "tipo": "aguas"
+  },
+  {
+   "id": "808",
+   "nombre": "Ayuntamiento de Busquístar",
+   "tipo": "aguas"
+  },
+  {
+   "id": "813",
+   "nombre": "Ayuntamiento de Bérchules",
+   "tipo": "aguas"
+  },
+  {
+   "id": "832",
+   "nombre": "Ayuntamiento de Cacín",
+   "tipo": "aguas"
+  },
+  {
+   "id": "851",
+   "nombre": "Ayuntamiento de Campotéjar",
+   "tipo": "aguas"
+  },
+  {
+   "id": "854",
+   "nombre": "Ayuntamiento de Caniles",
+   "tipo": "aguas"
+  },
+  {
+   "id": "864",
+   "nombre": "Ayuntamiento de Capileira",
+   "tipo": "aguas"
+  },
+  {
+   "id": "865",
+   "nombre": "Ayuntamiento de Carataunas",
+   "tipo": "aguas"
+  },
+  {
+   "id": "924",
+   "nombre": "Ayuntamiento de Castilléjar",
+   "tipo": "aguas"
+  },
+  {
+   "id": "928",
+   "nombre": "Ayuntamiento de Castril",
+   "tipo": "aguas"
+  },
+  {
+   "id": "995",
+   "nombre": "Ayuntamiento de Cogollos De Guadix",
+   "tipo": "aguas"
+  },
+  {
+   "id": "343",
+   "nombre": "Colectividad Cuevas del Campo - Fases I/II/III",
+   "tipo": "regantes"
+  },
+  {
+   "id": "2664",
+   "nombre": "ASITEC Ingeniería, Urbanismo y Medio Ambiente SLP",
+   "tipo": "ingenieria"
+  },
+  {
+   "id": "1074",
+   "nombre": "Ayuntamiento de El Pinar",
+   "tipo": "aguas"
+  },
+  {
+   "id": "1780385078254_3995",
+   "nombre": "OJEDAMIN CONSTRUCCIONES SL",
+   "tipo": "ingenieria"
+  },
+  {
+   "id": "1780557865321_727",
+   "nombre": "LETTER INGENIEROS SL",
+   "tipo": "ingenieria"
+  }
+ ]
+}
