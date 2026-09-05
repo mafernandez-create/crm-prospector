@@ -6,8 +6,13 @@ Este directorio envuelve el agente ya existente `.claude/agents/prospector-nuevo
 en un disparador programable **local** (no GitHub Actions — ver
 `docs/decisiones/2026-07-10-scout-prospector-nuevos.md` para el porqué). No
 reescribe la lógica del agente: el script solo le pide a Claude Code, en modo
-headless, que delegue en ese subagente exactamente como ya lo hace
-`/pendientes-zona` con el suyo.
+headless, que **lea el `.md` del agente y actúe él mismo según sus reglas**.
+⚠️ Hasta el 20-ago-2026 le pedía delegar vía Task tool, como hace
+`/pendientes-zona` con el suyo. Se cambió porque con la CLI 2.1.234 el
+orquestador lanzaba el Task en segundo plano, contestaba "sigo trabajando" y
+terminaba su turno, matando al subagente sin escribir el informe — y cobrando
+igual (~0,40 $, 30 s de turno). **El arreglo está escrito pero NO reejecutado:
+no hay ningún pase posterior al 20-ago que lo demuestre.**
 
 ## Ficheros
 
@@ -15,6 +20,14 @@ headless, que delegue en ese subagente exactamente como ya lo hace
   ubicación (mismo patrón que `auto-push.sh` / `scripts/auto-qualify.sh`).
 - `com.crm.prospector-scout.plist.example` — plantilla de `launchd`,
   **deshabilitada** (vive aquí, no en `~/Library/LaunchAgents/`).
+
+## 0. Si "no hace nada", mira esto primero
+
+El scout usa la **suscripción vía OAuth**, no una API key. Cuando la sesión
+caduca, Scout.app se abre y se cierra sin más: el proceso muere en menos de un
+segundo y el JSON de resultado dice `OAuth session expired`. Compruébalo con
+`claude auth status`; si da `loggedIn: false`, hace falta `claude auth login`
+(abre el navegador, lo valida Manolo). **Estado a 5-sep-2026: `loggedIn: false`.**
 
 ## 1. Probar en dry-run (no gasta nada, no llama a la API)
 
@@ -32,16 +45,23 @@ y escribe el plan completo en `.prospector-scout.log` — sin tocar la API.
 > Primera ejecución `--medir` real (foco MUTE), resultados verificados en
 > `.prospector-scout-last-result.json`:
 > - **Coste real: $1.63** por un scout completo de una provincia. Por eso el
->   `--max-budget-usd` por defecto se subió de $1 (truncaba) a **$2** (margen).
-> - **Duración:** ~6 min de reloj (búsqueda web + cruce + redacción).
+>   `--max-budget-usd` por defecto se subió de $1 (truncaba) a $2, y de $2 a
+>   **$3** el 31-jul-2026, porque un pase sin foco (Granada, $2.21) truncaba
+>   justo al cerrar el informe.
+> - **Duración:** 6 min 46 s de reloj según `.prospector-scout.log`
+>   (13:16:18 → 13:23:04). Un pase SIN foco tarda bastante más: Granada,
+>   16 min 05 s.
 > - **`claude -p` headless NO se cuelga** sin TTY: `permission_denials: []`,
 >   exit 0. Este era el gran TODO de permisos — resuelto.
 > - **Modelo `claude-sonnet-4-6`: confirmado vigente** (resolvió y respondió).
 > - Informe generado en `agentes/output/prospectos-2026-07-10-scout-córdoba.md`
 >   (10 prospectos, formato idéntico al del agente manual).
 >
-> Repite este paso para una zona nueva solo si quieres re-medir; el harness ya
-> está validado de punta a punta.
+> ⚠️ Esa validación de punta a punta **dejó de ser cierta el 20-ago-2026**, cuando
+> el fallo del Task tool (ver arriba) rompió el harness headless. El arreglo está
+> aplicado en el prompt pero sin reejecutar. Hasta que un `--medir` vuelva a
+> dejar un informe en `agentes/output/`, la vía fiable es lanzar el agente
+> `prospector-nuevos` dentro de una conversación, supervisado.
 
 **Antes de programar cualquier cadencia**, ejecuta una vez el modo `--medir`,
 en primer plano, para ver con tus propios ojos si `claude -p` headless se
@@ -50,13 +70,14 @@ cuánto cuesta/tarda de verdad:
 
 ```bash
 cd ~/Proyectos/Trabajo_GPF/crm
-SCOUT_MAX_BUDGET_USD=2.00 ./scripts/prospector-scout/run-scout.sh --medir "Córdoba" "MUTE"
+./scripts/prospector-scout/run-scout.sh --medir "Córdoba" "MUTE"
 ```
 
-Esto SÍ invoca la API (acotado por `--max-budget-usd`, por defecto 2,00 $ —
-medido: un scout de provincia cuesta ~$1,63 —, y por un timeout de proceso de
-30 min por defecto; ambos configurables por variable de entorno, ver cabecera
-de `run-scout.sh`). Al terminar:
+Esto SÍ invoca la API (acotado por `--max-budget-usd`, por defecto 3,00 $ —
+medido: con foco ~$1,63, sin foco ~$2,21 —, y por un timeout de proceso de
+30 min por defecto; ambos configurables por variable de entorno
+—`SCOUT_MAX_BUDGET_USD`, `SCOUT_TIMEOUT_SECONDS`—, ver cabecera de
+`run-scout.sh`). Al terminar:
 
 1. Revisa `.prospector-scout.log` (en la raíz del repo, ya gitignored).
 2. Abre `.prospector-scout-last-result.json` (también gitignored) y anota
@@ -114,12 +135,22 @@ de este proyecto para retiradas reversibles — ver
 2. **Nunca envía correos ni escribe en producción.** Solo deposita un
    `.md` en `agentes/output/` (gitignored, protección de PII).
 3. **Nunca se commitea el output.** `agentes/output/` está en `.gitignore` a
-   propósito (ver hallazgo B1 de `AUDITORIA.md`, fuga de PII ya remediada).
+   propósito: los informes llevan nombres, teléfonos y correos de personas, y
+   el repositorio es público. (Corregido el 5-sep-2026: esta línea atribuía la
+   exclusión a "el hallazgo B1 de AUDITORIA.md, fuga de PII ya remediada". Es
+   falso — los bloqueantes de esa auditoría son B1 proxy GAS abierto, B2 sin
+   logout y B3 PWA sin offline, y ninguno es de datos personales. La exclusión
+   es real; la cita, no.)
 4. **Presupuesto acotado**: `--max-budget-usd` (flag real, confirmado con
    `claude --help`) + timeout de proceso propio (no depende de `timeout`/
    `gtimeout`: verificado que ninguno está instalado en este Mac).
 5. **Tools mínimas**: `--allowedTools "Bash Read Write WebSearch WebFetch"`,
    calcado exactamente del frontmatter de `prospector-nuevos.md` — nada más.
+   ⚠️ Ojo con leer esto como una jaula: `Bash` va **sin acotar comandos** y
+   `Write` **sin acotar ruta**. La lista limita qué herramientas hay, no lo que
+   se puede hacer dentro de ellas. Las prohibiciones de escribir en Supabase y
+   de enviar correo se sostienen en el PROMPT (regla dura 10 + orden del
+   lanzador), no en un control técnico: la clave de servicio está en el Mac.
 
 ## Lo que queda pendiente (decisión de Manolo, no técnico)
 

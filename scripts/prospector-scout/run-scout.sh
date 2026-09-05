@@ -47,7 +47,7 @@ RESULT_JSON="$CRM_DIR/.prospector-scout-last-result.json"
 
 # ── Configuración (override por variable de entorno si hace falta) ─────────
 MODEL="${SCOUT_MODEL:-claude-sonnet-4-6}"          # mismo modelo que claude.yml (CONFIRMAR que sigue vivo)
-MAX_BUDGET_USD="${SCOUT_MAX_BUDGET_USD:-2.00}"     # flag CONFIRMADO: --max-budget-usd (solo con --print). Default $2: medición real de un scout de provincia = $1.63 (Córdoba, 2026-07-10), $1 truncaba.
+MAX_BUDGET_USD="${SCOUT_MAX_BUDGET_USD:-3.00}"     # flag CONFIRMADO: --max-budget-usd (solo con --print). Default $3 desde 2026-07-31: un scout sin foco (portfolio completo) gasta ~$2.21 (Granada) y $2 truncaba al cierre; con foco ~$1.63. Sobreescribible con SCOUT_MAX_BUDGET_USD.
 TIMEOUT_SECONDS="${SCOUT_TIMEOUT_SECONDS:-1800}"   # parada dura de reloj: 30 min por defecto
 ALLOWED_TOOLS="Bash Read Write WebSearch WebFetch" # calcado del frontmatter de prospector-nuevos.md — nada más
 
@@ -89,13 +89,18 @@ OUT_FILE="$OUTPUT_DIR/prospectos-${STAMP_FILE}-scout-$(echo "$ZONA" | tr ' ' '-'
 echo "[$TIMESTAMP] === Scout iniciado — modo=$MODE zona='$ZONA' foco='$FOCO' ===" >> "$LOG"
 
 # ── Prompt: SOLO delega en el agente existente, no reimplementa nada ───────
-PROMPT="Actúa exactamente como el subagente 'prospector-nuevos' definido en \
-.claude/agents/prospector-nuevos.md de este repo (delega en él vía Task tool, \
-subagent_type: 'prospector-nuevos', igual que hace /pendientes-zona con el suyo). \
-No modifiques ni reinterpretes sus reglas. Petición: busca prospectos NUEVOS en \
-la zona '$ZONA', foco de producto '$FOCO'. Al terminar, guarda el resultado con \
-Write en '$OUT_FILE' (ruta ya gitignored, NUNCA propongas commitearla). \
-Regla dura: NO des de alta nada en Firestore/Supabase, NO envíes correos, \
+PROMPT="Eres el prospector de estudios nuevos del CRM. LEE con Read el fichero \
+.claude/agents/prospector-nuevos.md de este repo y actúa EXACTAMENTE según sus \
+reglas, haciéndolo TÚ MISMO en este mismo proceso. NO delegues en ningún subagente \
+ni uses el Task tool: en modo headless el proceso termina y el subagente muere sin \
+escribir nada. Petición: busca prospectos en la zona '$ZONA', foco de producto \
+'$FOCO', en sus DOS orígenes: (a) estudios NUEVOS fuera del CRM y (b) estudios YA en \
+el CRM pero SIN visitar (sin informe, 'cartera dormida'). Cruza contra Supabase con \
+crm_query.py (--accion candidatos, campo tiene_informe) y descarta solo lo ya \
+visitado. IMPORTANTE: NO termines tu turno hasta haber COMPLETADO la búsqueda y \
+ESCRITO el informe con Write en '$OUT_FILE' (ruta ya gitignored, NUNCA propongas \
+commitearla); no respondas 'sigo trabajando' ni prometas avisar después. \
+Regla dura: NO des de alta nada en Supabase, NO envíes correos, \
 NO ejecutes ninguna escritura en el CRM — solo el informe en ese fichero."
 
 if [ "$MODE" = "dry-run" ]; then
