@@ -1,0 +1,33 @@
+{
+  "_que_es": "Entidades de la provincia de Zaragoza que sabemos que existen y que un buen barrido DEBERIA encontrar. Salen del trabajo de prospeccion de Zaragoza de sep-2026 (hoja Prospeccion-Zaragoza_GPF_v3) despues de pasar por verificacion adversaria.",
+  "_sesgo_declarado": "Nueve de estas entidades las encontro el propio scout en su barrido de Zaragoza del 5-sep. Medir al scout con una lista que el ayudo a construir le favorece. Las 15 restantes salieron de investigacion propia o de la verificacion, y son las que mas informan. Por eso el marcador separa ambos grupos.",
+  "_como_se_usa": "Recall = cuantas de estas encuentra cada variante. No es la unica metrica: encontrar cosas FUERA de esta lista tambien vale, y se cuenta aparte como novedad.",
+  "entidades": [
+    {"id":"dpz","nombre":"Diputación Provincial de Zaragoza","tipo":"aapp","alias":["diputacion provincial de zaragoza","dpz","diputacion de zaragoza"],"origen":"investigacion propia"},
+    {"id":"aqualia","nombre":"FCC Aqualia (Aragón)","tipo":"aguas","alias":["aqualia"],"origen":"investigacion propia"},
+    {"id":"ecociudad","nombre":"Ecociudad Zaragoza","tipo":"aguas","alias":["ecociudad"],"origen":"investigacion propia"},
+    {"id":"iaa","nombre":"Instituto Aragonés del Agua","tipo":"aapp","alias":["instituto aragones del agua","iaa"],"origen":"investigacion propia"},
+    {"id":"idom","nombre":"IDOM (oficina Zaragoza)","tipo":"ingenieria","alias":["idom"],"origen":"investigacion propia"},
+    {"id":"typsa","nombre":"TYPSA (oficina Aragón)","tipo":"ingenieria","alias":["typsa","tecnica y proyectos"],"origen":"investigacion propia"},
+    {"id":"ingeobras","nombre":"INGEOBRAS Ingeniería de Obras Zaragoza","tipo":"ingenieria","alias":["ingeobras"],"origen":"investigacion propia"},
+    {"id":"crv-bardenas","nombre":"C.R. nº V de los Riegos de Bardenas","tipo":"regantes","alias":["comunidad de regantes n v","cr n v","riegos de bardenas"],"origen":"investigacion propia"},
+    {"id":"cg-bardenas","nombre":"Comunidad General de Riegos de Bardenas","tipo":"regantes","alias":["comunidad general de riegos de bardenas","cgbardenas"],"origen":"investigacion propia"},
+    {"id":"coaa","nombre":"Colegio Oficial de Arquitectos de Aragón","tipo":"colegio","alias":["colegio oficial de arquitectos de aragon","coaa","coaaragon"],"origen":"investigacion propia"},
+    {"id":"magen","nombre":"Magén Arquitectos","tipo":"arquitectura","alias":["magen arquitectos","magen"],"origen":"investigacion propia"},
+    {"id":"canal-imperial","nombre":"Comunidad General de Usuarios del Canal Imperial de Aragón","tipo":"regantes","alias":["canal imperial"],"origen":"investigacion propia"},
+    {"id":"ciccp","nombre":"CICCP Demarcación de Aragón","tipo":"colegio","alias":["ciccp","colegio de ingenieros de caminos","caminos aragon"],"origen":"investigacion propia"},
+    {"id":"sva","nombre":"Suelo y Vivienda de Aragón","tipo":"aapp","alias":["suelo y vivienda de aragon","svaragon","sva"],"origen":"investigacion propia"},
+    {"id":"manc-oeste","nombre":"Mancomunidad Depuración Aguas Entorno Oeste de Zaragoza","tipo":"aguas","alias":["entorno oeste de zaragoza","mancomunidad para la depuracion"],"origen":"verificacion adversaria","peso":2,
+     "_nota":"59.042 hab. El scout la dio por INEXISTENTE en su barrido de Zaragoza. Es el mejor indicador de si el punto ciego de las mancomunidades esta corregido."},
+    {"id":"manc-huerva","nombre":"Mancomunidad Ribera Bajo Huerva","tipo":"aguas","alias":["ribera bajo huerva","bajo huerva"],"origen":"verificacion adversaria","peso":2,
+     "_nota":"55.526 hab. Mismo caso."},
+    {"id":"manc-izq-ebro","nombre":"Mancomunidad de la Ribera Izquierda del Ebro","tipo":"aguas","alias":["ribera izquierda del ebro","mrie"],"origen":"scout","peso":1},
+    {"id":"cr-huerta-ebro","nombre":"C.R. de la Huerta del Ebro (Fuentes de Ebro)","tipo":"regantes","alias":["huerta del ebro"],"origen":"scout","peso":1},
+    {"id":"cingral","nombre":"CINGRAL Consultora de Ingeniería Rural","tipo":"ingenieria","alias":["cingral"],"origen":"scout","peso":1},
+    {"id":"acequia-cinco-villas","nombre":"C.R. Acequia Cinco Villas","tipo":"regantes","alias":["acequia cinco villas"],"origen":"verificacion adversaria","peso":2},
+    {"id":"cr-alagon","nombre":"C.R. de la Villa de Alagón","tipo":"regantes","alias":["villa de alagon","regantes alagon"],"origen":"scout","peso":1},
+    {"id":"ayto-zgz","nombre":"Ayuntamiento de Zaragoza — Servicio de Agua","tipo":"aapp","alias":["ayuntamiento de zaragoza"],"origen":"investigacion propia"},
+    {"id":"lobe","nombre":"Grupo LOBE","tipo":"promotora","alias":["grupo lobe","lobe"],"origen":"scout","peso":1},
+    {"id":"marcellan","nombre":"Saneamientos Marcellán (Ejea)","tipo":"distribucion","alias":["marcellan"],"origen":"investigacion propia"}
+  ]
+}

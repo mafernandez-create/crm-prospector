@@ -50,6 +50,14 @@ MODEL="${SCOUT_MODEL:-claude-sonnet-4-6}"          # mismo modelo que claude.yml
 MAX_BUDGET_USD="${SCOUT_MAX_BUDGET_USD:-3.00}"     # flag CONFIRMADO: --max-budget-usd (solo con --print). Default $3 desde 2026-07-31: un scout sin foco (portfolio completo) gasta ~$2.21 (Granada) y $2 truncaba al cierre; con foco ~$1.63. Sobreescribible con SCOUT_MAX_BUDGET_USD.
 TIMEOUT_SECONDS="${SCOUT_TIMEOUT_SECONDS:-1800}"   # parada dura de reloj: 30 min por defecto
 ALLOWED_TOOLS="Bash Read Write WebSearch WebFetch" # calcado del frontmatter de prospector-nuevos.md — nada más
+# SCOUT_AGENT_FILE permite correr una VARIANTE del guion sin tocar el de
+# produccion. Es lo que hace falta para comparar versiones sobre la misma zona
+# (banco de pruebas en scripts/prospector-scout/banco/).
+AGENT_FILE="${SCOUT_AGENT_FILE:-.claude/agents/prospector-nuevos.md}"
+if [ ! -f "$CRM_DIR/$AGENT_FILE" ]; then
+    echo "❌ No existe el guion '$AGENT_FILE' en $CRM_DIR" >&2
+    exit 1
+fi
 
 # Guard de activación para ejecución REAL no supervisada (la que dispararía
 # el launchd, una vez Manolo lo active). Por defecto NO está puesto: obliga a
@@ -116,13 +124,18 @@ fi
 
 TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S')"
 STAMP_FILE="$(date '+%Y-%m-%d')"
-OUT_FILE="$OUTPUT_DIR/prospectos-${STAMP_FILE}-scout-$(echo "$ZONA" | tr ' ' '-' | tr '[:upper:]' '[:lower:]').md"
+# SCOUT_OUT_SUFFIX permite pasar la MISMA zona el MISMO dia sin que un pase
+# pise al anterior. Sin el, dos ejecuciones de Zaragoza hoy escriben las dos en
+# el mismo fichero y la segunda borra a la primera — que es justo lo que hay
+# que evitar al comparar variantes.
+SUFIJO="${SCOUT_OUT_SUFFIX:+_$SCOUT_OUT_SUFFIX}"
+OUT_FILE="$OUTPUT_DIR/prospectos-${STAMP_FILE}-scout-${ZONA_NORM}${SUFIJO}.md"
 
 echo "[$TIMESTAMP] === Scout iniciado — modo=$MODE zona='$ZONA' foco='$FOCO' ===" >> "$LOG"
 
 # ── Prompt: SOLO delega en el agente existente, no reimplementa nada ───────
 PROMPT="Eres el prospector de estudios nuevos del CRM. LEE con Read el fichero \
-.claude/agents/prospector-nuevos.md de este repo y actúa EXACTAMENTE según sus \
+$AGENT_FILE de este repo y actúa EXACTAMENTE según sus \
 reglas, haciéndolo TÚ MISMO en este mismo proceso. NO delegues en ningún subagente \
 ni uses el Task tool: en modo headless el proceso termina y el subagente muere sin \
 escribir nada. Petición: busca prospectos en la zona '$ZONA', foco de producto \
@@ -143,6 +156,8 @@ if [ "$MODE" = "dry-run" ]; then
         echo "  timeout:       ${TIMEOUT_SECONDS}s"
         echo "  allowedTools:  $ALLOWED_TOOLS"
         echo "  salida:        $OUT_FILE"
+        echo "  sufijo:        ${SCOUT_OUT_SUFFIX:-(ninguno)}"
+        echo "  guion:         $AGENT_FILE"
         echo "  prompt:        $PROMPT"
     } >> "$LOG"
     echo "✅ Dry-run OK. Nada se ha ejecutado. Revisa $LOG para el plan completo."
