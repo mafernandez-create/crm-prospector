@@ -65,14 +65,32 @@ PROVINCIAS = {'alava','araba','albacete','alicante','alacant','almeria','asturia
  'zaragoza','baleares','illes balears','las palmas','a coruna','la coruna','coruna'}
 
 def resolver(lugar, censos):
-    """Devuelve (ambito, provincia, region_del_censo). Provincias PRIMERO."""
+    """Devuelve (ambito, provincia, region_del_censo).
+
+    Regla pedida por Manolo: un nombre a secas es el MUNICIPIO. Para la
+    provincia entera hay que decirlo — "Malaga provincia". Asi, "Malaga" busca
+    en la capital y "Malaga provincia" en las 103 poblaciones.
+    """
     z = norm(lugar)
+    explicita = bool(re.search(r'\bprovincia\b', z))
+    # El nombre limpio se guarda CON sus tildes: el CRM almacena "Málaga", no
+    # "Malaga", y buscar por la version sin tildes devuelve cero fichas.
+    limpio = re.sub(r'(?i)\b(provincia|de|la|el)\b', ' ', lugar).strip()
+    limpio = re.sub(r'\s+', ' ', limpio)
+    if explicita: z = norm(limpio)
+    if z in PROVINCIAS and not explicita:
+        # Es nombre de provincia pero se pidio a secas: se entiende la CAPITAL.
+        for reg, c in censos.items():
+            for m in c['mancomunidades']:
+                if any(norm(p) == z for p in m['provincias']):
+                    return 'municipio', lugar, reg
+        return 'municipio', lugar, None
     if z in PROVINCIAS:
         for reg, c in censos.items():
             for m in c['mancomunidades']:
                 if any(norm(p) == z for p in m['provincias']):
-                    return 'provincia', lugar, reg
-        return 'provincia', lugar, None
+                    return 'provincia', limpio, reg
+        return 'provincia', limpio, None
     for reg, c in censos.items():
         for k in c['comarcas']:
             if z == norm(k['nombre']):
@@ -105,8 +123,20 @@ def main():
         cand = [c for c in cand if z in norm(c.get('city') or '') or z in norm(c.get('name') or '')] or cand
     if tipos:
         cand = [c for c in cand if (c.get('type') or '') in tipos]
-    visitadas = [c for c in cand if c.get('tiene_informe')]
-    dormidas  = [c for c in cand if not c.get('tiene_informe')]
+    # Dias desde el ultimo contacto real (informe, actividad o visita
+    # archivada). Manolo lo pidio explicitamente: no censurar lo que ya esta en
+    # cartera, mostrarlo con su antiguedad al lado — una ficha tocada hace dos
+    # años es, en la practica, un prospecto.
+    uc = {x['id']: x for x in crm('ultimo_contacto', {'provincia': provincia}).get('candidatos', [])}
+    for c in cand:
+        u = uc.get(c['id'], {})
+        c['dias'] = u.get('dias'); c['ultimo_contacto'] = u.get('ultimo_contacto')
+    def orden(c):
+        d = c.get('dias')
+        return (0, -d) if d is not None else (1, 0)
+    cand.sort(key=orden)
+    tocadas = [c for c in cand if c.get('dias') is not None]
+    nunca   = [c for c in cand if c.get('dias') is None]
 
     # ── 2. Censo de entidades locales ─────────────────────────────────────
     manc, com = [], []
@@ -144,13 +174,22 @@ def main():
          + (f" · **censo disponible:** {region}" if region else " · **sin censo de entidades locales para esta comunidad**"),
          f"**Tipos pedidos:** {', '.join(tipos) if tipos else 'todos'}\n", "---\n"]
 
-    L.append(f"## 1 · Ya en el CRM ({len(cand)})\n")
-    L.append(f"**{len(visitadas)} ya visitadas — NO las propongas**, la regla dura 1 lo prohíbe:\n")
-    L += [f"- {c['name']}" for c in visitadas] or ["- (ninguna)"]
-    L.append(f"\n**{len(dormidas)} en cartera dormida** — están dadas de alta y nadie las ha visitado nunca. "
-             f"SÍ son objetivo: márcalas `origen: en_cartera_sin_visitar` con su id.\n")
-    L += [f"- [{c.get('id')}] {c['name']} · {c.get('type','?')}" for c in dormidas[:60]]
-    if len(dormidas) > 60: L.append(f"- …y {len(dormidas)-60} más")
+    L.append(f"## 1 · Ya en el CRM ({len(cand)}) — con los días desde el último contacto\n")
+    L.append("Ninguna se oculta. El número de días sale del rastro más reciente de los tres que hay: "
+             "el informe de visita, la actividad registrada o la visita archivada. **Cuanto más alto, "
+             "más frío está**: una ficha tocada hace año y medio es, en la práctica, un prospecto.\n")
+    if tocadas:
+        L.append(f"**{len(tocadas)} con contacto fechado**, de la más fría a la más reciente:\n")
+        L.append("| días | último contacto | ficha | tipo | nombre |")
+        L.append("|---|---|---|---|---|")
+        for c in tocadas[:80]:
+            L.append(f"| **{c['dias']}** | {c['ultimo_contacto']} | {c.get('id')} | "
+                     f"{c.get('type','?')} | {c['name']} |")
+        if len(tocadas) > 80: L.append(f"| … | | | | y {len(tocadas)-80} más |")
+    L.append(f"\n**{len(nunca)} sin ningún contacto registrado** — dadas de alta y nunca tocadas. "
+             f"Son las de mayor recorrido: `origen: en_cartera_sin_visitar` con su id.\n")
+    L += [f"- [{c.get('id')}] {c['name']} · {c.get('type','?')}" for c in nunca[:60]]
+    if len(nunca) > 60: L.append(f"- …y {len(nunca)-60} más")
 
     L.append(f"\n## 2 · Entidades locales del censo oficial ({len(manc)} mancomunidades · {len(com)} comarcas)\n")
     if not region:
@@ -193,7 +232,9 @@ def main():
                         f"dossier-{re.sub(r'[^a-z0-9]+','-',z)}.md")
     io.open(dest, 'w', encoding='utf-8').write('\n'.join(L))
     print(f"  ámbito: {ambito} · provincia: {provincia} · censo: {region or 'ninguno'}")
-    print(f"  CRM: {len(visitadas)} visitadas · {len(dormidas)} dormidas")
+    print(f"  CRM: {len(cand)} fichas · {len(tocadas)} con contacto fechado · {len(nunca)} nunca tocadas")
+    if tocadas:
+        print(f"       la más fría: {tocadas[0]['dias']} días — {tocadas[0]['name'][:44]}")
     print(f"  censo: {len(manc)} mancomunidades de agua · {len(com)} comarcas")
     print(f"  adjudicaciones: {len(adj)} ({len(red)} de redacción)")
     print(f"  → {dest}")

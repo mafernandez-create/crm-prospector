@@ -13,6 +13,13 @@ google_credentials.json
 # adjudicaciones estaban solo en el Mac de Manolo.
 !scripts/prospector-scout/banco/medir.py
 !scripts/prospector-scout/dossier.py
+# Herramientas de verdad que la regla `*.py` estaba escondiendo. Ninguna lleva
+# credenciales dentro: todas leen de ~/.config/crm/supabase.env o del entorno.
+# crm_query.py son 714 lineas de las que dependen el scout, el dossier y el
+# agente pendientes-zona; backup-crm.py es el script de copias de seguridad.
+!agentes/_lib/crm_query.py
+!agentes/_lib/test_conexion.py
+!scripts/backup-crm.py
 !scripts/prospector-scout/censo/construir-censo-aragon.py
 !scripts/placsp-agua-informe.py
 *.js
