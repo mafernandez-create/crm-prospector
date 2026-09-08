@@ -648,13 +648,109 @@
         '</div>' +
         (members.length === 0
           ? emptyCard('Sin contactos registrados', 'Añade personas clave del cliente: socios, directores, decisores.')
-          : members.map(function (m, idx) { return teamCard(m, idx, s.id); }).join('')
+          : members.map(function (m, idx) { return teamCard(m, idx, s.id, s.type); }).join('')
         ) +
       '</section>'
     );
   }
 
-  function teamCard(m, idx, studioId) {
+  /* ------------------------------------------------------------
+     PERFIL DEL INTERLOCUTOR
+     Enseña, dentro de la ficha, el perfil que hasta ahora solo leía la IA al
+     generar el informe (Data.CARGOS_POR_TIPO). Manolo lo pidió el 8-sep-2026:
+     "ponerlos como ingenieros me quita mucha información" — un ingeniero de
+     caminos y uno agronómico necesitan gamas distintas.
+     El cargo del equipo es texto libre, así que se empareja por palabras contra
+     la clave y el alias del catálogo (ver perfilDeCargo para el criterio).
+     Cuando no hay confianza NO se enseña nada: enseñar el perfil equivocado hace
+     sacar la gama que no toca delante del cliente, y eso es peor que no enseñar.
+     ------------------------------------------------------------ */
+  // Tipos escritos a mano en fichas antiguas (unas 25) que no usan el código.
+  var TIPO_ALIAS = {
+    'ingenieria': 'ING', 'arquitectura': 'ARQ', 'constructora': 'OCV',
+    'promotora': 'OCV', 'promotora · constructora': 'OCV', 'distribuidor': 'OCV',
+    'ciclo del agua': 'CICA', 'cooperativa': 'CCRR', 'administracion publica': 'AAPP',
+  };
+  function _sinTildes(t) {
+    return String(t || '').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+  var _VACIAS = ['de','del','la','el','y','o','en','para','con','a','al','los','las','un','una'];
+  function _palabras(t) {
+    return _sinTildes(t).split(' ').filter(function (w) {
+      return w.length > 2 && _VACIAS.indexOf(w) === -1;
+    });
+  }
+  function perfilDeCargo(tipoStudio, role) {
+    var cat = window.Data && window.Data.CARGOS_POR_TIPO;
+    if (!cat || !role) return null;
+    var tipo = String(tipoStudio || '').trim();
+    if (!cat[tipo]) tipo = TIPO_ALIAS[_sinTildes(tipo)] || tipo;
+    var blq = cat[tipo];
+    if (!blq || !blq.perfiles) return null;
+    var deRole = _palabras(role);
+    function unicas(arr) {
+      return arr.filter(function (w, i) { return arr.indexOf(w) === i; });
+    }
+    var mejor = null;
+    Object.keys(blq.perfiles).forEach(function (clave) {
+      var p = blq.perfiles[clave];
+      // La clave manda: es la palabra que distingue un perfil de su vecino
+      // ("civil" frente a "agronomico"). El alias solo desempata. Sin separarlos,
+      // "tecnico" contaba dos veces y "Arquitecto Técnico" acababa en director-tecnico.
+      var claves = unicas(_palabras(clave.replace(/-/g, ' ')));
+      var alias  = unicas(_palabras(p.alias || '')).filter(function (w) { return claves.indexOf(w) === -1; });
+      var enClave = claves.filter(function (w) { return deRole.indexOf(w) !== -1; }).length;
+      var enAlias = alias.filter(function (w) { return deRole.indexOf(w) !== -1; }).length;
+      var punt = enClave * 2 + enAlias;
+      var claveEntera = enClave === claves.length && claves.length > 0;
+      // Se acepta si el cargo contiene la clave ENTERA ("arquitecto"), o si suma
+      // bastante ("ingeniero de caminos" → ingeniero + caminos). Un "ingeniero"
+      // suelto no llega, y es lo correcto: no se puede adivinar la especialidad.
+      if (!claveEntera && punt < 3) return;
+      if (!mejor || punt > mejor.punt || (punt === mejor.punt && claveEntera && !mejor.claveEntera)) {
+        mejor = { clave: clave, perfil: p, punt: punt, claveEntera: claveEntera };
+      }
+    });
+    return mejor;
+  }
+  function bloquePerfil(tipoStudio, role) {
+    var m = perfilDeCargo(tipoStudio, role);
+    if (!m) return '';
+    var p = m.perfil;
+    function lista(arr, color, fondo) {
+      return (arr || []).map(function (x) {
+        return '<span style="display:inline-block; font-size:11px; padding:2px 7px; margin:0 4px 4px 0; ' +
+          'border-radius:8px; background:' + fondo + '; color:' + color + ';">' + escape(x) + '</span>';
+      }).join('');
+    }
+    return (
+      '<details style="margin-top:8px; border:1px solid var(--line); border-radius:8px; background:var(--bg-1);">' +
+        '<summary style="cursor:pointer; padding:7px 10px; font-size:12px; font-weight:600; color:var(--gpf-blue-700); list-style:none;">' +
+          '🎯 Cómo tratarlo · ' + escape(p.alias || m.clave) +
+        '</summary>' +
+        '<div style="padding:0 10px 10px;">' +
+          (p.angulo ? '<div style="font-size:12px; color:var(--fg-2); margin-bottom:8px;">' + escape(p.angulo) + '</div>' : '') +
+          (p.prioritarios && p.prioritarios.length
+            ? '<div style="font-size:11px; color:var(--fg-3); margin-bottom:2px;">Prioritarios</div>' +
+              '<div style="margin-bottom:6px;">' + lista(p.prioritarios, '#166534', '#dcfce7') + '</div>' : '') +
+          (p.evitar && p.evitar.length
+            ? '<div style="font-size:11px; color:var(--fg-3); margin-bottom:2px;">Evitar</div>' +
+              '<div style="margin-bottom:6px;">' + lista(p.evitar, '#991b1b', '#fee2e2') + '</div>' : '') +
+          (p.discovery_clave && p.discovery_clave.length
+            ? '<div style="font-size:11px; color:var(--fg-3); margin-bottom:2px;">Qué preguntarle</div>' +
+              '<ul style="margin:0; padding-left:18px;">' +
+                p.discovery_clave.map(function (d) {
+                  return '<li style="font-size:12px; color:var(--fg-2); margin-bottom:2px;">' + escape(d) + '</li>';
+                }).join('') +
+              '</ul>' : '') +
+        '</div>' +
+      '</details>'
+    );
+  }
+
+  function teamCard(m, idx, studioId, tipoStudio) {
     return (
       '<div class="card" style="padding:14px; margin-bottom:10px; position:relative;">' +
         '<div style="display:flex; gap:12px; align-items:flex-start;">' +
@@ -673,6 +769,7 @@
             (m.phone ? '<div style="font-size:13px; color:var(--fg-2);"><a href="tel:' + escape(m.phone.replace(/[^\d+]/g,'')) + '" style="color:var(--fg-2);">📞 ' + escape(m.phone) + '</a></div>' : '') +
             (m.linkedin ? '<div style="font-size:13px;"><a href="' + escape(U.safeHref(m.linkedin)) + '" target="_blank" rel="noopener" style="color:var(--gpf-blue-700);">💼 LinkedIn ↗</a></div>' : '') +
             (m.notes ? '<div style="margin-top:6px; font-size:12px; color:var(--fg-3); padding:6px; background:var(--gpf-blue-100); border-radius:6px;">' + escape(m.notes) + '</div>' : '') +
+            bloquePerfil(tipoStudio, m.role) +
           '</div>' +
           '<div style="display:flex; gap:4px; flex:0 0 auto;">' +
             '<button onclick="window.Screens.detail.openEditTeamMember(\'' + escape(studioId) + '\',' + idx + ')" ' +
