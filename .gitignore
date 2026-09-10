@@ -23,6 +23,9 @@ google_credentials.json
 !scripts/prospector-scout/censo/construir-censo-aragon.py
 !scripts/placsp-agua-informe.py
 !scripts/placsp-quien-licita.py
+# Resolutor de municipios: dice si un `city` es un municipio de verdad y, si no,
+# a cual pertenece. Sin credenciales dentro (la auditoria las toma de crm_query).
+!scripts/municipios/resolver-municipio.py
 *.js
 !index.js
 !cors-proxy.js

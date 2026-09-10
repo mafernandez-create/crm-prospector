@@ -1,0 +1,137 @@
+{
+  "_meta": {
+    "que_es": "Pedanías, barriadas y nombres tradicionales que NO son municipios del INE, con el municipio al que pertenecen y la prueba de cada uno.",
+    "por_que": "El campo `city` de studios agrupa las fichas por municipio al planificar una ruta. Un valor que no es un municipio no agrupa con nada: la ficha desaparece de su zona sin dar ningun error. En Malaga habia cuatro arquitectos en «San Pedro de Alcantara» que no salian ni filtrando Marbella.",
+    "como_se_comprobo": "Cada entrada se contrasto el 10-sep-2026 contra el codigo postal (Correos, via codigospostales.com) o contra el diccionario de municipios del INE. El municipio resultante existe en el INE y esta en la provincia que ya tenia la ficha.",
+    "fecha": "2026-09-10",
+    "aviso": "Un mismo CP puede cubrir varios municipios (el 29692 cubre Casares y Manilva; el 29649, solo Mijas). Cuando el CP no discrimina, la prueba lo dice.",
+    "grafia": "El municipio se escribe SIEMPRE con la grafía del INE, con el artículo delante («La Rinconada», no «Rinconada, La»). `city` agrupa por cadena exacta: «Velez-Malaga» no agrupa con «Vélez-Málaga»."
+  },
+  "pedanias": [
+    {
+      "alias": "San Pedro de Alcántara",
+      "municipio": "Marbella",
+      "provincia": "Málaga",
+      "prueba": "CP 29670 = Marbella; San Pedro de Alcántara es su única localidad"
+    },
+    {
+      "alias": "San Pedro Alcántara",
+      "municipio": "Marbella",
+      "provincia": "Málaga",
+      "prueba": "variante de escritura de la anterior"
+    },
+    {
+      "alias": "Nueva Andalucía",
+      "municipio": "Marbella",
+      "provincia": "Málaga",
+      "prueba": "barriada de Marbella; CP 29660"
+    },
+    {
+      "alias": "La Cala de Mijas",
+      "municipio": "Mijas",
+      "provincia": "Málaga",
+      "prueba": "CP 29649 = Mijas; figura como «CALA DE MIJAS, LA»"
+    },
+    {
+      "alias": "Mijas Costa",
+      "municipio": "Mijas",
+      "provincia": "Málaga",
+      "prueba": "CP 29649 = Mijas; figura como «MIJAS COSTA»"
+    },
+    {
+      "alias": "Torre del Mar",
+      "municipio": "Vélez-Málaga",
+      "provincia": "Málaga",
+      "prueba": "CP 29740 = Vélez-Málaga"
+    },
+    {
+      "alias": "Cabezo de Torres",
+      "municipio": "Murcia",
+      "provincia": "Murcia",
+      "prueba": "CP 30110 = Murcia; pedanía de la capital"
+    },
+    {
+      "alias": "San Jose de la Rinconada",
+      "municipio": "La Rinconada",
+      "provincia": "Sevilla",
+      "prueba": "CP 41300 = La Rinconada"
+    },
+    {
+      "alias": "La Gangosa",
+      "municipio": "Vícar",
+      "provincia": "Almería",
+      "prueba": "núcleo de Vícar, que si es municipio del INE"
+    },
+    {
+      "alias": "Guardamar",
+      "municipio": "Guardamar del Segura",
+      "provincia": "Alicante",
+      "prueba": "CP 03140 = Guardamar del Segura; nombre acortado, no pedanía"
+    },
+    {
+      "alias": "Aguadulce",
+      "municipio": "Roquetas de Mar",
+      "provincia": "Almería",
+      "prueba": "criterio acordado con Manolo al corregir Almería (sep-2026). OJO: existe ademas un municipio «Aguadulce» en Sevilla"
+    },
+    {
+      "alias": "Almerimar",
+      "municipio": "El Ejido",
+      "provincia": "Almería",
+      "prueba": "criterio acordado con Manolo al corregir Almería (sep-2026)"
+    },
+    {
+      "alias": "San Isidro",
+      "municipio": "Níjar",
+      "provincia": "Almería",
+      "prueba": "criterio acordado al corregir Almería. OJO: hay un municipio «San Isidro» en Alicante, y la CR San Isidro y Realengo es de ese"
+    },
+    {
+      "alias": "Puerto Rey",
+      "municipio": "Vera",
+      "provincia": "Almería",
+      "prueba": "criterio acordado al corregir Almería; «Av. de Villaricos, 8, Puerto Rey, Almería» es Vera, no la capital"
+    },
+    {
+      "alias": "Calpe",
+      "municipio": "Calp",
+      "provincia": "Alicante",
+      "prueba": "nombre tradicional; el INE registra el municipio como «Calp»"
+    }
+  ],
+  "pendientes_de_verificar": [
+    {
+      "alias": "Los Guadalperales",
+      "municipio_propuesto": "Acedera",
+      "provincia": "Badajoz",
+      "duda": "el CP 06713 apunta a Acedera, pero hay fuentes que lo asocian a Don Benito o Villanueva de la Serena"
+    },
+    {
+      "alias": "Sabinillas",
+      "municipio_propuesto": "Manilva",
+      "provincia": "Málaga",
+      "duda": "el CP 29692 cubre Casares y Manilva, asi que no discrimina"
+    },
+    {
+      "alias": "Alcoba de los Montes",
+      "municipio_propuesto": "Alcoba",
+      "provincia": "Ciudad Real",
+      "duda": "confirmar que es el nombre de uso del municipio «Alcoba» y no otro sitio"
+    },
+    {
+      "alias": "Alcolea",
+      "municipio_propuesto": "Córdoba",
+      "provincia": "Córdoba",
+      "duda": "confirmar que el Alcolea de Cordoba es nucleo de la capital; el unico municipio «Alcolea» del INE esta en Almeria"
+    }
+  ],
+  "no_son_pedanias": {
+    "comarcas": [
+      "El Condado (Huelva)",
+      "El Andevalo (Huelva)",
+      "La Contraviesa (Granada)",
+      "Vegas Altas (Badajoz)"
+    ],
+    "nota": "Una comarca no es un municipio y no se debe meter en `city`. Si una ficha abarca varios terminos, `city` vacio es mas honesto que elegir uno."
+  }
+}
