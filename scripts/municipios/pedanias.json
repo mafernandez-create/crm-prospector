@@ -5,14 +5,15 @@
     "como_se_comprobo": "Cada entrada se contrasto el 10-sep-2026 contra el codigo postal (Correos, via codigospostales.com) o contra el diccionario de municipios del INE. El municipio resultante existe en el INE y esta en la provincia que ya tenia la ficha.",
     "fecha": "2026-09-10",
     "aviso": "Un mismo CP puede cubrir varios municipios (el 29692 cubre Casares y Manilva; el 29649, solo Mijas). Cuando el CP no discrimina, la prueba lo dice.",
-    "grafia": "El municipio se escribe SIEMPRE con la grafía del INE, con el artículo delante («La Rinconada», no «Rinconada, La»). `city` agrupa por cadena exacta: «Velez-Malaga» no agrupa con «Vélez-Málaga»."
+    "grafia": "El municipio se escribe con la grafía del INE, pero con el artículo delante: «La Rinconada», no «Rinconada, La» como lo guarda el INE. `city` agrupa por cadena exacta, así que «Velez-Malaga» y «Vélez-Málaga» serían dos zonas distintas para el CRM.",
+    "verificado_por": "Verificación independiente el 10-sep-2026 contra los nomenclátores oficiales del IECA (Junta de Andalucía), la Diputación de Badajoz, el Ayuntamiento de Murcia y Correos. 17/17 correctas, y ninguna cambia de provincia respecto a la que ya tenía la ficha."
   },
   "pedanias": [
     {
       "alias": "San Pedro de Alcántara",
       "municipio": "Marbella",
       "provincia": "Málaga",
-      "prueba": "CP 29670 = Marbella; San Pedro de Alcántara es su única localidad"
+      "prueba": "IECA, nomenclátor 29069 Marbella: «San Pedro Alcántara» es núcleo suyo (32.848 hab.). CP 29670 = Marbella, y es la única localidad BAJO ESE CP — Marbella tiene once núcleos. Ojo: INE e IECA lo escriben «San Pedro Alcántara», sin «de»"
     },
     {
       "alias": "San Pedro Alcántara",
@@ -24,7 +25,7 @@
       "alias": "Nueva Andalucía",
       "municipio": "Marbella",
       "provincia": "Málaga",
-      "prueba": "barriada de Marbella; CP 29660"
+      "prueba": "IECA, nomenclátor 29069 Marbella: «Nueva Andalucía» es núcleo suyo (21.530 hab.)"
     },
     {
       "alias": "La Cala de Mijas",
@@ -36,31 +37,31 @@
       "alias": "Mijas Costa",
       "municipio": "Mijas",
       "provincia": "Málaga",
-      "prueba": "CP 29649 = Mijas; figura como «MIJAS COSTA»"
+      "prueba": "CP 29649 = Mijas. «Mijas Costa» es denominación postal y comercial de la franja costera, no entidad censal: no figura como núcleo en el nomenclátor del IECA (29070)"
     },
     {
       "alias": "Torre del Mar",
       "municipio": "Vélez-Málaga",
       "provincia": "Málaga",
-      "prueba": "CP 29740 = Vélez-Málaga"
+      "prueba": "IECA, nomenclátor 29094 Vélez-Málaga: «Torre del Mar» es núcleo suyo (21.472 hab.). CP 29740 = Vélez-Málaga"
     },
     {
       "alias": "Cabezo de Torres",
       "municipio": "Murcia",
       "provincia": "Murcia",
-      "prueba": "CP 30110 = Murcia; pedanía de la capital"
+      "prueba": "Ayuntamiento de Murcia, ficha oficial de pedanía. CP 30110 = Murcia. El INE no tiene ningún municipio así"
     },
     {
-      "alias": "San Jose de la Rinconada",
+      "alias": "San José de la Rinconada",
       "municipio": "La Rinconada",
       "provincia": "Sevilla",
-      "prueba": "CP 41300 = La Rinconada"
+      "prueba": "IECA, nomenclátor 41081 La Rinconada: núcleo suyo (27.253 hab.). CP 41300 = La Rinconada"
     },
     {
       "alias": "La Gangosa",
       "municipio": "Vícar",
       "provincia": "Almería",
-      "prueba": "núcleo de Vícar, que si es municipio del INE"
+      "prueba": "IECA, nomenclátor 04102 Vícar: «La Gangosa» es núcleo suyo (9.798 hab.). Vícar sí es municipio del INE"
     },
     {
       "alias": "Guardamar",
@@ -97,32 +98,36 @@
       "municipio": "Calp",
       "provincia": "Alicante",
       "prueba": "nombre tradicional; el INE registra el municipio como «Calp»"
-    }
-  ],
-  "pendientes_de_verificar": [
+    },
     {
       "alias": "Los Guadalperales",
-      "municipio_propuesto": "Acedera",
+      "municipio": "Acedera",
       "provincia": "Badajoz",
-      "duda": "el CP 06713 apunta a Acedera, pero hay fuentes que lo asocian a Don Benito o Villanueva de la Serena"
+      "prueba": "Diputación de Badajoz: «en 1971 Los Guadalperales alcanza la condición de Entidad Local Menor respecto del ayuntamiento matriz (Acedera)». La asociación con Don Benito o Villanueva de la Serena es cercanía comarcal (Vegas Altas), no pertenencia. CP 06713 = Acedera"
     },
     {
       "alias": "Sabinillas",
-      "municipio_propuesto": "Manilva",
+      "municipio": "Manilva",
       "provincia": "Málaga",
-      "duda": "el CP 29692 cubre Casares y Manilva, asi que no discrimina"
+      "prueba": "IECA (Junta de Andalucía), nomenclátor del municipio 29068 Manilva: «San Luis de Sabinillas» figura entre sus núcleos. El CP 29692 NO sirve de prueba: cubre Casares y Manilva"
+    },
+    {
+      "alias": "San Luis de Sabinillas",
+      "municipio": "Manilva",
+      "provincia": "Málaga",
+      "prueba": "nombre completo de la anterior, que es como lo registra el nomenclátor"
     },
     {
       "alias": "Alcoba de los Montes",
-      "municipio_propuesto": "Alcoba",
+      "municipio": "Alcoba",
       "provincia": "Ciudad Real",
-      "duda": "confirmar que es el nombre de uso del municipio «Alcoba» y no otro sitio"
+      "prueba": "mismo sitio: INE dic25 lo registra como «Alcoba» (13006), único municipio «Alcoba*» de Ciudad Real. OJO: el propio ayuntamiento y la Diputación de Ciudad Real rotulan «Alcoba de los Montes» — se guarda la grafía del INE para que agrupe, pero el nombre de uso es el largo"
     },
     {
       "alias": "Alcolea",
-      "municipio_propuesto": "Córdoba",
+      "municipio": "Córdoba",
       "provincia": "Córdoba",
-      "duda": "confirmar que el Alcolea de Cordoba es nucleo de la capital; el unico municipio «Alcolea» del INE esta en Almeria"
+      "prueba": "IECA, nomenclátor del municipio 14021 Córdoba: «Alcolea» es núcleo suyo (2.627 hab.). El único municipio llamado «Alcolea» del INE está en Almería, de ahí que haga falta la provincia para desempatar. CP 14610 = Córdoba"
     }
   ],
   "no_son_pedanias": {
