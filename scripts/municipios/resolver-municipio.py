@@ -66,7 +66,10 @@ def norm(s):
 def desinvertir(nombre):
     """El INE guarda «Ejido, El» y «Romana, la». Para el CRM queremos «El Ejido»."""
     m = re.match(r"(?i)^(.*), (el|la|los|las|l'|els|es|sa|ses|a|o|as|os)$", nombre)
-    return f"{m.group(2).capitalize()} {m.group(1)}" if m else nombre
+    if not m:
+        return nombre
+    art = m.group(2).capitalize()
+    return f"{art}{m.group(1)}" if art.endswith("'") else f"{art} {m.group(1)}"
 
 
 def municipios():

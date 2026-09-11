@@ -6,7 +6,8 @@
     "fecha": "2026-09-10",
     "aviso": "Un mismo CP puede cubrir varios municipios (el 29692 cubre Casares y Manilva; el 29649, solo Mijas). Cuando el CP no discrimina, la prueba lo dice.",
     "grafia": "El municipio se escribe con la grafía del INE, pero con el artículo delante: «La Rinconada», no «Rinconada, La» como lo guarda el INE. `city` agrupa por cadena exacta, así que «Velez-Malaga» y «Vélez-Málaga» serían dos zonas distintas para el CRM.",
-    "verificado_por": "Verificación independiente el 10-sep-2026 contra los nomenclátores oficiales del IECA (Junta de Andalucía), la Diputación de Badajoz, el Ayuntamiento de Murcia y Correos. 17/17 correctas, y ninguna cambia de provincia respecto a la que ya tenía la ficha."
+    "verificado_por": "Verificación independiente el 10-sep-2026 contra los nomenclátores oficiales del IECA (Junta de Andalucía), la Diputación de Badajoz, el Ayuntamiento de Murcia y Correos. 17/17 correctas, y ninguna cambia de provincia respecto a la que ya tenía la ficha.",
+    "nombres_castellanos": "Diecisiete ayuntamientos de la Marina Alta y El Comtat estaban en el CRM con su nombre castellano (Jalón, Vergel, Guadalest…) y el INE solo los tiene en valenciano (Xaló, El Verger, El Castell de Guadalest). Las fichas están bien y se dejaron como estaban: Jalón le dice más a un comercial que Xaló. Los alias están aquí para que el resolutor los reconozca y deje de marcarlos."
   },
   "pedanias": [
     {
@@ -128,6 +129,108 @@
       "municipio": "Córdoba",
       "provincia": "Córdoba",
       "prueba": "IECA, nomenclátor del municipio 14021 Córdoba: «Alcolea» es núcleo suyo (2.627 hab.). El único municipio llamado «Alcolea» del INE está en Almería, de ahí que haga falta la provincia para desempatar. CP 14610 = Córdoba"
+    },
+    {
+      "alias": "Adsubia",
+      "municipio": "L'Atzúbia",
+      "provincia": "Alicante",
+      "prueba": "nombre castellano de uso; el INE registra el municipio solo con su nombre valenciano oficial"
+    },
+    {
+      "alias": "Alcocer de Planes",
+      "municipio": "Alcosser",
+      "provincia": "Alicante",
+      "prueba": "nombre castellano de uso; el INE registra el municipio solo con su nombre valenciano oficial"
+    },
+    {
+      "alias": "Alcolecha",
+      "municipio": "Alcoleja",
+      "provincia": "Alicante",
+      "prueba": "nombre castellano de uso; el INE registra el municipio solo con su nombre valenciano oficial"
+    },
+    {
+      "alias": "Alquería de Aznar",
+      "municipio": "L'Alqueria d'Asnar",
+      "provincia": "Alicante",
+      "prueba": "nombre castellano de uso; el INE registra el municipio solo con su nombre valenciano oficial"
+    },
+    {
+      "alias": "Benichembla",
+      "municipio": "Benigembla",
+      "provincia": "Alicante",
+      "prueba": "nombre castellano de uso; el INE registra el municipio solo con su nombre valenciano oficial"
+    },
+    {
+      "alias": "Benimasot",
+      "municipio": "Benimassot",
+      "provincia": "Alicante",
+      "prueba": "nombre castellano de uso; el INE registra el municipio solo con su nombre valenciano oficial"
+    },
+    {
+      "alias": "Callosa de Ensarriá",
+      "municipio": "Callosa d'en Sarrià",
+      "provincia": "Alicante",
+      "prueba": "nombre castellano de uso; el INE registra el municipio solo con su nombre valenciano oficial"
+    },
+    {
+      "alias": "Cuatretondeta",
+      "municipio": "Quatretondeta",
+      "provincia": "Alicante",
+      "prueba": "nombre castellano de uso; el INE registra el municipio solo con su nombre valenciano oficial"
+    },
+    {
+      "alias": "Facheca",
+      "municipio": "Fageca",
+      "provincia": "Alicante",
+      "prueba": "nombre castellano de uso; el INE registra el municipio solo con su nombre valenciano oficial"
+    },
+    {
+      "alias": "Gayanes",
+      "municipio": "Gaianes",
+      "provincia": "Alicante",
+      "prueba": "nombre castellano de uso; el INE registra el municipio solo con su nombre valenciano oficial"
+    },
+    {
+      "alias": "Guadalest",
+      "municipio": "El Castell de Guadalest",
+      "provincia": "Alicante",
+      "prueba": "nombre castellano de uso; el INE registra el municipio solo con su nombre valenciano oficial"
+    },
+    {
+      "alias": "Jalón",
+      "municipio": "Xaló",
+      "provincia": "Alicante",
+      "prueba": "nombre castellano de uso; el INE registra el municipio solo con su nombre valenciano oficial"
+    },
+    {
+      "alias": "Ráfol de Almunia",
+      "municipio": "El Ràfol d'Almúnia",
+      "provincia": "Alicante",
+      "prueba": "nombre castellano de uso; el INE registra el municipio solo con su nombre valenciano oficial"
+    },
+    {
+      "alias": "Vall de Ebo",
+      "municipio": "La Vall d'Ebo",
+      "provincia": "Alicante",
+      "prueba": "nombre castellano de uso; el INE registra el municipio solo con su nombre valenciano oficial"
+    },
+    {
+      "alias": "Vall de Gallinera",
+      "municipio": "La Vall de Gallinera",
+      "provincia": "Alicante",
+      "prueba": "nombre castellano de uso; el INE registra el municipio solo con su nombre valenciano oficial"
+    },
+    {
+      "alias": "Valle de Alcalá",
+      "municipio": "La Vall d'Alcalà",
+      "provincia": "Alicante",
+      "prueba": "nombre castellano de uso; el INE registra el municipio solo con su nombre valenciano oficial"
+    },
+    {
+      "alias": "Vergel",
+      "municipio": "El Verger",
+      "provincia": "Alicante",
+      "prueba": "nombre castellano de uso; el INE registra el municipio solo con su nombre valenciano oficial"
     }
   ],
   "no_son_pedanias": {
