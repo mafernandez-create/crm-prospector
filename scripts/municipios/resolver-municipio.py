@@ -18,6 +18,13 @@ lo es, mira si esta en el mapa de pedanias (pedanias.json) y devuelve el
 municipio con su prueba. Si no lo sabe, lo dice: NO adivina. Un `city` vacio es
 preferible a uno inventado.
 
+Para los REGANTES, ademas, pregunta a los censos oficiales que hay al lado
+(censo-regantes-*.json: Jucar, Andalucia, Segura) y dice en que municipio
+sitúan a esa comunidad. Solo propone cuando UNA comunidad del censo, de la
+misma provincia, contiene entero el nucleo del nombre de la ficha: «CR Villa
+de Dalias» casa con «C.R. Sindicato de Riego Dalias, C.R. Pozo Los Llanos de
+Dalias»; «CR Blanca» no casa con nada, porque un solo token corto engaña.
+
 NO deduce el municipio de una direccion. Eso es harina de otro costal y tiene
 dos trampas que costaron sangre el 10-sep-2026:
   1. Casi todas las direcciones acaban en la PROVINCIA, no en el municipio
@@ -37,7 +44,8 @@ USO
     python3 scripts/municipios/resolver-municipio.py "San Pedro de Alcantara"
     python3 scripts/municipios/resolver-municipio.py "Barrado (Caceres)" "Calpe" "Gor"
     python3 scripts/municipios/resolver-municipio.py "Aguadulce@Almería"   # la provincia desempata
-    python3 scripts/municipios/resolver-municipio.py --auditar     # revisa todo el CRM
+    python3 scripts/municipios/resolver-municipio.py --regante "villa de dalias" [@Almería]
+    python3 scripts/municipios/resolver-municipio.py --auditar     # revisa todo el CRM, censos incluidos
 """
 import json, os, re, sys, unicodedata, urllib.request
 
@@ -106,6 +114,74 @@ def pedanias():
     return {norm(p["alias"]): p for p in d["pedanias"]}, d
 
 
+# ── Censos de regantes ─────────────────────────────────────────────────────────
+CENSOS = ("censo-regantes-jucar.json", "censo-regantes-andalucia.json", "censo-regantes-segura.json")
+# Palabras que no distinguen una comunidad de otra. Se quitan del nombre antes de comparar.
+GENERICAS = {"c", "r", "u", "cr", "cu", "cg", "sat", "comunidad", "comunidades", "general", "regantes",
+             "usuarios", "de", "del", "la", "el", "los", "las", "y", "e", "zona", "regable", "z", "zr",
+             "compl", "terminada", "obras", "red", "riego", "riegos", "colectividad", "junta", "central",
+             "sindicato", "aguas", "agua", "reguladas", "embalse", "pantano", "canal"}
+# NO son genericas, aunque lo parezcan:
+#  - «acequia(s)»: «Acequias del Guadalhorce» (Alhaurin el Grande) y «Zona Regable de
+#    Guadalhorce» (Cartama) son dos comunidades distintas, y es lo que las separa.
+#  - «margen», «derecha», «izquierda»: la Margen Derecha del Bembezar y la Margen
+#    Izquierda son dos comunidades con sede en pueblos distintos. Quitarlas caso una
+#    con la otra.
+# Lo que da cada censo: la sede (direccion postal de la comunidad) o el recinto (donde
+# el inventario ancla la zona regable). No es lo mismo: el Canal del Viar riega desde
+# Sevilla y tiene la oficina en Alcala del Rio. Un desacuerdo con un censo de recinto
+# es una segunda opinion, no un error.
+DA = {"jucar": "censo CHJ", "andalucia": "recinto ICRA", "segura": "sede SCRATS"}
+# «Fase I/II» es cosa del CRM (una ficha por obra); el censo no lo lleva. «Sector VIII» sí distingue.
+RE_FASE = re.compile(r"(?i)\b(fase|fases)\s+[ivx\d]+[ªº]?\b|\b\d+[ªº]\s+fase\b")
+RE_REGANTE = re.compile(r"(?i)^\s*(c\.?\s?[rgu]\.?\s?[rgu]?\.?|comunidad|colectividad|junta central|sindicato|s\.?a\.?t\.?|red riego|z\.?r\.?)\b")
+
+
+def cargar_censos():
+    """[(nombre, tokens, municipio, provincia, fuente)] de los tres censos que existan."""
+    out = []
+    for fich in CENSOS:
+        ruta = os.path.join(os.path.dirname(os.path.abspath(__file__)), fich)
+        if not os.path.exists(ruta):
+            continue
+        doc = json.load(open(ruta, encoding="utf-8"))
+        fuente = fich.replace("censo-regantes-", "").replace(".json", "")
+        for u in doc.get("comunidades") or doc.get("unidades") or []:
+            if not u.get("municipio"):
+                continue
+            out.append((u["nombre"], nucleo(u["nombre"]), u["municipio"], u.get("provincia"), fuente))
+    return out
+
+
+def nucleo(nombre):
+    """Tokens que de verdad identifican a la comunidad: sin siglas ni palabras de relleno."""
+    # «<entidad> - <obra>» es la convencion del CRM: lo de despues del guion con
+    # espacios es la obra (Cota 120, Balsa de Zamacon), no la comunidad. El guion
+    # sin espacios («Balazote-La Herrera») es parte del nombre y se respeta.
+    n = re.split(r"\s[-–—]\s", nombre or "", maxsplit=1)[0]
+    n = norm(RE_FASE.sub(" ", re.sub(r"\(.*?\)", " ", n)))
+    return {w for w in re.split(r"[ /]", n) if w and w not in GENERICAS and not w.isdigit()}
+
+
+def en_censo(nombre, censos, provincia=None):
+    """Comunidades del censo cuyo nombre contiene ENTERO el nucleo del de la ficha.
+    Exige nucleo con sustancia (dos tokens, o uno de 4+ letras que ademas sea
+    IGUAL al nucleo del censo) y misma provincia."""
+    nuc = nucleo(nombre)
+    if not nuc or (len(nuc) == 1 and len(next(iter(nuc))) < 4):
+        return []
+    hits = []
+    for nom, toks, muni, prov, fuente in censos:
+        if provincia and prov and prov != provincia:
+            continue
+        # con un solo token, solo vale la igualdad: «guadalhorce» esta dentro de
+        # cinco comunidades distintas y ninguna es la Acequias del Guadalhorce.
+        if (nuc <= toks) if len(nuc) >= 2 else (nuc == toks):
+            hits.append((nom, muni, prov, fuente))
+    # si hay varias con el mismo municipio, es la misma respuesta
+    return hits
+
+
 def resolver(valor, idx, ped, provincia=None):
     """(municipio, provincia, de_donde) o (None, None, motivo).
 
@@ -147,28 +223,54 @@ def auditar(idx, ped):
     from agentes._lib.crm_query import _supabase_get  # noqa
     filas, off = [], 0
     while True:
-        pag = _supabase_get("studios", {"select": "id,name,province,city", "limit": 1000, "offset": off})
+        pag = _supabase_get("studios", {"select": "id,name,type,province,city", "limit": 1000, "offset": off})
         filas += pag
         if len(pag) < 1000:
             break
         off += 1000
-    malas = []
+    malas, censo_dice = [], []
+    censos = cargar_censos()
     for f in filas:
         city = (f.get("city") or "").strip()
-        if not city:
-            continue
-        muni, prov, de = resolver(city, idx, ped, f.get("province"))
-        if muni is None or (f.get("province") and prov and prov != f["province"]):
-            malas.append((f["id"], f.get("province"), city, muni or "—", de))
+        if city:
+            muni, prov, de = resolver(city, idx, ped, f.get("province"))
+            if muni is None or (f.get("province") and prov and prov != f["province"]):
+                malas.append((f["id"], f.get("province"), city, muni or "—", de))
+        # regantes: ¿que dice el censo?
+        if censos and (f.get("type") == "CCRR" or RE_REGANTE.match(f.get("name") or "")):
+            hits = en_censo(f.get("name"), censos, f.get("province"))
+            munis = {h[1] for h in hits}
+            if len(munis) == 1:
+                m = munis.pop()
+                if not city:
+                    censo_dice.append((f["id"], f.get("province"), f["name"], "(vacío)", m, hits[0][3], hits[0][0]))
+                elif norm(city) != norm(m):
+                    censo_dice.append((f["id"], f.get("province"), f["name"], city, m, hits[0][3], hits[0][0]))
+            elif len(munis) > 1 and not city:
+                censo_dice.append((f["id"], f.get("province"), f["name"], "(vacío)",
+                                   " ó ".join(sorted(munis)), "varios", f"{len(hits)} candidatas"))
     print(f"{len(filas)} fichas · con `city` que no cuadra: {len(malas)}\n")
     for i, p, c, m, de in sorted(malas, key=lambda x: (x[1] or "", x[2])):
         print(f"  {i:>6} [{(p or '—'):<22}] {c[:34]:<34} -> {m:<24} {de}")
+    print(f"\nregantes en los que un censo dice otra cosa, o rellena un vacío: {len(censo_dice)}")
+    print("  (segunda opinión: «recinto» es donde está la zona regable, «sede» la oficina; pueden diferir)\n")
+    for i, p, n, c, m, fu, nom in sorted(censo_dice, key=lambda x: (x[1] or "", x[2])):
+        print(f"  {i:>6} [{(p or '—'):<12}] {n[:40]:<40} city={c[:18]:<18} → {m:<22} [{DA.get(fu, fu)}: {nom[:40]}]")
 
 
 def main(argv):
     idx, (ped, doc) = municipios(), pedanias()
     if "--auditar" in argv:
         return auditar(idx, ped)
+    if "--regante" in argv:
+        arg = argv[argv.index("--regante") + 1]
+        nombre, _, prov = arg.partition("@")
+        hits = en_censo(nombre, cargar_censos(), prov or None)
+        if not hits:
+            print(f"  {nombre!r}: ningún censo tiene una comunidad que contenga «{' '.join(sorted(nucleo(nombre)))}»")
+        for nom, muni, p, fu in hits:
+            print(f"  {nom[:58]:<58} -> {muni} ({p})   [{fu}]")
+        return
     if not argv:
         return sys.exit(__doc__)
     for arg in argv:
