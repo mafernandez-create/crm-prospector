@@ -28,6 +28,7 @@ google_credentials.json
 !scripts/municipios/resolver-municipio.py
 !scripts/municipios/construir-censo-jucar.py
 !scripts/municipios/construir-censo-andalucia.py
+!scripts/municipios/construir-censo-segura.py
 *.js
 !index.js
 !cors-proxy.js
