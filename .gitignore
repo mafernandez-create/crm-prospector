@@ -61,3 +61,10 @@ dunsSegmentacion_fix.js
 planning_*.html
 agentes/output/
 AUDITORIA.md
+
+# ── Robots de launchd (movidos aqui desde crm-prospector/ el 11-sep-2026) ──
+# .env.local lleva la URL de la base de datos y la passphrase del cifrado de las
+# copias; backups/ son los volcados cifrados de Supabase (datos de clientes).
+# Este repo se autopublica en gh-pages, que es PUBLICO: si esto se sube, se ve.
+.env.local
+backups/
