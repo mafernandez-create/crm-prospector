@@ -26,6 +26,7 @@ google_credentials.json
 # Resolutor de municipios: dice si un `city` es un municipio de verdad y, si no,
 # a cual pertenece. Sin credenciales dentro (la auditoria las toma de crm_query).
 !scripts/municipios/resolver-municipio.py
+!scripts/municipios/construir-censo-jucar.py
 *.js
 !index.js
 !cors-proxy.js

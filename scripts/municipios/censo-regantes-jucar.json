@@ -1,0 +1,6509 @@
+{
+ "_meta": {
+  "fuente": "https://www.chj.es/es-es/ciudadano/masinformaciontramites/Documents/Procedimientos%20relativos%20al%20regimen%20de%20Comunidades%20de%20Usuarios_Regantes/Comunidades_Usuarios_Censo.pdf",
+  "fecha_del_censo": "17/10/2016",
+  "descargado": "2026-09-11",
+  "que_es": "Comunidades de usuarios (regantes) de la cuenca del Jucar con su municipio, segun el censo oficial de la CHJ.",
+  "para_que": "Saber en que municipio esta una comunidad de regantes SIN deducirlo de su direccion ni de su nombre.",
+  "alcance": "Solo cuenca del Jucar. Andalucia, Extremadura y Murcia necesitan su propio censo.",
+  "filas_sin_parsear": 0
+ },
+ "comunidades": [
+  {
+   "ref": "1988IP0566 - 1999RC0002 - 2005R21488",
+   "nombre": "C.R. ACEQUIA REAL DEL JUCAR",
+   "municipio": "Albalat de la Ribera",
+   "provincia": "Valencia",
+   "superficie_ha": 20358.34,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2005R46184",
+   "nombre": "C.R. Y SINDICATO DE RIEGOS DE SUECA",
+   "municipio": "Sueca",
+   "provincia": "Valencia",
+   "superficie_ha": 8510.74,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R91721 y otros relacionados",
+   "nombre": "C.R. BALAZOTE - LA HERRERA",
+   "municipio": "Balazote",
+   "provincia": "Albacete",
+   "superficie_ha": 5635.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2005R42506 - 2005R42507 - 2005R55574",
+   "nombre": "C.R. CULLERA",
+   "municipio": "Fortaleny",
+   "provincia": "Valencia",
+   "superficie_ha": 4515.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1987IP0329",
+   "nombre": "C.R. PRINCIPE DE ESPAÑA",
+   "municipio": "Albacete",
+   "provincia": "Albacete",
+   "superficie_ha": 3204.14,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988CR0002",
+   "nombre": "C.R. CANAL COTA 100 MARGEN DERECHA RIO MIJARES",
+   "municipio": "Onda",
+   "provincia": "Castellón",
+   "superficie_ha": 5763.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2006R21876_1",
+   "nombre": "C.R. BURRIANA",
+   "municipio": "Villarreal/Vila-real",
+   "provincia": "Castellón",
+   "superficie_ha": 3653.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1988IP5037 - 1989RC0006",
+   "nombre": "C.R. DE CASTELLON",
+   "municipio": "Castellón de la Plana/Castelló de la Plana",
+   "provincia": "Castellón",
+   "superficie_ha": 3613.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1984CR0027",
+   "nombre": "C.R. CANAL COTA 220 ONDA-BETXI",
+   "municipio": "Fanzara",
+   "provincia": "Castellón",
+   "superficie_ha": 3480.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2005R62083",
+   "nombre": "C.G.R. ACEQUIA MAYOR DE SAGUNTO",
+   "municipio": "Sot de Ferrer",
+   "provincia": "Castellón",
+   "superficie_ha": 4181.19,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1985CR0022 - 2009RC0001",
+   "nombre": "C.R. LLIRIA CANAL PRINCIPAL DEL CAMPO DEL TURIA",
+   "municipio": "Llíria",
+   "provincia": "Valencia",
+   "superficie_ha": 7721.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2005R53195",
+   "nombre": "C.R. REAL ACEQUIA DE MONCADA",
+   "municipio": "Paterna",
+   "provincia": "Valencia",
+   "superficie_ha": 5167.82,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1986CR0017",
+   "nombre": "C.R. BETERA CANAL PRINCIPAL DEL CAMPO DEL TURIA SECTOR XV",
+   "municipio": "Bétera",
+   "provincia": "Valencia",
+   "superficie_ha": 4547.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1985CR0023",
+   "nombre": "C.R. CASINOS",
+   "municipio": "Casinos",
+   "provincia": "Valencia",
+   "superficie_ha": 3247.77,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1974RI0004 - 1990CR0026",
+   "nombre": "C.R. SINDICATO DE RIEGOS DE LA HUERTA DE ALICANTE",
+   "municipio": "Alicante/Alacant",
+   "provincia": "Alicante",
+   "superficie_ha": 3843.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1988IP0428 - 1988IP5936 - 1988IP4748",
+   "nombre": "C.R. VILLENA",
+   "municipio": "Villena",
+   "provincia": "Alicante",
+   "superficie_ha": 3551.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "2003CP0033",
+   "nombre": "C.R. VIRGEN DE LAS NIEVES DE ASPE/SAT",
+   "municipio": "Nº 3819 Hondón de las Nieves",
+   "provincia": "Alicante",
+   "superficie_ha": 3500.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1982CR0034 - 1988IP1438 - 1988IP1440 - 1988IP2988",
+   "nombre": "C.R. MONFORTE DEL CID",
+   "municipio": "Novelda",
+   "provincia": "Alicante",
+   "superficie_ha": 3370.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1996RP0030 - 1999CP0188",
+   "nombre": "C.R. LA ROMANA",
+   "municipio": "Monóvar/Monòver",
+   "provincia": "Alicante",
+   "superficie_ha": 3017.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1987RC0005",
+   "nombre": "C.R. ULLDECONA",
+   "municipio": "Ulldecona",
+   "provincia": "Tarragona",
+   "superficie_ha": 2554.0,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1988IP3351",
+   "nombre": "C.R. SECTOR XVIII-B POU CENIA",
+   "municipio": "Vinaròs",
+   "provincia": "Castellón",
+   "superficie_ha": 600.0,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1988IP3348",
+   "nombre": "C.R. SECTOR XVIII-A POZOS PLANETAS",
+   "municipio": "Vinaròs",
+   "provincia": "Castellón",
+   "superficie_ha": 550.0,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1988IP3352",
+   "nombre": "C.R. SECTOR XVIII-A POZOS ERMITA DE VINAROZ",
+   "municipio": "Vinaròs",
+   "provincia": "Castellón",
+   "superficie_ha": 450.0,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "2007RP0002",
+   "nombre": "C.R. REGS COVARXINS",
+   "municipio": "Coves de Vinromà (les)",
+   "provincia": "Castellón",
+   "superficie_ha": 315.0,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "2008RP0007",
+   "nombre": "C.R. BALSA D´AMET",
+   "municipio": "Alcalà de Xivert",
+   "provincia": "Castellón",
+   "superficie_ha": 242.82,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "2006R39972",
+   "nombre": "C.R. RIO CENIA",
+   "municipio": "Pobla de Benifassà (la)",
+   "provincia": "Castellón",
+   "superficie_ha": 218.1,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1990CP0074",
+   "nombre": "C.R. GRUPO DE RIEGOS TORREBLANCA",
+   "municipio": "Torreblanca",
+   "provincia": "Castellón",
+   "superficie_ha": 200.0,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1998CP0242 - 2007RP0033",
+   "nombre": "C.R. VIVEROS ALCANAR",
+   "municipio": "Vinaròs",
+   "provincia": "Castellón",
+   "superficie_ha": 196.0,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1998CP0132",
+   "nombre": "C.R. EL CLOT DE NARI",
+   "municipio": "Traiguera",
+   "provincia": "Castellón",
+   "superficie_ha": 169.1,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1998CP0305",
+   "nombre": "C.R. ELS BOBALARS",
+   "municipio": "Càlig",
+   "provincia": "Castellón",
+   "superficie_ha": 144.8,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1995CP0173",
+   "nombre": "C.R. EL REMEI DE CAP I CORP",
+   "municipio": "Torreblanca",
+   "provincia": "Castellón",
+   "superficie_ha": 127.33,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "2004CP0035",
+   "nombre": "C.R. LES BASES",
+   "municipio": "Vinaròs",
+   "provincia": "Castellón",
+   "superficie_ha": 125.2,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1993RP0001",
+   "nombre": "C.R. POZO LA FOYA DE ALCALA DE XIVERT",
+   "municipio": "Alcalà de Xivert",
+   "provincia": "Castellón",
+   "superficie_ha": 125.0,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1990CP0015",
+   "nombre": "C.R. POZO EL MASET",
+   "municipio": "Alcalà de Xivert",
+   "provincia": "Castellón",
+   "superficie_ha": 100.0,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1998CP0127",
+   "nombre": "C.R. 16 DE DESEMBRE",
+   "municipio": "San Jorge",
+   "provincia": "Castellón",
+   "superficie_ha": 92.0,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "2003CP0012",
+   "nombre": "C.R. SAN ISIDRO DE TORREBLANCA",
+   "municipio": "Torreblanca",
+   "provincia": "Castellón",
+   "superficie_ha": 85.3,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "2008CP0230",
+   "nombre": "C.R. POU MOLI NOU",
+   "municipio": "San Jorge",
+   "provincia": "Castellón",
+   "superficie_ha": 82.55,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1987RC0004",
+   "nombre": "C.R. SAN RAFAEL DEL RIO",
+   "municipio": "San Rafael del Río",
+   "provincia": "Castellón",
+   "superficie_ha": 73.0,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1985RC0007 - 1986RC0007",
+   "nombre": "C.R. ROSELL",
+   "municipio": "Rossell",
+   "provincia": "Castellón",
+   "superficie_ha": 65.0,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "2008CP0347",
+   "nombre": "C.R. POU DE LA FIGUERA",
+   "municipio": "Cervera del Maestre",
+   "provincia": "Castellón",
+   "superficie_ha": 63.66,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1999RP0159",
+   "nombre": "C.R. SOQUETS",
+   "municipio": "Cabanes",
+   "provincia": "Castellón",
+   "superficie_ha": 62.3,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1998CP0299",
+   "nombre": "C.R. EL CUARTICO",
+   "municipio": "Cabanes",
+   "provincia": "Castellón",
+   "superficie_ha": 50.0,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "2010RP0023",
+   "nombre": "C.R. POU DE LA ROSA",
+   "municipio": "Vinaròs",
+   "provincia": "Castellón",
+   "superficie_ha": 26.79,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1994RP0004",
+   "nombre": "C.R. POU DE HERMINIO",
+   "municipio": "Cabanes",
+   "provincia": "Castellón",
+   "superficie_ha": 24.9,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1998CP0159",
+   "nombre": "C.R. CAL RUBEN",
+   "municipio": "San Jorge",
+   "provincia": "Castellón",
+   "superficie_ha": 23.65,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "2009CP0263",
+   "nombre": "C.R. GIL COMES (SOTERRAÑA I)",
+   "municipio": "Vinaròs",
+   "provincia": "Castellón",
+   "superficie_ha": 22.05,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1998CP0045",
+   "nombre": "C.R. VIVEROS GURBI",
+   "municipio": "San Jorge",
+   "provincia": "Castellón",
+   "superficie_ha": 21.9,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "2005R22067 - 2005R22068",
+   "nombre": "C.R. BALLESTAR",
+   "municipio": "Pobla de Benifassà (la)",
+   "provincia": "Castellón",
+   "superficie_ha": 16.0,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "2007RP0031",
+   "nombre": "C.R. POZO MANOLO",
+   "municipio": "Vinaròs",
+   "provincia": "Castellón",
+   "superficie_ha": 14.6,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "2009CP0392",
+   "nombre": "C.R. ALMEDIXER",
+   "municipio": "Alcalà de Xivert",
+   "provincia": "Castellón",
+   "superficie_ha": 13.16,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "2008CP0121",
+   "nombre": "C.R. ELS MURONS",
+   "municipio": "Càlig",
+   "provincia": "Castellón",
+   "superficie_ha": 9.14,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1991CP0064",
+   "nombre": "C.R. POU DEL NANO",
+   "municipio": "Vinaròs",
+   "provincia": "Castellón",
+   "superficie_ha": 7.2,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "2008CP0376",
+   "nombre": "C.R. SOTERRAÑES",
+   "municipio": "Vinaròs",
+   "provincia": "Castellón",
+   "superficie_ha": 4.46,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "1981CA0004",
+   "nombre": "C.R. ULLAL DE LA GATELLERA",
+   "municipio": "Vallibona",
+   "provincia": "Castellón",
+   "superficie_ha": 1.61,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "2000R60318",
+   "nombre": "C.R. BARRANCO LA CANALETA",
+   "municipio": "Catí",
+   "provincia": "Castellón",
+   "superficie_ha": 0.23,
+   "junta_explotacion": "CENIA-MAESTRAZGO"
+  },
+  {
+   "ref": "2000R62480 - 2000R62481 - 2000R62482 - 2000R62483 - 2000R62484 - 1992RT0006",
+   "nombre": "C.R. DE TERUEL",
+   "municipio": "Teruel",
+   "provincia": "Teruel",
+   "superficie_ha": 1195.0,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R54257 - 2000R54258",
+   "nombre": "C.R. SAN JUAN DE ALFAMBRA",
+   "municipio": "Orrios",
+   "provincia": "Teruel",
+   "superficie_ha": 535.0,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R62484",
+   "nombre": "C.R. DE VILLASTAR",
+   "municipio": "Teruel",
+   "provincia": "Teruel",
+   "superficie_ha": 455.8,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "1974RI0290",
+   "nombre": "C.R. ROYUELA",
+   "municipio": "Royuela",
+   "provincia": "Teruel",
+   "superficie_ha": 174.59,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R22147 - 2000R22148 - 2000R22149 - 2012RT0071",
+   "nombre": "C.R. GEA DE ALBARRACIN",
+   "municipio": "Gea de Albarracín",
+   "provincia": "Teruel",
+   "superficie_ha": 173.65,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R22197 - 2000R60286 - 2000R60287 - 2000R60288 - 2000R60289 - 2000R60290 - 2000R60291 - 2000R60292",
+   "nombre": "C.R. VILLEL - CASCANTE DEL RIO",
+   "municipio": "Villel",
+   "provincia": "Teruel",
+   "superficie_ha": 165.0,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R60433 - 2000R60434 - 2000R60435 - 2000R60436 - 2000R60437 - 2000R60438 - 2000R60439",
+   "nombre": "C.R. VILLALBA ALTA",
+   "municipio": "Perales del Alfambra",
+   "provincia": "Teruel",
+   "superficie_ha": 155.0,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R91675 - 2000R91676",
+   "nombre": "C.R. EL VADILLO Y OLMOS GORDOS",
+   "municipio": "Orrios",
+   "provincia": "Teruel",
+   "superficie_ha": 151.15,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R39239",
+   "nombre": "C.R. VILLA DE VILLEL",
+   "municipio": "Villastar",
+   "provincia": "Teruel",
+   "superficie_ha": 136.0,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R49474 - 2000R49475 - 2000R49476",
+   "nombre": "C.R. ACEQUIAS DEL RIO, DEL PIÑAZO Y DE CAÑAHONDONERA DE VILLASTAR",
+   "municipio": "Villastar",
+   "provincia": "Teruel",
+   "superficie_ha": 119.0,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R60671 y otros relacionados",
+   "nombre": "C.R. TRAMACASTIEL",
+   "municipio": "Tramacastiel",
+   "provincia": "Teruel",
+   "superficie_ha": 119.0,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R39239 - 2000R54102 - 2000R54103 - 2000R54104 - 2000R54105 - 2000R54106 - 2000R54107 - 2000R54108 - 2000R54109 - 2000R54110",
+   "nombre": "C.R. CASCANTE DEL RIO",
+   "municipio": "Cascante del Río",
+   "provincia": "Teruel",
+   "superficie_ha": 117.0,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2006RC0002",
+   "nombre": "C.R. ACEQUIA DEL MEDIO",
+   "municipio": "Albarracín",
+   "provincia": "Teruel",
+   "superficie_ha": 108.82,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "1988RC0011",
+   "nombre": "C.R. CAUDE, CONCUD Y MASIA DEL CHANTRE",
+   "municipio": "Teruel",
+   "provincia": "Teruel",
+   "superficie_ha": 95.84,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R49649",
+   "nombre": "C.R. GALVE",
+   "municipio": "Galve",
+   "provincia": "Teruel",
+   "superficie_ha": 93.05,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R49478 - 1990RC0008",
+   "nombre": "C.R. SAN JUAN DE CUEVAS LABRADAS",
+   "municipio": "Cuevas Labradas",
+   "provincia": "Teruel",
+   "superficie_ha": 89.0,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "1973RI0016 - 2000R54492",
+   "nombre": "C.R. SAN ISIDRO DE VILLALBA BAJA",
+   "municipio": "Cuevas Labradas",
+   "provincia": "Teruel",
+   "superficie_ha": 86.0,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R59634",
+   "nombre": "C.R. LAS MASIAS DE VILLEL",
+   "municipio": "Villel",
+   "provincia": "Teruel",
+   "superficie_ha": 71.11,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R22171 y otros relacionados",
+   "nombre": "C.R. ALBARRACIN",
+   "municipio": "Albarracín",
+   "provincia": "Teruel",
+   "superficie_ha": 65.0,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2006R60686 - 2006R60687 - 2006R60688 - 2006R60689 2006R60690",
+   "nombre": "C.R. TRAMACASTILLA",
+   "municipio": "Tramacastilla",
+   "provincia": "Teruel",
+   "superficie_ha": 63.0,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R49230 y otros relacionados",
+   "nombre": "C.R. CAMARENA DE LA SIERRA",
+   "municipio": "Camarena de la Sierra",
+   "provincia": "Teruel",
+   "superficie_ha": 53.0,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R50194 - 2000R50195 - 2000R50196 - 2000R50197 - 2000R50198 - 2000R50199 - 2000R50200 - 2000R50201",
+   "nombre": "C.R. CALOMARDE",
+   "municipio": "Calomarde",
+   "provincia": "Teruel",
+   "superficie_ha": 52.0,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R49479",
+   "nombre": "C.R. SAN BARTOLOME DE PERALEJOS",
+   "municipio": "Peralejos",
+   "provincia": "Teruel",
+   "superficie_ha": 48.19,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R50186 - 2000R50187 - 2000R50188 - 2000R50189 - 2000R50190 - 2000R50191 - 2000R50192",
+   "nombre": "C.R. VALACLOCHE",
+   "municipio": "Camarena de la Sierra",
+   "provincia": "Teruel",
+   "superficie_ha": 43.0,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R52198 - 1992RC0002",
+   "nombre": "C.R. LIBROS",
+   "municipio": "Libros",
+   "provincia": "Teruel",
+   "superficie_ha": 38.02,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R22168",
+   "nombre": "C.R. LA MASADA",
+   "municipio": "Castielfabib",
+   "provincia": "Valencia",
+   "superficie_ha": 30.0,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R52191",
+   "nombre": "C.R. SAN ISIDRO DE ALFAMBRA",
+   "municipio": "Alfambra",
+   "provincia": "Teruel",
+   "superficie_ha": 29.5,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2000R60320",
+   "nombre": "C.R. FUENTES CALIENTES",
+   "municipio": "Fuentes Calientes",
+   "provincia": "Teruel",
+   "superficie_ha": 9.0,
+   "junta_explotacion": "GUADALAVIAR-ALFAMBRA"
+  },
+  {
+   "ref": "2003CP0098 - 2000R21631",
+   "nombre": "C.R. ACEQUIA COMUNA DE ENOVA",
+   "municipio": "Rafelguaraf",
+   "provincia": "Valencia",
+   "superficie_ha": 2607.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1985CR0045",
+   "nombre": "C.R. CANAL JUCAR-TURIA MARGEN DERECHA SECTOR XII DE TORRENT",
+   "municipio": "Torrent",
+   "provincia": "Valencia",
+   "superficie_ha": 2060.5,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1985CR0051",
+   "nombre": "C.R. MASALET",
+   "municipio": "Carlet",
+   "provincia": "Valencia",
+   "superficie_ha": 2021.4,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP2656 - 1990RC0012 - 2005R58603 - 2005R61059",
+   "nombre": "C.R. DEL VALLE DE CARCER Y SELLENT",
+   "municipio": "Càrcer",
+   "provincia": "Valencia",
+   "superficie_ha": 2021.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1980CR0029",
+   "nombre": "C.R. CANAL JUCAR-TURIA MARGEN DERECHA SECTOR X DE PICASSENT-ALCASSER",
+   "municipio": "Picassent",
+   "provincia": "Valencia",
+   "superficie_ha": 1958.46,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2005R61059_2",
+   "nombre": "C.R. REAL ACEQUIA DE ESCALONA",
+   "municipio": "Sumacàrcer",
+   "provincia": "Valencia",
+   "superficie_ha": 1743.83,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1990RC0012",
+   "nombre": "C.R. REAL ACEQUIA DE CARCAIXENT",
+   "municipio": "Sumacàrcer",
+   "provincia": "Valencia",
+   "superficie_ha": 1716.19,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP1247",
+   "nombre": "C.R. EL SALOBRAL",
+   "municipio": "Albacete",
+   "provincia": "Albacete",
+   "superficie_ha": 1600.7,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988RT0002",
+   "nombre": "C.R. ELS ULLALS DE BENIMODO",
+   "municipio": "Benimodo",
+   "provincia": "Valencia",
+   "superficie_ha": 1523.31,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000CP0144",
+   "nombre": "C.R. LA GRAJUELA",
+   "municipio": "Sisante",
+   "provincia": "Cuenca",
+   "superficie_ha": 1384.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1985CR0030",
+   "nombre": "C.R. ACEQUIA COMUN DE CARLET",
+   "municipio": "Carlet",
+   "provincia": "Valencia",
+   "superficie_ha": 1367.15,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2005R49481",
+   "nombre": "C.R. ACEQUIA MAYOR DE LA EXTINGUIDA VILLA Y HONOR DE CORBERA",
+   "municipio": "Riola",
+   "provincia": "Valencia",
+   "superficie_ha": 1341.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1985CR0010",
+   "nombre": "C.R. CANAL JUCAR-TURIA MARGEN DERECHA SECTOR I LOS TOLLOS DE TOUS",
+   "municipio": "Tous",
+   "provincia": "Valencia",
+   "superficie_ha": 1331.96,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1981CR0014",
+   "nombre": "C.R. CANAL JUCAR-TURIA MARGEN DERECHA SECTOR II LA GARROFERA DE L´ALCUDIA",
+   "municipio": "Guadassuar",
+   "provincia": "Valencia",
+   "superficie_ha": 1299.89,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2005R40519",
+   "nombre": "C.R. PANTANO DE ALMANSA",
+   "municipio": "Almansa",
+   "provincia": "Albacete",
+   "superficie_ha": 1100.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1999CP0060",
+   "nombre": "C.U. POZOS FAROLA Y LA UMBRÍA",
+   "municipio": "Ontinyent",
+   "provincia": "Valencia",
+   "superficie_ha": 1000.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988RC0001 - 1999RC0004 y otros relacionados",
+   "nombre": "C.R. NUESTRA SEÑORA DE LA CRUZ DEL RIO LEZUZA",
+   "municipio": "Lezuza",
+   "provincia": "Albacete",
+   "superficie_ha": 951.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1985CR0018",
+   "nombre": "C.R. SAN RAFAEL DE BENIFAIO",
+   "municipio": "Benifaió",
+   "provincia": "Valencia",
+   "superficie_ha": 938.75,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2001CP0036 - 2001CR0011",
+   "nombre": "C.R. MONTESA",
+   "municipio": "Montesa",
+   "provincia": "Valencia",
+   "superficie_ha": 906.1,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP2708 - 2005R40545",
+   "nombre": "C.R. FUENTES ALPERA O CAPELLANIA DE LOS SORIANOS",
+   "municipio": "Alpera",
+   "provincia": "Albacete",
+   "superficie_ha": 869.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1981CR0024",
+   "nombre": "C.R. CANAL JUCAR-TURIA MARGEN DERECHA SECTOR XI DE PICASSENT",
+   "municipio": "Picassent",
+   "provincia": "Valencia",
+   "superficie_ha": 844.95,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2005R47313",
+   "nombre": "C.R. LAS PARTIDAS ARROZALES DE TAVERNES DE VALLDIGNA",
+   "municipio": "Riola",
+   "provincia": "Valencia",
+   "superficie_ha": 770.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1985CR0040",
+   "nombre": "C.R. CANAL JUCAR-TURIA MARGEN DERECHA SECTOR XIII DE ALDAIA",
+   "municipio": "Aldaia",
+   "provincia": "Valencia",
+   "superficie_ha": 691.12,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1984CR0007",
+   "nombre": "C.R. NOVA COMUNITAT DE ALGINET (SECTORES VII Y VIII)",
+   "municipio": "Alginet",
+   "provincia": "Valencia",
+   "superficie_ha": 681.67,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1985CR0031",
+   "nombre": "C.R. CANAL JUCAR-TURIA MARGEN DERECHA SECTOR III DE BENIMODO",
+   "municipio": "Carlet",
+   "provincia": "Valencia",
+   "superficie_ha": 638.29,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R60583",
+   "nombre": "C.R. ACEQUIA DEL PUIG DE XATIVA",
+   "municipio": "Xàtiva",
+   "provincia": "Valencia",
+   "superficie_ha": 568.24,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2009RP0019 y otros relacionados",
+   "nombre": "C.R. LA NEVERA",
+   "municipio": "Catadau",
+   "provincia": "Valencia",
+   "superficie_ha": 567.71,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1989RI0031",
+   "nombre": "C.R. NAVARRES",
+   "municipio": "Navarrés",
+   "provincia": "Valencia",
+   "superficie_ha": 546.66,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2006R40681",
+   "nombre": "C.R. ACEQUIA DE LA LOSA DE LA VEGA DE XATIVA",
+   "municipio": "Xàtiva",
+   "provincia": "Valencia",
+   "superficie_ha": 540.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1974RI0222-1988RI0238",
+   "nombre": "C.R. ACEQUIA DE LA VILA DE XATIVA",
+   "municipio": "Xàtiva",
+   "provincia": "Valencia",
+   "superficie_ha": 538.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1984CR0019",
+   "nombre": "C.R. CANAL JUCAR-TURIA MARGEN DERECHA SECTOR IX DE BENIFAYO",
+   "municipio": "Benifaió",
+   "provincia": "Valencia",
+   "superficie_ha": 525.79,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1997CP0074",
+   "nombre": "C.R. ENGUERA",
+   "municipio": "Enguera",
+   "provincia": "Valencia",
+   "superficie_ha": 495.27,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP2110",
+   "nombre": "C.R. EL HONDO DE ALMANSA",
+   "municipio": "Almansa",
+   "provincia": "Albacete",
+   "superficie_ha": 487.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1999CP0065",
+   "nombre": "C.R. POZO SAN ISIDRO DE GENOVES",
+   "municipio": "Genovés",
+   "provincia": "Valencia",
+   "superficie_ha": 476.94,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988RI0211",
+   "nombre": "C.R. ALBALAT DE LA RIBERA",
+   "municipio": "Albalat de la Ribera",
+   "provincia": "Valencia",
+   "superficie_ha": 458.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1982RI0018 - 1985CR0029",
+   "nombre": "C.R. ACEQUIA ALEDUA DE ALGINET",
+   "municipio": "Llombai",
+   "provincia": "Valencia",
+   "superficie_ha": 452.77,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1997CP0256",
+   "nombre": "C.R. POZO CAÑOLES I DE VALLADA",
+   "municipio": "Vallada",
+   "provincia": "Valencia",
+   "superficie_ha": 400.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1999CP0230_2",
+   "nombre": "C.R. BARXETA",
+   "municipio": "Barxeta",
+   "provincia": "Valencia",
+   "superficie_ha": 393.41,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988RI0273_2",
+   "nombre": "C.R. FUENTE REDONDA",
+   "municipio": "Ayora",
+   "provincia": "Valencia",
+   "superficie_ha": 389.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1999CP0219",
+   "nombre": "C.R. \"POZO VIRGEN DE GRACIA\"",
+   "municipio": "Vallada",
+   "provincia": "Valencia",
+   "superficie_ha": 383.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R40819 - 2000R40821 - 2000R40823 - 2000R40824 - 2000R40825 - 2000R40826",
+   "nombre": "C.R. JARAFUEL",
+   "municipio": "Jarafuel",
+   "provincia": "Valencia",
+   "superficie_ha": 360.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000CP0193",
+   "nombre": "C.R. POBLA DEL DUC",
+   "municipio": "Benigánim",
+   "provincia": "Valencia",
+   "superficie_ha": 352.56,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1997CP0053 - 2001RU0007",
+   "nombre": "C.R. BELGIDA",
+   "municipio": "Bèlgida",
+   "provincia": "Valencia",
+   "superficie_ha": 340.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2005R61059_3",
+   "nombre": "C.R. SUMACARCER",
+   "municipio": "Sumacàrcer",
+   "provincia": "Valencia",
+   "superficie_ha": 334.92,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1999RP0138",
+   "nombre": "C.R. EL REIXACH",
+   "municipio": "Montesa",
+   "provincia": "Valencia",
+   "superficie_ha": 331.87,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2004R60832 y otros relacionados",
+   "nombre": "C.R. NUESTRA SEÑORA LA VIRGEN DEL PILAR",
+   "municipio": "Robledo",
+   "provincia": "Albacete",
+   "superficie_ha": 294.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1999CP0038",
+   "nombre": "C.R. SANTA RITA",
+   "municipio": "Montesa",
+   "provincia": "Valencia",
+   "superficie_ha": 291.66,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2006RU0001",
+   "nombre": "C.R. LA FOIA DE POU",
+   "municipio": "Alfarrasí",
+   "provincia": "Valencia",
+   "superficie_ha": 291.06,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2004R52840 y otros relacionados",
+   "nombre": "C.R. TERESA DE COFRENTES",
+   "municipio": "Teresa de Cofrentes",
+   "provincia": "Valencia",
+   "superficie_ha": 282.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1974RI0247",
+   "nombre": "C.R. ACEQUIA MURTA DE LA VEGA DE XATIVA",
+   "municipio": "Xàtiva",
+   "provincia": "Valencia",
+   "superficie_ha": 280.06,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2005R21693 - 2005R21694",
+   "nombre": "C.R. RIEGO MAYOR DE ONTENIENTE",
+   "municipio": "Ontinyent",
+   "provincia": "Valencia",
+   "superficie_ha": 280.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988RI0237",
+   "nombre": "C.R. ACEQUIA DE RANES",
+   "municipio": "Xàtiva",
+   "provincia": "Valencia",
+   "superficie_ha": 275.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000CP0142",
+   "nombre": "C.R. LA CHOCILLA",
+   "municipio": "Casas de Guijarro",
+   "provincia": "Cuenca",
+   "superficie_ha": 265.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1974RI0283",
+   "nombre": "C.R. CASAS DE LAZARO",
+   "municipio": "Casas de Lázaro",
+   "provincia": "Albacete",
+   "superficie_ha": 256.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988CP0156 - 2011RT0149",
+   "nombre": "C.R. PLA CEREZO",
+   "municipio": "Catadau",
+   "provincia": "Valencia",
+   "superficie_ha": 244.74,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R60346 y otros relacionados",
+   "nombre": "C.R. NUESTRA SEÑORA DE LA ENCARNACION",
+   "municipio": "San Pedro",
+   "provincia": "Albacete",
+   "superficie_ha": 241.51,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP2156 - 2000R40366",
+   "nombre": "C.R. ACEQUIA DE MESES DE LA VEGA DE XATIVA",
+   "municipio": "Xàtiva",
+   "provincia": "Valencia",
+   "superficie_ha": 238.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2004R59118",
+   "nombre": "C.R. MOTOR DEL PUEBLO Y MANANTIAL DE LA FUENTE",
+   "municipio": "Polinyà de Xúquer",
+   "provincia": "Valencia",
+   "superficie_ha": 237.18,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R60396 y otros relacionados",
+   "nombre": "C.R. JALANCE",
+   "municipio": "Jarafuel",
+   "provincia": "Valencia",
+   "superficie_ha": 235.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2005R61059_1",
+   "nombre": "C.R. LA DEFENSA DEL DERECHO AL RIEGO DE LAS TIERRAS DEL VALLE DE CARCER",
+   "municipio": "Sumacàrcer",
+   "provincia": "Valencia",
+   "superficie_ha": 227.83,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2004CP0010",
+   "nombre": "C.R. POU LA SOLANA DE MOIXENT",
+   "municipio": "Mogente/Moixent",
+   "provincia": "Valencia",
+   "superficie_ha": 227.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP5473",
+   "nombre": "C.R. LAS BARCAS",
+   "municipio": "Albacete",
+   "provincia": "Albacete",
+   "superficie_ha": 227.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1991RI0002",
+   "nombre": "C.R. EL JARDIN",
+   "municipio": "Alcaraz",
+   "provincia": "Albacete",
+   "superficie_ha": 222.94,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2005R22079",
+   "nombre": "C.R. FUENTE O POHUET DELS GARROFERALS",
+   "municipio": "Picassent",
+   "provincia": "Valencia",
+   "superficie_ha": 208.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP2450",
+   "nombre": "C.R. EL ENSANCHE DE ANNA",
+   "municipio": "Anna",
+   "provincia": "Valencia",
+   "superficie_ha": 208.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2003CP0229",
+   "nombre": "C.R. HERMANOS PEREZ POVEDA",
+   "municipio": "Barrax",
+   "provincia": "Albacete",
+   "superficie_ha": 201.58,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2005R22092",
+   "nombre": "C.R. EL PROGRESO",
+   "municipio": "Silla",
+   "provincia": "Valencia",
+   "superficie_ha": 196.66,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2007RP0036_2",
+   "nombre": "C.R. OTOS",
+   "municipio": "Otos",
+   "provincia": "Valencia",
+   "superficie_ha": 184.78,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2001CP0121 - 2006R61179",
+   "nombre": "C.R. ACEQUIA DE LA HUERTA DE SOLLANA",
+   "municipio": "Sollana",
+   "provincia": "Valencia",
+   "superficie_ha": 183.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000RP0037",
+   "nombre": "C.R. POZO SANTA BARBARA DE VALLADA",
+   "municipio": "Vallada",
+   "provincia": "Valencia",
+   "superficie_ha": 180.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988RI0122",
+   "nombre": "C.R. SAN JOSE DE ALGINET",
+   "municipio": "Antella",
+   "provincia": "Valencia",
+   "superficie_ha": 170.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP3919 - 2000R57922",
+   "nombre": "C.R. ACEQUIA TORRE LLORIS DE LA VEGA DE XATIVA",
+   "municipio": "Xàtiva",
+   "provincia": "Valencia",
+   "superficie_ha": 169.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP1873 - 2005R42922 - 2005R42923 - 2005R60896",
+   "nombre": "C.R. LAS FUENTES DE BOLBAITE",
+   "municipio": "Bolbaite",
+   "provincia": "Valencia",
+   "superficie_ha": 162.5,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1998RP0019",
+   "nombre": "C.R. COMA CARRASPOSA",
+   "municipio": "Llanera de Ranes",
+   "provincia": "Valencia",
+   "superficie_ha": 147.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP2135",
+   "nombre": "C.R. VERNISA",
+   "municipio": "Canals",
+   "provincia": "Valencia",
+   "superficie_ha": 142.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP3721 - 1983CR0002",
+   "nombre": "C.R. EL PLA NOU DE CANALS",
+   "municipio": "Canals",
+   "provincia": "Valencia",
+   "superficie_ha": 140.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2005R42405 - 2005R42406 - 2005R42407 - 2005R42408 - 2005R42409",
+   "nombre": "C.R. PARTIDA LOS PUERTOS DE CATARROJA",
+   "municipio": "Catarroja",
+   "provincia": "Valencia",
+   "superficie_ha": 139.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2005R21578 - 2005R21579 - 2005R21580 - 2005R21581",
+   "nombre": "C.R. ZARRA",
+   "municipio": "Zarra",
+   "provincia": "Valencia",
+   "superficie_ha": 134.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R22081",
+   "nombre": "C.R. FUENTE DE LA RAMBLETA",
+   "municipio": "Catarroja",
+   "provincia": "Valencia",
+   "superficie_ha": 133.89,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP2729 - 2004CP0160",
+   "nombre": "C.R. EL TESORO CADILLERO",
+   "municipio": "Albacete",
+   "provincia": "Albacete",
+   "superficie_ha": 131.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2001CP0149",
+   "nombre": "C.R. POZO LA SOLANA DE BARXETA",
+   "municipio": "Barxeta",
+   "provincia": "Valencia",
+   "superficie_ha": 125.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R21689",
+   "nombre": "C.R. ACEQUIA PAS DE ALBAIDA OLLERIA Y MONTAVERNER",
+   "municipio": "Albaida",
+   "provincia": "Valencia",
+   "superficie_ha": 120.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2007RP0038",
+   "nombre": "C.R. LA INNOVADORA AGRICOLA CANALENSE",
+   "municipio": "Canals",
+   "provincia": "Valencia",
+   "superficie_ha": 118.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R60642 - 2000R60643",
+   "nombre": "C.R. JORQUERA-RECUEJA",
+   "municipio": "Jorquera",
+   "provincia": "Albacete",
+   "superficie_ha": 110.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1994CR0053",
+   "nombre": "C.R. SAN JOSE BARRANCO DEL AGUA DE CARLET",
+   "municipio": "Carlet",
+   "provincia": "Valencia",
+   "superficie_ha": 100.06,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP0886",
+   "nombre": "C.R. EL ABOVALAR DE LA FONT DE LA FIGUERA",
+   "municipio": "Font de la Figuera (la)",
+   "provincia": "Valencia",
+   "superficie_ha": 100.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R41912",
+   "nombre": "C.R. LA FUENTE DEL PUERTO",
+   "municipio": "Albaida",
+   "provincia": "Valencia",
+   "superficie_ha": 100.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988RI0278",
+   "nombre": "C.R. HUERTA VIEJA DE ANNA",
+   "municipio": "Anna",
+   "provincia": "Valencia",
+   "superficie_ha": 99.07,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2005CP0088",
+   "nombre": "C.R. \"POU DE LA MURTA\"",
+   "municipio": "Simat de la Valldigna",
+   "provincia": "Valencia",
+   "superficie_ha": 98.3,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1974RI0119",
+   "nombre": "C.R. ACEQUIA DE BENIFURT",
+   "municipio": "Xàtiva",
+   "provincia": "Valencia",
+   "superficie_ha": 98.06,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1987RI0010 - 2000R60177 - 2000R60178",
+   "nombre": "C.R. RIOLA",
+   "municipio": "Riola",
+   "provincia": "Valencia",
+   "superficie_ha": 93.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2009RT0051",
+   "nombre": "C.R. SAN ISIDRO LABRADOR DE LLOSA DE RANES",
+   "municipio": "Llosa de Ranes",
+   "provincia": "Valencia",
+   "superficie_ha": 92.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1982CP0084",
+   "nombre": "C.R. VEGA DE ANAHUIR",
+   "municipio": "Xàtiva",
+   "provincia": "Valencia",
+   "superficie_ha": 83.7,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R60319",
+   "nombre": "C.R. RAMBLA ALBOSA",
+   "municipio": "Venta del Moro",
+   "provincia": "Valencia",
+   "superficie_ha": 80.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP3101",
+   "nombre": "C.R. BRAZAL NUEVO DEL CASTELLET",
+   "municipio": "Villanueva de Castellón",
+   "provincia": "Valencia",
+   "superficie_ha": 76.2,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP0774",
+   "nombre": "C.R. HUERTO MELCHOR",
+   "municipio": "Aldaia",
+   "provincia": "Valencia",
+   "superficie_ha": 75.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2002CP0235",
+   "nombre": "C.R. JUAREZ TERCERO",
+   "municipio": "Mahora",
+   "provincia": "Albacete",
+   "superficie_ha": 73.54,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP3772",
+   "nombre": "C.R. POZO SAN FELIPE DE BENIMODO",
+   "municipio": "Benimodo",
+   "provincia": "Valencia",
+   "superficie_ha": 70.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP3225",
+   "nombre": "C.R. EL CARRASCAL",
+   "municipio": "Anna",
+   "provincia": "Valencia",
+   "superficie_ha": 66.48,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2003CP0101",
+   "nombre": "C.R. SANTISIMO CRISTO DEL MILAGRO",
+   "municipio": "Llosa de Ranes",
+   "provincia": "Valencia",
+   "superficie_ha": 66.38,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP2808",
+   "nombre": "C.R. CRUZ DE BORREGO",
+   "municipio": "Mahora",
+   "provincia": "Albacete",
+   "superficie_ha": 56.1,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2004RC0016",
+   "nombre": "C.R. DIPUTACION AGUAS DE ZUCAÑA",
+   "municipio": "Almansa",
+   "provincia": "Albacete",
+   "superficie_ha": 55.6,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988CP0196",
+   "nombre": "C.R. POZO POZO SAN JUAN DE PICASSENT",
+   "municipio": "Picassent",
+   "provincia": "Valencia",
+   "superficie_ha": 50.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP2963",
+   "nombre": "C.R. MOTOR DE SANTA BARBARA DE BENIPARRELL",
+   "municipio": "Beniparrell",
+   "provincia": "Valencia",
+   "superficie_ha": 50.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R21775 - 2000R21776",
+   "nombre": "C.R. HUERTAS VIEJAS Y NUEVAS DE MOIXENT",
+   "municipio": "Mogente/Moixent",
+   "provincia": "Valencia",
+   "superficie_ha": 45.57,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP3540",
+   "nombre": "C.R. POZO SAN ISIDRO DE XATIVA",
+   "municipio": "Xàtiva",
+   "provincia": "Valencia",
+   "superficie_ha": 44.8,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1998CP0105",
+   "nombre": "C.R. BICORP",
+   "municipio": "Bicorp",
+   "provincia": "Valencia",
+   "superficie_ha": 44.01,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R63127 - 2000R63128",
+   "nombre": "C.R. HUERTAS DE RAFOL DE SALEM",
+   "municipio": "Salem",
+   "provincia": "Valencia",
+   "superficie_ha": 42.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP2445 - 1983RC0001",
+   "nombre": "C.R. PARTIDA RURAL DE AGRES",
+   "municipio": "Anna",
+   "provincia": "Valencia",
+   "superficie_ha": 37.4,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1999CP0162_2",
+   "nombre": "C.R. EL MOLINO TEJAR",
+   "municipio": "Dos Aguas",
+   "provincia": "Valencia",
+   "superficie_ha": 37.28,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R58650",
+   "nombre": "C.R. PARE PRESENTAT DE VALLADA",
+   "municipio": "Vallada",
+   "provincia": "Valencia",
+   "superficie_ha": 36.98,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1999CP0253",
+   "nombre": "C.R. FINCA LA PARRA",
+   "municipio": "Xàtiva",
+   "provincia": "Valencia",
+   "superficie_ha": 35.17,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1986RI0030",
+   "nombre": "C.R. PARTIDA LA AGÜICA DE ANNA",
+   "municipio": "Anna",
+   "provincia": "Valencia",
+   "superficie_ha": 34.24,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2002CP0060",
+   "nombre": "C.R. EL CONGO",
+   "municipio": "Benigánim",
+   "provincia": "Valencia",
+   "superficie_ha": 32.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1997CP0045 - 1998CP0094",
+   "nombre": "C.R. MADREMIA",
+   "municipio": "Montesa",
+   "provincia": "Valencia",
+   "superficie_ha": 31.61,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1996RC0004",
+   "nombre": "C.R. FONT D'ELCA DE SALEM",
+   "municipio": "Salem",
+   "provincia": "Valencia",
+   "superficie_ha": 31.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2004RT0046",
+   "nombre": "C.R. PRESA DEL MARQUES HUERTA DE LA ZUA",
+   "municipio": "Villamalea",
+   "provincia": "Albacete",
+   "superficie_ha": 30.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2004R39735",
+   "nombre": "C.R. CASTELLON DE RUGAT",
+   "municipio": "Ráfol de Salem",
+   "provincia": "Valencia",
+   "superficie_ha": 30.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2005R42023",
+   "nombre": "C.R. BALSA DE LA FUENTE PUBLICA",
+   "municipio": "Castelló de Rugat",
+   "provincia": "Valencia",
+   "superficie_ha": 30.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R91710 - 2000R91711 - 2000R91712 - 2000R91713",
+   "nombre": "C.R. PRADOS DE LA ENCOMIENDA",
+   "municipio": "Balazote",
+   "provincia": "Albacete",
+   "superficie_ha": 29.84,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1986CP0033",
+   "nombre": "C.R. POZO LAS SALINAS",
+   "municipio": "Manuel",
+   "provincia": "Valencia",
+   "superficie_ha": 29.49,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1989RC0018",
+   "nombre": "C.R. BOCA AZUL DE CASAS DEL RIO",
+   "municipio": "Balsa de Ves",
+   "provincia": "Albacete",
+   "superficie_ha": 29.15,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R52126 - 2000R52127 - 2000R52128 - 2000R52129 - 2000R52130",
+   "nombre": "C.R. HUERTAS DE LA RINCONADA NUEVA DE MOIXENT",
+   "municipio": "Mogente/Moixent",
+   "provincia": "Valencia",
+   "superficie_ha": 28.6,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988RI0115",
+   "nombre": "C.R. ACEQUIA DEL PALMERAL Xàtiva Valencia 28,20 JUCAR ALARCON-CONTRERAS-TOUS desconocid C.R. BUCHACAS",
+   "municipio": "Barrax",
+   "provincia": "Albacete",
+   "superficie_ha": 28.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2002CP0142",
+   "nombre": "C.R. BARRANCO DEL SEÑOR DE LLAURI",
+   "municipio": "Llaurí",
+   "provincia": "Valencia",
+   "superficie_ha": 26.6,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R58131",
+   "nombre": "C.R. BARRANCO DE LA CHUNDA DE BUFALI",
+   "municipio": "Palomar (el)",
+   "provincia": "Valencia",
+   "superficie_ha": 26.21,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2005R21720",
+   "nombre": "C.R. RIEGO MAYOR DE LA HUERTA DE BOCAIRENTE",
+   "municipio": "Bocairent",
+   "provincia": "Valencia",
+   "superficie_ha": 25.93,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1999CP0270",
+   "nombre": "C.U. AGUAS DE BIXQUERT",
+   "municipio": "Xàtiva",
+   "provincia": "Valencia",
+   "superficie_ha": 25.6,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2006R59042",
+   "nombre": "C.R. LA RINCONADA DE MUÑOZ Y LA NORIA",
+   "municipio": "Requena",
+   "provincia": "Valencia",
+   "superficie_ha": 25.29,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2007RC0017",
+   "nombre": "C.R. CASAS DE CARCEL",
+   "municipio": "Requena",
+   "provincia": "Valencia",
+   "superficie_ha": 25.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2006R44957",
+   "nombre": "C.R. MANANTIAL DE LA ALFAHAMA O ACEQUIA DE LOS BAÑOS",
+   "municipio": "Bellús",
+   "provincia": "Valencia",
+   "superficie_ha": 25.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1993CP0006",
+   "nombre": "C.R. PINAR GRAN",
+   "municipio": "Picassent",
+   "provincia": "Valencia",
+   "superficie_ha": 23.38,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2004R60899 - 2004R60900",
+   "nombre": "C.R. PARTIDA DEL TURCO",
+   "municipio": "Chella",
+   "provincia": "Valencia",
+   "superficie_ha": 23.19,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R60593",
+   "nombre": "C.R. LA CAÑADA DE GALAYO",
+   "municipio": "Fuentealbilla",
+   "provincia": "Albacete",
+   "superficie_ha": 22.06,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2006R41587_2",
+   "nombre": "C.R. PARTIDA DE LAS VIÑAS",
+   "municipio": "Chella",
+   "provincia": "Valencia",
+   "superficie_ha": 20.27,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1999CP0254",
+   "nombre": "C.R. EL PINAR DE REQUENA",
+   "municipio": "Requena",
+   "provincia": "Valencia",
+   "superficie_ha": 19.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R21640",
+   "nombre": "C.R. ACEQUIA DE ALBOY",
+   "municipio": "Genovés",
+   "provincia": "Valencia",
+   "superficie_ha": 18.86,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R43374 - 2000R43375",
+   "nombre": "C.R. PARTIDAS RURALES DE VIVER, HUERTAS ABAJO, SALINETES Y MAQUINAS",
+   "municipio": "Estubeny",
+   "provincia": "Valencia",
+   "superficie_ha": 18.34,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R21749",
+   "nombre": "C.R. PARTIDA DE LAS HUERTAS DE ABAJO DE VALLADA",
+   "municipio": "Vallada",
+   "provincia": "Valencia",
+   "superficie_ha": 18.22,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP6399",
+   "nombre": "C.R. POZO VAILLO",
+   "municipio": "Mogente/Moixent",
+   "provincia": "Valencia",
+   "superficie_ha": 17.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2004R60823",
+   "nombre": "C.R. ACEQUIA COLATA",
+   "municipio": "Montaverner",
+   "provincia": "Valencia",
+   "superficie_ha": 16.83,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R60668",
+   "nombre": "C.R. ACEQUIA DE LA VEGA DE ALBAIDA",
+   "municipio": "Albaida",
+   "provincia": "Valencia",
+   "superficie_ha": 16.62,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1982RI0001",
+   "nombre": "C.R. HUERTAS DE LA RINCONADA VIEJA DE MOIXENT",
+   "municipio": "Mogente/Moixent",
+   "provincia": "Valencia",
+   "superficie_ha": 16.54,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R39636 - 2012RT0010",
+   "nombre": "C.R. SAN JUAN DE VALLADA",
+   "municipio": "Mogente/Moixent",
+   "provincia": "Valencia",
+   "superficie_ha": 16.16,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1989CP0143",
+   "nombre": "C.R. POZO RACO DE COREA",
+   "municipio": "Favara",
+   "provincia": "Valencia",
+   "superficie_ha": 16.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R59040 - 2004R59041",
+   "nombre": "C.R. PRESA DEL PUENTE",
+   "municipio": "Alcaraz",
+   "provincia": "Albacete",
+   "superficie_ha": 15.72,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1986RI0029",
+   "nombre": "C.R. ACEQUIA LES FANECAES",
+   "municipio": "Albaida",
+   "provincia": "Valencia",
+   "superficie_ha": 15.29,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP2684",
+   "nombre": "C.R. LAS PEDRIZAS DE ALBACETE",
+   "municipio": "Albacete",
+   "provincia": "Albacete",
+   "superficie_ha": 15.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R58643",
+   "nombre": "C.R. BETILLA Y PLA DE ALJORF DE ALBAIDA",
+   "municipio": "Albaida",
+   "provincia": "Valencia",
+   "superficie_ha": 14.15,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2009CP0108",
+   "nombre": "C.R. POZO GARCIA IBAÑEZ",
+   "municipio": "Picassent",
+   "provincia": "Valencia",
+   "superficie_ha": 13.24,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1987RI0044",
+   "nombre": "C.R. ALBOSA DE ABAJO",
+   "municipio": "Requena",
+   "provincia": "Valencia",
+   "superficie_ha": 13.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2010CP0028",
+   "nombre": "C.R. POZO CARRICOLA",
+   "municipio": "Carrícola",
+   "provincia": "Valencia",
+   "superficie_ha": 12.23,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1999CP0302",
+   "nombre": "C.R. LOS PLEITOS",
+   "municipio": "Venta del Moro",
+   "provincia": "Valencia",
+   "superficie_ha": 12.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000RT0054",
+   "nombre": "C.R. EL MATET",
+   "municipio": "Chella",
+   "provincia": "Valencia",
+   "superficie_ha": 9.27,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1995CP0099",
+   "nombre": "C.R. POZO PLA DE MONTSERRAT",
+   "municipio": "Corbera",
+   "provincia": "Valencia",
+   "superficie_ha": 9.04,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1994CP0041",
+   "nombre": "C.R. FONT DE TORRUT DE CORBERA",
+   "municipio": "Llaurí",
+   "provincia": "Valencia",
+   "superficie_ha": 8.4,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2005R57598",
+   "nombre": "C.R. ACEQUIA DE ABAJO O DELS ULLALS",
+   "municipio": "Bellús",
+   "provincia": "Valencia",
+   "superficie_ha": 8.38,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1993CP0075",
+   "nombre": "C.R. SAN ISIDRO DE PICASSENT",
+   "municipio": "Picassent",
+   "provincia": "Valencia",
+   "superficie_ha": 8.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2011CR0006",
+   "nombre": "C.R. LA PUNTA DE ALBAIDA",
+   "municipio": "Albaida",
+   "provincia": "Valencia",
+   "superficie_ha": 7.98,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1989CP0102",
+   "nombre": "C.R. HERFER",
+   "municipio": "Carcaixent",
+   "provincia": "Valencia",
+   "superficie_ha": 7.56,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988CP0066",
+   "nombre": "C.R. POZO LA MALLA",
+   "municipio": "Sellent",
+   "provincia": "Valencia",
+   "superficie_ha": 7.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1993CP0092",
+   "nombre": "C.R. POZOS LA BASURA",
+   "municipio": "Corbera",
+   "provincia": "Valencia",
+   "superficie_ha": 6.11,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1998CP0089",
+   "nombre": "C.R. CEMENTERI-AIXABEGO",
+   "municipio": "Alzira",
+   "provincia": "Valencia",
+   "superficie_ha": 5.79,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1990CR0016",
+   "nombre": "C.R. FUENTES DEL PIOJO DE TERESA DE COFRENTES",
+   "municipio": "Teresa de Cofrentes",
+   "provincia": "Valencia",
+   "superficie_ha": 5.28,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1991CP0070",
+   "nombre": "C.R. LES BASES HORT DE NAVARRO",
+   "municipio": "Corbera",
+   "provincia": "Valencia",
+   "superficie_ha": 5.02,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R59818",
+   "nombre": "C.R. HUERTA DEL CORRAL",
+   "municipio": "Bufali",
+   "provincia": "Valencia",
+   "superficie_ha": 4.76,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2010CP0037",
+   "nombre": "C.R. POZO GALAN",
+   "municipio": "Llaurí",
+   "provincia": "Valencia",
+   "superficie_ha": 4.37,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2005CP0102",
+   "nombre": "C.R. POZO EL MAS",
+   "municipio": "Polinyà de Xúquer",
+   "provincia": "Valencia",
+   "superficie_ha": 4.24,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1991CP0071",
+   "nombre": "C.R. SAN MIGUEL DE CORBERA",
+   "municipio": "Corbera",
+   "provincia": "Valencia",
+   "superficie_ha": 3.12,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2001CP0177",
+   "nombre": "C.R. LA OLIVERETA DE LLAURI",
+   "municipio": "Llaurí",
+   "provincia": "Valencia",
+   "superficie_ha": 3.1,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2009CP0120",
+   "nombre": "C.R. POZO LA MOTA",
+   "municipio": "Llaurí",
+   "provincia": "Valencia",
+   "superficie_ha": 2.68,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2010CP0038",
+   "nombre": "C.R. HORT DE MULET",
+   "municipio": "Llaurí",
+   "provincia": "Valencia",
+   "superficie_ha": 2.25,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2011CP0061",
+   "nombre": "C.R. CLAVELL",
+   "municipio": "4 Corbera",
+   "provincia": "Valencia",
+   "superficie_ha": 2.18,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2009CP0185",
+   "nombre": "C.R. POZO BES",
+   "municipio": "Llaurí",
+   "provincia": "Valencia",
+   "superficie_ha": 2.09,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2000R59513",
+   "nombre": "C.R. LA VUELTA",
+   "municipio": "Vallada",
+   "provincia": "Valencia",
+   "superficie_ha": 1.66,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2008CP0261",
+   "nombre": "C.R. FAMILIA SALOM",
+   "municipio": "Carcaixent",
+   "provincia": "Valencia",
+   "superficie_ha": 1.6,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2010CP0041",
+   "nombre": "C.R. POZO LA PALMERA",
+   "municipio": "Llaurí",
+   "provincia": "Valencia",
+   "superficie_ha": 1.47,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2008CP0222",
+   "nombre": "C.R. FAMILIA FONTANA",
+   "municipio": "Polinyà de Xúquer",
+   "provincia": "Valencia",
+   "superficie_ha": 1.43,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1991CP0077",
+   "nombre": "C.R. SAN GINES - LA PULGOSA",
+   "municipio": "Albacete",
+   "provincia": "Albacete",
+   "superficie_ha": 1.0,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1988IP5255_1",
+   "nombre": "C.R. CASICA DE OREA EL CANALILLO",
+   "municipio": "Albacete",
+   "provincia": "Albacete",
+   "superficie_ha": 0.5,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "2003CP0099",
+   "nombre": "C.U. SAGRADA FAMILIA",
+   "municipio": "Alzira",
+   "provincia": "Valencia",
+   "superficie_ha": null,
+   "junta_explotacion": "JUCAR ALARCON-CONTRERAS-TOUS"
+  },
+  {
+   "ref": "1992CR0022",
+   "nombre": "C.R. VEGAS DE VILLALVILLA, JUCAR Y MARIANA",
+   "municipio": "Mariana",
+   "provincia": "Cuenca",
+   "superficie_ha": 587.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R42786 y otros relacionados",
+   "nombre": "C.R. LA CAÑETERA",
+   "municipio": "Cañete",
+   "provincia": "Cuenca",
+   "superficie_ha": 500.81,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1988CR0066",
+   "nombre": "C.R. ALCALA DE LA VEGA",
+   "municipio": "Alcalá de la Vega",
+   "provincia": "Cuenca",
+   "superficie_ha": 309.7,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2004R33042 - 2004R33043",
+   "nombre": "C.R. RIO OJOS DE MOYA DE LANDETE",
+   "municipio": "Landete",
+   "provincia": "Cuenca",
+   "superficie_ha": 266.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2005R33008 - 2005R33009 - 2005R33010 - 2005R33011 - 2005R33012 - 2005R33013 - 2005R33044",
+   "nombre": "C.R. SANTO DOMINGO DE GUZMAN DE MOYA",
+   "municipio": "Moya",
+   "provincia": "Cuenca",
+   "superficie_ha": 188.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1988RI0186 - 1988RI0187 - 2003CR0023 - 2004R21543",
+   "nombre": "C.R. DEHESA DE LOS ARROYOS",
+   "municipio": "Villar de Olalla",
+   "provincia": "Cuenca",
+   "superficie_ha": 187.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R43583 - 2000R43584 - 2000R43585 - 2000R43586 - 2000R43588 - 2000R43589 - 2000R43590",
+   "nombre": "C.R. MIRA",
+   "municipio": "Mira",
+   "provincia": "Cuenca",
+   "superficie_ha": 170.89,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R50210 - 2000R50211 - 1994RC0003",
+   "nombre": "C.R. RIO MOSCAS",
+   "municipio": "Cuenca",
+   "provincia": "Cuenca",
+   "superficie_ha": 114.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000CR0058",
+   "nombre": "C.R. CASAS DE GARCIMOLINA",
+   "municipio": "Casas de Garcimolina",
+   "provincia": "Cuenca",
+   "superficie_ha": 97.56,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000CR0060",
+   "nombre": "C.R. EL CASTILLO DE HUELAMO",
+   "municipio": "Huélamo",
+   "provincia": "Cuenca",
+   "superficie_ha": 94.43,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R60372",
+   "nombre": "C.R. SALVACAÑETE",
+   "municipio": "Cañete",
+   "provincia": "Cuenca",
+   "superficie_ha": 90.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R33029 y otros relacionados",
+   "nombre": "C.R. NUESTRA SEÑORA DE TEJEDA",
+   "municipio": "Garaballa",
+   "provincia": "Cuenca",
+   "superficie_ha": 87.76,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R43652 - 2000R43653 - 2000R43654 - 2000R43655",
+   "nombre": "C.R. LA PROGRESIVA DE BONICHES",
+   "municipio": "Boniches",
+   "provincia": "Cuenca",
+   "superficie_ha": 86.06,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R45224 - 2000R45225 - 2000R45226 - 2000R45227 - 2000R45228",
+   "nombre": "C.R. CHILLARON DE CUENCA",
+   "municipio": "Chillarón de Cuenca",
+   "provincia": "Cuenca",
+   "superficie_ha": 72.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1988RI0174",
+   "nombre": "C.R. RIO LAGUNA Y NOVATIO",
+   "municipio": "Huerta del Marquesado",
+   "provincia": "Cuenca",
+   "superficie_ha": 70.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1988RI0190",
+   "nombre": "C.R. TORRE BARRACHINA DE VILLAR DEL HUMO",
+   "municipio": "Villar del Humo",
+   "provincia": "Cuenca",
+   "superficie_ha": 67.51,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1988RI0150",
+   "nombre": "C.R. SAN MARCOS DE YEMEDA",
+   "municipio": "Yémeda",
+   "provincia": "Cuenca",
+   "superficie_ha": 67.27,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R39635",
+   "nombre": "C.R. LA SERRANA DE VALDEMORO DE LA SIERRA",
+   "municipio": "Valdemoro-Sierra",
+   "provincia": "Cuenca",
+   "superficie_ha": 67.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1988RI0183 - 2004RC0001",
+   "nombre": "C.R. RIO JUCAR DE TRAGACETE",
+   "municipio": "Tragacete",
+   "provincia": "Cuenca",
+   "superficie_ha": 57.57,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R54919 - 2000R54920 - 2000R54921 - 2000R54922 - 2000R54923 - 2000R54924 - 2000R54925",
+   "nombre": "C.R. SAN ROQUE DE CAMPILLOS-PARAVIENTOS",
+   "municipio": "Campillos-Paravientos",
+   "provincia": "Cuenca",
+   "superficie_ha": 57.12,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1981RI0001 - 1989RC0015",
+   "nombre": "C.R. CUENCA",
+   "municipio": "Cuenca",
+   "provincia": "Cuenca",
+   "superficie_ha": 54.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R60533 - 2000R60534 - 2000R60535 - 2000R60536 - 2000R60537 - 2000R60538 - 2000R60539 - 2000R60540 - 2000R60541",
+   "nombre": "C.R. SAN ISIDRO DE VALDETORTOLA",
+   "municipio": "Valdetórtola",
+   "provincia": "Cuenca",
+   "superficie_ha": 52.41,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2004R60716 y otros relacionados",
+   "nombre": "C.R. SANTIAGO APOSTOL DE PARACUELLOS",
+   "municipio": "Paracuellos",
+   "provincia": "Cuenca",
+   "superficie_ha": 51.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R60386 - 2000R60387 - 2000R60388 - 2000R60389",
+   "nombre": "C.R. LA MELGOSA",
+   "municipio": "Cuenca",
+   "provincia": "Cuenca",
+   "superficie_ha": 49.88,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2001CR0032.",
+   "nombre": "C.R. NUESTRA SEÑORA DE LA ASUNCION DE VALDEMORI",
+   "municipio": "Valdemorillo de la Sierra",
+   "provincia": "Cuenca",
+   "superficie_ha": 47.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R60588 - 2000R60589 - 2000R60590 - 2000R60591 - 2000R60592",
+   "nombre": "C.R. RIO SAN BENITO DE LANDETE",
+   "municipio": "Landete",
+   "provincia": "Cuenca",
+   "superficie_ha": 38.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1988RI0198",
+   "nombre": "C.R. VILLORA",
+   "municipio": "Víllora",
+   "provincia": "Cuenca",
+   "superficie_ha": 35.17,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1988RI0193",
+   "nombre": "C.R. NUESTRA SEÑORA DE LA ASUNCION DE CARDENETE",
+   "municipio": "Cardenete",
+   "provincia": "Cuenca",
+   "superficie_ha": 33.7,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R60329 - 2000R60330 - 2000R60331 - 2000R60332 - 2000R60333 - 2000R60334 - 2000R60335",
+   "nombre": "C.R. SAN ISIDRO LABRADOR DE COLLIGA",
+   "municipio": "Cuenca",
+   "provincia": "Cuenca",
+   "superficie_ha": 33.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1988RI0184",
+   "nombre": "C.R. HENAREJOS",
+   "municipio": "Henarejos",
+   "provincia": "Cuenca",
+   "superficie_ha": 28.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R91693 - 2000R91694 - 2000R91695 - 2000R91696 - 2000R91697",
+   "nombre": "C.R. SAN ISIDRO DE ARCAS DE VILLAR",
+   "municipio": "Arcas del Villar",
+   "provincia": "Cuenca",
+   "superficie_ha": 28.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1988RI0114",
+   "nombre": "C.R. SANTISIMO CRISTO DE PORTILLA",
+   "municipio": "Portilla",
+   "provincia": "Cuenca",
+   "superficie_ha": 27.58,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2005R53225 - 2005R53234 - 2005R53235 - 2005R53238",
+   "nombre": "C.R. SAN LORENZO",
+   "municipio": "Mota de Altarejos",
+   "provincia": "Cuenca",
+   "superficie_ha": 26.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R60648 - 2000R60649 - 2000R60650 - 2000R60651 - 2000R60652",
+   "nombre": "C.R. SAN ISIDRO DE PAJARONCILLO",
+   "municipio": "Pajaroncillo",
+   "provincia": "Cuenca",
+   "superficie_ha": 21.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1976RI0011",
+   "nombre": "C.R. SAN ISIDRO LABRADOR DE FUENTENAVA DE JABAGA",
+   "municipio": "Fuentenava de Jábaga",
+   "provincia": "Cuenca",
+   "superficie_ha": 21.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1977RI0010",
+   "nombre": "C.R. PALOMERA Y MOLINOS DE PAPEL",
+   "municipio": "Palomera",
+   "provincia": "Cuenca",
+   "superficie_ha": 20.6,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1989RI0040",
+   "nombre": "C.R. RIO TEJADILLOS",
+   "municipio": "Tejadillos",
+   "provincia": "Cuenca",
+   "superficie_ha": 19.64,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1974RI0262",
+   "nombre": "C.R. NAVALON",
+   "municipio": "Fuentenava de Jábaga",
+   "provincia": "Cuenca",
+   "superficie_ha": 18.82,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R52180 - 2000R52181 - 2000R52182 - 2000R52183 - 2000R52184 - 2000R52185 - 2003RC0006",
+   "nombre": "C.R. SAN ISIDRO DE CAMPILLOS-SIERRA",
+   "municipio": "Campillos-Sierra",
+   "provincia": "Cuenca",
+   "superficie_ha": 18.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2001CR0013",
+   "nombre": "C.R. FUENTE DE LA OLMEDILLA",
+   "municipio": "Pesquera (La)",
+   "provincia": "Cuenca",
+   "superficie_ha": 14.65,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2005R58104 - 2005R58105 - 2005R58106 - 2005R58107 - 2005R58108",
+   "nombre": "C.R. NUESTRA SEÑORA DE BELEN",
+   "municipio": "Valdemeca",
+   "provincia": "Cuenca",
+   "superficie_ha": 13.56,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R21533",
+   "nombre": "C.R. HOZ DEL HUECAR",
+   "municipio": "Cuenca",
+   "provincia": "Cuenca",
+   "superficie_ha": 12.81,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1988RI0189",
+   "nombre": "C.R. SAN MARCOS DE ALGARRA",
+   "municipio": "Algarra",
+   "provincia": "Cuenca",
+   "superficie_ha": 12.72,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1988RI0173",
+   "nombre": "C.R. HUERTA DE LAS PARRAS",
+   "municipio": "Villalba de la Sierra",
+   "provincia": "Cuenca",
+   "superficie_ha": 12.46,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1991CR0018",
+   "nombre": "C.R. SAN ISIDRO DE VILLANUEVA DE LOS ESCUDEROS",
+   "municipio": "Cuenca",
+   "provincia": "Cuenca",
+   "superficie_ha": 12.4,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1974RI0143",
+   "nombre": "C.R. VIRGEN DEL PILAR DE LA CIERVA",
+   "municipio": "Valdemorillo de la Sierra",
+   "provincia": "Cuenca",
+   "superficie_ha": 12.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R52180 - 2000R52181",
+   "nombre": "C.R. NUESTRA SEÑORA DE ALTAREJO",
+   "municipio": "Campillos-Sierra",
+   "provincia": "Cuenca",
+   "superficie_ha": 11.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1988RI0182",
+   "nombre": "C.R. OLMEDA DEL REY",
+   "municipio": "Olmeda del Rey",
+   "provincia": "Cuenca",
+   "superficie_ha": 9.87,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1988RI0172",
+   "nombre": "C.R. LA NORIA DE VILLALBA DE LA SIERRA",
+   "municipio": "Villalba de la Sierra",
+   "provincia": "Cuenca",
+   "superficie_ha": 9.82,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R52345 - 2000R52346 - 2000R52347 - 2000R52348 - 2000R52349 - 2000R52350 - 2000R52351",
+   "nombre": "C.R. SAN ROQUE DE LA LAGUNA DEL MARQUESADO",
+   "municipio": "Laguna del Marquesado",
+   "provincia": "Cuenca",
+   "superficie_ha": 9.41,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R52177 - 1996RC0009",
+   "nombre": "C.R. SALINAS DEL MANZANO",
+   "municipio": "Salinas del Manzano",
+   "provincia": "Cuenca",
+   "superficie_ha": 8.02,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1990CR0001 - 1990CR0002",
+   "nombre": "C.R. RIO ARQUILLOS",
+   "municipio": "Chillarón de Cuenca",
+   "provincia": "Cuenca",
+   "superficie_ha": 8.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1988RI0201",
+   "nombre": "C.R. BEAMUD",
+   "municipio": "Beamud",
+   "provincia": "Cuenca",
+   "superficie_ha": 7.15,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1999CR0012",
+   "nombre": "C.R. LA HUERGUINA",
+   "municipio": "Huérguina",
+   "provincia": "Cuenca",
+   "superficie_ha": 5.83,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1989RI0014",
+   "nombre": "C.R. LA SARGUILLA",
+   "municipio": "Sotorribas",
+   "provincia": "Cuenca",
+   "superficie_ha": 5.0,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R53224",
+   "nombre": "C.R. VIRGEN DE LA TORRE",
+   "municipio": "Altarejos",
+   "provincia": "Cuenca",
+   "superficie_ha": 4.59,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R91663 - 2000R91664 - 2000R91665",
+   "nombre": "C.R. JESUS NAZARENO DE BELMONTEJO",
+   "municipio": "Belmontejo",
+   "provincia": "Cuenca",
+   "superficie_ha": 4.3,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2009CR0008",
+   "nombre": "C.R. DE SANTA QUITERIA DE CAMPILLOS",
+   "municipio": "Campillos-Paravientos",
+   "provincia": "Cuenca",
+   "superficie_ha": 4.09,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000R60317",
+   "nombre": "C.R. LA VEGUILLA",
+   "municipio": "Valeras (Las)",
+   "provincia": "Cuenca",
+   "superficie_ha": 3.91,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2002CR0004",
+   "nombre": "C.R. LA OLMEDILLA DE VALDETORTOLA",
+   "municipio": "Valdetórtola",
+   "provincia": "Cuenca",
+   "superficie_ha": 3.37,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1989CR0042",
+   "nombre": "C.R. SAN ISIDRO LABRADOR DE VILLALBA DE LA SIERRA",
+   "municipio": "Villalba de la Sierra",
+   "provincia": "Cuenca",
+   "superficie_ha": 2.14,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1988RI0038",
+   "nombre": "C.R. EL CANALON",
+   "municipio": "Valeras (Las)",
+   "provincia": "Cuenca",
+   "superficie_ha": 1.1,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2003CR0016",
+   "nombre": "C.R. MOLINO DEL VADO DE VALDEMORILLO DE LA SIERRA",
+   "municipio": "Valdemorillo de la Sierra",
+   "provincia": "Cuenca",
+   "superficie_ha": 0.9,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "1989CR0016",
+   "nombre": "C.R. LOS HUERTOS DEL ARENAL",
+   "municipio": "Chillarón de Cuenca",
+   "provincia": "Cuenca",
+   "superficie_ha": 0.33,
+   "junta_explotacion": "JUCAR ALTO"
+  },
+  {
+   "ref": "2000CP0258",
+   "nombre": "C.R. RIEGOS LAS CUEVAS DE UTIEL",
+   "municipio": "Camporrobles",
+   "provincia": "Valencia",
+   "superficie_ha": 2220.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2000CP0259",
+   "nombre": "C.R. LAS CASAS-LOS CORRALES DE UTIEL",
+   "municipio": "Utiel",
+   "provincia": "Valencia",
+   "superficie_ha": 1950.17,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2001CP0033",
+   "nombre": "C.R. RIEGOS LOS RUICES",
+   "municipio": "Requena",
+   "provincia": "Valencia",
+   "superficie_ha": 1500.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1974RI0182",
+   "nombre": "C.R. DE CAMPO ARCIS DE REQUENA",
+   "municipio": "Requena",
+   "provincia": "Valencia",
+   "superficie_ha": 784.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1998RP0011",
+   "nombre": "C.R. LA TURISANA",
+   "municipio": "Turís",
+   "provincia": "Valencia",
+   "superficie_ha": 543.9,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1998CP0313",
+   "nombre": "C.R. POU DE LES MALLAES DE TURIS",
+   "municipio": "Turís",
+   "provincia": "Valencia",
+   "superficie_ha": 478.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1995CR0029",
+   "nombre": "C.R. LA SERRETA Y LA ESCALA",
+   "municipio": "Montroy",
+   "provincia": "Valencia",
+   "superficie_ha": 458.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2004R41065 y otros relacionados",
+   "nombre": "SINDICATO DE RIEGOS DE UTIEL",
+   "municipio": "Caudete de las Fuentes",
+   "provincia": "Valencia",
+   "superficie_ha": 339.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1999RU0002",
+   "nombre": "C.R. LA MURTA DE MONSERRAT",
+   "municipio": "Monserrat",
+   "provincia": "Valencia",
+   "superficie_ha": 290.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1994CP0069",
+   "nombre": "C.R. PUNTAL NENTO FOLLETA",
+   "municipio": "Montroy",
+   "provincia": "Valencia",
+   "superficie_ha": 277.75,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1988CP0033",
+   "nombre": "C.R. POZO CLARAMUNT DE TURIS",
+   "municipio": "Turís",
+   "provincia": "Valencia",
+   "superficie_ha": 256.25,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2006R33086 - 1982RI0018_1",
+   "nombre": "C.R. ACEQUIA MADRE Y ALEDUA DE LLOMBAI",
+   "municipio": "Real",
+   "provincia": "Valencia",
+   "superficie_ha": 250.84,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1988IP2285",
+   "nombre": "C.R. LLOMBAI",
+   "municipio": "Llombai",
+   "provincia": "Valencia",
+   "superficie_ha": 233.49,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1992CR0048 y otros relacionados",
+   "nombre": "C.R. BUÑOL",
+   "municipio": "Buñol",
+   "provincia": "Valencia",
+   "superficie_ha": 225.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2006R33086 - 1982RI0018_2",
+   "nombre": "C.R. ACEQUIA MADRE Y ALEDUA DE ALFARP",
+   "municipio": "Real",
+   "provincia": "Valencia",
+   "superficie_ha": 203.15,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1987CP0108 - 2000R33152 - 2000R33157",
+   "nombre": "C.R. LA REDONDA DE YATOVA",
+   "municipio": "Yátova",
+   "provincia": "Valencia",
+   "superficie_ha": 195.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1998RC0011",
+   "nombre": "C.R. HORASA DE TURIS",
+   "municipio": "Alborache",
+   "provincia": "Valencia",
+   "superficie_ha": 176.35,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2005R60225",
+   "nombre": "C.R. ROZALEME",
+   "municipio": "Requena",
+   "provincia": "Valencia",
+   "superficie_ha": 170.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1999RC0008",
+   "nombre": "C.R. CANAL DEL EMBALSE DE FORATA- RIO MAGRO, M.",
+   "municipio": "Monserrat",
+   "provincia": "Valencia",
+   "superficie_ha": 149.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2000RT0058",
+   "nombre": "C.R. ACEQUIA SAN BLAS DE REQUENA",
+   "municipio": "Requena",
+   "provincia": "Valencia",
+   "superficie_ha": 144.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2006R33086 - 1982RI0018_3",
+   "nombre": "C.R. ACEQUIA MADRE Y ALEDUA DE CATADAU",
+   "municipio": "Real",
+   "provincia": "Valencia",
+   "superficie_ha": 140.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1990CP0047 y otros relacionados",
+   "nombre": "C.R. POZO EL PROGRESO DE MONTROY",
+   "municipio": "Montroy",
+   "provincia": "Valencia",
+   "superficie_ha": 133.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2000R33083",
+   "nombre": "C.R. ACEQUIA LA SABOCHA DE TURIS",
+   "municipio": "Turís",
+   "provincia": "Valencia",
+   "superficie_ha": 128.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2006R54498",
+   "nombre": "C.R. LA VEGA DE REQUENA",
+   "municipio": "Requena",
+   "provincia": "Valencia",
+   "superficie_ha": 127.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1995RP0014",
+   "nombre": "C.R. POZO PLA FILANER",
+   "municipio": "Montroy",
+   "provincia": "Valencia",
+   "superficie_ha": 112.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1988IP2345",
+   "nombre": "C.R. FUENTES DEL PUEBLO DE TURIS",
+   "municipio": "Turís",
+   "provincia": "Valencia",
+   "superficie_ha": 105.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1988CP0038",
+   "nombre": "C.R. POZO SAN BERNARDO",
+   "municipio": "Turís",
+   "provincia": "Valencia",
+   "superficie_ha": 99.72,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2000R33114",
+   "nombre": "C.R. ACEQUIA DE LOS HONDOS DE TURIS",
+   "municipio": "Turís",
+   "provincia": "Valencia",
+   "superficie_ha": 96.49,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2000R33152 - 2000R33159 - 2000R33160",
+   "nombre": "C.R. SANTA BARBARA DE MACASTRE",
+   "municipio": "Yátova",
+   "provincia": "Valencia",
+   "superficie_ha": 95.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2000R33077",
+   "nombre": "C.R. ACEQUIA DEL JUDIO EL PONTON",
+   "municipio": "Requena",
+   "provincia": "Valencia",
+   "superficie_ha": 91.55,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2001CR0003 y otros relacionados",
+   "nombre": "C.R. SAN JAIME DE ALBORACHE",
+   "municipio": "Alborache",
+   "provincia": "Valencia",
+   "superficie_ha": 91.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2000R60220",
+   "nombre": "C.R. POZO DE LA PROVIDENCIA DE MONSERRAT",
+   "municipio": "Monserrat",
+   "provincia": "Valencia",
+   "superficie_ha": 81.24,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1988RI0143 - 2006R33090",
+   "nombre": "C.R. ACEQUIA MADRE DE REAL DE MONTROY",
+   "municipio": "Montroy",
+   "provincia": "Valencia",
+   "superficie_ha": 79.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2006R33089",
+   "nombre": "C.R. SAN ANTONIO DE REQUENA",
+   "municipio": "Requena",
+   "provincia": "Valencia",
+   "superficie_ha": 72.15,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2000R92454",
+   "nombre": "C.R. ACEQUIA CHANQUES DE MONTROY",
+   "municipio": "Montroy",
+   "provincia": "Valencia",
+   "superficie_ha": 59.55,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2000CP0036",
+   "nombre": "C.R. SOCAÑA",
+   "municipio": "Alborache",
+   "provincia": "Valencia",
+   "superficie_ha": 56.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2000R33084",
+   "nombre": "C.R. ALDEA DE LAS HORTUNAS",
+   "municipio": "Requena",
+   "provincia": "Valencia",
+   "superficie_ha": 55.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2000R33080",
+   "nombre": "C.R. ACEQUIA RAFOL DE TURIS",
+   "municipio": "Turís",
+   "provincia": "Valencia",
+   "superficie_ha": 53.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1995CP0009",
+   "nombre": "C.R. POU CASA L´ADVOCAT",
+   "municipio": "Montroy",
+   "provincia": "Valencia",
+   "superficie_ha": 51.48,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2005R60226",
+   "nombre": "C.R. REGAJO",
+   "municipio": "Requena",
+   "provincia": "Valencia",
+   "superficie_ha": 50.31,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1988IP3515",
+   "nombre": "C.U. POU VICARI DE MONSERRAT",
+   "municipio": "Monserrat",
+   "provincia": "Valencia",
+   "superficie_ha": 50.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2005R60223",
+   "nombre": "C.R. FUENTE DE LAS REINAS",
+   "municipio": "Requena",
+   "provincia": "Valencia",
+   "superficie_ha": 35.43,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1992CR0028",
+   "nombre": "C.R. SIETE AGUAS",
+   "municipio": "Siete Aguas",
+   "provincia": "Valencia",
+   "superficie_ha": 30.03,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1999CP0152",
+   "nombre": "C.R. EL PEÑASCO",
+   "municipio": "Montroy",
+   "provincia": "Valencia",
+   "superficie_ha": 26.24,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2005CP0053",
+   "nombre": "C.R. EL RINCONAZO",
+   "municipio": "Fuenterrobles",
+   "provincia": "Valencia",
+   "superficie_ha": 26.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2005R60224",
+   "nombre": "C.R. FUENTE DEL PINO",
+   "municipio": "Requena",
+   "provincia": "Valencia",
+   "superficie_ha": 24.6,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2005R33162",
+   "nombre": "C.R. PARIDERAS DE LOS NAVARROS Y DE LOS DURANS",
+   "municipio": "Montroy",
+   "provincia": "Valencia",
+   "superficie_ha": 18.7,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2005R60222",
+   "nombre": "C.R. GOLLIZNO",
+   "municipio": "Requena",
+   "provincia": "Valencia",
+   "superficie_ha": 16.06,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1988RI0102",
+   "nombre": "C.R. LA SABOCHA DE MONTROY",
+   "municipio": "Montroy",
+   "provincia": "Valencia",
+   "superficie_ha": 15.17,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2005R33079",
+   "nombre": "C.R. CASAS DEL RIO DE MACASTRE",
+   "municipio": "Macastre",
+   "provincia": "Valencia",
+   "superficie_ha": 14.26,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1978RI0003",
+   "nombre": "C.R. LA HUERTA DEL VIRREY DE TURIS",
+   "municipio": "Turís",
+   "provincia": "Valencia",
+   "superficie_ha": 11.97,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2000CP0101",
+   "nombre": "C.R. EMILIO MOYA LA TORRE Y OTROS",
+   "municipio": "Utiel",
+   "provincia": "Valencia",
+   "superficie_ha": 11.22,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1998RC0011_1",
+   "nombre": "C.R. ACEQUIA PERE-FIGON DE TURIS",
+   "municipio": "Macastre",
+   "provincia": "Valencia",
+   "superficie_ha": 11.0,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2000CR0020",
+   "nombre": "C.R. HORTA NOVA DE TURIS",
+   "municipio": "Turís",
+   "provincia": "Valencia",
+   "superficie_ha": 9.84,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2000R54174",
+   "nombre": "C.R. RIO MIJARES DE BUÑOL",
+   "municipio": "Buñol",
+   "provincia": "Valencia",
+   "superficie_ha": 4.48,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2000R53244",
+   "nombre": "C.R. HUERTA DE JOMENITOS DE TURIS",
+   "municipio": "Turís",
+   "provincia": "Valencia",
+   "superficie_ha": 4.32,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2000R41126",
+   "nombre": "C.R. MOLINO SANT BERNAT",
+   "municipio": "Alborache",
+   "provincia": "Valencia",
+   "superficie_ha": 3.41,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1988RI0151",
+   "nombre": "C.R. HORTETA DE LA SAHOR",
+   "municipio": "Turís",
+   "provincia": "Valencia",
+   "superficie_ha": 1.76,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2006R59035",
+   "nombre": "C.R. RIO JUANES",
+   "municipio": "Yátova",
+   "provincia": "Valencia",
+   "superficie_ha": 1.06,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "1988CR0044",
+   "nombre": "C.R. BARRANCO DEL AGUA",
+   "municipio": "Yátova",
+   "provincia": "Valencia",
+   "superficie_ha": 0.16,
+   "junta_explotacion": "MAGRO"
+  },
+  {
+   "ref": "2005R21168,2001CP0115",
+   "nombre": "C.R. TIERRAS ARROZALES DE PEGO",
+   "municipio": "Pego",
+   "provincia": "Alicante",
+   "superficie_ha": 501.0,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "2005R21176",
+   "nombre": "C.R. TIERRAS ARROZALES DE OLIVA",
+   "municipio": "Oliva",
+   "provincia": "Valencia",
+   "superficie_ha": 250.0,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "1990CP0050",
+   "nombre": "C.U. LA VALL DE GALLINERA",
+   "municipio": "Vall de Gallinera",
+   "provincia": "Alicante",
+   "superficie_ha": 225.46,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "2005CP0103_2",
+   "nombre": "C.R. NUESTRA SEÑORA DE LOS DESAMPARADOS DE ORBA",
+   "municipio": "Orba",
+   "provincia": "Alicante",
+   "superficie_ha": 221.0,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "2005CP0065_2",
+   "nombre": "C.R.U. VALL DEL POP",
+   "municipio": "Parcent",
+   "provincia": "Alicante",
+   "superficie_ha": 211.0,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "1988IP1127 - 1998CP0121",
+   "nombre": "C.R. POZO LA MONTAÑETA",
+   "municipio": "Sanet y Negrals",
+   "provincia": "Alicante",
+   "superficie_ha": 193.0,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "1988CP0012",
+   "nombre": "C.R. AGRICULTORES DE VERGEL, AGUAS Y RIEGOS",
+   "municipio": "Verger (el)",
+   "provincia": "Alicante",
+   "superficie_ha": 165.0,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "2000R21165",
+   "nombre": "C.R. ACEQUIA MADRE DE MIRAFLOR",
+   "municipio": "Ondara",
+   "provincia": "Alicante",
+   "superficie_ha": 157.42,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "2005R50292",
+   "nombre": "C.R. ACEQUIA DE LOS COMUNES DE BENIARBEIG Y ONDARA",
+   "municipio": "Beniarbeig",
+   "provincia": "Alicante",
+   "superficie_ha": 153.35,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "2000R21158 - 2000R21159 - 2000R21163 - 2006R21164",
+   "nombre": "C.R. VILLA DE ONDARA",
+   "municipio": "Ondara",
+   "provincia": "Alicante",
+   "superficie_ha": 139.0,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "1989CR0030 - 2005R60419",
+   "nombre": "C.R. SAN MIGUEL DE MURLA",
+   "municipio": "Murla",
+   "provincia": "Alicante",
+   "superficie_ha": 108.0,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "1997CR0043 - 1999CP0119",
+   "nombre": "C.R. ALCALALI-JALON",
+   "municipio": "Alcalalí",
+   "provincia": "Alicante",
+   "superficie_ha": 101.87,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "1988IP4728",
+   "nombre": "C.R. POZO PINELLA",
+   "municipio": "Dénia",
+   "provincia": "Alicante",
+   "superficie_ha": 100.0,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "2000R21167",
+   "nombre": "C.R. FUENTE DE ABAJO DE SAGRA",
+   "municipio": "Sagra",
+   "provincia": "Alicante",
+   "superficie_ha": 73.0,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "1988IP0810",
+   "nombre": "C.R. POZO SAN FRANCISCO DE PAULA",
+   "municipio": "Ràfol d´Almúnia (El)",
+   "provincia": "Alicante",
+   "superficie_ha": 68.0,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "1989CP0055",
+   "nombre": "C.R. HORTES DE BAIX",
+   "municipio": "Beniarbeig",
+   "provincia": "Alicante",
+   "superficie_ha": 59.26,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "2000R21162",
+   "nombre": "C.R. ACEQUIA DE VERGEL, SETLA Y MIRARROSA",
+   "municipio": "Ondara",
+   "provincia": "Alicante",
+   "superficie_ha": 51.11,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "2007R60669",
+   "nombre": "C.R. BENIHOME-ILLETES",
+   "municipio": "Sanet y Negrals",
+   "provincia": "Alicante",
+   "superficie_ha": 48.0,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "2003CP0103",
+   "nombre": "C.R. EL ROMBI",
+   "municipio": "Pego",
+   "provincia": "Alicante",
+   "superficie_ha": 41.06,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "1994RC0008",
+   "nombre": "C.R. HUERTAS DE SANET Y NEGRALS",
+   "municipio": "Sanet y Negrals",
+   "provincia": "Alicante",
+   "superficie_ha": 27.77,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "1992CP0105",
+   "nombre": "C.R. RACO DE BOCHA",
+   "municipio": "Pego",
+   "provincia": "Alicante",
+   "superficie_ha": 16.67,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "2005R60419",
+   "nombre": "C.R. DE MURLA",
+   "municipio": "Murla",
+   "provincia": "Alicante",
+   "superficie_ha": 7.0,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "1987CP0052",
+   "nombre": "C.U. RIEGO DEL POZO DEL CARAGUS",
+   "municipio": "163 Dénia",
+   "provincia": "Alicante",
+   "superficie_ha": 5.0,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "1983CP0032",
+   "nombre": "C.R. POZO BURGUERA",
+   "municipio": "Oliva",
+   "provincia": "Valencia",
+   "superficie_ha": 4.0,
+   "junta_explotacion": "MARINA ALTA"
+  },
+  {
+   "ref": "2000R41610",
+   "nombre": "C.R. CANAL BAJO DEL ALGAR",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 2329.13,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2006R21087 - 2000RU0024",
+   "nombre": "C.R. VILLAJOYOSA",
+   "municipio": "Orxeta",
+   "provincia": "Alicante",
+   "superficie_ha": 1520.0,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1989CP0162",
+   "nombre": "C.R. ONAER",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 459.81,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2000R60101",
+   "nombre": "C.R. LOS MOLINOS DE FINESTRAT",
+   "municipio": "Finestrat",
+   "provincia": "Alicante",
+   "superficie_ha": 400.0,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988IP1217",
+   "nombre": "C.R. SACOS",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 400.0,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2006R60236",
+   "nombre": "C.R. RIEGO MAYOR DE ALFAZ DEL PI Y BENIDORM",
+   "municipio": "Polop",
+   "provincia": "Alicante",
+   "superficie_ha": 352.0,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2006R40368 - 2006R44243",
+   "nombre": "C.R. ALTEA LA VIEJA",
+   "municipio": "Altea",
+   "provincia": "Alicante",
+   "superficie_ha": 339.0,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1997CP0127 - 2000R60431 - 2000R60432",
+   "nombre": "C.R. RIEGO MAYOR DE RELLEU",
+   "municipio": "Relleu",
+   "provincia": "Alicante",
+   "superficie_ha": 300.01,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1986RT0002 - 2006R58983",
+   "nombre": "C.R. RIEGO NUEVO DE ALTEA",
+   "municipio": "Altea",
+   "provincia": "Alicante",
+   "superficie_ha": 263.62,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988IP4833 - 2009CR0005",
+   "nombre": "C.R. RIEGO MAYOR DE POLOP",
+   "municipio": "Polop",
+   "provincia": "Alicante",
+   "superficie_ha": 175.0,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1987CR0005",
+   "nombre": "C.R. RIEGO MAYOR Y DE ABAJO DEL RIO ALGAR DE ALTEA",
+   "municipio": "Altea",
+   "provincia": "Alicante",
+   "superficie_ha": 170.0,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2005R43055",
+   "nombre": "C.R. RIEGO DE RUCHEY",
+   "municipio": "Polop",
+   "provincia": "Alicante",
+   "superficie_ha": 161.76,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2005R21117",
+   "nombre": "C.R. RIEGO ALGAR-RABOSET-PARATS Y MARCHEQUEVIR",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 89.95,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2006R61919",
+   "nombre": "C.R. RIEGO MAYOR DE LA HUERTA DE ORXETA",
+   "municipio": "Orxeta",
+   "provincia": "Alicante",
+   "superficie_ha": 80.0,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2006R45449",
+   "nombre": "C.R. CHIRLES",
+   "municipio": "Polop",
+   "provincia": "Alicante",
+   "superficie_ha": 73.52,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2000R21090",
+   "nombre": "C.R. LA VILLA DE CHAUCHET Y TEULAI",
+   "municipio": "Relleu",
+   "provincia": "Alicante",
+   "superficie_ha": 72.12,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2000R60532",
+   "nombre": "C.R. HOYAS DEL RIO",
+   "municipio": "Relleu",
+   "provincia": "Alicante",
+   "superficie_ha": 67.0,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2005R21116",
+   "nombre": "C.R. RIEGO NUEVO DE MARCHEQUIVIR",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 65.1,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1998CR0039_2",
+   "nombre": "C.R.U. LA FONT DE BENIALET",
+   "municipio": "Benifato",
+   "provincia": "Alicante",
+   "superficie_ha": 57.73,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2006R21301",
+   "nombre": "C.R. RIEGO PLANET DE LA NUCIA",
+   "municipio": "Nucia (la)",
+   "provincia": "Alicante",
+   "superficie_ha": 48.0,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2000R21103 - 2000R21104",
+   "nombre": "C.R. TUTAS",
+   "municipio": "Relleu",
+   "provincia": "Alicante",
+   "superficie_ha": 47.0,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2005R21123",
+   "nombre": "C.R. COIG-ALGAR Y PINAR",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 41.6,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2005R40472",
+   "nombre": "C.R. PIQUERO",
+   "municipio": "Polop",
+   "provincia": "Alicante",
+   "superficie_ha": 39.84,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2000R91674",
+   "nombre": "C.R. SENTENILLA DE ABAJO",
+   "municipio": "Nucia (la)",
+   "provincia": "Alicante",
+   "superficie_ha": 38.0,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988IP4834",
+   "nombre": "C.R. RIEGO DE COTELLES DE POLOP",
+   "municipio": "Polop",
+   "provincia": "Alicante",
+   "superficie_ha": 34.6,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988RI0245",
+   "nombre": "C.R. RIEGO DE BOLULLA",
+   "municipio": "Bolulla",
+   "provincia": "Alicante",
+   "superficie_ha": 33.86,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2000R21091 - 2000R21092 - 2000R21093 - 2000R21094",
+   "nombre": "C.R. ESCODA",
+   "municipio": "y otros Relleu",
+   "provincia": "Alicante",
+   "superficie_ha": 30.34,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2005R56526",
+   "nombre": "C.R. ROMPUDA-ALCHEPSA Y RUCHEY",
+   "municipio": "Nucia (la)",
+   "provincia": "Alicante",
+   "superficie_ha": 29.26,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988RI0343",
+   "nombre": "C.R. LOS AZUDES DEL TERS",
+   "municipio": "Sella",
+   "provincia": "Alicante",
+   "superficie_ha": 26.7,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2004R21113",
+   "nombre": "C.R. PILA Y CAP NEGRET DE ALTEA",
+   "municipio": "Altea",
+   "provincia": "Alicante",
+   "superficie_ha": 26.62,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988RI0340",
+   "nombre": "C.R. AZUD DEL TOLL DEL MOLI ALMUSENT",
+   "municipio": "Sella",
+   "provincia": "Alicante",
+   "superficie_ha": 21.98,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2010RC0011",
+   "nombre": "C.R. RIEGO ALGOLECHA PESADURO",
+   "municipio": "Nucia (la)",
+   "provincia": "Alicante",
+   "superficie_ha": 21.0,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988RI0376",
+   "nombre": "C.R. AZUD DE LA MURTERA DE SELLA",
+   "municipio": "Sella",
+   "provincia": "Alicante",
+   "superficie_ha": 19.8,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2000R21142",
+   "nombre": "C.R. ALMARCH DE LA NUCIA",
+   "municipio": "Nucia (la)",
+   "provincia": "Alicante",
+   "superficie_ha": 18.17,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1997CP0170",
+   "nombre": "C.R. CASIVAÑES",
+   "municipio": "Tárbena",
+   "provincia": "Alicante",
+   "superficie_ha": 15.0,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2005R42634",
+   "nombre": "C.R. RIEGO MOSMAY, SECA Y FULLERACA",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 13.61,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2005R21134",
+   "nombre": "C.R. ESPIRIT SANT",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 13.49,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2005R21135",
+   "nombre": "C.R. PESADURO ALCHEPSA DE LA NUCIA",
+   "municipio": "Nucia (la)",
+   "provincia": "Alicante",
+   "superficie_ha": 11.49,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2005R21118",
+   "nombre": "C.R. ALGOLECHA, ROCHA Y MURTERAL",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 9.74,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2005R52438",
+   "nombre": "C.R. SENTENILLA DE ARRIBA",
+   "municipio": "Nucia (la)",
+   "provincia": "Alicante",
+   "superficie_ha": 8.15,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2005R21107",
+   "nombre": "C.R. MOLI DE CRISANTO",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 7.54,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2005R21115",
+   "nombre": "C.R. DEL RIEGO MOSMAY CALLOSA",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 6.66,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2000R60373",
+   "nombre": "C.R. RIEGO DE LLIDONER",
+   "municipio": "Guadalest",
+   "provincia": "Alicante",
+   "superficie_ha": 6.3,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2003CR0033",
+   "nombre": "C.R. FONT DE LA CAVETA",
+   "municipio": "Guadalest",
+   "provincia": "Alicante",
+   "superficie_ha": 5.22,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988CR0058",
+   "nombre": "C.R. LA FUENTE RAMAL DE L'OIX",
+   "municipio": "Finestrat",
+   "provincia": "Alicante",
+   "superficie_ha": 4.79,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2000R21119",
+   "nombre": "C.R. RIEGO ALBALE",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 4.77,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988RI0352",
+   "nombre": "C.R. FUENTE DEL BARRANCO",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 4.5,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988RI0214",
+   "nombre": "C.R. RIEGO BOSQUET",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 4.37,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2005R58084",
+   "nombre": "C.R. RIEGO DE FOIA ROTJA",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 4.22,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2006R91669",
+   "nombre": "C.R. RIEGO CARDONA",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 4.12,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2005R59153",
+   "nombre": "C.R. RIEGO DELS MAJORS",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 4.08,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2000R21124",
+   "nombre": "C.R. LA ILLETA",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 3.32,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988RI0379",
+   "nombre": "C.R. FONT DE GREGORI",
+   "municipio": "Sella",
+   "provincia": "Alicante",
+   "superficie_ha": 3.24,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2000R42277",
+   "nombre": "C.R. RIEGO ALGOLECHA DELS PEREROS",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 3.08,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988RI0039",
+   "nombre": "C.R. RIEGO MOLI DE PARRAO",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 3.0,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988RI0221",
+   "nombre": "C.R. MOLI DE BACORA",
+   "municipio": "Polop",
+   "provincia": "Alicante",
+   "superficie_ha": 2.66,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988RI0042",
+   "nombre": "C.R. TERRER DE LES ALIGUES",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 1.9,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988RI0344",
+   "nombre": "C.R. MOLI DE D'ALT DE SELLA",
+   "municipio": "Sella",
+   "provincia": "Alicante",
+   "superficie_ha": 1.8,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "2005R21137",
+   "nombre": "C.R. RIEGO MIÑONS",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 1.8,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988RI0353",
+   "nombre": "C.R. FUENTE DE LA MURTA DE TARBENA",
+   "municipio": "Tárbena",
+   "provincia": "Alicante",
+   "superficie_ha": 1.79,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988RI0049 - 2012RT0035",
+   "nombre": "C.R. EL COIG",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 1.69,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988RI0350",
+   "nombre": "C.R. FONT DEL HORT",
+   "municipio": "Tárbena",
+   "provincia": "Alicante",
+   "superficie_ha": 1.64,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988RI0349",
+   "nombre": "C.R. FONT ROTJA DE TARBENA",
+   "municipio": "Tárbena",
+   "provincia": "Alicante",
+   "superficie_ha": 1.63,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988RI0373",
+   "nombre": "C.R. AZUD FONT NICOLAU",
+   "municipio": "Sella",
+   "provincia": "Alicante",
+   "superficie_ha": 1.6,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1996CR0043",
+   "nombre": "C.R. AZUD HORTA DE IRLES",
+   "municipio": "Sella",
+   "provincia": "Alicante",
+   "superficie_ha": 1.35,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1989RI0036",
+   "nombre": "C.R. FONT GROSSA",
+   "municipio": "Tárbena",
+   "provincia": "Alicante",
+   "superficie_ha": 1.33,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1974RI0164",
+   "nombre": "C.R. BALSA DE MARTI",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 1.18,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988RI0354",
+   "nombre": "C.R. FOYA DE LA IGLESIA DE TARBENA",
+   "municipio": "Tárbena",
+   "provincia": "Alicante",
+   "superficie_ha": 1.05,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988RI0246",
+   "nombre": "C.R. LA FUENTE DE SALT",
+   "municipio": "Bolulla",
+   "provincia": "Alicante",
+   "superficie_ha": 0.83,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988RI0351",
+   "nombre": "C.R. FONT DEL CHORDI",
+   "municipio": "Tárbena",
+   "provincia": "Alicante",
+   "superficie_ha": 0.67,
+   "junta_explotacion": "MARINA BAJA"
+  },
+  {
+   "ref": "1988CR0004",
+   "nombre": "C.R. PANTANO DE MARIA CRISTINA",
+   "municipio": "Onda",
+   "provincia": "Castellón",
+   "superficie_ha": 2660.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2006R21877",
+   "nombre": "C.R. VILLARREAL",
+   "municipio": "Villarreal/Vila-real",
+   "provincia": "Castellón",
+   "superficie_ha": 2656.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1989RC0006",
+   "nombre": "C.R. ALMASSORA",
+   "municipio": "Almazora/Almassora",
+   "provincia": "Castellón",
+   "superficie_ha": 1422.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1985RI0007",
+   "nombre": "C.R. MONCOFAR",
+   "municipio": "Moncofa",
+   "provincia": "Castellón",
+   "superficie_ha": 909.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1988CR0010",
+   "nombre": "C.R. RIEGO DE FORTUNA Y MARJALERIA DE NULES",
+   "municipio": "Nules",
+   "provincia": "Castellón",
+   "superficie_ha": 903.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1990CR0027",
+   "nombre": "C.R. VALL D'UIXO",
+   "municipio": "Vall d´Uixó (la)",
+   "provincia": "Castellón",
+   "superficie_ha": 875.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2006R21876_2",
+   "nombre": "C.R. NULES",
+   "municipio": "Villarreal/Vila-real",
+   "provincia": "Castellón",
+   "superficie_ha": 478.74,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R45622 - 2000R40494 - 2000R40496",
+   "nombre": "C.R. FUEN LOZANA Y TOSQUILLA",
+   "municipio": "Mora de Rubielos",
+   "provincia": "Teruel",
+   "superficie_ha": 395.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2006R21886",
+   "nombre": "C.R. VALBONA",
+   "municipio": "Valbona",
+   "provincia": "Teruel",
+   "superficie_ha": 375.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R58000",
+   "nombre": "C.R. BETXI",
+   "municipio": "Onda",
+   "provincia": "Castellón",
+   "superficie_ha": 309.04,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R49773 y otros relacionados",
+   "nombre": "C.R. UNICA RIO DE MANZANERA",
+   "municipio": "Manzanera",
+   "provincia": "Teruel",
+   "superficie_ha": 306.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R21935",
+   "nombre": "C.R. HUERTAS DE RUBIELOS DE MORA",
+   "municipio": "Nogueruelas",
+   "provincia": "Teruel",
+   "superficie_ha": 260.3,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2005R32939",
+   "nombre": "C.R. ARTANA",
+   "municipio": "Artana",
+   "provincia": "Castellón",
+   "superficie_ha": 236.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1987IP0237",
+   "nombre": "C.R. POZO LA ESPERANZA DE L'ALCORA",
+   "municipio": "Alcora (l´)",
+   "provincia": "Castellón",
+   "superficie_ha": 201.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R48963 - 2000R48964 - 2006R48965 - 2006R63634",
+   "nombre": "C.R. RIO MIJARES DE OLBA",
+   "municipio": "Olba",
+   "provincia": "Teruel",
+   "superficie_ha": 189.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1987CP0112",
+   "nombre": "C.R. EL PAÑET",
+   "municipio": "Onda",
+   "provincia": "Castellón",
+   "superficie_ha": 146.67,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R22040 - 2000R60374",
+   "nombre": "C.R. HUERTA MAYOR DE ALCORA",
+   "municipio": "Alcora (l´)",
+   "provincia": "Castellón",
+   "superficie_ha": 129.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1998RP0007",
+   "nombre": "C.R. MARE DE DEU DE GRACIA DE ONDA",
+   "municipio": "Onda",
+   "provincia": "Castellón",
+   "superficie_ha": 125.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R21919 - 2000R21920",
+   "nombre": "C.R. PAGO ALTO, BAJO Y BALAGUERAS",
+   "municipio": "Rubielos de Mora",
+   "provincia": "Teruel",
+   "superficie_ha": 113.67,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1988CP0068",
+   "nombre": "C.R. POZO SAN PEDRO DE LA VALL DE UIXO",
+   "municipio": "Vall d´Uixó (la)",
+   "provincia": "Castellón",
+   "superficie_ha": 107.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1989CP0144",
+   "nombre": "C.R. LES TRENCAES",
+   "municipio": "Villarreal/Vila-real",
+   "provincia": "Castellón",
+   "superficie_ha": 99.73,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2006R21876_3",
+   "nombre": "C.R. MASCARELL",
+   "municipio": "Villarreal/Vila-real",
+   "provincia": "Castellón",
+   "superficie_ha": 96.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R54598 - 2000R54599 - 2000R54600 - 2000R54601 - 2000R54602 - 2000R54603 - 2000R54604 - 2000R54605 - 2000R54606 - 2000R54607 - 2004RC0002",
+   "nombre": "C.R. ALBENTOSA",
+   "municipio": "Albentosa",
+   "provincia": "Teruel",
+   "superficie_ha": 89.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2006R21844_2",
+   "nombre": "C.R. RIBESALBES",
+   "municipio": "Vallat",
+   "provincia": "Castellón",
+   "superficie_ha": 80.85,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000CP0232",
+   "nombre": "C.R. SAN ISIDRO DE VILLAVIEJA",
+   "municipio": "Villavieja",
+   "provincia": "Castellón",
+   "superficie_ha": 80.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R60600 y otros relacionados",
+   "nombre": "C.R. NOGUERUELAS",
+   "municipio": "Nogueruelas",
+   "provincia": "Teruel",
+   "superficie_ha": 79.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R21854 - 2000R21855 - 2000R21856 - 2000R21857",
+   "nombre": "C.R. MONTANEJOS",
+   "municipio": "Montanejos",
+   "provincia": "Castellón",
+   "superficie_ha": 67.81,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1987IP0660",
+   "nombre": "C.R. LA SORT",
+   "municipio": "Almenara",
+   "provincia": "Castellón",
+   "superficie_ha": 62.25,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2008RP0003",
+   "nombre": "C.R. SAN ROQUE DE ONDA",
+   "municipio": "Onda",
+   "provincia": "Castellón",
+   "superficie_ha": 54.52,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1988RI0142",
+   "nombre": "C.R. CABRA DE MORA",
+   "municipio": "Alcalá de la Selva",
+   "provincia": "Teruel",
+   "superficie_ha": 49.08,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R21835 - 2000R21836 - 2000R21837",
+   "nombre": "C.R. ACEQUIAS BAJO LUGAR, VIEJA Y NUEVA DE ARAÑUEL",
+   "municipio": "Arañuel",
+   "provincia": "Castellón",
+   "superficie_ha": 47.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R91751 y otros relacionados",
+   "nombre": "C.R. ALCALA DE LA SELVA",
+   "municipio": "Alcalá de la Selva",
+   "provincia": "Teruel",
+   "superficie_ha": 46.75,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R21873",
+   "nombre": "C.R. FANZARA",
+   "municipio": "Fanzara",
+   "provincia": "Castellón",
+   "superficie_ha": 46.32,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R21849 - 2000R21850 - 2000R21851 - 2000R21852 - 2000R21853",
+   "nombre": "C.R. SAN ISIDRO LABRADOR DE CIRAT",
+   "municipio": "Cirat",
+   "provincia": "Castellón",
+   "superficie_ha": 44.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1999CR0050",
+   "nombre": "C.R. LUDIENTE",
+   "municipio": "Ludiente",
+   "provincia": "Castellón",
+   "superficie_ha": 41.63,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2005R52187",
+   "nombre": "C.R. EXTREMALADA DEL REGATELL",
+   "municipio": "Alcora (l´)",
+   "provincia": "Castellón",
+   "superficie_ha": 40.93,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2004R61601 y otros relacionados",
+   "nombre": "C.R. FORMICHE BAJO",
+   "municipio": "Teruel",
+   "provincia": "Teruel",
+   "superficie_ha": 40.64,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1974RI0029",
+   "nombre": "C.R. LUCENA DEL CID",
+   "municipio": "Lucena del Cid",
+   "provincia": "Castellón",
+   "superficie_ha": 39.23,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2004CP0055",
+   "nombre": "C.R. MON SAN JUAN",
+   "municipio": "Toro (El)",
+   "provincia": "Castellón",
+   "superficie_ha": 39.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R63044 - 2006R63045 - 2006R63046 - 2006R63047 - 2006R63048",
+   "nombre": "C.R. SAN BARTOLOME DE SUERAS",
+   "municipio": "Sueras/Suera",
+   "provincia": "Castellón",
+   "superficie_ha": 37.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1986CP0235",
+   "nombre": "C.R. POZO LES CLOCHES",
+   "municipio": "Llosa (la)",
+   "provincia": "Castellón",
+   "superficie_ha": 36.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2005R22004 - 2000R22005 - 2000R22006 - 2000R22007 - 2000R22008 - 2000R22012 - 2000R22013 - 2000R22014 - 2000R22015",
+   "nombre": "C.R. AYODAR",
+   "municipio": "Ayódar",
+   "provincia": "Castellón",
+   "superficie_ha": 36.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2006R43915 - 2005R43916 - 2005R43917 - 2005R43918 - 2005R43919 - 2006R43920 - 2006R43921 - 2006R43922 - 2006R43923 - 2006R43924",
+   "nombre": "C.R. ESLIDA",
+   "municipio": "Eslida",
+   "provincia": "Castellón",
+   "superficie_ha": 33.06,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1997CP0018",
+   "nombre": "C.R. BUEN SUCESO - GOTEO",
+   "municipio": "Sagunto/Sagunt",
+   "provincia": "Valencia",
+   "superficie_ha": 32.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2004R60750 y otros relacionados",
+   "nombre": "C.R. FORMICHE ALTO",
+   "municipio": "Formiche Alto",
+   "provincia": "Teruel",
+   "superficie_ha": 30.69,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R21842 - 2004R39343 - 2004R39349",
+   "nombre": "C.R. TOGA",
+   "municipio": "Toga",
+   "provincia": "Castellón",
+   "superficie_ha": 26.27,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R21991 - 2000R21992",
+   "nombre": "C.R. SANTA CRUZ DE ARGELITA",
+   "municipio": "Argelita",
+   "provincia": "Castellón",
+   "superficie_ha": 23.87,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1988CP0052",
+   "nombre": "C.R. LA GRILLERA",
+   "municipio": "Alcora (l´)",
+   "provincia": "Castellón",
+   "superficie_ha": 23.58,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1997CP0040",
+   "nombre": "C.R. POZO DE SANTA TERESA",
+   "municipio": "Vall d´Uixó (la)",
+   "provincia": "Castellón",
+   "superficie_ha": 22.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1974RI0030 - 1997RC0005",
+   "nombre": "C.R. FIGUEROLES",
+   "municipio": "Figueroles",
+   "provincia": "Castellón",
+   "superficie_ha": 20.2,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1973RI0012",
+   "nombre": "C.R. CASTILLO DE VILLAMALEFA",
+   "municipio": "Castillo de Villamalefa",
+   "provincia": "Castellón",
+   "superficie_ha": 20.01,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1987RI0004 - 1987CP0073",
+   "nombre": "C.R. LAS HUERTAS DE TALES",
+   "municipio": "Tales",
+   "provincia": "Castellón",
+   "superficie_ha": 20.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2006R39609",
+   "nombre": "C.R. LA FUENTE DE MES AMUNT",
+   "municipio": "Useras/Useres (les)",
+   "provincia": "Castellón",
+   "superficie_ha": 19.77,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R22002",
+   "nombre": "C.R. RONCALES Y AGUA DE LA PLAZA",
+   "municipio": "Villahermosa del Río",
+   "provincia": "Castellón",
+   "superficie_ha": 18.07,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2006RP0004",
+   "nombre": "C.R. SANCHILS",
+   "municipio": "Alcora (l´)",
+   "provincia": "Castellón",
+   "superficie_ha": 17.02,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R39240 - 2004R39241 - 2000R39242",
+   "nombre": "C.R. SAN JUAN EVANGELISTA",
+   "municipio": "Vallat",
+   "provincia": "Castellón",
+   "superficie_ha": 14.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R22009 - 2000R22010 - 2005R55569",
+   "nombre": "C.R. ESPADILLA",
+   "municipio": "Espadilla",
+   "provincia": "Castellón",
+   "superficie_ha": 13.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R91647 - 2000R91648 - 2000R91649 - 2000R91650 - 2000R91651 - 2000R91652 - 2000R91653",
+   "nombre": "C.R. LA ALDEA DE ARAYA",
+   "municipio": "Alcora (l´)",
+   "provincia": "Castellón",
+   "superficie_ha": 13.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1997CP0006",
+   "nombre": "C.R. POZO AZUD DE ALFONDEGUILLA",
+   "municipio": "Alfondeguilla",
+   "provincia": "Castellón",
+   "superficie_ha": 11.3,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2004R21858",
+   "nombre": "C.R. TORRECHIVA",
+   "municipio": "Torrechiva",
+   "provincia": "Castellón",
+   "superficie_ha": 10.8,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2004R55558 - 2004R55559",
+   "nombre": "C.R. RIO MAYOR DE VILLAHERMOSA DEL RIO",
+   "municipio": "Villahermosa del Río",
+   "provincia": "Castellón",
+   "superficie_ha": 10.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R50882 - 2000R50883 - 2000R50884 - 2000R50885 - 2000R50886 - 2000R50887 - 2000R50888 - 2000R50889 - 2000R50890 - 2000R50891",
+   "nombre": "C.R. BARRANCO DE LA TOSQUILLA",
+   "municipio": "Mora de Rubielos",
+   "provincia": "Teruel",
+   "superficie_ha": 10.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1988RI0023",
+   "nombre": "C.R. HUERTA DE AHIN",
+   "municipio": "Aín",
+   "provincia": "Castellón",
+   "superficie_ha": 10.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2008CP0256-2012RP0037",
+   "nombre": "C.U. TORRES SCALES",
+   "municipio": "Sagunto/Sagunt",
+   "provincia": "Valencia",
+   "superficie_ha": 9.31,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1986RI0025",
+   "nombre": "C.R. EXTREMALADA DEL CASTELL",
+   "municipio": "Alcora (l´)",
+   "provincia": "Castellón",
+   "superficie_ha": 7.85,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2005R22041",
+   "nombre": "C.R. HUERTA EL ARENAL Y CENIA DE BORRIOL",
+   "municipio": "Borriol",
+   "provincia": "Castellón",
+   "superficie_ha": 7.71,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2005RT0017",
+   "nombre": "C.R. ACEQUIA DE MERCADER",
+   "municipio": "Castellón de la Plana/Castelló de la Plana",
+   "provincia": "Castellón",
+   "superficie_ha": 7.52,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R22011",
+   "nombre": "C.R. FUENTES DE AYODAR",
+   "municipio": "Ayódar",
+   "provincia": "Castellón",
+   "superficie_ha": 7.38,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R21973 - 2000R21974 - 2000R21975 - 2000R21979 - 2000R21980 - 2007R21976",
+   "nombre": "C.R. REGALLON Y ANGOSTILLO",
+   "municipio": "Cortes de Arenoso",
+   "provincia": "Castellón",
+   "superficie_ha": 7.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R22001",
+   "nombre": "C.R. PIEDRAS DE RANERA",
+   "municipio": "Linares de Mora",
+   "provincia": "Teruel",
+   "superficie_ha": 6.48,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1987RI0004 - 2005R39244",
+   "nombre": "C.R. LA VILLA DE ONDA",
+   "municipio": "Tales",
+   "provincia": "Castellón",
+   "superficie_ha": 6.3,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R21864",
+   "nombre": "C.R. LOS PEIROS DE PUEBLA DE ARENOSO",
+   "municipio": "Olba",
+   "provincia": "Teruel",
+   "superficie_ha": 6.15,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1984CA0011",
+   "nombre": "C.R. LA CIMORRETA Y MAS DE LUIS",
+   "municipio": "Villahermosa del Río",
+   "provincia": "Castellón",
+   "superficie_ha": 5.63,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R21963 - 2000R21964 - 2000R21965 - 2000R21966 - 2000R21967",
+   "nombre": "C.R. LOS CALPES",
+   "municipio": "Puebla de Arenoso",
+   "provincia": "Castellón",
+   "superficie_ha": 5.57,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R63050 - 2000CP0280",
+   "nombre": "C.R. CARBONARIA Y CABALLERA",
+   "municipio": "Tales",
+   "provincia": "Castellón",
+   "superficie_ha": 5.56,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R91668",
+   "nombre": "C.R. LA PARTIDA VIÑE O LA FOXA",
+   "municipio": "Alcora (l´)",
+   "provincia": "Castellón",
+   "superficie_ha": 5.52,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2004R53010 - 2004R53012 - 2005R53013 - 2000R53014 - 2000R53015 - 2000R53016 - 2000R53017 - 2004R53018 - 2000R60703",
+   "nombre": "C.R. SAN AGUSTIN",
+   "municipio": "San Agustín",
+   "provincia": "Teruel",
+   "superficie_ha": 5.25,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2004RC0006",
+   "nombre": "C.R. HUERTA DE ABAJO Y DE LA ALQUERIA",
+   "municipio": "Borriol",
+   "provincia": "Castellón",
+   "superficie_ha": 5.08,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R21968",
+   "nombre": "C.R. FUENTE LA REINA",
+   "municipio": "Fuente la Reina",
+   "provincia": "Castellón",
+   "superficie_ha": 5.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1988RI0097",
+   "nombre": "C.R. DEL RIO CARBO",
+   "municipio": "Villahermosa del Río",
+   "provincia": "Castellón",
+   "superficie_ha": 4.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2005CP0182",
+   "nombre": "C.R. POUS BARRANC DE RATILS",
+   "municipio": "Onda",
+   "provincia": "Castellón",
+   "superficie_ha": 4.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2004R21828 - 2004R21830",
+   "nombre": "C.R. LLANOS CARGAS Y CONGOS DE FANZARA",
+   "municipio": "Fanzara",
+   "provincia": "Castellón",
+   "superficie_ha": 3.73,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1984RI0017",
+   "nombre": "C.R. PLA DE LA PEÑARROCHA",
+   "municipio": "Lucena del Cid",
+   "provincia": "Castellón",
+   "superficie_ha": 3.47,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2004RC0007",
+   "nombre": "C.R. LA HUERTA MEDIANA",
+   "municipio": "Borriol",
+   "provincia": "Castellón",
+   "superficie_ha": 3.4,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2008CP0081",
+   "nombre": "C.R. MORICO",
+   "municipio": "Borriol",
+   "provincia": "Castellón",
+   "superficie_ha": 3.17,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2008CP0374",
+   "nombre": "C.U. ALCALATEN",
+   "municipio": "Alcora (l´)",
+   "provincia": "Castellón",
+   "superficie_ha": 3.01,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R59080",
+   "nombre": "C.R. RIO PEQUEÑO-PARTIDA RAMBLA",
+   "municipio": "Espadilla",
+   "provincia": "Castellón",
+   "superficie_ha": 2.8,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R52186",
+   "nombre": "C.R. GRANJA PALLARESOS Y FUENTE NUEVA",
+   "municipio": "Alcora (l´)",
+   "provincia": "Castellón",
+   "superficie_ha": 2.71,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1982RI0013",
+   "nombre": "C.R. GRANCHETA O MAÑANS",
+   "municipio": "Alcora (l´)",
+   "provincia": "Castellón",
+   "superficie_ha": 2.27,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R59028 - 2000R59029",
+   "nombre": "C.R. LA FUENTE DEL MAS DEL RAMO",
+   "municipio": "Mora de Rubielos",
+   "provincia": "Teruel",
+   "superficie_ha": 2.06,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2005CP0169",
+   "nombre": "C.R. MOLINO GASPARILLA",
+   "municipio": "Alcora (l´)",
+   "provincia": "Castellón",
+   "superficie_ha": 2.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1987CP0062",
+   "nombre": "C.R. POZO LA FRONTERA",
+   "municipio": "Argelita",
+   "provincia": "Castellón",
+   "superficie_ha": 1.58,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R50295",
+   "nombre": "C.R. GRANCHA LA CASTAÑETA",
+   "municipio": "Alcora (l´)",
+   "provincia": "Castellón",
+   "superficie_ha": 1.52,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "1989CR0006",
+   "nombre": "C.R. FUENTE DE LA SEÑORA DE VALLAT",
+   "municipio": "Vallat",
+   "provincia": "Castellón",
+   "superficie_ha": 1.38,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2000R21960",
+   "nombre": "C.R. DE LA TEJERIA DE SAN AGUSTIN",
+   "municipio": "San Agustín",
+   "provincia": "Teruel",
+   "superficie_ha": 1.0,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2010RP0018",
+   "nombre": "C.R. MOJAMASAF",
+   "municipio": "Vall d´Uixó (la)",
+   "provincia": "Castellón",
+   "superficie_ha": 0.84,
+   "junta_explotacion": "MIJARES-PLANA CASTELLON"
+  },
+  {
+   "ref": "2005R54163_2",
+   "nombre": "C.R. JUNTA AGUAS FUENTE DE QUART DE LES VALLS",
+   "municipio": "Quart de les Valls",
+   "provincia": "Valencia",
+   "superficie_ha": 1189.03,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2005R20172 - 2005R20172",
+   "nombre": "C.R. SEGORBE",
+   "municipio": "Segorbe",
+   "provincia": "Castellón",
+   "superficie_ha": 950.95,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2003CP0006",
+   "nombre": "C.R. SAN FRANCISCO DE PAULA",
+   "municipio": "Viver",
+   "provincia": "Castellón",
+   "superficie_ha": 681.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2002CP0111",
+   "nombre": "C.R. VIRGEN DE GRACIA DE ALTURA",
+   "municipio": "Altura",
+   "provincia": "Castellón",
+   "superficie_ha": 670.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2006R38399 - 2000R38400 - 2006R38401 - 2006R38402",
+   "nombre": "C.R. MAGALLAN - NOVALES Y MEDIA VEGA DE JERICA",
+   "municipio": "Viver",
+   "provincia": "Castellón",
+   "superficie_ha": 632.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1988IP6374 - 1988IP5674 - 2005R20214 - 2005R20175",
+   "nombre": "C.R. NUESTRA SEÑORA DE LA MERCED DE ALGAR DE PALANCIA",
+   "municipio": "Altura",
+   "provincia": "Castellón",
+   "superficie_ha": 391.35,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1993CP0135",
+   "nombre": "C.R. POZO CABRERA",
+   "municipio": "Segorbe",
+   "provincia": "Castellón",
+   "superficie_ha": 312.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2004R91671 - 2004R91672 - 2004R91673",
+   "nombre": "C.R. CAUDIEL",
+   "municipio": "Caudiel",
+   "provincia": "Castellón",
+   "superficie_ha": 231.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2000R20213 - 2006R42656 - 1981CP0068",
+   "nombre": "C.R. CASTELLNOVO",
+   "municipio": "Castellnovo",
+   "provincia": "Castellón",
+   "superficie_ha": 208.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2006R62332 - 2004R62333 - 2004R62334 - 2004R62336 - 1995RC0007",
+   "nombre": "C.R. SAN ISIDRO LABRADOR DE TERESA",
+   "municipio": "Teresa",
+   "provincia": "Castellón",
+   "superficie_ha": 207.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1995CP0086",
+   "nombre": "C.R. POU LA RODANA",
+   "municipio": "Algimia de Alfara",
+   "provincia": "Valencia",
+   "superficie_ha": 191.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2004R62325 - 2004R62326 - 2004R62329 - 2004R62331",
+   "nombre": "C.R. ALTO PALANCIA DE BEJIS",
+   "municipio": "Bejís",
+   "provincia": "Castellón",
+   "superficie_ha": 145.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2000R20201 - 2005R22273",
+   "nombre": "C.R. ALTURA",
+   "municipio": "Altura",
+   "provincia": "Castellón",
+   "superficie_ha": 145.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1997CP0064_2",
+   "nombre": "C.R. FONT DE ARGUINES",
+   "municipio": "Alfara de la Baronia",
+   "provincia": "Valencia",
+   "superficie_ha": 133.33,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1995CP0102",
+   "nombre": "C.R. POZO PLA DE L´ALJUB",
+   "municipio": "Albalat dels Tarongers",
+   "provincia": "Valencia",
+   "superficie_ha": 128.5,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2006R38399 - 2006R38401 - 2006R38402",
+   "nombre": "C.R. VIVER",
+   "municipio": "Viver",
+   "provincia": "Castellón",
+   "superficie_ha": 123.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2001RU0009",
+   "nombre": "C.R. TORRES TORRES",
+   "municipio": "Torres Torres",
+   "provincia": "Valencia",
+   "superficie_ha": 119.36,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2004R20167 - 2004R20174 - 1991RC0011",
+   "nombre": "C.R. SOT DE FERRER",
+   "municipio": "Sot de Ferrer",
+   "provincia": "Castellón",
+   "superficie_ha": 118.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1999CP0271",
+   "nombre": "C.R. EL PUVICHOL",
+   "municipio": "Estivella",
+   "provincia": "Valencia",
+   "superficie_ha": 113.35,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1996CP0001",
+   "nombre": "C.R. ALBALAT DELS TARONGERS",
+   "municipio": "Albalat dels Tarongers",
+   "provincia": "Valencia",
+   "superficie_ha": 107.27,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2000R39212 - 2004R39213 - 2000R39214",
+   "nombre": "C.R. RIO PALANCIA DE JERICA",
+   "municipio": "Jérica",
+   "provincia": "Castellón",
+   "superficie_ha": 93.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2004R20187 - 2004R20188 - 2004R20189 - 2004R20190 - 2004R20191 - 2004R20192 - 2004R20193 - 2004R20194 - 2004R20195 - 2004R20196 - 2004R20197",
+   "nombre": "C.R. RIO GAIBIEL",
+   "municipio": "Gaibiel",
+   "provincia": "Castellón",
+   "superficie_ha": 92.07,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2006R20165 - 1988RI0064 - 1988RI0099 - 1990RI0001",
+   "nombre": "C.R. SONEJA",
+   "municipio": "Soneja",
+   "provincia": "Castellón",
+   "superficie_ha": 89.76,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1986IP0168",
+   "nombre": "C.R. ALGIMIA DE ALFARA",
+   "municipio": "Algimia de Alfara",
+   "provincia": "Valencia",
+   "superficie_ha": 87.6,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1989CP0057",
+   "nombre": "C.R. POZO SAN FRANCISCO",
+   "municipio": "Sagunto/Sagunt",
+   "provincia": "Valencia",
+   "superficie_ha": 84.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2004R91672",
+   "nombre": "C.R. BENAFER",
+   "municipio": "Caudiel",
+   "provincia": "Castellón",
+   "superficie_ha": 76.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1994RP0025",
+   "nombre": "C.R. RACO DE ALFARA",
+   "municipio": "Alfara de la Baronia",
+   "provincia": "Valencia",
+   "superficie_ha": 67.75,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2000CP0104",
+   "nombre": "C.R. SINDICATO DE RIEGOS DE PETRÉS",
+   "municipio": "Albalat dels Tarongers",
+   "provincia": "Valencia",
+   "superficie_ha": 67.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1987RI0026",
+   "nombre": "C.R. VALL DE ALMONACID",
+   "municipio": "Vall de Almonacid",
+   "provincia": "Castellón",
+   "superficie_ha": 64.01,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1995CP0065",
+   "nombre": "C.R. ALFARA DE ALGIMIA",
+   "municipio": "Alfara de la Baronia",
+   "provincia": "Valencia",
+   "superficie_ha": 61.08,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2006R63594 - 2006R63595",
+   "nombre": "C.R. MATET",
+   "municipio": "Matet",
+   "provincia": "Castellón",
+   "superficie_ha": 60.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1988CP0168",
+   "nombre": "C.R. CAMI DE LES VALLS",
+   "municipio": "Sagunto/Sagunt",
+   "provincia": "Valencia",
+   "superficie_ha": 54.17,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2006R10005 - 2006R60646",
+   "nombre": "C.R. NAVAJAS",
+   "municipio": "Jérica",
+   "provincia": "Castellón",
+   "superficie_ha": 48.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2005R20170 - 2005R20171",
+   "nombre": "C.R. QUINCHAS Y POCO PAN DE VIVER",
+   "municipio": "Viver",
+   "provincia": "Castellón",
+   "superficie_ha": 41.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2000R20206 - 2000R20208 - 2004R20211 - 2004R20212",
+   "nombre": "C.R. ALGIMIA DE ALMONACID",
+   "municipio": "Algimia de Almonacid",
+   "provincia": "Castellón",
+   "superficie_ha": 38.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1996CP0040",
+   "nombre": "C.R. POZO VIRGEN DE LA ESTRELLA",
+   "municipio": "Gilet",
+   "provincia": "Valencia",
+   "superficie_ha": 33.34,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1996CP0016",
+   "nombre": "C.R. POZO EL TOCHAR",
+   "municipio": "Torres Torres",
+   "provincia": "Valencia",
+   "superficie_ha": 32.9,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1989CP0089",
+   "nombre": "C.R. EL REALENGO",
+   "municipio": "Sagunto/Sagunt",
+   "provincia": "Valencia",
+   "superficie_ha": 30.75,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1996CP0113",
+   "nombre": "C.R. EL SABINAR",
+   "municipio": "Jérica",
+   "provincia": "Castellón",
+   "superficie_ha": 30.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1988RI0264",
+   "nombre": "C.R. ALMEDIJAR",
+   "municipio": "Aín",
+   "provincia": "Castellón",
+   "superficie_ha": 23.94,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "1988CP0105",
+   "nombre": "C.R. POZO ELS GRAVALS",
+   "municipio": "Sagunto/Sagunt",
+   "provincia": "Valencia",
+   "superficie_ha": 20.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2002CP0110",
+   "nombre": "C.R. FORAÑA",
+   "municipio": "Algimia de Almonacid",
+   "provincia": "Castellón",
+   "superficie_ha": 13.48,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2000R20162",
+   "nombre": "C.R. ACEQUIA BATAN DE CASTELLNOVO",
+   "municipio": "Segorbe",
+   "provincia": "Castellón",
+   "superficie_ha": 13.21,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2000R49648",
+   "nombre": "C.R. ACEQUIA DE LA QUEBRANTADA",
+   "municipio": "Altura",
+   "provincia": "Castellón",
+   "superficie_ha": 12.15,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2005RP0003",
+   "nombre": "C.R. POZO LA UMBRIA DE ESTIVELLA",
+   "municipio": "Estivella",
+   "provincia": "Valencia",
+   "superficie_ha": 10.76,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2005RT0054",
+   "nombre": "C.R. EL PANTANO Y LA BALSA DE SAN JUAN",
+   "municipio": "Altura",
+   "provincia": "Castellón",
+   "superficie_ha": 9.89,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2006R20218 - 2006R20219",
+   "nombre": "C.R. CHOVAR",
+   "municipio": "Chóvar",
+   "provincia": "Castellón",
+   "superficie_ha": 8.0,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2006R20216_2",
+   "nombre": "C.R. LA FUENTE DE BESELGA",
+   "municipio": "Estivella",
+   "provincia": "Valencia",
+   "superficie_ha": 6.15,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2000R50185",
+   "nombre": "C.R. ACEQUIA DE LOS CURROS",
+   "municipio": "Altura",
+   "provincia": "Castellón",
+   "superficie_ha": 2.29,
+   "junta_explotacion": "PALANCIA-LOS VALLES"
+  },
+  {
+   "ref": "2000R45917",
+   "nombre": "C.R. RIEGOS DEL RIO ALCOY DE GANDIA",
+   "municipio": "Villalonga",
+   "provincia": "Valencia",
+   "superficie_ha": 1950.75,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2000R57864",
+   "nombre": "C.R. CANALES ALTOS DEL RIO SERPIS",
+   "municipio": "Villalonga",
+   "provincia": "Valencia",
+   "superficie_ha": 1808.9,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1989CP0191",
+   "nombre": "C.R. CAMP DE LLUTXENT",
+   "municipio": "Llutxent",
+   "provincia": "Valencia",
+   "superficie_ha": 706.0,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1993CP0040 - 1984RC0011",
+   "nombre": "C.R. LAS MARJALES DE GANDIA",
+   "municipio": "Gandia",
+   "provincia": "Valencia",
+   "superficie_ha": 345.0,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2000R45229 - 2000R45231 - 2000R45232 - 2000R45233 - 2000R45234 - 2000R45235",
+   "nombre": "C.R. NUESTRA SEÑORA DE LOS DESAMPARADOS DE MURO DE ALCOY",
+   "municipio": "Muro de Alcoy",
+   "provincia": "Alicante",
+   "superficie_ha": 225.64,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2010RP0002",
+   "nombre": "C.U. RUGAT",
+   "municipio": "Rugat",
+   "provincia": "Valencia",
+   "superficie_ha": 208.33,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2000R41827 y otros relacionados",
+   "nombre": "C.R. AGRES",
+   "municipio": "Agres",
+   "provincia": "Alicante",
+   "superficie_ha": 163.81,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2004R58836 - 2000CP0175",
+   "nombre": "C.R. BASSETES Y MICAIRENT",
+   "municipio": "Montichelvo",
+   "provincia": "Valencia",
+   "superficie_ha": 140.0,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1988IP3647",
+   "nombre": "C.R. AGUAS VIVAS DE PORTICHOL",
+   "municipio": "Alzira",
+   "provincia": "Valencia",
+   "superficie_ha": 136.58,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2009CP0045",
+   "nombre": "C.R. POZO LA CABAÑA",
+   "municipio": "Muro de Alcoy",
+   "provincia": "Alicante",
+   "superficie_ha": 132.48,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2000R60692 - 2000R60693",
+   "nombre": "C.R. FUENTES MAYOR Y MENOR DE SIMAT DE VALLDIGNA",
+   "municipio": "Simat de la Valldigna",
+   "provincia": "Valencia",
+   "superficie_ha": 124.0,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1993CP0056",
+   "nombre": "C.R. LAS PARTIDAS ARROZALES DE TAVERNES DE VALLDIGNA",
+   "municipio": "Tavernes de la Valldigna",
+   "provincia": "Valencia",
+   "superficie_ha": 120.48,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1988IP1934",
+   "nombre": "C.R. POU CRIST DE L´EMPAR Y SANT ROC",
+   "municipio": "Almiserà",
+   "provincia": "Valencia",
+   "superficie_ha": 100.0,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1988IP6389",
+   "nombre": "C.R. POZO VERNISA",
+   "municipio": "Almiserà",
+   "provincia": "Valencia",
+   "superficie_ha": 80.0,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1986CP0413",
+   "nombre": "C.R. POZO MASALARI - POU RACONAS",
+   "municipio": "Tavernes de la Valldigna",
+   "provincia": "Valencia",
+   "superficie_ha": 72.38,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1988CP0002",
+   "nombre": "C.R. POU LA CALÇADA",
+   "municipio": "Xeraco",
+   "provincia": "Valencia",
+   "superficie_ha": 66.73,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2006RP0016",
+   "nombre": "C.R. POZO DEL FURELL",
+   "municipio": "Benifairó de la Valldigna",
+   "provincia": "Valencia",
+   "superficie_ha": 61.9,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1995CR0036",
+   "nombre": "C.R. ACEQUIA RIO VERNISA",
+   "municipio": "Real de Gandía",
+   "provincia": "Valencia",
+   "superficie_ha": 61.61,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2000R21267",
+   "nombre": "C.R. HUERTAS DE BENILLUP",
+   "municipio": "Beniarrés",
+   "provincia": "Alicante",
+   "superficie_ha": 59.5,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2000R42974",
+   "nombre": "C.R. SAN JOAQUIN",
+   "municipio": "Muro de Alcoy",
+   "provincia": "Alicante",
+   "superficie_ha": 47.95,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2000R21265",
+   "nombre": "C.R. ACEQUIA DE CALANDRIA",
+   "municipio": "Cocentaina",
+   "provincia": "Alicante",
+   "superficie_ha": 47.66,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1996CP0026 - 2000R21351 - 2010CX0004",
+   "nombre": "C.R. RIO VERNISA",
+   "municipio": "Almiserà",
+   "provincia": "Valencia",
+   "superficie_ha": 41.56,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1991CR0001",
+   "nombre": "C.R. BENITAER",
+   "municipio": "Cocentaina",
+   "provincia": "Alicante",
+   "superficie_ha": 41.5,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1974RI0159",
+   "nombre": "C.R. BENILLOBA",
+   "municipio": "Relleu",
+   "provincia": "Alicante",
+   "superficie_ha": 41.0,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1985RI0002 - 2000R39247",
+   "nombre": "C.R. LORCHA",
+   "municipio": "Beniarrés",
+   "provincia": "Alicante",
+   "superficie_ha": 39.05,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2005R43254",
+   "nombre": "C.R. ACEQUIA DELS FLARES",
+   "municipio": "Rótova",
+   "provincia": "Valencia",
+   "superficie_ha": 38.04,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1997CR0073",
+   "nombre": "C.R. PLA DE LA FONT JOVADES, ALCUDIA I REG XIC",
+   "municipio": "Cocentaina",
+   "provincia": "Alicante",
+   "superficie_ha": 31.35,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2000R21290 - 2004R21291",
+   "nombre": "C.R. ALCOLEJA Y BENIAFE",
+   "municipio": "Alcoleja",
+   "provincia": "Alicante",
+   "superficie_ha": 29.0,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2000R52300",
+   "nombre": "C.R. FUENTE DEL MOLINO DE XERESA",
+   "municipio": "Xeresa",
+   "provincia": "Valencia",
+   "superficie_ha": 21.05,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2005R41437",
+   "nombre": "C.R. HUERTAS Y VOLTES",
+   "municipio": "Beniarrés",
+   "provincia": "Alicante",
+   "superficie_ha": 20.29,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1988IP6389",
+   "nombre": "C.R. VALLE DE VERNISA",
+   "municipio": "Almiserà",
+   "provincia": "Valencia",
+   "superficie_ha": 16.0,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1998CP0080",
+   "nombre": "C.R. POZO PLA DE CHERMANELLS",
+   "municipio": "Tavernes de la Valldigna",
+   "provincia": "Valencia",
+   "superficie_ha": 15.5,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2000R42633",
+   "nombre": "C.R. ACEQUIA DEL TERRACH FOYA Y FORIÑANES",
+   "municipio": "Cocentaina",
+   "provincia": "Alicante",
+   "superficie_ha": 15.5,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1988CP0161",
+   "nombre": "C.R. DUCGAN DE GANDIA",
+   "municipio": "Gandia",
+   "provincia": "Valencia",
+   "superficie_ha": 13.7,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1995CP0039",
+   "nombre": "C.R. BASSA DE PERES",
+   "municipio": "Gandia",
+   "provincia": "Valencia",
+   "superficie_ha": 11.66,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2001CP0183",
+   "nombre": "C.R. MOTOR CATAÑERA",
+   "municipio": "Xeraco",
+   "provincia": "Valencia",
+   "superficie_ha": 11.32,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1985RI0009",
+   "nombre": "C.R. LA HUERTA DE ABAJO DE TERRATEIG",
+   "municipio": "Terrateig",
+   "provincia": "Valencia",
+   "superficie_ha": 11.21,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2000R44092",
+   "nombre": "C.R. ACEQUIA BOLTA DE ROSIÑOL",
+   "municipio": "Cocentaina",
+   "provincia": "Alicante",
+   "superficie_ha": 10.55,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2000R21352",
+   "nombre": "C.R. AZUD DE ALMISERAT",
+   "municipio": "Almiserà",
+   "provincia": "Valencia",
+   "superficie_ha": 9.46,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2004CP0072",
+   "nombre": "C.R.MOTOR RAFOL-ERMITA",
+   "municipio": "Tavernes de la Valldigna",
+   "provincia": "Valencia",
+   "superficie_ha": 8.49,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2005R41453",
+   "nombre": "C.R. ELS PLANS Y CANET",
+   "municipio": "Beniarrés",
+   "provincia": "Alicante",
+   "superficie_ha": 8.25,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2004CP0028",
+   "nombre": "C.R. POZO ULL DE BOU",
+   "municipio": "Tavernes de la Valldigna",
+   "provincia": "Valencia",
+   "superficie_ha": 6.0,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2004R44091",
+   "nombre": "C.R. ACEQUIA DUQUE DE MEDINACELI",
+   "municipio": "Cocentaina",
+   "provincia": "Alicante",
+   "superficie_ha": 6.0,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1988RI0210",
+   "nombre": "C.R. BASSA PASTOR",
+   "municipio": "Aielo de Rugat",
+   "provincia": "Valencia",
+   "superficie_ha": 5.5,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2000R54597",
+   "nombre": "C.R. MOLINO NUEVO Y NICOLAUS",
+   "municipio": "Muro de Alcoy",
+   "provincia": "Alicante",
+   "superficie_ha": 4.98,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2009CR0006",
+   "nombre": "C.R. BASSA DEL CARRASCAR",
+   "municipio": "Quatretondeta",
+   "provincia": "Alicante",
+   "superficie_ha": 4.67,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2005R57725",
+   "nombre": "C.R. BARRANCO DEL BORRO O DE ANASTASIO",
+   "municipio": "Rótova",
+   "provincia": "Valencia",
+   "superficie_ha": 4.06,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2009CP0243",
+   "nombre": "C.R. HERMANOS BALBASTRE GIL",
+   "municipio": "Alfauir",
+   "provincia": "Valencia",
+   "superficie_ha": 3.76,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "1996CP0071",
+   "nombre": "C.U. POZO ALBERRI",
+   "municipio": "Cocentaina",
+   "provincia": "Alicante",
+   "superficie_ha": null,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2003CP0112",
+   "nombre": "C.U. POZO DEVESA",
+   "municipio": "Cocentaina",
+   "provincia": "Alicante",
+   "superficie_ha": null,
+   "junta_explotacion": "SERPIS"
+  },
+  {
+   "ref": "2003CP0113",
+   "nombre": "C.R. POZOS DE LA SERRETILLA DE PEDRALBA",
+   "municipio": "Pedralba",
+   "provincia": "Valencia",
+   "superficie_ha": 2865.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1992CR0020",
+   "nombre": "C.R. EL TARRAGON",
+   "municipio": "Losa del Obispo",
+   "provincia": "Valencia",
+   "superficie_ha": 2601.7,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1985CR0021 - 2000RT0126 - 2009RC0002",
+   "nombre": "C.R. EL LLANO DE VILLAR DEL ARZOBISPO",
+   "municipio": "Villar del Arzobispo",
+   "provincia": "Valencia",
+   "superficie_ha": 1575.94,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2001CP0003",
+   "nombre": "C.R. AGUAS DE CHESTE-CHIVA",
+   "municipio": "Cheste",
+   "provincia": "Valencia",
+   "superficie_ha": 1432.28,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2006R22216",
+   "nombre": "C.R. DE RIEGOS DE LA POBLA DE VALLBONA",
+   "municipio": "Pobla de Vallbona (la)",
+   "provincia": "Valencia",
+   "superficie_ha": 1167.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2006R22126_1",
+   "nombre": "C.R. DE RIEGOS DE LA POBLA DE VALLBONA",
+   "municipio": "Benaguasil",
+   "provincia": "Valencia",
+   "superficie_ha": 1159.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1987CR0007",
+   "nombre": "C.R. EL CANAL DE LA POBLA DE VALLBONA",
+   "municipio": "Pobla de Vallbona (la)",
+   "provincia": "Valencia",
+   "superficie_ha": 1158.68,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1975RI0014",
+   "nombre": "C.R. CANAL DE RIEGO DEL RIO TURIA",
+   "municipio": "Valencia",
+   "provincia": "Valencia",
+   "superficie_ha": 1157.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2006R22126_2",
+   "nombre": "C.R. BENAGUACIL",
+   "municipio": "Benaguasil",
+   "provincia": "Valencia",
+   "superficie_ha": 1111.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2005R57513_1",
+   "nombre": "C.R. ACEQUIA BENACHER Y FAITANAR",
+   "municipio": "Valencia",
+   "provincia": "Valencia",
+   "superficie_ha": 1109.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2005R48032",
+   "nombre": "C.R. ACEQUIA DE FAVARA",
+   "municipio": "Quart de Poblet",
+   "provincia": "Valencia",
+   "superficie_ha": 1102.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2005R39724",
+   "nombre": "C.R. ACEQUIA DE TORMOS",
+   "municipio": "Paterna",
+   "provincia": "Valencia",
+   "superficie_ha": 999.14,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1994RC0015_1",
+   "nombre": "C.R. ACEQUIA MAYOR DE VILAMARXANT",
+   "municipio": "Riba-roja de Túria",
+   "provincia": "Valencia",
+   "superficie_ha": 905.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2005R22163",
+   "nombre": "C.R. ACEQUIA DE RASCAÑA",
+   "municipio": "Valencia",
+   "provincia": "Valencia",
+   "superficie_ha": 749.37,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2007R60237 - 2007RC0005",
+   "nombre": "C.R. LAS TIERRAS DE LA HOYA",
+   "municipio": "Villar del Arzobispo",
+   "provincia": "Valencia",
+   "superficie_ha": 732.76,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2006R22301 - 1988IP3127",
+   "nombre": "C.R. FUENTE DE SAN VICENTE DELIRIA Y BENISANO",
+   "municipio": "Llíria",
+   "provincia": "Valencia",
+   "superficie_ha": 701.46,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1988IP3127",
+   "nombre": "C.R. SAN VICENTE DE LIRIA",
+   "municipio": "Llíria",
+   "provincia": "Valencia",
+   "superficie_ha": 638.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1986CR0042",
+   "nombre": "C.R. OLOCAU",
+   "municipio": "Olocau",
+   "provincia": "Valencia",
+   "superficie_ha": 606.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2005R39211_1",
+   "nombre": "C.R. ACEQUIA DE MISLATA",
+   "municipio": "Manises",
+   "provincia": "Valencia",
+   "superficie_ha": 583.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2002CP0096",
+   "nombre": "C.R. CHIVA",
+   "municipio": "Chiva",
+   "provincia": "Valencia",
+   "superficie_ha": 518.49,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2000R22260 - 2000R22261",
+   "nombre": "C.R. CHELVA",
+   "municipio": "Chelva",
+   "provincia": "Valencia",
+   "superficie_ha": 508.85,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2005R40730",
+   "nombre": "C.R. ACEQUIA DE ROBELLA",
+   "municipio": "Valencia",
+   "provincia": "Valencia",
+   "superficie_ha": 508.61,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1988CP0060,1993CP0060;1992PI0010",
+   "nombre": "C.R. POZO LA SIERRA",
+   "municipio": "Torrent",
+   "provincia": "Valencia",
+   "superficie_ha": 502.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2001CP0082 - 2005R62140 - 2008RT0067",
+   "nombre": "C.R. GESTALGAR",
+   "municipio": "Gestalgar",
+   "provincia": "Valencia",
+   "superficie_ha": 476.44,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1985CR0025 - 2009RC0003",
+   "nombre": "C.R. CANAL PRINCIPAL LOSA DEL OBISPO",
+   "municipio": "Losa del Obispo",
+   "provincia": "Valencia",
+   "superficie_ha": 424.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2005R57513_3",
+   "nombre": "C.R. ACEQUIA DE QUART",
+   "municipio": "Valencia",
+   "provincia": "Valencia",
+   "superficie_ha": 417.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1995CP0045",
+   "nombre": "C.R. PLA DE ANDANES",
+   "municipio": "Bétera",
+   "provincia": "Valencia",
+   "superficie_ha": 416.66,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1994RC0015_2",
+   "nombre": "C.R. LORCA Y QUINTDE RIBARROJA",
+   "municipio": "Riba-roja de Túria",
+   "provincia": "Valencia",
+   "superficie_ha": 398.5,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1987IP0056",
+   "nombre": "C.R. LAS TIERRAS ARROZALES DEL PUIG",
+   "municipio": "Puig",
+   "provincia": "Valencia",
+   "superficie_ha": 375.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1995CP0029",
+   "nombre": "C.R. EL BARRANCO DE CHIVA",
+   "municipio": "Chiva",
+   "provincia": "Valencia",
+   "superficie_ha": 375.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2000R22159 - 2000R62450 - 2000R62451 - 2000R62452 - 2006R62478 - 2006R60830 - 2006R60315",
+   "nombre": "C.R. DE ADEMUZ",
+   "municipio": "Ademuz",
+   "provincia": "Valencia",
+   "superficie_ha": 296.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1997CP0002",
+   "nombre": "C.R. POZOS SANTISIMA TRINIDAD Y SANTA BARBARA DE PEDRALBA",
+   "municipio": "Pedralba",
+   "provincia": "Valencia",
+   "superficie_ha": 250.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1998CP0026",
+   "nombre": "C.R. POZO LA VAQUERA DE CHESTE",
+   "municipio": "Cheste",
+   "provincia": "Valencia",
+   "superficie_ha": 240.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1995CP0087",
+   "nombre": "C.R. POZO BARRANCO SIRER",
+   "municipio": "Náquera",
+   "provincia": "Valencia",
+   "superficie_ha": 221.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1995CP0138",
+   "nombre": "C.R. POZOS EL BARRANQUET",
+   "municipio": "Llíria",
+   "provincia": "Valencia",
+   "superficie_ha": 215.65,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2005R46689",
+   "nombre": "C.R. LA MARJAL DE MASSANASA",
+   "municipio": "Massanassa",
+   "provincia": "Valencia",
+   "superficie_ha": 213.73,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2000R22258 - 1988RC0007",
+   "nombre": "C.R. TUEJAR",
+   "municipio": "Tuéjar",
+   "provincia": "Valencia",
+   "superficie_ha": 205.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1995CP0069",
+   "nombre": "C.R. POZO SAN BARTOLOME DE NAQUERA",
+   "municipio": "Bétera",
+   "provincia": "Valencia",
+   "superficie_ha": 202.92,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1995CP0084",
+   "nombre": "C.R. POZO SANTA BARBARA DE LAS LOMAS",
+   "municipio": "Bétera",
+   "provincia": "Valencia",
+   "superficie_ha": 196.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2000R42290 - 2000R42291 - 2000R42292 - 2000R42293 - 2000R42294 - 2006RC0014",
+   "nombre": "C.R. PEDRALBA",
+   "municipio": "Pedralba",
+   "provincia": "Valencia",
+   "superficie_ha": 191.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2005R39211_2",
+   "nombre": "C.R. ACEQUIA DE XIRIVELLA",
+   "municipio": "Manises",
+   "provincia": "Valencia",
+   "superficie_ha": 187.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2005R39250",
+   "nombre": "C.R. ACEQUIA DE MESTALLA",
+   "municipio": "Paterna",
+   "provincia": "Valencia",
+   "superficie_ha": 174.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1993RP0010",
+   "nombre": "C.R. POZO DE COMEDIANA",
+   "municipio": "Albalat dels Tarongers",
+   "provincia": "Valencia",
+   "superficie_ha": 171.22,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1988IP3206",
+   "nombre": "C.R. SAN ANTONIO DE BENAGEBER",
+   "municipio": "Paterna",
+   "provincia": "Valencia",
+   "superficie_ha": 165.74,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1993CP0011",
+   "nombre": "C.R. VIRGEN DE LA PAZ DE CHIVA",
+   "municipio": "Chiva",
+   "provincia": "Valencia",
+   "superficie_ha": 164.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2007RT0031",
+   "nombre": "C.R. ACEQUIA VALLESA DE MANDOR",
+   "municipio": "Eliana (l´)",
+   "provincia": "Valencia",
+   "superficie_ha": 131.33,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2000R50467 - 2000R50469 - 2000R50470 - 2006RC0011",
+   "nombre": "C.R. AGUAS REUNIDAS DE SANTA CRUZ DE MOYA",
+   "municipio": "Santa Cruz de Moya",
+   "provincia": "Cuenca",
+   "superficie_ha": 126.23,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2005R57513_2",
+   "nombre": "C.R. ACEQUIA DE MANISES",
+   "municipio": "Manises",
+   "provincia": "Valencia",
+   "superficie_ha": 116.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2005R57513_4",
+   "nombre": "C.R. ACEQUIA DEL COMUNER O ROLL DE ALDAYA",
+   "municipio": "Manises",
+   "provincia": "Valencia",
+   "superficie_ha": 110.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1988IP3361",
+   "nombre": "C.R. FORRIOLS",
+   "municipio": "Chiva",
+   "provincia": "Valencia",
+   "superficie_ha": 109.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1994CP0134",
+   "nombre": "C.R. POZO DEL PLA DE LES AVENES - MARINES",
+   "municipio": "Llíria",
+   "provincia": "Valencia",
+   "superficie_ha": 108.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2008RC0003_2",
+   "nombre": "C.R. LORIGUILLA",
+   "municipio": "Riba-roja de Túria",
+   "provincia": "Valencia",
+   "superficie_ha": 98.49,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2002CP0070",
+   "nombre": "C.R. POZO DEL LIDONERO",
+   "municipio": "Pedralba",
+   "provincia": "Valencia",
+   "superficie_ha": 96.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2000R22231 - 2000R22232 - 2000R22234 - 2000R22235",
+   "nombre": "C.R. ARCOS DE LAS SALINAS",
+   "municipio": "Arcos de las Salinas",
+   "provincia": "Teruel",
+   "superficie_ha": 96.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1997CP0252",
+   "nombre": "C.R. POZO VIRGEN DEL ROSARIO",
+   "municipio": "Olocau",
+   "provincia": "Valencia",
+   "superficie_ha": 88.21,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1982CR0029 - 1989RC0008",
+   "nombre": "C.R. LA SARRETILLA DE CHESTE",
+   "municipio": "Cheste",
+   "provincia": "Valencia",
+   "superficie_ha": 83.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1988IP2998",
+   "nombre": "C.R. POZO SAN LUIS BELTRAN",
+   "municipio": "Aldaia",
+   "provincia": "Valencia",
+   "superficie_ha": 83.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2000R60322 - 2000R60323 - 2000R60324 - 2000R60325 - 2000R60326 - 2000R60327 - 2000R60328",
+   "nombre": "C.R. VALLANCA",
+   "municipio": "Vallanca",
+   "provincia": "Valencia",
+   "superficie_ha": 76.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2007RP0023",
+   "nombre": "C.R. POZO DEL CARMEN DE TURIS",
+   "municipio": "Turís",
+   "provincia": "Valencia",
+   "superficie_ha": 74.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1998CP0112",
+   "nombre": "C.R. LA SOLANA DE OLOCAU",
+   "municipio": "Olocau",
+   "provincia": "Valencia",
+   "superficie_ha": 66.48,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1988RI0342",
+   "nombre": "C.R. RIODEVA",
+   "municipio": "Riodeva",
+   "provincia": "Teruel",
+   "superficie_ha": 65.37,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1988IP3127,2006R22301",
+   "nombre": "C.R. HUERTAS DE BENISANÓ",
+   "municipio": "Llíria",
+   "provincia": "Valencia",
+   "superficie_ha": 64.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2006RC0019",
+   "nombre": "C.R. CHULILLA",
+   "municipio": "Chulilla",
+   "provincia": "Valencia",
+   "superficie_ha": 60.19,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2000R22165 - 2000R22166 - 2006R22167",
+   "nombre": "C.R. BUGARRA",
+   "municipio": "Gestalgar",
+   "provincia": "Valencia",
+   "superficie_ha": 58.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2010RP0010_2",
+   "nombre": "C.R. POZO SAN ISIDRO DE RIBARROJA DEL TURIA",
+   "municipio": "Riba-roja de Túria",
+   "provincia": "Valencia",
+   "superficie_ha": 57.08,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1989CP0091",
+   "nombre": "C.R. POU EL CAVALL",
+   "municipio": "Sagunto/Sagunt",
+   "provincia": "Valencia",
+   "superficie_ha": 52.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1998CP0103",
+   "nombre": "C.R. POZO SAN ISIDRO DE BENAGUASIL",
+   "municipio": "Benaguasil",
+   "provincia": "Valencia",
+   "superficie_ha": 51.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1988IP2132",
+   "nombre": "C.R. POZO SAN JUAN DE BUGARRA",
+   "municipio": "Bugarra",
+   "provincia": "Valencia",
+   "superficie_ha": 50.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2003CP0146",
+   "nombre": "C.R. POZO MONTORO",
+   "municipio": "Chiva",
+   "provincia": "Valencia",
+   "superficie_ha": 49.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2005R60585",
+   "nombre": "C.R. HUERTA Y BUFILLA DE BETERA",
+   "municipio": "Bétera",
+   "provincia": "Valencia",
+   "superficie_ha": 46.5,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1983RI0002",
+   "nombre": "C.R. EL CUERVO",
+   "municipio": "Cuervo (El)",
+   "provincia": "Teruel",
+   "superficie_ha": 45.83,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2000R22287 - 2000R22288 - 2000R22289 - 2004R22290 - 2004R22291 - 2004R22292 - 2004R22293 - 2000R22294 - 2000R22295 - 2000R22296 - 2000R22297 - 2000R22298 - 2000R22299",
+   "nombre": "C.R. SOT DE CHERA",
+   "municipio": "Sot de Chera",
+   "provincia": "Valencia",
+   "superficie_ha": 40.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2005R58676",
+   "nombre": "C.R. TANCAT DE PATIM",
+   "municipio": "Catarroja",
+   "provincia": "Valencia",
+   "superficie_ha": 38.64,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2000R22262 - 2000R22265",
+   "nombre": "C.R. CALLES",
+   "municipio": "Calles",
+   "provincia": "Valencia",
+   "superficie_ha": 34.5,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2000R39711",
+   "nombre": "C.R. TORRE ALTA",
+   "municipio": "Torrebaja",
+   "provincia": "Valencia",
+   "superficie_ha": 32.68,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2000R58966",
+   "nombre": "C.R. HOYA DE CHERALES",
+   "municipio": "Sot de Chera",
+   "provincia": "Valencia",
+   "superficie_ha": 25.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1990CR0007",
+   "nombre": "C.R. MIRALCAMPO",
+   "municipio": "Chiva",
+   "provincia": "Valencia",
+   "superficie_ha": 23.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2000R20139 - 2000R20140 - 2000R20141 - 2000R20143 - 2000R20145",
+   "nombre": "C.R. SERRA",
+   "municipio": "Serra",
+   "provincia": "Valencia",
+   "superficie_ha": 22.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2000R22160 - 2006R22161 - 2006R60315",
+   "nombre": "C.R. CASAS BAJAS",
+   "municipio": "Casas Bajas",
+   "provincia": "Valencia",
+   "superficie_ha": 20.23,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2002CR0005",
+   "nombre": "C.R. ASTURIAS DE PEDRO IZQUIERDO DE MOYA",
+   "municipio": "Moya",
+   "provincia": "Cuenca",
+   "superficie_ha": 19.5,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2007CP0117",
+   "nombre": "C.R. HUERTA DE ARRIBA DE OLOCAU",
+   "municipio": "Olocau",
+   "provincia": "Valencia",
+   "superficie_ha": 18.82,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1991CP0132",
+   "nombre": "C.R. LES RODANES DE VILAMARXANT",
+   "municipio": "Vilamarxant",
+   "provincia": "Valencia",
+   "superficie_ha": 18.4,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2006R60315",
+   "nombre": "C.R. CASAS ALTAS",
+   "municipio": "Ademuz",
+   "provincia": "Valencia",
+   "superficie_ha": 17.46,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2005R44978 - 2005R44979 - 2005R44984 - 2005R44985",
+   "nombre": "C.R. TANCAT DE SARGUES",
+   "municipio": "Catarroja",
+   "provincia": "Valencia",
+   "superficie_ha": 17.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1988RI0032",
+   "nombre": "C.R. ACEQUIA DE LA CUEVA DE LAS PEBRERAS A LA REBOLLOSA",
+   "municipio": "Aras de los Olmos",
+   "provincia": "Valencia",
+   "superficie_ha": 15.09,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1988RI0027",
+   "nombre": "C.R. ACEQUIA RENTO BENITO, AGUACHARES Y MOLINO DEL MARQUES",
+   "municipio": "Aras de los Olmos",
+   "provincia": "Valencia",
+   "superficie_ha": 15.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2000R57925",
+   "nombre": "C.R. FUENTE DE LOS BAÑOS DE VERCHE Y PORCHICUELO",
+   "municipio": "Domeño",
+   "provincia": "Valencia",
+   "superficie_ha": 12.12,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2005R52179",
+   "nombre": "C.R. LA HUERTA COMUN DE GATOVA",
+   "municipio": "Gátova",
+   "provincia": "Valencia",
+   "superficie_ha": 10.79,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1988RI0167",
+   "nombre": "C.R. CASA HERRAEZ DE GODELLETA",
+   "municipio": "Godelleta",
+   "provincia": "Valencia",
+   "superficie_ha": 9.97,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2000R54864 - 2000R54865 - 2000R54866 - 2000R54867 - 2000R54868",
+   "nombre": "C.R. RIO EBRON Y FUENTE DE TORMON",
+   "municipio": "Tormón",
+   "provincia": "Teruel",
+   "superficie_ha": 8.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1973RI0023",
+   "nombre": "C.R. BARRANCO DE LA BARCHESA",
+   "municipio": "Andilla",
+   "provincia": "Valencia",
+   "superficie_ha": 7.8,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2000R50206 - 2000R50207 - 2000R50208",
+   "nombre": "C.R. HUERTA DE ABAJO DE MARINES",
+   "municipio": "Marines",
+   "provincia": "Valencia",
+   "superficie_ha": 5.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2007R47654 - 2007R47655",
+   "nombre": "C.R. HUERTAS DE ABAJO TOLL DE FILASA Y LA PROVIDENCIA",
+   "municipio": "Olocau",
+   "provincia": "Valencia",
+   "superficie_ha": 3.74,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "2006RC0010",
+   "nombre": "C.R. FUENTES DEL PRADO GRANDE Y TORNAJUELO",
+   "municipio": "Aras de los Olmos",
+   "provincia": "Valencia",
+   "superficie_ha": 2.07,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1998CP0277",
+   "nombre": "C.R. LA BALSILLA",
+   "municipio": "Vilamarxant",
+   "provincia": "Valencia",
+   "superficie_ha": 1.0,
+   "junta_explotacion": "TURIA"
+  },
+  {
+   "ref": "1987IP0167 - 1987IP0168 - 1987IP0169 - 1987IP0170 - 2005R21025",
+   "nombre": "C.R. AGUAS DE NOVELDA",
+   "municipio": "Villena",
+   "provincia": "Alicante",
+   "superficie_ha": 2056.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1994CR0003 - 1995CR0055 - 1998RU0003 - 2010CX0002",
+   "nombre": "C.R. VIRGEN DE LA PAZ DE AGOST",
+   "municipio": "Castalla",
+   "provincia": "Alicante",
+   "superficie_ha": 1800.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "2004CP0009",
+   "nombre": "C.U. \"HUERTA Y PARTIDA-AMAEM\"",
+   "municipio": "Villena",
+   "provincia": "Alicante",
+   "superficie_ha": 1730.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1998CP0337",
+   "nombre": "C.R. HUERTA Y PARTIDAS DE VILLENA",
+   "municipio": "Villena",
+   "provincia": "Alicante",
+   "superficie_ha": 1730.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1979CR0030",
+   "nombre": "C.R. ALICANTE - NORTE",
+   "municipio": "Alicante",
+   "provincia": "Alicante",
+   "superficie_ha": 1716.4,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "2003CP0030",
+   "nombre": "C.R. SANTA BARBARA DE UBEDA",
+   "municipio": "Pinoso",
+   "provincia": "Alicante",
+   "superficie_ha": 1590.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "2000R21018 - 1987IP0900",
+   "nombre": "C.R. VALLE DE BENEJAMA",
+   "municipio": "Beneixama",
+   "provincia": "Alicante",
+   "superficie_ha": 1200.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1992CR0005 - 1993CR0031 - 2009RU0020",
+   "nombre": "C.R. ALICANTE",
+   "municipio": "Alicante/Alacant",
+   "provincia": "Alicante",
+   "superficie_ha": 1104.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1988RI0129,1988IP3494,1988IP3495",
+   "nombre": "C.R. SALINAS",
+   "municipio": "Salinas",
+   "provincia": "Alicante",
+   "superficie_ha": 1100.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1995RP0010",
+   "nombre": "C.R. HONDON-MONOVAR",
+   "municipio": "Monóvar/Monòver",
+   "provincia": "Alicante",
+   "superficie_ha": 1080.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1999RU0006",
+   "nombre": "C.R. SAN CRISTOBAL DE VILLENA",
+   "municipio": "Villena",
+   "provincia": "Alicante",
+   "superficie_ha": 766.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1982CR0024",
+   "nombre": "C.R. AZUD DE LOS MOROS",
+   "municipio": "Elche/Elx",
+   "provincia": "Alicante",
+   "superficie_ha": 716.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1999RU0006",
+   "nombre": "C.R. BIAR",
+   "municipio": "Biar",
+   "provincia": "Alicante",
+   "superficie_ha": 635.21,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1988IP2851",
+   "nombre": "C.R. MONTEAGUDO",
+   "municipio": "Villena",
+   "provincia": "Alicante",
+   "superficie_ha": 594.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1988IP5163",
+   "nombre": "C.R. EL PINAR ALTO VILLENA",
+   "municipio": "Villena",
+   "provincia": "Alicante",
+   "superficie_ha": 583.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "2006R21016",
+   "nombre": "C.R. VILLA DE SAX",
+   "municipio": "Sax",
+   "provincia": "Alicante",
+   "superficie_ha": 484.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "2008RP0035_2",
+   "nombre": "C.R. SIERRA OLIVA",
+   "municipio": "Caudete",
+   "provincia": "Albacete",
+   "superficie_ha": 450.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1999CP0084",
+   "nombre": "C.U. AGUAS DE SIERRA OLIVA",
+   "municipio": "Caudete",
+   "provincia": "Albacete",
+   "superficie_ha": 354.38,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1999CP0084 - 2010RT0135",
+   "nombre": "C.U. AGUAS SIERRA OLIVA DE CAUDETE",
+   "municipio": "Caudete",
+   "provincia": "Albacete",
+   "superficie_ha": 354.38,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1988IP5163,2002RP0001",
+   "nombre": "C.R. ELDA",
+   "municipio": "Elda",
+   "provincia": "Alicante",
+   "superficie_ha": 300.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "2000R59161_1",
+   "nombre": "C.R. RIO VINALOPO DE BOCAIRENTE",
+   "municipio": "Bocairent",
+   "provincia": "Valencia",
+   "superficie_ha": 300.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "2000R59161_2",
+   "nombre": "C.R. RIEGO MAYOR DE LA VILLA DE BANYERES",
+   "municipio": "Bocairent",
+   "provincia": "Valencia",
+   "superficie_ha": 270.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1995CP0157",
+   "nombre": "C.R. SANTA BARBARA DE CAUDETE",
+   "municipio": "Caudete",
+   "provincia": "Albacete",
+   "superficie_ha": 228.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1990CR0031",
+   "nombre": "C.R. LA FOIA DE CASTALLA",
+   "municipio": "Castalla",
+   "provincia": "Alicante",
+   "superficie_ha": 143.43,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1988IP5163",
+   "nombre": "C.R. BORREL PONTARRO",
+   "municipio": "Biar",
+   "provincia": "Alicante",
+   "superficie_ha": 130.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1988IP5163",
+   "nombre": "C.R. ALMIZRRA",
+   "municipio": "Campo de Mirra/Camp de Mirra (el)",
+   "provincia": "Alicante",
+   "superficie_ha": 120.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "2000R60293 - 2000R60294 - 2000R60295 - 2000R60296 - 2000R60297 - 2000R60298 - 2000R60299",
+   "nombre": "C.R. SANTA BARBARA DE JIJONA",
+   "municipio": "Jijona/Xixona",
+   "provincia": "Alicante",
+   "superficie_ha": 119.75,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "2000R54343",
+   "nombre": "C.R. ELS SARGARETS DE IBI",
+   "municipio": "Ibi",
+   "provincia": "Alicante",
+   "superficie_ha": 100.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1988CP0199",
+   "nombre": "C.R. AGUAS HONDO DE LA NOGUERAS",
+   "municipio": "Caudete",
+   "provincia": "Albacete",
+   "superficie_ha": 100.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1992CP0088",
+   "nombre": "C.R. LA ARMONIA",
+   "municipio": "Villena",
+   "provincia": "Alicante",
+   "superficie_ha": 84.07,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1988RI0404",
+   "nombre": "C.R. ACEQUIA NUEVA DE LA ZONA BAJA DE LA HUERTA MAYOR DE ASPE",
+   "municipio": "Aspe",
+   "provincia": "Alicante",
+   "superficie_ha": 71.93,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1986RI0026",
+   "nombre": "C.R. RIO VERDE",
+   "municipio": "Tibi",
+   "provincia": "Alicante",
+   "superficie_ha": 65.25,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1992CP0088 - 2004CP0033",
+   "nombre": "C.R. LA ALMARRA",
+   "municipio": "Villena",
+   "provincia": "Alicante",
+   "superficie_ha": 28.46,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "2005R21112",
+   "nombre": "C.R. DE LA SEQUIA DE RONDA DE CALLOSA D´EN SARRIA",
+   "municipio": "Callosa d´En Sarrià",
+   "provincia": "Alicante",
+   "superficie_ha": 24.66,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "2005R54329 - 2005R54330",
+   "nombre": "C.R. FUENTES DE SOPALMO Y VERDUNS",
+   "municipio": "Ibi",
+   "provincia": "Alicante",
+   "superficie_ha": 21.9,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "2000R58124",
+   "nombre": "C.R. BARRANCO DE LAS OVEJAS",
+   "municipio": "Alicante/Alacant",
+   "provincia": "Alicante",
+   "superficie_ha": 14.89,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1980RI0002",
+   "nombre": "C.R. ULL DE LA FONT DE TIBI",
+   "municipio": "Tibi",
+   "provincia": "Alicante",
+   "superficie_ha": 8.4,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "2005CR0030",
+   "nombre": "C.R. BASSA DE LA MATA",
+   "municipio": "Banyeres de Mariola",
+   "provincia": "Alicante",
+   "superficie_ha": 6.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "2002RT0009,1988RI0380",
+   "nombre": "C.R. EL RIU",
+   "municipio": "Mutxamel",
+   "provincia": "Alicante",
+   "superficie_ha": 1.0,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  },
+  {
+   "ref": "1996RP0008",
+   "nombre": "C.U. SALERETES BENEJAMA",
+   "municipio": "Beneixama",
+   "provincia": "Alicante",
+   "superficie_ha": null,
+   "junta_explotacion": "VINALOPO-L'ALACANTI"
+  }
+ ]
+}
