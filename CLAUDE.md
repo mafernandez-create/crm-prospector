@@ -20,6 +20,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   NO toca fechas `[YYYY-MM-DD]`, horas sueltas (`10:30`) ni `[SIN DATO]`.
 - Cualquier flujo nuevo que cree o muestre informes debe pasar por `stripTimestamps(Deep)`.
 
+## Regla de la plantilla de informe (OBLIGATORIO)
+- La plantilla de informe de visita es **fija e inalterable**: estructura del formato estándar de
+  `Data.generateReport` (cabecera en tabla · 1 Perfil · 2 Objetivos · 3 Temas tratados 3.1-3.5 ·
+  4 Oportunidades · 5 Decisiones y compromisos 5.1-5.3 · 6 Observaciones 6.1-6.2 · 7 Evaluación ·
+  8 Plan de acción) y su exportación a Word en `detail.js → _markdownToDocxBlob` (paleta por
+  «Resultado global», tablas Campo|Valor sombreadas, pie «Elaborado por / Fecha»). Fijada por Manolo
+  el 12-sep-2026 sobre el informe de JRW Arquitectura del 13-ene-2026; detalle en `docs/CLAUDE-reference.md`.
+- **No se modifica** (ni secciones, ni orden, ni colores, ni pie) salvo que Manolo lo pida
+  expresamente, y **aun pidiéndolo hay que pedirle confirmación explícita** antes de tocar nada.
+  Arreglar un bug que rompa la plantilla (p. ej. una tabla que no se renderiza) sí está permitido,
+  siempre que el resultado siga siendo idéntico a la plantilla.
+
 ## Qué es esto
 CRM B2B de prospección para Manuel Fernández ("Manolo"), prescriptor de Grupo Plásticos
 Ferro (GPF/Ferroplast) en Andalucía/Extremadura/Levante. El objetivo comercial NO es vender,
