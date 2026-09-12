@@ -77,7 +77,9 @@ por studio (al abrir la ficha) o directo de Supabase.
    Acciones pendientes en `compromisos.por_nuestra_parte`, `proxima_accion`, `fecha_proxima_visita`; persona en `interlocutor_nombre`/`cargo_interlocutor`.
 2. **`.docx` subido** — con `reportJson` estructurado (`compromisos_gpf`, `acciones_internas`,
    `plan_seguimiento`, `temas_pendientes`, `asistentes_empresa`) o solo `fileData`/`data` (base64 binario, no parseable sin abrir el docx).
-3. **`informe_v2`** — markdown generado por `Data.generateReport` (prompt SPIN coaching + persistencia en `data.reports`).
+3. **`informe_v2`** — markdown generado por `Data.generateReport` (`tipo_informe`: `estandar` | `spin`) + persistencia en `data.reports`.
+   - **Plantilla fija «JRW» (`formato_visual: 'jrw-v1'`, desde 12-sep-2026)** para el formato `estandar`, elegida por Manolo sobre el informe de JRW Arquitectura del 13-ene-2026: cabecera en tabla (fecha, empresa, dirección, web, contacto, tipo de visita, comercial) · 1 Perfil · 2 Objetivos · 3 Temas tratados (3.1 productos, 3.2 necesidades, 3.3 proyectos, 3.4 argumentos, 3.5 competencia) · 4 Oportunidades (tabla Campo|Valor por oportunidad) · 5 Decisiones y compromisos (5.1 GPF, 5.2 cliente, 5.3 pendientes) · 6 Observaciones (6.1 comentarios, 6.2 percepción de marca) · 7 Evaluación (tabla con `Resultado global`) · 8 Plan de acción (tabla Fecha|Acción|Responsable).
+   - Exportación a Word en `detail.js → _markdownToDocxBlob`: la paleta la fija `Resultado global` (ALTO verde `D5F5E3/145A32` · MEDIO azul `D6EAF8/1B4F72` · MEDIO-BAJO morado `EBDEF0/6C3483` · BAJO rojo `FADBD8/922B21` · sin dato gris). Tablas de 2 columnas cuya cabecera no es «Campo|Valor» se tratan como Campo|Valor (todas las celdas sombreadas); las demás llevan fila de cabecera oscura. Pie «Elaborado por / Fecha del informe». Los históricos de formatos enviados a Javier están en `~/Downloads/Informes_Javier_formatos/`.
 
 Todos pasan por la regla de no-timestamps. Los `"—"` en campos de `reportJson` son placeholders (= vacío).
 

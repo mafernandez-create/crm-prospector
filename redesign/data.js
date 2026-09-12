@@ -1517,23 +1517,60 @@
         '\n## HISTÓRICO DE VISITAS ANTERIORES\n' + histCtx + '\n\n' +
         '## NOTAS / TRANSCRIPCIÓN DE LA VISITA\n' + notas + '\n\n' +
         '---\n\n' +
+        // Formato visual fijo «JRW» (decidido el 12-sep-2026 sobre el informe
+        // de JRW Arquitectura del 13-ene-2026): cabecera en tabla, 8 apartados
+        // con subapartados numerados, oportunidades y evaluación en tablas
+        // Campo | Valor, plan de acción en tabla Fecha | Acción | Responsable.
+        // El conversor a Word (detail.js) colorea la cabecera según «Resultado global».
         '# Informe de visita — ' + studioName + '\n\n' +
-        '## 1. Datos generales\n' +
-        '(tabla markdown de dos columnas Campo | Valor con: Empresa, Tipo, Ciudad / Provincia, Fecha, Tipo de visita, Modalidad, Interlocutor principal, Estado tras la visita)\n\n' +
-        '## 2. Personas contactadas\n' +
-        '(tabla markdown: Nombre | Cargo | Observaciones. Marca con ⭐ a los decisores o contactos clave. Si no consta el nombre, usa el cargo en su lugar.)\n\n' +
-        '## 3. Desarrollo de la visita\n' +
-        '(2-4 párrafos narrativos: qué se trató, qué productos GPF se presentaron, reacciones del cliente y resultado de la visita)\n\n' +
-        '## 4. Contexto estratégico\n' +
-        '(análisis breve: tipo de cliente, focos, por qué es relevante para GPF, ámbitos o proyectos donde puede prescribir)\n\n' +
-        '## 5. Oportunidades detectadas\n' +
-        '(lista numerada de proyectos u oportunidades concretas con los productos GPF relevantes para cada una; si no hay, escribe "Sin oportunidades concretas detectadas en esta visita.")\n\n' +
-        '## 6. Compromisos y próximos pasos\n' +
-        '(lista numerada de acciones concretas y accionables: qué hará GPF/Manolo y qué hará el cliente, con responsable cuando se sepa)\n\n' +
-        '## 7. Observaciones adicionales\n' +
-        '(bullets con datos sueltos relevantes: contactos obtenidos, notas de la empresa, detalles a recordar; omite la sección entera si no hay nada)\n\n' +
-        '## 8. Evaluación general\n' +
-        '(tabla markdown Campo | Valor con: Nivel de interés, Potencial del cliente, Plazo estimado, Productos prioritarios, Estado de la cuenta)';
+        '| Fecha de visita | ' + fecha + ' |\n' +
+        '|---|---|\n' +
+        '| Empresa visitada | ' + studioName + ' |\n' +
+        '| Dirección | (dirección de la ficha o [SIN DATO]) |\n' +
+        '| Web | (web de la ficha o [SIN DATO]) |\n' +
+        '| Persona de contacto | (nombre - cargo del interlocutor principal, o [SIN DATO]) |\n' +
+        '| Tipo de visita | ' + tipoVisitaLabel + ' |\n' +
+        '| Comercial GPF | ' + comercial + ' |\n\n' +
+        '## 1. Perfil de la Empresa\n' +
+        '(1-2 párrafos: qué hace, especialidad, tamaño, zona, clientes tipo; si prescribe, compra o ejecuta)\n\n' +
+        '## 2. Objetivos de la Visita\n' +
+        '(1-2 párrafos: qué se buscaba en esta visita y por qué ahora)\n\n' +
+        '## 3. Temas Tratados\n' +
+        '### 3.1. Productos presentados\n' +
+        '(bullets: cada gama GPF presentada y cómo se presentó)\n\n' +
+        '### 3.2. Necesidades técnicas identificadas\n' +
+        '(bullets: requisitos, normativa, problemas que tienen; si no hay: "Sin necesidades técnicas concretas detectadas.")\n\n' +
+        '### 3.3. Proyectos activos y en cartera\n' +
+        '(bullets: proyecto — fase — dónde — quién lo redacta/ejecuta; si no hay: "Sin proyectos concretos mencionados.")\n\n' +
+        '### 3.4. Argumentos diferenciadores utilizados\n' +
+        '(bullets: los argumentos GPF empleados y cómo reaccionó el cliente)\n\n' +
+        '### 3.5. Información sobre competencia\n' +
+        '(párrafos: marcas y proveedores actuales, relación con ellos, citas literales entre comillas cuando las notas las recojan; sin marcas de tiempo)\n\n' +
+        '## 4. Oportunidades Detectadas\n' +
+        '(por cada oportunidad, una tabla markdown de dos columnas con estas filas exactas: Oportunidad | Fase del proyecto | Productos requeridos | Fecha estimada | Potencial estimado. Si no hay: "Sin oportunidades concretas detectadas en esta visita.")\n\n' +
+        '## 5. Decisiones y Compromisos\n' +
+        '### 5.1. Compromisos de Ferroplast/GPF\n' +
+        '(bullets accionables: qué hará Manolo/GPF, con fecha cuando se sepa)\n\n' +
+        '### 5.2. Compromisos del cliente\n' +
+        '(bullets: qué hará el cliente; si no hay: "No se concretó compromiso por parte del cliente.")\n\n' +
+        '### 5.3. Elementos pendientes\n' +
+        '(bullets: lo que quedó sin cerrar o sin tratar)\n\n' +
+        '## 6. Observaciones Adicionales\n' +
+        '### 6.1. Comentarios relevantes del cliente\n' +
+        '(bullets)\n\n' +
+        '### 6.2. Percepción de marca/productos\n' +
+        '(bullets: cómo ven a GPF/Ferroplast/Tuyper y a la competencia)\n\n' +
+        '## 7. Evaluación de la Visita\n' +
+        '| Resultado global | (MUY ALTO / ALTO / MEDIO-ALTO / MEDIO / MEDIO-BAJO / BAJO) |\n' +
+        '|---|---|\n' +
+        '| Nivel de interés | (alto / medio / bajo) |\n' +
+        '| Potencial del cliente | (frase corta) |\n' +
+        '| Productos prioritarios | (lista corta) |\n\n' +
+        '(1 párrafo de valoración: por qué ese resultado y qué lo condiciona)\n\n' +
+        '## 8. Plan de Acción y Seguimiento\n' +
+        '| Fecha | Acción | Responsable |\n' +
+        '|---|---|---|\n' +
+        '(3-5 filas: fecha o plazo concreto, acción accionable, responsable: Manolo / cliente / comercial de zona)';
     }
 
     const markdown = _stripTimestamps(
@@ -1559,6 +1596,7 @@
       markdown: markdown,
       formato: 'informe_v2',
       tipo_informe: formato,          // 'estandar' | 'spin'
+      formato_visual: formato === 'estandar' ? 'jrw-v1' : null,  // plantilla Word fija (12-sep-2026)
       cargo_interlocutor: cargoInterlocutor || null,
       tipo_visita: tipoVisita || null,
       project_id: payload.projectId || null,        // enlace a data.projects[].id (opcional)

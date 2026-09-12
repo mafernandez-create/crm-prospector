@@ -3164,28 +3164,73 @@
     return out || '<w:r><w:t xml:space="preserve"></w:t></w:r>';
   }
   function _docxP(runs, pPr) { return '<w:p>' + (pPr ? '<w:pPr>' + pPr + '</w:pPr>' : '') + runs + '</w:p>'; }
+  // ── Plantilla Word fija «JRW» (decidida el 12-sep-2026 sobre el informe de
+  // JRW Arquitectura del 13-ene-2026). La paleta la elige el «Resultado global»
+  // del informe; los cuatro juegos de colores son los que se usaron en su día
+  // (Nuovit verde, Arquisurlauro azul, JRW morado, INGENZ rojo).
+  var _DOCX_PALETAS = {
+    alto:      { light: 'D5F5E3', dark: '145A32', mid: '1E8449' },
+    medio:     { light: 'D6EAF8', dark: '1B4F72', mid: '2E86C1' },
+    mediobajo: { light: 'EBDEF0', dark: '6C3483', mid: '884EA0' },
+    bajo:      { light: 'FADBD8', dark: '922B21', mid: 'C0392B' },
+    neutro:    { light: 'E8EAED', dark: '2C3E50', mid: '5D6D7E' }
+  };
+  function _docxPaletaPorResultado(markdown) {
+    var m = String(markdown || '').match(/Resultado global\s*\|\s*([^|\n]+)\|/i);
+    var r = m ? m[1].trim().toUpperCase().replace(/\s+/g, ' ') : '';
+    if (!r) return _DOCX_PALETAS.neutro;
+    if (/MEDIO[\s-]*BAJO/.test(r)) return _DOCX_PALETAS.mediobajo;
+    if (/BAJO/.test(r)) return _DOCX_PALETAS.bajo;
+    if (/MEDIO/.test(r)) return _DOCX_PALETAS.medio;
+    if (/ALTO/.test(r)) return _DOCX_PALETAS.alto;
+    return _DOCX_PALETAS.neutro;
+  }
+  var _docxPal = _DOCX_PALETAS.neutro; // paleta activa durante una conversión
   function _docxHeading(text, level) {
-    var sz = level <= 1 ? '34' : level === 2 ? '28' : '24';
-    var color = level === 2 ? '124B8A' : '0A2D52';
+    var sz = level <= 1 ? '32' : level === 2 ? '26' : '24';
+    var color = level <= 2 ? _docxPal.dark : _docxPal.mid;
     var t = String(text || '').replace(/\*\*/g, '').replace(/\*([^*]+)\*/g, '$1');
     return _docxP('<w:r><w:rPr><w:b/><w:color w:val="' + color + '"/><w:sz w:val="' + sz + '"/></w:rPr><w:t xml:space="preserve">' + _docxEsc(t) + '</w:t></w:r>',
-      '<w:spacing w:before="240" w:after="80"/>');
+      '<w:keepNext/><w:spacing w:before="' + (level <= 1 ? '280' : '200') + '" w:after="80"/>');
   }
-  function _docxCell(text, header) {
-    return '<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/>' + (header ? '<w:shd w:val="clear" w:fill="0A2D52"/>' : '') + '</w:tcPr>' +
-      _docxP(_docxRuns(text, header ? '<w:b/><w:color w:val="FFFFFF"/>' : '')) + '</w:tc>';
+  // header: fila de cabecera de tabla «grid» (fondo oscuro, texto blanco).
+  // key: primera columna de una tabla «Campo | Valor» (fondo claro, negrita).
+  // shade: celda de valor de una tabla «Campo | Valor» (fondo claro).
+  function _docxCell(text, mode, widthPct) {
+    var shd = mode === 'header' ? '<w:shd w:val="clear" w:fill="' + _docxPal.dark + '"/>'
+            : (mode === 'key' || mode === 'shade') ? '<w:shd w:val="clear" w:fill="' + _docxPal.light + '"/>' : '';
+    var w = widthPct ? '<w:tcW w:w="' + Math.round(widthPct * 50) + '" w:type="pct"/>' : '<w:tcW w:w="0" w:type="auto"/>';
+    var rpr = mode === 'header' ? '<w:b/><w:color w:val="FFFFFF"/>' : mode === 'key' ? '<w:b/>' : '';
+    return '<w:tc><w:tcPr>' + w + shd + '</w:tcPr>' + _docxP(_docxRuns(text, rpr), '<w:spacing w:before="40" w:after="40"/>') + '</w:tc>';
   }
+  // Regla de tablas: dos columnas cuya cabecera no es «Campo | Valor» → tabla
+  // Campo | Valor (la fila de cabecera es una fila más); el resto → tabla grid
+  // con fila de cabecera oscura (p. ej. Fecha | Acción | Responsable).
   function _docxTable(headerCells, rows) {
     var borders = '<w:tblBorders>' + ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map(function (b) {
       return '<w:' + b + ' w:val="single" w:sz="4" w:space="0" w:color="D7DDE3"/>';
     }).join('') + '</w:tblBorders>';
     var tbl = '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/>' + borders + '</w:tblPr>';
-    tbl += '<w:tr>' + headerCells.map(function (c) { return _docxCell(c, true); }).join('') + '</w:tr>';
-    rows.forEach(function (row) { tbl += '<w:tr>' + row.map(function (c) { return _docxCell(c, false); }).join('') + '</w:tr>'; });
-    return tbl + '</w:tbl>' + _docxP('');
+    var isKV = headerCells.length === 2 && !/^campo$/i.test(headerCells[0] || '');
+    if (isKV) {
+      [headerCells].concat(rows).forEach(function (row) {
+        tbl += '<w:tr>' + _docxCell(row[0], 'key', 32) + _docxCell(row[1], 'shade', 68) + '</w:tr>';
+      });
+    } else {
+      var allRows = /^campo$/i.test(headerCells[0] || '') ? rows : null;
+      if (allRows) {
+        // Tabla «Campo | Valor» explícita (informes antiguos): misma presentación KV.
+        allRows.forEach(function (row) { tbl += '<w:tr>' + _docxCell(row[0], 'key', 32) + _docxCell(row[1], 'shade', 68) + '</w:tr>'; });
+      } else {
+        tbl += '<w:tr><w:trPr><w:tblHeader/></w:trPr>' + headerCells.map(function (c) { return _docxCell(c, 'header'); }).join('') + '</w:tr>';
+        rows.forEach(function (row) { tbl += '<w:tr>' + row.map(function (c) { return _docxCell(c, ''); }).join('') + '</w:tr>'; });
+      }
+    }
+    return tbl + '</w:tbl>' + _docxP('', '<w:spacing w:after="120"/>');
   }
-  function _markdownToDocxBody(markdown) {
-    var lines = String(markdown || '').split('\n'), body = '', i = 0;
+  function _markdownToDocxBody(markdown, opts) {
+    opts = opts || {};
+    var lines = String(markdown || '').split('\n'), body = '', i = 0, firstH1Skipped = false;
     function isSep(l) { return /^\|?[\s:\-]+(\|[\s:\-]+)+\|?$/.test((l || '').trim()); }
     while (i < lines.length) {
       var line = lines[i].replace(/\s+$/, '');
@@ -3198,28 +3243,42 @@
         body += _docxTable(hdr, rows); continue;
       }
       var h = line.match(/^(#{1,6})\s+(.*)$/);
-      if (h) { body += _docxHeading(h[2], h[1].length); i++; continue; }
+      if (h) {
+        // El H1 «Informe de visita — X» ya va en la cabecera del documento.
+        if (h[1].length === 1 && opts.skipFirstH1 && !firstH1Skipped) { firstH1Skipped = true; i++; continue; }
+        body += _docxHeading(h[2], h[1].length); i++; continue;
+      }
       if (/^\s*---+\s*$/.test(line)) { body += _docxP('', '<w:pBdr><w:bottom w:val="single" w:sz="4" w:space="1" w:color="D7DDE3"/></w:pBdr>'); i++; continue; }
       var ul = line.match(/^\s*[-*]\s+(.*)$/);
-      if (ul) { body += _docxP('<w:r><w:t xml:space="preserve">• </w:t></w:r>' + _docxRuns(ul[1]), '<w:ind w:left="360"/>'); i++; continue; }
+      if (ul) { body += _docxP('<w:r><w:t xml:space="preserve">• </w:t></w:r>' + _docxRuns(ul[1]), '<w:ind w:left="360"/><w:spacing w:after="40"/>'); i++; continue; }
       var ol = line.match(/^\s*(\d+)\.\s+(.*)$/);
-      if (ol) { body += _docxP('<w:r><w:t xml:space="preserve">' + ol[1] + '. </w:t></w:r>' + _docxRuns(ol[2]), '<w:ind w:left="360"/>'); i++; continue; }
+      if (ol) { body += _docxP('<w:r><w:t xml:space="preserve">' + ol[1] + '. </w:t></w:r>' + _docxRuns(ol[2]), '<w:ind w:left="360"/><w:spacing w:after="40"/>'); i++; continue; }
       var bq = line.match(/^\s*>\s?(.*)$/);
       if (bq) { body += _docxP(_docxRuns(bq[1], '<w:i/><w:color w:val="5B6672"/>'), '<w:ind w:left="360"/>'); i++; continue; }
       if (line.trim() === '') { i++; continue; }
-      body += _docxP(_docxRuns(line)); i++;
+      body += _docxP(_docxRuns(line), '<w:spacing w:after="100"/>'); i++;
     }
     return body;
   }
-  function _markdownToDocxBlob(markdown, titulo, subtitulo) {
+  // titulo: nombre de la empresa (segunda línea de la cabecera).
+  // meta: { fecha, comercial } para el pie «Elaborado por / Fecha del informe».
+  function _markdownToDocxBlob(markdown, titulo, subtitulo, meta) {
     if (typeof JSZip === 'undefined') return null;
-    var header = '';
-    if (titulo) header += _docxP('<w:r><w:rPr><w:b/><w:color w:val="0A2D52"/><w:sz w:val="40"/></w:rPr><w:t xml:space="preserve">' + _docxEsc(titulo) + '</w:t></w:r>');
-    if (subtitulo) header += _docxP('<w:r><w:rPr><w:color w:val="5B6672"/><w:sz w:val="20"/></w:rPr><w:t xml:space="preserve">' + _docxEsc(subtitulo) + '</w:t></w:r>',
-      '<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="4" w:color="124B8A"/></w:pBdr><w:spacing w:after="200"/>');
+    meta = meta || {};
+    _docxPal = _docxPaletaPorResultado(markdown);
+    var empresa = String(titulo || '').replace(/^Informe de visita\s*[—-]\s*/i, '');
+    var header = _docxP('<w:r><w:rPr><w:b/><w:color w:val="' + _docxPal.dark + '"/><w:sz w:val="36"/></w:rPr><w:t xml:space="preserve">INFORME DE VISITA COMERCIAL</w:t></w:r>',
+      '<w:spacing w:after="40"/>');
+    if (empresa) header += _docxP('<w:r><w:rPr><w:b/><w:color w:val="' + _docxPal.mid + '"/><w:sz w:val="28"/></w:rPr><w:t xml:space="preserve">' + _docxEsc(empresa) + '</w:t></w:r>',
+      '<w:spacing w:after="160"/>');
+    if (subtitulo) header += _docxP('<w:r><w:rPr><w:color w:val="5B6672"/><w:sz w:val="18"/></w:rPr><w:t xml:space="preserve">' + _docxEsc(subtitulo) + '</w:t></w:r>',
+      '<w:spacing w:after="160"/>');
+    var footer = _docxP('', '<w:pBdr><w:bottom w:val="single" w:sz="4" w:space="1" w:color="D7DDE3"/></w:pBdr><w:spacing w:before="200"/>') +
+      _docxP('<w:r><w:rPr><w:color w:val="666666"/><w:sz w:val="20"/></w:rPr><w:t xml:space="preserve">Elaborado por: ' + _docxEsc(meta.comercial || 'Manuel Fernández') + '</w:t></w:r>') +
+      (meta.fecha ? _docxP('<w:r><w:rPr><w:color w:val="666666"/><w:sz w:val="20"/></w:rPr><w:t xml:space="preserve">Fecha del informe: ' + _docxEsc(meta.fecha) + '</w:t></w:r>') : '');
     var documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
       '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' +
-      header + _markdownToDocxBody(markdown) +
+      header + _markdownToDocxBody(markdown, { skipFirstH1: true }) + footer +
       '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>' +
       '</w:body></w:document>';
     var contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
@@ -3256,7 +3315,7 @@
     var fechaTxt = (U && U.formatDateES ? U.formatDateES(r.date) : null) || r.date || '';
     var subtitulo = (fechaTxt ? fechaTxt + ' · ' : '') + 'Manuel Fernández · Prescriptor GPF · Ferroplast & Tuyper';
     var blob = null;
-    try { blob = await _markdownToDocxBlob(r.markdown, 'Informe de visita — ' + sName, subtitulo); } catch (e) { blob = null; }
+    try { blob = await _markdownToDocxBlob(r.markdown, 'Informe de visita — ' + sName, subtitulo, { fecha: fechaTxt, comercial: r.comercial || 'Manuel Fernández' }); } catch (e) { blob = null; }
     if (blob) {
       _triggerDownload(blob, 'Informe_Visita_' + safe + '_' + (r.date || 'sin_fecha').replace(/[^0-9-]/g, '') + '.docx');
     } else {
@@ -3386,7 +3445,7 @@
         var _sf = String(_sN).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '');
         var _ft = (U && U.formatDateES ? U.formatDateES(r.date) : null) || r.date || '';
         var _sub = (_ft ? _ft + ' · ' : '') + 'Manuel Fernández · Prescriptor GPF · Ferroplast & Tuyper';
-        var _blob = await _markdownToDocxBlob(_visitaImportadaToMd(r, studio), 'Informe de visita — ' + _sN, _sub);
+        var _blob = await _markdownToDocxBlob(_visitaImportadaToMd(r, studio), 'Informe de visita — ' + _sN, _sub, { fecha: _ft });
         if (_blob) { _triggerDownload(_blob, 'Informe_Visita_' + _sf + '_' + (r.date || 'sin_fecha').replace(/[^0-9-]/g, '') + '.docx'); return; }
       }
     } catch (e) { console.warn('[detail] docx (importada) falló, uso fallback HTML:', e && e.message); }
