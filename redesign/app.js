@@ -550,7 +550,7 @@
      variantes de escritura habituales. */
   var GPF_PRODUCTOS = [
     { canon: 'MUTE',         re: /\bmute\b/i },
-    { canon: 'ecoSAN',       re: /eco\s*-?\s*san/i },
+    { canon: 'ecoSan',       re: /eco\s*-?\s*san/i },
     { canon: 'BIOPIPE',      re: /\bbiopipe/i },
     { canon: 'PE100',        re: /\bpe\s*-?\s*100\b/i },
     { canon: 'CONDUSAN',     re: /\bcondusan/i },
@@ -583,7 +583,7 @@
     var found = [];
     GPF_PRODUCTOS.forEach(function (p) { if (p.re.test(text) && found.indexOf(p.canon) < 0) found.push(p.canon); });
     // Regla GPF: "portfolio / catálogo / gama / soluciones de Tuyper" (mención genérica de la
-    // marca, sin detallar) equivale a haber presentado la gama completa: ecoSAN, BIOPIPE,
+    // marca, sin detallar) equivale a haber presentado la gama completa: ecoSan, BIOPIPE,
     // PE100 y PVC presión. (Si el informe ya nombra un producto Tuyper concreto, ese se
     // detecta igualmente por su propia regla arriba.)
     var low = text.toLowerCase();
@@ -593,7 +593,7 @@
     // "Tuyper" suelto (no pegado a un producto concreto detrás): también es genérico.
     var tuyperSuelto = /\btuyper\b(?![\s,:.\-]*(pvc|pe\s*-?\s*100|p\s*-?\s*100|biorient|orientad|corrugad|serie\s*b))/.test(low);
     if (tieneTuyper && (cueGama || tuyperSuelto)) {
-      ['ecoSAN', 'BIOPIPE', 'PE100', 'PVC presión'].forEach(function (c) {
+      ['ecoSan', 'BIOPIPE', 'PE100', 'PVC presión'].forEach(function (c) {
         if (found.indexOf(c) < 0) found.push(c);
       });
     }

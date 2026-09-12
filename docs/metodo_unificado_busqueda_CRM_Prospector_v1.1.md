@@ -77,7 +77,7 @@ Se mantiene el conjunto de tipos del sistema actual, formalizado con códigos co
 | `ARQ` | Arquitectura (estudios, despachos) | FERROPLAST (Mute, Eume), prescripción |
 | `ING` | Ingeniería consultora | Cross-brand |
 | `OCV` | Obra Civil / Constructora / Promotora | TUYPER + FERROPLAST |
-| `AAPP` | Administración Pública (ayuntamientos, diputaciones, mancomunidades, juntas) | TUYPER (ecoSAN, CONDUSAN, PE100) |
+| `AAPP` | Administración Pública (ayuntamientos, diputaciones, mancomunidades, juntas) | TUYPER (ecoSan, CONDUSAN, PE100) |
 | `CCRR` | Comunidad de Regantes | TUYPER (PE100, BIOPIPE) |
 | `CICA` | Empresa del ciclo del agua (mixta, EPEL, privada) | TUYPER + BIOPIPE |
 

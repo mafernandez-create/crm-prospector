@@ -615,7 +615,7 @@
         arquitecto: {
           alias: 'Arquitecto firmante / responsable de proyecto',
           prioritarios: ['MUTE', 'EUME', 'PVC presión', 'PE multilayer'],
-          evitar: ['BIOPIPE PVC-O', 'ecoSAN', 'CONDUSAN', 'PE 100 obra civil'],
+          evitar: ['BIOPIPE PVC-O', 'ecoSan', 'CONDUSAN', 'PE 100 obra civil'],
           angulo: 'Acústica DB-HR, DAP y BIM compatibles con Revit/Archicad, fichas estéticas para defender ante cliente final, soluciones para rehabilitación.',
           discovery_clave: [
             'Tipología de proyectos: residencial / hotelero / terciario.',
@@ -627,7 +627,7 @@
         'jefe-de-estudio': {
           alias: 'Jefe de estudio / socio del despacho',
           prioritarios: ['MUTE', 'EUME', 'PVC presión'],
-          evitar: ['BIOPIPE PVC-O', 'ecoSAN', 'CONDUSAN'],
+          evitar: ['BIOPIPE PVC-O', 'ecoSan', 'CONDUSAN'],
           angulo: 'Capacidad técnica del proveedor, soporte BIM, casos de referencia con otros estudios premium. Eficiencia operativa: menos consultas al fabricante por obra.',
           discovery_clave: [
             'Estructura del despacho y reparto de roles entre arquitectos.',
@@ -638,7 +638,7 @@
         'director-tecnico-estudio': {
           alias: 'Director técnico de estudio',
           prioritarios: ['MUTE', 'EUME', 'PVC presión', 'PE multilayer'],
-          evitar: ['BIOPIPE PVC-O', 'ecoSAN', 'CONDUSAN'],
+          evitar: ['BIOPIPE PVC-O', 'ecoSan', 'CONDUSAN'],
           angulo: 'Resolver dolores técnicos concretos: acústica en plurifamiliar, rehabilitación en cascos históricos, integración BIM real (IFC validado).',
           discovery_clave: [
             'Última obra con problema de acústica reportado por usuario final.',
@@ -665,9 +665,9 @@
         },
         'ingeniero-civil': {
           alias: 'Ingeniero de caminos / civil',
-          prioritarios: ['ecoSAN', 'CONDUSAN', 'PE 100', 'BIOPIPE PVC-O', 'PVC presión'],
+          prioritarios: ['ecoSan', 'CONDUSAN', 'PE 100', 'BIOPIPE PVC-O', 'PVC presión'],
           evitar: ['MUTE', 'EUME'],
-          angulo: 'Comparativos técnicos verificados frente a Molecor/Adequa, fichas listas para memoria, certificación AENOR de reciclado en ecoSAN, BIM/IFC.',
+          angulo: 'Comparativos técnicos verificados frente a Molecor/Adequa, fichas listas para memoria, certificación AENOR de reciclado en ecoSan, BIM/IFC.',
           discovery_clave: [
             'Tipos de proyecto en cartera (saneamiento principal, secundario, abastecimiento).',
             'Si reciben pliegos con marca cerrada o abierta.',
@@ -677,7 +677,7 @@
         'ingeniero-industrial': {
           alias: 'Ingeniero industrial',
           prioritarios: ['PE 100', 'PVC presión', 'MUTE'],
-          evitar: ['BIOPIPE riego', 'ecoSAN', 'CONDUSAN'],
+          evitar: ['BIOPIPE riego', 'ecoSan', 'CONDUSAN'],
           angulo: 'Especificación técnica, resistencia química y a temperatura, cálculo de dilataciones, MUTE solo si la planta tiene zona de oficinas.',
           discovery_clave: [
             'Tipo de procesos de la planta (químico, alimentario, energético).',
@@ -776,7 +776,7 @@
       perfiles: {
         'jefe-de-obra': {
           alias: 'Jefe de obra en constructora',
-          prioritarios: ['Según obra adjudicada: BIOPIPE, ecoSAN, CONDUSAN, PE 100, MUTE'],
+          prioritarios: ['Según obra adjudicada: BIOPIPE, ecoSan, CONDUSAN, PE 100, MUTE'],
           evitar: ['Argumentación puramente técnica sin coste/plazo'],
           angulo: 'Plazo de suministro garantizado, planta cercana (Atarfe / Chilches), soporte en obra ante incidencias, comparativos para sustituir marca prescrita en pliego.',
           discovery_clave: [
@@ -851,7 +851,7 @@
       perfiles: {
         'tecnico-municipal': {
           alias: 'Técnico municipal',
-          prioritarios: ['PE 100', 'ecoSAN', 'CONDUSAN', 'BIOPIPE PVC-O si riego municipal'],
+          prioritarios: ['PE 100', 'ecoSan', 'CONDUSAN', 'BIOPIPE PVC-O si riego municipal'],
           evitar: ['MUTE', 'EUME'],
           angulo: 'Fabricante andaluz (empleo local pesa muchísimo en municipios rurales), fondos PERTE Ciclo del Agua, criterios sostenibles (DAP, AENOR reciclado), casos de referencia en administraciones cercanas.',
           discovery_clave: [
@@ -863,7 +863,7 @@
         },
         'ingeniero-diputacion': {
           alias: 'Ingeniero de Diputación / Mancomunidad',
-          prioritarios: ['PE 100', 'ecoSAN', 'CONDUSAN'],
+          prioritarios: ['PE 100', 'ecoSan', 'CONDUSAN'],
           evitar: ['MUTE', 'EUME'],
           angulo: 'Estandarización por cuenca, criterios técnicos uniformes para múltiples municipios, soporte para pliegos modelo.',
           discovery_clave: [
@@ -1088,7 +1088,7 @@
       '## Productos GPF (referencia)\n\n' +
       '- MUTE: saneamiento insonorizado PVC tricapa, requisito DB-HR.\n' +
       '- EUME: canalón de aluminio extruido.\n' +
-      '- ecoSAN / CONDUSAN: saneamiento enterrado PVC corrugado / gran diámetro.\n' +
+      '- ecoSan / CONDUSAN: saneamiento enterrado PVC corrugado / gran diámetro.\n' +
       '- BIOPIPE PVC-O: tubería a presión orientada (regadío + abastecimiento).\n' +
       '- PE 100: polietileno alta densidad para presión.\n' +
       '- TUYPER: gama conducción.\n\n' +
@@ -1344,7 +1344,7 @@
     /* SYSTEM PROMPT — rol + metodología + reglas. Sin plantilla de output.
        La plantilla va en el user message para evitar que Claude la devuelva literal. */
     const systemPrompt =
-      'Eres el analista y coach comercial de Manuel Fernández (Manolo), prescriptor de Grupo Plásticos Ferro (GPF) en Andalucía/Extremadura/Levante. GPF fabrica sistemas de tubería y saneamiento: BIOPIPE PVC-O, ecoSAN, PE 100, CONDUSAN, MUTE, EUME, PVC presión. Plantas en Atarfe (Granada) y Chilches (Valencia).\n\n' +
+      'Eres el analista y coach comercial de Manuel Fernández (Manolo), prescriptor de Grupo Plásticos Ferro (GPF) en Andalucía/Extremadura/Levante. GPF fabrica sistemas de tubería y saneamiento: BIOPIPE PVC-O, ecoSan, PE 100, CONDUSAN, MUTE, EUME, PVC presión. Plantas en Atarfe (Granada) y Chilches (Valencia).\n\n' +
       'El objetivo de Manolo NO es vender directamente: es que el proyectista especifique la marca GPF en el pliego técnico antes de que salga a concurso. La venta ocurre después, por otro canal.\n\n' +
       '## Metodología SPIN (Neil Rackham)\n' +
       'Mix ideal para 30-45 min con proyectista: 1-2 Situación / 3-4 Problema / 4-6 Implicación / 2-3 Need-payoff.\n' +
@@ -1496,7 +1496,7 @@
     let _sysPrompt = systemPrompt, _userMsg = userMsg;
     if (formato === 'estandar') {
       _sysPrompt =
-        'Eres el asistente que redacta INFORMES DE VISITA COMERCIAL profesionales para Manuel Fernández (Manolo), prescriptor de Grupo Plásticos Ferro (GPF) en Andalucía/Extremadura/Levante. GPF fabrica sistemas de tubería y saneamiento: BIOPIPE PVC-O, ecoSAN, PE 100, CONDUSAN, MUTE, EUME, PVC presión.\n\n' +
+        'Eres el asistente que redacta INFORMES DE VISITA COMERCIAL profesionales para Manuel Fernández (Manolo), prescriptor de Grupo Plásticos Ferro (GPF) en Andalucía/Extremadura/Levante. GPF fabrica sistemas de tubería y saneamiento: BIOPIPE PVC-O, ecoSan, PE 100, CONDUSAN, MUTE, EUME, PVC presión.\n\n' +
         'El objetivo de Manolo es que el proyectista o cliente especifique la marca GPF en el pliego técnico antes del concurso.\n\n' +
         '## Tu tarea\n' +
         'Transforma las notas y/o la transcripción de la visita en un INFORME ESTÁNDAR de registro comercial, claro y profesional, orientado a la ficha del cliente. Sirve igual con solo notas, solo transcripción o ambas.\n\n' +

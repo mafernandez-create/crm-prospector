@@ -292,11 +292,11 @@ genérica.
 | Sector | Debe constar |
 |---|---|
 | Arquitectura | GPF + MUTE — **instrucción revocada, pendiente de nueva orden** |
-| Ingeniería | GPF + ecoSAN + BIOPIPE + PE 100 + PVC presión · **MUTE se deja como está** |
+| Ingeniería | GPF + ecoSan + BIOPIPE + PE 100 + PVC presión · **MUTE se deja como está** |
 | Regantes | GPF + BIOPIPE + PVC presión + PE 100 |
-| Administración pública | GPF + BIOPIPE + PVC presión + PE 100 + ecoSAN |
-| Promotoras y constructoras | GPF + ecoSAN + BIOPIPE + PVC presión + PE 100 + **MUTE** |
-| Ciclo del agua | GPF + ecoSAN + BIOPIPE + PVC presión + PE 100 |
+| Administración pública | GPF + BIOPIPE + PVC presión + PE 100 + ecoSan |
+| Promotoras y constructoras | GPF + ecoSan + BIOPIPE + PVC presión + PE 100 + **MUTE** |
+| Ciclo del agua | GPF + ecoSan + BIOPIPE + PVC presión + PE 100 |
 
 ### Estado (21-07-2026)
 

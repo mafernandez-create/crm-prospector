@@ -12,7 +12,7 @@
 
 - **Nombre**: CRM Prospector Ferroplast (internamente: "CRM GPF")
 - **Una línea**: CRM B2B para que un prescriptor de fontanería industrial (tubería, saneamiento, presión) gestione su cartera de estudios de arquitectura e ingeniería en Andalucía, y prepare y registre visitas comerciales con apoyo de IA.
-- **Usuario principal**: Manuel Fernández ("Manolo"), prescriptor de Ferroplast / Tuyper, zona sur España. Rol: visita estudios de arquitectura e ingeniería para que prescriban los productos GPF (BIOPIPE, ecoSAN, PE100, MUTE, EUME, CONDUSAN) en sus proyectos. El prescriptor no vende directamente: su objetivo es que el proyectista especifique la marca en el pliego técnico antes de que salga a concurso.
+- **Usuario principal**: Manuel Fernández ("Manolo"), prescriptor de Ferroplast / Tuyper, zona sur España. Rol: visita estudios de arquitectura e ingeniería para que prescriban los productos GPF (BIOPIPE, ecoSan, PE100, MUTE, EUME, CONDUSAN) en sus proyectos. El prescriptor no vende directamente: su objetivo es que el proyectista especifique la marca en el pliego técnico antes de que salga a concurso.
 - **Estado actual**: Funcional en producción (GitHub Pages). Arquitectura dual: versión legacy (`index.html`, ~27.000 líneas, Firestore) y rediseño activo (`redesign/`, modular, Supabase). El rediseño es la versión en uso desde mayo 2026.
 
 ---
@@ -113,7 +113,7 @@
 - **¿Existe?**: Sí.
 - **Forma**:
   1. `CATALOGO_POR_TIPO` en `redesign/data.js`: objeto con claves por tipo de empresa (ING, CCRR, ARQ, OCV, CICA, AAPP). Cada entrada es un texto narrativo que describe qué productos GPF aplican y por qué, pensado para inyectarse directamente en el prompt del briefing.
-  2. `GPF_FIT_FAMILIES` en `gas-batch-qualify.gs`: cinco familias de keywords para calcular el fit de scoring D5: `evacuacion_mute` (MUTE, EUME, evacuación), `red_saneamiento` (ecoSAN, PVC, saneamiento), `riego_biopipe` (BIOPIPE, regadío, presión, impulsión), `abastecimiento` (abastecimiento, agua potable, PE100), `pe_presion_gas` (gas natural, PE, distribución). El número de familias activas determina el componente D5 del score.
+  2. `GPF_FIT_FAMILIES` en `gas-batch-qualify.gs`: cinco familias de keywords para calcular el fit de scoring D5: `evacuacion_mute` (MUTE, EUME, evacuación), `red_saneamiento` (ecoSan, PVC, saneamiento), `riego_biopipe` (BIOPIPE, regadío, presión, impulsión), `abastecimiento` (abastecimiento, agua potable, PE100), `pe_presion_gas` (gas natural, PE, distribución). El número de familias activas determina el componente D5 del score.
   3. `FUENTES_SECTORIALES` en `data.js`: lista de medios sectoriales por tipo de empresa (iAgua, AguasResiduales, RETEMA, FERAGUA, SEIASA…) inyectados en el prompt de briefing como contexto de dónde buscar noticias relevantes.
 - **Granularidad**: por tipo de empresa (6 tipos). No hay granularidad por cargo, tamaño o región.
 - **Cómo se mantiene**: hardcoded en el código fuente (`data.js`, `gas-batch-qualify.gs`). No es editable por el usuario final desde la UI; requiere modificar el código y hacer deploy.
@@ -243,7 +243,7 @@ Describe paso a paso lo que hace el usuario cuando va a visitar a un cliente:
 - **Red de conexiones**: el briefing inyecta qué otros studios de la misma provincia han sido visitados, quiénes son "clientes puente" y qué cuadrante ocupan. Permite al prescriptor contextualizar la visita en su red territorial, no como un contacto aislado.
 - **Scoring propio y contexto territorial**: el CRM tiene un modelo de scoring de dos ejes (valor directo × valor de red) que da contexto estratégico al briefing ("esto es un Q1, cuenta clave" vs "esto es un Q9, solo si estás en ruta"). Una herramienta externa no tiene esa clasificación.
 - **Alertas PLACSP**: si la empresa visitada acaba de ganar un contrato público, el CRM lo detecta automáticamente la noche anterior y lo muestra en el Dashboard y la Bandeja. Ninguna herramienta de briefing aislada tiene eso.
-- **Matriz producto-cliente propia del negocio**: el catálogo GPF (BIOPIPE, ecoSAN, PE100, MUTE, EUME, CONDUSAN) con argumentarios por tipo de cliente (ING, ARQ, CCRR…) está hardcoded en el CRM. El briefing siempre recomienda productos pertinentes y nunca irrelevantes (no aparece MUTE en un proyecto de riego, no aparece BIOPIPE en arquitectura de interiores).
+- **Matriz producto-cliente propia del negocio**: el catálogo GPF (BIOPIPE, ecoSan, PE100, MUTE, EUME, CONDUSAN) con argumentarios por tipo de cliente (ING, ARQ, CCRR…) está hardcoded en el CRM. El briefing siempre recomienda productos pertinentes y nunca irrelevantes (no aparece MUTE en un proyecto de riego, no aparece BIOPIPE en arquitectura de interiores).
 - **Continuidad entre visitas**: el informe post-visita queda vinculado a la misma ficha que el briefing, el planificador y el histórico. No hay silos. Cuando vuelves a generar el briefing tres meses después, ya incorpora lo que pasó en la visita anterior.
 - **Workflow completo en un solo entorno**: desde el planificador (qué visitar esta semana) → briefing (cómo preparar esa visita) → Google Calendar (recordatorio) → informe (qué pasó) → bandeja (qué hacer ahora) → Google Sheet del jefe (reporte). Una herramienta de briefing aislada cubre solo uno de estos pasos.
 
