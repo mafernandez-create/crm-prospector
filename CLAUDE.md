@@ -32,6 +32,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   Arreglar un bug que rompa la plantilla (p. ej. una tabla que no se renderiza) sí está permitido,
   siempre que el resultado siga siendo idéntico a la plantilla.
 
+## Regla de entrega de informes (OBLIGATORIO)
+- Tras una semana de visitas, **todos los informes de esas visitas se entregan como muy tarde el
+  martes de la semana siguiente** (redactados en el CRM con la plantilla fija y enviados a Javier en
+  Word). Regla de Manolo del 12-sep-2026. Al planificar o cerrar una ruta, calcular y mostrar esa
+  fecha límite; el lunes siguiente, listar lo que falta (vista `visitas_sin_informe`) antes de
+  cualquier otra tarea.
+
 ## Qué es esto
 CRM B2B de prospección para Manuel Fernández ("Manolo"), prescriptor de Grupo Plásticos
 Ferro (GPF/Ferroplast) en Andalucía/Extremadura/Levante. El objetivo comercial NO es vender,
