@@ -3248,7 +3248,9 @@
         if (h[1].length === 1 && opts.skipFirstH1 && !firstH1Skipped) { firstH1Skipped = true; i++; continue; }
         body += _docxHeading(h[2], h[1].length); i++; continue;
       }
-      if (/^\s*---+\s*$/.test(line)) { body += _docxP('', '<w:pBdr><w:bottom w:val="single" w:sz="4" w:space="1" w:color="D7DDE3"/></w:pBdr>'); i++; continue; }
+      // Las líneas «---» que el modelo intercala entre apartados no forman parte
+      // de la plantilla JRW: se ignoran (el espaciado lo dan los títulos).
+      if (/^\s*---+\s*$/.test(line)) { i++; continue; }
       var ul = line.match(/^\s*[-*]\s+(.*)$/);
       if (ul) { body += _docxP('<w:r><w:t xml:space="preserve">• </w:t></w:r>' + _docxRuns(ul[1]), '<w:ind w:left="360"/><w:spacing w:after="40"/>'); i++; continue; }
       var ol = line.match(/^\s*(\d+)\.\s+(.*)$/);
@@ -3315,7 +3317,7 @@
     var fechaTxt = (U && U.formatDateES ? U.formatDateES(r.date) : null) || r.date || '';
     var subtitulo = (fechaTxt ? fechaTxt + ' · ' : '') + 'Manuel Fernández · Prescriptor GPF · Ferroplast & Tuyper';
     var blob = null;
-    try { blob = await _markdownToDocxBlob(r.markdown, 'Informe de visita — ' + sName, subtitulo, { fecha: fechaTxt, comercial: r.comercial || 'Manuel Fernández' }); } catch (e) { blob = null; }
+    try { blob = await _markdownToDocxBlob(r.markdown, 'Informe de visita — ' + sName, subtitulo, { fecha: fechaTxt, comercial: 'Manuel Fernández' }); } catch (e) { blob = null; }
     if (blob) {
       _triggerDownload(blob, 'Informe_Visita_' + safe + '_' + (r.date || 'sin_fecha').replace(/[^0-9-]/g, '') + '.docx');
     } else {

@@ -1526,8 +1526,8 @@
         '| Fecha de visita | ' + fecha + ' |\n' +
         '|---|---|\n' +
         '| Empresa visitada | ' + studioName + ' |\n' +
-        '| Dirección | (dirección de la ficha o [SIN DATO]) |\n' +
-        '| Web | (web de la ficha o [SIN DATO]) |\n' +
+        '| Dirección | ' + (_val(contact.address) || '[SIN DATO]') + ' |\n' +
+        '| Web | ' + (_val(contact.web) || '[SIN DATO]') + ' |\n' +
         '| Persona de contacto | (nombre - cargo del interlocutor principal, o [SIN DATO]) |\n' +
         '| Tipo de visita | ' + tipoVisitaLabel + ' |\n' +
         '| Comercial GPF | ' + comercial + ' |\n\n' +
