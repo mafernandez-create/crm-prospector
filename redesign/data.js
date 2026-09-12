@@ -1831,6 +1831,191 @@
     return { fieldsUpdated: Object.keys(patch).length, patch: patch };
   }
 
+  /* ============================================================
+     CIERRE DE SEMANA — conciliación, resumen semanal y correo a Javier
+     Reglas de Manolo (12-sep-2026, CLAUDE.md):
+       · tantos informes como visitas planificadas; las que faltan se
+         justifican una por una en el correo a Javier;
+       · entrega como muy tarde el martes de la semana siguiente.
+     ============================================================ */
+  const MOTIVOS_NO_REALIZADA = {
+    'no-recibieron': 'no pudieron recibirme',
+    'cancelada-cliente': 'la canceló el cliente',
+    'sustituida': 'se sustituyó por otra visita',
+    'reprogramada': 'quedó reprogramada',
+    'otro': 'no se pudo realizar',
+  };
+  function _addDaysISO(iso, n) {
+    const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+  }
+  function _fechaLarga(iso) {
+    const d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+  }
+  function _numSemana(iso) {
+    const d = new Date(iso + 'T00:00:00'); d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+    const w1 = new Date(d.getFullYear(), 0, 4);
+    return 1 + Math.round(((d - w1) / 86400000 - 3 + ((w1.getDay() + 6) % 7)) / 7);
+  }
+  /* Busca el informe de una visita en la ficha: el primero fechado entre
+     (fecha − 3 días) y (fecha + 21 días). Misma tolerancia que la vista SQL
+     `visitas_sin_informe`. */
+  function _informeDeVisita(studio, fechaISO) {
+    const reports = (studio && studio.data && studio.data.reports) || [];
+    const desde = _addDaysISO(fechaISO, -3), hasta = _addDaysISO(fechaISO, 21);
+    let best = null, bestIdx = -1;
+    reports.forEach(function (r, idx) {
+      const d = String(r.iso_date || r.date || '').slice(0, 10);
+      if (!d || d < desde || d > hasta) return;
+      if (!best || Math.abs(new Date(d) - new Date(fechaISO)) < Math.abs(new Date(best.date) - new Date(fechaISO))) { best = Object.assign({}, r, { date: d }); bestIdx = idx; }
+    });
+    return best ? { idx: bestIdx, date: best.date, markdown: best.markdown || _extractoVisitaImportada(best, fechaISO), tipo: best.tipo_informe || best.formato || null } : null;
+  }
+  /* Los informes del pipeline de transcripción (visita_importada) no llevan
+     markdown: se resume desde sus campos estructurados con la misma forma
+     que el extracto JRW (cabecera + resultado + oportunidades + plan). */
+  function _extractoVisitaImportada(r, fechaVisita) {
+    if (!r || (r.formato !== 'visita_importada' && !r.puntos_clave && !r.resumen_ejecutivo)) return null;
+    const temp = parseInt(r.temperatura, 10);
+    const res = temp >= 5 ? 'MUY ALTO' : temp === 4 ? 'ALTO' : temp === 3 ? 'MEDIO' : temp === 2 ? 'MEDIO-BAJO' : temp === 1 ? 'BAJO' : '[SIN DATO]';
+    const L = [];
+    L.push('| Fecha de visita | ' + (fechaVisita || String(r.date || '').slice(0, 10)) + ' |', '| Persona de contacto | ' + (r.interlocutor_nombre || '[SIN DATO]') + (r.cargo_interlocutor ? ' — ' + r.cargo_interlocutor : '') + ' |', '| Tipo de visita | ' + (r.tipo_visita || '[SIN DATO]') + ' |', '');
+    if (r.resumen_ejecutivo) L.push('Resumen: ' + r.resumen_ejecutivo, '');
+    if (Array.isArray(r.puntos_clave) && r.puntos_clave.length) L.push('Puntos clave:', r.puntos_clave.slice(0, 6).map(function (x) { return '- ' + x; }).join('\n'), '');
+    if (Array.isArray(r.senales_de_compra) && r.senales_de_compra.length) L.push('Señales de compra:', r.senales_de_compra.slice(0, 3).map(function (x) { return '- ' + x; }).join('\n'), '');
+    const ic = r.intel_competitiva && Array.isArray(r.intel_competitiva.competidores) ? r.intel_competitiva.competidores : [];
+    if (ic.length) L.push('Competencia: ' + ic.map(function (c) { return c.nombre + (c.producto ? ' (' + c.producto + ')' : ''); }).join('; '), '');
+    L.push('## 7. Evaluación de la Visita', '| Resultado global | ' + res + ' |', (r.plazo_estimado ? '| Plazo estimado | ' + r.plazo_estimado + ' |' : ''), '');
+    const cp = r.compromisos && Array.isArray(r.compromisos.por_nuestra_parte) ? r.compromisos.por_nuestra_parte : [];
+    L.push('## 8. Plan de Acción y Seguimiento', '| Fecha | Acción | Responsable |', '|---|---|---|');
+    cp.forEach(function (c) { L.push('| ' + (c.plazo || '[SIN DATO]') + ' | ' + (c.accion || '') + ' | ' + (c.responsable || 'Manolo') + ' |'); });
+    if (r.proxima_accion) L.push('| ' + (r.fecha_proxima_visita || 'próximo paso') + ' | ' + String(r.proxima_accion).slice(0, 300) + ' | Manolo |');
+    return L.join('\n');
+  }
+  async function conciliarSemana(lunesISO) {
+    const domingoISO = _addDaysISO(lunesISO, 6);
+    const visitas = await window.DataSupabase.listVisitasSemana(lunesISO, domingoISO);
+    const byId = (window.State && window.State.studiosById) || {};
+    const filas = visitas.map(function (v) {
+      const studio = v.studio_id ? byId[v.studio_id] : null;
+      const inf = studio ? _informeDeVisita(studio, v.fecha) : null;
+      return {
+        id: v.id, fecha: v.fecha, empresa: v.empresa, studio_id: v.studio_id || null,
+        estado: v.estado, origen: v.origen, ruta: v.ruta || null, motivo: v.motivo_no_realizada || null, nota: v.nota || null,
+        informe: inf ? { idx: inf.idx, date: inf.date, tipo: inf.tipo } : null,
+        _markdown: inf ? inf.markdown : null,
+      };
+    });
+    const cifras = {
+      planificadas: filas.length,
+      realizadas: filas.filter(function (f) { return f.estado === 'realizada' || f.informe; }).length,
+      informes: filas.filter(function (f) { return !!f.informe; }).length,
+      no_realizadas: filas.filter(function (f) { return f.estado !== 'realizada' && !f.informe; }).length,
+    };
+    return { semana: lunesISO, domingo: domingoISO, num_semana: _numSemana(lunesISO), fecha_limite: _addDaysISO(lunesISO, 8), filas: filas, cifras: cifras };
+  }
+  async function guardarMotivoVisita(visitaId, motivo, nota, estado) {
+    const patch = { motivo_no_realizada: motivo || null, nota: nota || null };
+    if (estado) patch.estado = estado;
+    return window.DataSupabase.updateVisita(visitaId, patch);
+  }
+  function _motivoTexto(f) {
+    const base = MOTIVOS_NO_REALIZADA[f.motivo] || MOTIVOS_NO_REALIZADA.otro;
+    return f.nota ? base + ' (' + f.nota + ')' : base;
+  }
+  /* Extrae de un informe JRW lo que el resumen necesita, acotado en tamaño. */
+  function _extractoInforme(md) {
+    if (!md) return '';
+    function sec(re) { const m = md.match(re); return m ? m[0] : ''; }
+    const cab = sec(/\|\s*Fecha de visita[\s\S]*?\n\n/);
+    const comp = sec(/###\s*3\.5\.[\s\S]*?(?=\n## )/);
+    const opo = sec(/##\s*4\.[\s\S]*?(?=\n## )/);
+    const eva = sec(/##\s*7\.[\s\S]*?(?=\n## )/);
+    const plan = sec(/##\s*8\.[\s\S]*$/);
+    if (!opo && !eva) return md.slice(0, 4500);   // extracto de visita_importada u otro formato: tal cual
+    return (cab + '\n' + comp + '\n' + opo + '\n' + eva + '\n' + plan).slice(0, 4500);
+  }
+  /* Correo a Javier — plantilla fija (doctrina FerroCom, tono interno, tú). */
+  function redactarCorreoJavier(conc, resumenMd) {
+    const c = conc.cifras;
+    const conInforme = conc.filas.filter(function (f) { return f.informe; });
+    const sinInforme = conc.filas.filter(function (f) { return !f.informe; });
+    const rango = _fechaLarga(conc.semana) + ' al ' + _fechaLarga(conc.domingo);
+    const zonas = Array.from(new Set(conc.filas.map(function (f) { return (f.ruta || '').replace(/^Planificador · /, ''); }).filter(Boolean)));
+    const L = [];
+    L.push('Hola Javier:', '');
+    L.push('Te adjunto los ' + c.informes + ' informes de la semana del ' + rango + (zonas.length ? ' (' + zonas.join(', ') + ')' : '') +
+      ', junto con el resumen de la semana: ' + conInforme.map(function (f) { return f.empresa; }).join(', ') + '.');
+    L.push('');
+    if (sinInforme.length) {
+      L.push('De las ' + c.planificadas + ' visitas planificadas se hicieron ' + c.realizadas + '. Las que no:');
+      sinInforme.forEach(function (f) { L.push('- ' + f.empresa + ' (' + _fechaLarga(f.fecha) + '): ' + _motivoTexto(f) + '.'); });
+      L.push('');
+    } else {
+      L.push('Se hicieron las ' + c.planificadas + ' visitas planificadas.', '');
+    }
+    const altos = conInforme.filter(function (f) { return /Resultado global\s*\|\s*(MUY )?ALTO/i.test(f._markdown || ''); });
+    if (altos.length) {
+      L.push('Lo más relevante: ' + altos.map(function (f) { return f.empresa; }).join(', ') + ' (resultado alto; el detalle va en el resumen).', '');
+    }
+    L.push('Un abrazo,', 'Manolo');
+    return { asunto: 'Informes semana ' + conc.num_semana + ' (' + rango + ') — ' + c.realizadas + '/' + c.planificadas + ' visitas', cuerpo: L.join('\n') };
+  }
+  /* Resumen semanal — plantilla fija «resumen-semanal-v1» (base R4 compacto +
+     paleta JRW). Las cifras y la tabla de no realizadas se calculan aquí y el
+     modelo las copia tal cual; redacta el resto a partir de los informes. */
+  async function generateWeeklySummary(lunesISO) {
+    const conc = await conciliarSemana(lunesISO);
+    const c = conc.cifras;
+    const rango = _fechaLarga(conc.semana) + ' – ' + _fechaLarga(conc.domingo) + ' ' + conc.semana.slice(0, 4);
+    const conInforme = conc.filas.filter(function (f) { return f.informe && f._markdown; });
+    const sinInforme = conc.filas.filter(function (f) { return !f.informe; });
+    const cabecera =
+      '# Resumen semanal de visitas — semana ' + conc.num_semana + ' (' + rango + ')\n\n' +
+      '| Planificadas | Realizadas | Con informe | No realizadas |\n|---|---|---|---|\n' +
+      '| ' + c.planificadas + ' | ' + c.realizadas + ' | ' + c.informes + ' | ' + c.no_realizadas + ' |\n\n';
+    const noRealizadas = '## 2. Visitas no realizadas\n\n' + (sinInforme.length
+      ? '| Empresa | Fecha prevista | Motivo |\n|---|---|---|\n' + sinInforme.map(function (f) { return '| ' + f.empresa + ' | ' + f.fecha + ' | ' + _motivoTexto(f) + ' |'; }).join('\n') + '\n\n'
+      : 'Se realizaron todas las visitas planificadas.\n\n');
+    const extractos = conInforme.map(function (f, i) {
+      return '### INFORME ' + (i + 1) + ' — ' + f.empresa + ' (' + f.fecha + ')\n' + _extractoInforme(f._markdown);
+    }).join('\n\n');
+    const sys =
+      'Eres el asistente que redacta el RESUMEN SEMANAL de visitas comerciales de Manuel Fernández (Manolo), prescriptor de Grupo Plásticos Ferro (GPF) en Andalucía/Extremadura/Levante, para su responsable Javier Vilar. ' +
+      'Gamas: BIOPIPE PVC-O, ecoSan, PE 100, CONDUSAN, MUTE, EUME, PVC presión.\n\n' +
+      'Reglas absolutas:\n- Devuelve ÚNICAMENTE markdown, sin preámbulo.\n- No inventes: todo sale de los extractos de informes; si falta un dato, [SIN DATO].\n' +
+      '- Sin marcas de tiempo. Tono profesional, directo, en español. Máximo 2 páginas.\n' +
+      '- La cabecera y el apartado 2 se te dan hechos: cópialos LITERALMENTE, sin cambiar cifras.';
+    const user =
+      'EXTRACTOS DE LOS INFORMES DE LA SEMANA\n\n' + (extractos || '(sin informes)') + '\n\n---\n\n' +
+      'Produce el resumen con esta estructura EXACTA (las indicaciones entre paréntesis son para ti):\n\n' +
+      cabecera +
+      '## 1. Cuadro sinóptico de visitas\n\n' +
+      '| Empresa | Tipo | Resultado | Oportunidad principal | Próximo paso |\n|---|---|---|---|---|\n' +
+      '(una fila por informe, en orden de fecha; Resultado = el «Resultado global» del informe en mayúsculas; Oportunidad principal = la de mayor potencial en una frase; Próximo paso = primera fila del plan de acción con su fecha)\n\n' +
+      noRealizadas +
+      '## 3. Oportunidades prioritarias de la semana\n\n' +
+      '(lista numerada, máximo 6, ordenada por potencial: **Empresa** — proyecto — producto GPF — fase/fecha)\n\n' +
+      '## 4. Competencia y patrones detectados\n\n' +
+      '(bullets: marcas que aparecen y en qué cuentas; necesidades o argumentos que se repiten)\n\n' +
+      '## 5. Acciones para la semana siguiente\n\n' +
+      '| Fecha | Acción | Responsable |\n|---|---|---|\n' +
+      '(todas las acciones con fecha de los planes de acción, ordenadas por fecha; responsable Manolo salvo que el informe diga otra cosa)\n\n' +
+      '## 6. Nota estratégica\n\n' +
+      '(un párrafo: qué dice esta semana sobre la zona y qué conviene decidir)';
+    const markdown = _stripTimestamps((await _claudeCall(sys, user, 6000)).replace(/^\s*```(?:markdown)?\s*\n?/, '').replace(/\s*```\s*$/, '').trim());
+    const correo = redactarCorreoJavier(conc, markdown);
+    const row = await window.DataSupabase.saveResumenSemanal({
+      semana: lunesISO,
+      conciliacion: conc.filas.map(function (f) { const o = Object.assign({}, f); delete o._markdown; return o; }),
+      cifras: c, markdown: markdown, correo: correo.asunto + '\n\n' + correo.cuerpo,
+      fecha_limite: conc.fecha_limite, generated_at: new Date().toISOString(),
+    });
+    return { conciliacion: conc, markdown: markdown, correo: correo, row: row };
+  }
+
   /* Guarda _meta/planificador con el schedule pasado. Reemplaza el documento
      entero porque planificador se trata como una unidad atómica. */
   async function savePlanificador(schedule) {
@@ -1998,6 +2183,12 @@
     updateProjectFromReport: updateProjectFromReport,
     getBriefingItems: getBriefingItems,
     savePlanificador: savePlanificador,
+    // Cierre de semana
+    conciliarSemana: conciliarSemana,
+    guardarMotivoVisita: guardarMotivoVisita,
+    generateWeeklySummary: generateWeeklySummary,
+    redactarCorreoJavier: redactarCorreoJavier,
+    MOTIVOS_NO_REALIZADA: MOTIVOS_NO_REALIZADA,
     // Diagnóstico
     activeBackend: _activeBackend,
   };

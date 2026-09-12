@@ -221,6 +221,9 @@
         '<button class="btn btn-ghost" onclick="window.Screens.planificador.subirCalendario()" ' +
           'title="Exportar visitas a Google Calendar" ' +
           'style="font-family:var(--font-mono); font-size:12px; color:var(--fg-2);">📅 Calendario</button>' +
+        '<button class="btn btn-ghost" onclick="window.Screens.cierreSemana && window.Screens.cierreSemana.abrir(\'' + toISO(Local.semanaLunes) + '\')" ' +
+          'title="Conciliar visitas planificadas e informes, generar el resumen semanal y el correo a Javier" ' +
+          'style="font-family:var(--font-mono); font-size:12px; color:var(--fg-2);">🗂 Cerrar semana</button>' +
       '</div>'
     );
   }

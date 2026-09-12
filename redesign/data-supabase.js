@@ -305,6 +305,38 @@
   }
 
   /* ============================================================
+     Cierre de semana — visitas de una semana y resumen semanal
+     ============================================================ */
+  async function listVisitasSemana(lunesISO, domingoISO) {
+    const r = await sbFetch('/visitas?fecha=gte.' + lunesISO + '&fecha=lte.' + domingoISO +
+      '&estado=neq.anulada&select=*&order=fecha.asc,id.asc');
+    return r.json();
+  }
+  async function updateVisita(id, patch) {
+    const r = await sbFetch('/visitas?id=eq.' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=representation' },
+      body: JSON.stringify(Object.assign({}, patch, { updated_at: new Date().toISOString() })),
+    });
+    const arr = await r.json();
+    return arr[0] || null;
+  }
+  async function getResumenSemanal(lunesISO) {
+    const r = await sbFetch('/resumenes_semanales?semana=eq.' + lunesISO + '&select=*');
+    const arr = await r.json();
+    return arr[0] || null;
+  }
+  async function saveResumenSemanal(row) {
+    const r = await sbFetch('/resumenes_semanales', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+      body: JSON.stringify(Object.assign({}, row, { updated_at: new Date().toISOString() })),
+    });
+    const arr = await r.json();
+    return arr[0] || null;
+  }
+
+  /* ============================================================
      patchDoc — UPSERT
      ============================================================ */
   async function patchDoc(path, obj /*, opts */) {
@@ -462,6 +494,10 @@
     getBriefingItems: getBriefingItems,
     savePlanificador: savePlanificador,
     flagReportAudit: flagReportAudit,
+    listVisitasSemana: listVisitasSemana,
+    updateVisita: updateVisita,
+    getResumenSemanal: getResumenSemanal,
+    saveResumenSemanal: saveResumenSemanal,
     // Helpers para tests / debugging
     visitasDeSchedule: visitasDeSchedule,
     rowToInternal: rowToInternal,
