@@ -38,6 +38,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   Word). Regla de Manolo del 12-sep-2026. Al planificar o cerrar una ruta, calcular y mostrar esa
   fecha límite; el lunes siguiente, listar lo que falta (vista `visitas_sin_informe`) antes de
   cualquier otra tarea.
+- **Tantos informes como visitas planificadas.** Si una semana tiene menos informes que visitas
+  planificadas, el correo a Javier con los informes justifica una por una las visitas no realizadas
+  y el motivo. Nunca se envía el lote sin esa conciliación planificado/realizado.
 
 ## Qué es esto
 CRM B2B de prospección para Manuel Fernández ("Manolo"), prescriptor de Grupo Plásticos
