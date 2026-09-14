@@ -170,8 +170,8 @@
      HITS BUILDERS
      ============================================================ */
   function matchEmpresas(q) {
-    if (!q) return [];
-    const lo = q.toLowerCase();
+    const lo = window.Util.normSearch(q);
+    if (!lo) return [];
     const empresas = getEmpresas();
     const hits = [];
     for (const e of empresas) {
@@ -185,11 +185,16 @@
 
   function scoreEmpresa(e, lo) {
     let s = 0;
-    const name = (e.name || '').toLowerCase();
-    const city = (e.city || '').toLowerCase();
-    const prov = (e.province || '').toLowerCase();
+    const N = window.Util.normSearch;
+    const name = N(e.name), city = N(e.city), prov = N(e.province);
+    const all = name + ' ' + city + ' ' + prov;
+    const tokens = lo.split(' ').filter(Boolean);
+    // Todas las palabras deben aparecer en nombre/ciudad/provincia
+    for (let i = 0; i < tokens.length; i++) if (all.indexOf(tokens[i]) < 0) return 0;
     if (name.indexOf(lo) === 0) s += 100;
     else if (name.indexOf(lo) >= 0) s += 50;
+    else if (name.indexOf(tokens[0]) === 0) s += 40;
+    else s += 30;
     if (city.indexOf(lo) >= 0) s += 20;
     if (prov.indexOf(lo) >= 0) s += 15;
     if (s > 0) s += (e.score || 0);  // boost por score interno

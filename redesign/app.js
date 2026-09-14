@@ -746,6 +746,14 @@
       .toLowerCase().replace(/\s+/g, ' ').trim();
   }
 
+  // Normalizador para búsquedas de texto libre (listado, ⌘K): sin tildes,
+  // minúsculas y con rayas/guiones/puntuación convertidos en espacio, para que
+  // «ica ingenieria» encuentre «ICA — Ingeniería y Consultoría de Aguas S.L.».
+  function normSearch(s) {
+    return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .toLowerCase().replace(/[^a-z0-9ñ]+/g, ' ').trim();
+  }
+
   // Índice de adyacencia simétrico derivado de LIMITROFES: añade las aristas
   // inversas (si A lista a B como limítrofe, B queda limítrofe de A aunque no
   // tenga entrada propia). Así basta con declarar cada adyacencia una vez.
@@ -778,6 +786,7 @@
     PROVINCIAS: PROVINCIAS,
     LIMITROFES: LIMITROFES,
     normProv: normProv,
+    normSearch: normSearch,
     provinciasCercanas: provinciasCercanas,
     formatDateES: formatDateES,
     diasDesde: diasDesde,

@@ -321,11 +321,12 @@
      LÓGICA DE FILTRADO + ORDENACIÓN
      ============================================================ */
   function applyFilters(rows) {
-    const q = (FILTERS.q || '').trim().toLowerCase();
+    // Búsqueda por palabras: todas las del texto deben aparecer (en cualquier orden)
+    const qTokens = U.normSearch(FILTERS.q).split(' ').filter(Boolean);
     const out = rows.filter(function (s) {
-      if (q) {
-        const hay = ((s.name || '') + ' ' + (s.city || '') + ' ' + (s.province || '')).toLowerCase();
-        if (hay.indexOf(q) < 0) return false;
+      if (qTokens.length) {
+        const hay = U.normSearch((s.name || '') + ' ' + (s.city || '') + ' ' + (s.province || ''));
+        for (let i = 0; i < qTokens.length; i++) if (hay.indexOf(qTokens[i]) < 0) return false;
       }
       if (FILTERS.provincia && s.province !== FILTERS.provincia) return false;
       if (FILTERS.tipo && s.type !== FILTERS.tipo) return false;
