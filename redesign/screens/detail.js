@@ -813,9 +813,13 @@
   function activityItem(act, idx, studioId) {
     const type      = act.type || 'nota';
     const isBandeja = !!act.bandeja;
-    const isHecho   = isBandeja && !!act.completada;
+    // Las tareas (compromisos importados de los informes o creadas a mano) se
+    // pueden marcar como hechas igual que las acciones de bandeja.
+    const isTarea   = type === 'tarea';
+    const canToggle = isBandeja || isTarea;
+    const isHecho   = canToggle && !!act.completada;
     const color     = isHecho ? '#94a3b8' : (isBandeja ? '#16a34a' : (ACT_COLORS[type] || '#94a3b8'));
-    const label     = isBandeja ? (isHecho ? 'HECHO ✓' : 'BANDEJA') : (ACT_LABELS[type] || type);
+    const label     = isBandeja ? (isHecho ? 'HECHO ✓' : 'BANDEJA') : (isHecho ? 'HECHA ✓' : (ACT_LABELS[type] || type));
     const dateStr   = (U.formatDateES(act.createdAt) || act.date || '—') + (act.hora ? ' · ' + act.hora : '');
     const isVisit   = type === 'registro_visita';
     const textContent = act.title || act.text || act.notes || (isVisit ? 'Visita registrada' : '');
@@ -836,15 +840,15 @@
               (act.fecha_limite ? '<span style="font-size:11px; color:#1e40af; background:#eff6ff; padding:1px 6px; border-radius:5px;">📅 ' + escape(act.fecha_limite) + '</span>' : '') +
             '</div>' +
             '<div style="display:flex; gap:4px; flex-shrink:0;">' +
-              /* Toggle hecho/pendiente para items de bandeja */
-              (isBandeja
+              /* Toggle hecho/pendiente para items de bandeja y tareas */
+              (canToggle
                 ? '<button onclick="window.Screens.detail.toggleBandeja(\'' + escape(studioId) + '\',' + idx + ')" ' +
                     'style="background:none; border:1px solid ' + (isHecho ? '#16a34a' : 'var(--line)') + '; border-radius:6px; padding:3px 7px; cursor:pointer; font-size:11px; color:' + (isHecho ? '#16a34a' : 'var(--fg-3)') + ';" ' +
                     'title="' + (isHecho ? 'Marcar como pendiente' : 'Marcar como hecho') + '">' +
                     (isHecho ? '↩ Reabrir' : '✓ Hecho') +
                   '</button>'
                 : '') +
-              (!isBandeja && act.id != null
+              (!isBandeja && !isTarea && act.id != null
                 ? '<button onclick="window.Screens.detail.openEditActivity(\'' + escape(studioId) + '\',\'' + escape(String(act.id)) + '\')" ' +
                     'title="Ver / editar" style="background:none; border:none; cursor:pointer; color:var(--fg-3); font-size:13px; padding:0;">✏️</button>'
                 : '') +
@@ -856,6 +860,7 @@
             escape(textContent) +
           '</div>' +
           (act.followupDate ? '<div style="margin-top:6px; font-size:12px; color:var(--fg-3);">📅 Seguimiento: ' + escape(U.formatDateES(act.followupDate) || act.followupDate) + '</div>' : '') +
+          (isHecho && (act.completada_fecha || act.completada_nota) ? '<div style="margin-top:6px; font-size:12px; color:var(--fg-3);">✓ ' + escape((act.completada_fecha ? (U.formatDateES(act.completada_fecha) || act.completada_fecha) : '') + (act.completada_nota ? ' · ' + act.completada_nota : '')) + '</div>' : '') +
         '</div>' +
       '</div>'
     );
@@ -4250,7 +4255,8 @@
       var curData = Object.assign({}, raw.data || {});
       var acts = arr(curData.activities).slice();
       if (!acts[idx]) return;
-      acts[idx] = Object.assign({}, acts[idx], { completada: !acts[idx].completada });
+      var hecha = !acts[idx].completada;
+      acts[idx] = Object.assign({}, acts[idx], { completada: hecha, completada_fecha: hecha ? new Date().toISOString().slice(0, 10) : null });
       curData.activities = acts;
       await window.Data.patchDoc('studios/' + studioId, { data: curData });
       raw.data = curData;
