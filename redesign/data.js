@@ -1908,11 +1908,16 @@
         _markdown: inf ? inf.markdown : null,
       };
     });
+    // Una visita con motivo de no realización NO cuenta como realizada aunque
+    // tenga informe (la regla «tantos informes como visitas» obliga a redactar
+    // informe también de las que no se celebraron, documentando el motivo).
+    // El estado 'anulada' se reserva para visitas retiradas del plan.
+    filas.forEach(function (f) { f.realizada = f.estado === 'realizada' || (!!f.informe && !f.motivo); });
     const cifras = {
       planificadas: filas.length,
-      realizadas: filas.filter(function (f) { return f.estado === 'realizada' || f.informe; }).length,
+      realizadas: filas.filter(function (f) { return f.realizada; }).length,
       informes: filas.filter(function (f) { return !!f.informe; }).length,
-      no_realizadas: filas.filter(function (f) { return f.estado !== 'realizada' && !f.informe; }).length,
+      no_realizadas: filas.filter(function (f) { return !f.realizada; }).length,
     };
     return { semana: lunesISO, domingo: domingoISO, num_semana: _numSemana(lunesISO), fecha_limite: _addDaysISO(lunesISO, 8), filas: filas, cifras: cifras };
   }
@@ -1971,7 +1976,8 @@
     const c = conc.cifras;
     const rango = _fechaLarga(conc.semana) + ' – ' + _fechaLarga(conc.domingo) + ' ' + conc.semana.slice(0, 4);
     const conInforme = conc.filas.filter(function (f) { return f.informe && f._markdown; });
-    const sinInforme = conc.filas.filter(function (f) { return !f.informe; });
+    // Apartado 2: todas las no realizadas (sin informe o anuladas con informe), con su motivo
+    const sinInforme = conc.filas.filter(function (f) { return !f.realizada; });
     const cabecera =
       '# Resumen semanal de visitas — semana ' + conc.num_semana + ' (' + rango + ')\n\n' +
       '| Planificadas | Realizadas | Con informe | No realizadas |\n|---|---|---|---|\n' +
