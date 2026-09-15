@@ -2653,11 +2653,15 @@
     var _cbIdx = 0;
     function checkRow(key, text, plazo, tipo) {
       var id = 'cb-bandeja-' + (_cbIdx++);
+      // Las oportunidades ya se guardan en la pestaña Proyectos al importar:
+      // por defecto NO se duplican como tareas de bandeja (marcar solo si se
+      // quiere una tarea de seguimiento explícita).
+      var marcado = key === 'opor' ? '' : 'checked ';
       return '<label style="display:flex; align-items:flex-start; gap:10px; padding:8px 0; ' +
         'border-bottom:1px solid var(--border-1); cursor:pointer;">' +
         '<input type="checkbox" id="' + id + '" data-key="' + escape(key) + '" ' +
           'data-title="' + escape(text) + '" data-plazo="' + escape(sv(plazo) || '') + '" data-tipo="' + escape(tipo) + '" ' +
-          'checked style="margin-top:2px; width:16px; height:16px; flex-shrink:0; accent-color:var(--gpf-blue-700);">' +
+          marcado + 'style="margin-top:2px; width:16px; height:16px; flex-shrink:0; accent-color:var(--gpf-blue-700);">' +
         '<div style="flex:1;">' +
           '<div style="font-size:13px; color:var(--fg-1); line-height:1.4;">' + escape(text) + '</div>' +
           (sv(plazo) ? '<div style="font-size:11px; color:var(--fg-3); margin-top:2px;">⏰ ' + escape(plazo) + '</div>' : '') +
@@ -2728,7 +2732,7 @@
 
         /* ---- Oportunidades (checkboxes) ---- */
         (proyectos.length
-          ? sectionHead('🏗', 'Oportunidades detectadas', proyectos.length) +
+          ? sectionHead('🏗', 'Oportunidades detectadas (ya en Proyectos; marcar solo si quieres además una tarea)', proyectos.length) +
             '<div>' + proyectos.map(function(p) {
               var sub = [sv(p.tipo), sv(p.fase_actual), p.importe_estimado ? (p.importe_estimado / 1000).toFixed(0) + ' k€' : null].filter(Boolean).join(', ');
               var txt = p.nombre + (sub ? ' — ' + sub : '');
