@@ -1879,7 +1879,8 @@
   function _extractoVisitaImportada(r, fechaVisita) {
     if (!r || (r.formato !== 'visita_importada' && !r.puntos_clave && !r.resumen_ejecutivo)) return null;
     const temp = parseInt(r.temperatura, 10);
-    const res = temp >= 5 ? 'MUY ALTO' : temp === 4 ? 'ALTO' : temp === 3 ? 'MEDIO' : temp === 2 ? 'MEDIO-BAJO' : temp === 1 ? 'BAJO' : '[SIN DATO]';
+    // temperatura del pipeline en escala 1-10; mismo corte que el Word del informe (detail.js): >=8 Alto, >=5 Medio, <5 Bajo
+    const res = isNaN(temp) ? '[SIN DATO]' : temp >= 8 ? 'ALTO' : temp >= 5 ? 'MEDIO' : 'BAJO';
     const L = [];
     L.push('| Fecha de visita | ' + (fechaVisita || String(r.date || '').slice(0, 10)) + ' |', '| Persona de contacto | ' + (r.interlocutor_nombre || '[SIN DATO]') + (r.cargo_interlocutor ? ' — ' + r.cargo_interlocutor : '') + ' |', '| Tipo de visita | ' + (r.tipo_visita || '[SIN DATO]') + ' |', '');
     if (r.resumen_ejecutivo) L.push('Resumen: ' + r.resumen_ejecutivo, '');
