@@ -39,6 +39,8 @@ TABLAS = [
     "meta_kv",
     "placsp_adjudicaciones",
     "report_audit",
+    "visitas",              # histórico de visitas + motivo de no realización (sep-2026)
+    "resumenes_semanales",  # cierre de semana: resumen y correo a Javier (sep-2026)
 ]
 TABLAS_OPCIONALES = ["loop_proyectos", "loop_config", "loop_acciones"]
 PAGINA = 1000
