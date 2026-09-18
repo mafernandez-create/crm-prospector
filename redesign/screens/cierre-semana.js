@@ -58,7 +58,7 @@
       '</div>';
     const faltan = cf.no_realizadas;
     const aviso = faltan
-      ? '<p style="margin:0 0 8px; font-size:13px; color:#922B21;">Faltan ' + faltan + ' informe' + (faltan === 1 ? '' : 's') + ': indica el motivo de cada visita no realizada (irá al resumen y al correo a Javier) o redáctalo si la visita se hizo.</p>'
+      ? '<p style="margin:0 0 8px; font-size:13px; color:#922B21;">Faltan ' + faltan + ' informe' + (faltan === 1 ? '' : 's') + ': indica el motivo de cada visita no realizada (irá al resumen y al correo a Javier) o redáctalo si la visita se hizo. Con «reprogramada», «no pudieron recibirme» o «la canceló el cliente» la empresa queda como <strong>pendiente de visitar</strong> en su ficha y en «Pendiente en la zona» hasta que la vuelvas a planificar.</p>'
       : '<p style="margin:0 0 8px; font-size:13px; color:#145A32;">Todas las visitas planificadas tienen informe.</p>';
     const res = Local.resultado ? _htmlResultado() : '';
     return (
@@ -125,7 +125,10 @@
       await window.Data.guardarMotivoVisita(vid, sel.value || null, nota || null, sel.value ? 'planificada' : null);
       fila.motivo = sel.value || null; fila.nota = nota || null; n++;
     }
-    if (!silencioso && window.showNotification) window.showNotification(n ? '✓ ' + n + ' motivo' + (n === 1 ? '' : 's') + ' guardado' + (n === 1 ? '' : 's') : 'Sin cambios', n ? 'success' : 'info');
+    const pendientes = Local.conc.filas.filter(function (f) { return !f.informe && f.studio_id && window.Data.MOTIVOS_PENDIENTE_VISITA.indexOf(f.motivo) >= 0; }).length;
+    if (!silencioso && window.showNotification) window.showNotification(n
+      ? '✓ ' + n + ' motivo' + (n === 1 ? '' : 's') + ' guardado' + (n === 1 ? '' : 's') + (pendientes ? ' · ' + pendientes + ' pendiente' + (pendientes === 1 ? '' : 's') + ' de visitar en bandeja' : '')
+      : 'Sin cambios', n ? 'success' : 'info');
     return n;
   }
 

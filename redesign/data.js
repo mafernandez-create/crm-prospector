@@ -1925,7 +1925,88 @@
   async function guardarMotivoVisita(visitaId, motivo, nota, estado) {
     const patch = { motivo_no_realizada: motivo || null, nota: nota || null };
     if (estado) patch.estado = estado;
-    return window.DataSupabase.updateVisita(visitaId, patch);
+    const row = await window.DataSupabase.updateVisita(visitaId, patch);
+    // La deuda de visita se refleja en la ficha (bandeja) sin bloquear el guardado del motivo.
+    try { await sincronizarPendienteVisita(row || { id: visitaId }, motivo || null, nota || null); }
+    catch (e) { console.warn('[visitas] no se pudo sincronizar la tarea «pendiente de visitar»:', e && e.message); }
+    return row;
+  }
+
+  /* ---- Pendiente de visitar: la visita no realizada vuelve a la bandeja ----
+     Con motivo reprogramada / no-recibieron / cancelada-cliente queda una deuda
+     de visita. Se crea en la ficha una actividad bandeja:true (tipo reunion,
+     marcada pendiente_visita) para que aparezca en «Pendiente en la zona» del
+     planificador, en la bandeja y en el briefing del agente pendientes-zona.
+     Se cierra sola al volver a planificar la empresa en una fecha posterior
+     (cerrarPendientesVisitaPlanificadas, desde savePlanificador) o al quitar
+     el motivo. `sustituida` y `otro` no generan deuda. Una sola abierta por ficha. */
+  const MOTIVOS_PENDIENTE_VISITA = ['reprogramada', 'no-recibieron', 'cancelada-cliente'];
+  function _esPendienteVisitaAbierta(a) { return !!(a && a.pendiente_visita && a.bandeja && !a.completada); }
+  async function _patchActividades(studioId, raw, acts) {
+    const curData = Object.assign({}, raw.data || {}, { activities: acts });
+    await _routePatchDoc('studios/' + studioId, { data: curData });
+    raw.data = curData;
+    if (window.State && window.State.studiosById) window.State.studiosById[studioId] = raw;
+    if (window.AccionesEngine && window.AccionesEngine.invalidarCache) window.AccionesEngine.invalidarCache();
+  }
+  async function sincronizarPendienteVisita(visita, motivo, nota) {
+    const studioId = visita && visita.studio_id ? String(visita.studio_id) : null;
+    const raw = studioId && window.State && window.State.studiosById ? window.State.studiosById[studioId] : null;
+    if (!raw) return null;
+    const acts = (raw.data && Array.isArray(raw.data.activities) ? raw.data.activities : []).slice();
+    const debe = MOTIVOS_PENDIENTE_VISITA.indexOf(motivo) >= 0;
+    if (debe) {
+      if (acts.some(_esPendienteVisitaAbierta)) return 'ya-abierta';
+      const fecha = String(visita.fecha || '').slice(0, 10);
+      acts.push({
+        type: 'tarea', date: new Date().toISOString().slice(0, 10),
+        title: '🔁 Pendiente de visitar — ' + MOTIVOS_NO_REALIZADA[motivo] + (fecha ? ' el ' + _fechaLarga(fecha) : ''),
+        notes: nota || '',
+        bandeja: true, completada: false, tipo_accion: 'reunion',
+        fecha_limite: null, plazo: 'próxima ruta por la zona',
+        bandeja_id: 'pv' + visita.id, studioId: studioId,
+        pendiente_visita: true, visita_id: visita.id, visita_fecha: fecha || null,
+      });
+      await _patchActividades(studioId, raw, acts);
+      return 'creada';
+    }
+    // Sin motivo (o sustituida/otro): se cierra solo la tarea que nació de ESTA visita.
+    let n = 0;
+    acts.forEach(function (a, i) {
+      if (_esPendienteVisitaAbierta(a) && String(a.visita_id) === String(visita.id)) { acts[i] = Object.assign({}, a, { completada: true }); n++; }
+    });
+    if (!n) return null;
+    await _patchActividades(studioId, raw, acts);
+    return 'cerrada';
+  }
+  /* Cierra las tareas «pendiente de visitar» de los estudios que el schedule
+     vuelve a planificar en una fecha posterior a la visita fallida. */
+  async function cerrarPendientesVisitaPlanificadas(schedule) {
+    if (!window.State || !window.State.studiosById) return 0;
+    const ultimaFecha = {};
+    Object.keys(schedule || {}).forEach(function (fecha) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha) || !Array.isArray(schedule[fecha])) return;
+      schedule[fecha].forEach(function (v) {
+        if (!v || v.reserva === true || !v.id) return;
+        const id = String(v.id);
+        if (!ultimaFecha[id] || fecha > ultimaFecha[id]) ultimaFecha[id] = fecha;
+      });
+    });
+    let total = 0;
+    for (const studioId of Object.keys(ultimaFecha)) {
+      const raw = window.State.studiosById[studioId];
+      const acts = raw && raw.data && Array.isArray(raw.data.activities) ? raw.data.activities.slice() : null;
+      if (!acts) continue;
+      let n = 0;
+      acts.forEach(function (a, i) {
+        if (_esPendienteVisitaAbierta(a) && (!a.visita_fecha || ultimaFecha[studioId] > a.visita_fecha)) { acts[i] = Object.assign({}, a, { completada: true }); n++; }
+      });
+      if (!n) continue;
+      await _patchActividades(studioId, raw, acts);
+      total += n;
+    }
+    if (total) console.info('[visitas] ' + total + ' tarea(s) «pendiente de visitar» cerradas al replanificar');
+    return total;
   }
   function _motivoTexto(f) {
     const base = MOTIVOS_NO_REALIZADA[f.motivo] || MOTIVOS_NO_REALIZADA.otro;
@@ -2028,6 +2109,10 @@
   async function savePlanificador(schedule) {
     const out = await _patchDocActive('_meta/planificador', { schedule: schedule || {} });
     if (window.State) window.State.planificador = out;
+    // Segundo plano: si falla, el guardado del planificador no debe fallar con ello.
+    cerrarPendientesVisitaPlanificadas(schedule || {}).catch(function (e) {
+      console.warn('[visitas] no se pudieron cerrar las tareas «pendiente de visitar»:', e && e.message);
+    });
     return out;
   }
 
@@ -2193,6 +2278,9 @@
     // Cierre de semana
     conciliarSemana: conciliarSemana,
     guardarMotivoVisita: guardarMotivoVisita,
+    sincronizarPendienteVisita: sincronizarPendienteVisita,
+    cerrarPendientesVisitaPlanificadas: cerrarPendientesVisitaPlanificadas,
+    MOTIVOS_PENDIENTE_VISITA: MOTIVOS_PENDIENTE_VISITA,
     generateWeeklySummary: generateWeeklySummary,
     redactarCorreoJavier: redactarCorreoJavier,
     MOTIVOS_NO_REALIZADA: MOTIVOS_NO_REALIZADA,
