@@ -1,0 +1,56 @@
+// Algunos clientes piden que se les llame uno o dos días antes para confirmar
+// la visita. El planificador lo guarda en data.confirmar_dias y de ahí sale
+// la llamada: en «Hoy», en la columna del día y en Google Calendar. Este test
+// cubre la parte pura (Util.fechaConfirmacion / confirmacionesDeSchedule):
+// la llamada cae en días LABORABLES y no se recuerda lo que ya pasó.
+// app.js ejecuta init() al cargarse (DOM real), así que se extraen las dos
+// funciones del fuente en vez de requerir el módulo.
+
+const fs   = require('fs');
+const path = require('path');
+const A    = require('../_lib/assert');
+
+A.reset();
+
+const src = fs.readFileSync(path.resolve(__dirname, '..', '..', '..', 'redesign', 'app.js'), 'utf8');
+const ini = src.indexOf('function fechaConfirmacion(');
+const fin = src.indexOf('window.Util = {', ini);
+A.truthy(ini > 0 && fin > ini, 'app.js define fechaConfirmacion y confirmacionesDeSchedule antes de window.Util');
+const U = new Function(src.slice(ini, fin) + '\nreturn { fechaConfirmacion, confirmacionesDeSchedule };')();
+
+// ── Días laborables ───────────────────────────────────────────────────────
+// Referencia: 2026-09-24 es jueves; 2026-09-21 lunes; 2026-09-19 sábado.
+A.eq(U.fechaConfirmacion('2026-09-24', 1), '2026-09-23', 'jueves, 1 día antes → miércoles');
+A.eq(U.fechaConfirmacion('2026-09-24', 2), '2026-09-22', 'jueves, 2 días antes → martes');
+A.eq(U.fechaConfirmacion('2026-09-21', 1), '2026-09-18', 'lunes, 1 día antes → viernes (salta el fin de semana)');
+A.eq(U.fechaConfirmacion('2026-09-21', 2), '2026-09-17', 'lunes, 2 días antes → jueves');
+A.eq(U.fechaConfirmacion('2026-09-22', 2), '2026-09-18', 'martes, 2 días antes → viernes');
+A.eq(U.fechaConfirmacion('2026-10-01', 1), '2026-09-30', 'cambio de mes correcto');
+
+// ── Sin confirmación ──────────────────────────────────────────────────────
+A.eq(U.fechaConfirmacion('2026-09-24', 0), null, '0 = no hace falta');
+A.eq(U.fechaConfirmacion('2026-09-24', undefined), null, 'sin campo = no hace falta');
+A.eq(U.fechaConfirmacion('2026-09-24', '2'), '2026-09-22', 'acepta el valor como string (viene de un <select>)');
+A.eq(U.fechaConfirmacion('mañana', 1), null, 'fecha inválida → null');
+
+// ── confirmacionesDeSchedule ──────────────────────────────────────────────
+const sched = {
+  '2026-09-24': [
+    { id: '3122', name: 'González Soto S.A.', data: { hora: '11:30', confirmar_dias: 2 } },
+    { id: '3099', name: 'ED3 Arquitectos', data: { hora: '09:00' } },
+    { id: null, name: 'Pernocta Murcia', reserva: true, data: { confirmar_dias: 1 } },
+  ],
+  '2026-09-21': [ { id: '3111', name: 'CUPISA', data: { confirmar_dias: 1 } } ],
+  '2026-09-10': [ { id: '3119', name: 'JOVEA', data: { confirmar_dias: 1 } } ],
+  'sin-hora': 'basura',
+};
+const out = U.confirmacionesDeSchedule(sched, '2026-09-18');
+A.eq(out.map(c => c.visita.name), ['CUPISA', 'González Soto S.A.'], 'solo las visitas futuras con confirmar_dias, sin reservas, ordenadas por fecha de llamada');
+A.eq(out[0].fechaLlamada, '2026-09-18', 'CUPISA (lunes 21, 1 día) se llama el viernes 18');
+A.eq(out[1], { fechaLlamada: '2026-09-22', fechaVisita: '2026-09-24', dias: 2, visita: sched['2026-09-24'][0] }, 'González Soto (jueves 24, 2 días) se llama el martes 22 y conserva la visita');
+A.eq(U.confirmacionesDeSchedule(sched).length, 3, 'sin hoyISO no se filtra por fecha');
+A.eq(U.confirmacionesDeSchedule({}, '2026-09-18'), [], 'schedule vacío');
+
+const s = A.summary();
+console.log(JSON.stringify(s));
+process.exit(s.failed > 0 ? 1 : 0);

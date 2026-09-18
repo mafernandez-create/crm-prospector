@@ -780,8 +780,45 @@
     return out;
   }
 
+  /* ---- Llamada de confirmación de visita ----
+     Algunos clientes piden que se les llame uno o dos días antes para confirmar.
+     La visita del planificador lo guarda en data.confirmar_dias (1|2, 0 = no).
+     La llamada cae N días LABORABLES antes (1 día antes de un lunes = viernes). */
+  function fechaConfirmacion(fechaVisitaISO, dias) {
+    var n = parseInt(dias, 10);
+    if (!n || n < 1 || !/^\d{4}-\d{2}-\d{2}$/.test(fechaVisitaISO || '')) return null;
+    var d = new Date(fechaVisitaISO + 'T00:00:00');
+    while (n > 0) {
+      d.setDate(d.getDate() - 1);
+      if (d.getDay() !== 0 && d.getDay() !== 6) n--;
+    }
+    var y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + dd;
+  }
+  /* Todas las llamadas de confirmación que salen de un schedule, ordenadas por
+     fecha de llamada: [{ fechaLlamada, fechaVisita, dias, visita }]. Se omiten
+     las visitas ya pasadas (no tiene sentido confirmar lo que ya ocurrió). */
+  function confirmacionesDeSchedule(schedule, hoyISO) {
+    var out = [];
+    Object.keys(schedule || {}).forEach(function (fecha) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha) || !Array.isArray(schedule[fecha])) return;
+      if (hoyISO && fecha < hoyISO) return;
+      schedule[fecha].forEach(function (v) {
+        if (!v || v.reserva === true) return;
+        var dias = v.data && v.data.confirmar_dias;
+        var fl = fechaConfirmacion(fecha, dias);
+        if (!fl) return;
+        out.push({ fechaLlamada: fl, fechaVisita: fecha, dias: parseInt(dias, 10), visita: v });
+      });
+    });
+    out.sort(function (a, b) { return a.fechaLlamada < b.fechaLlamada ? -1 : a.fechaLlamada > b.fechaLlamada ? 1 : 0; });
+    return out;
+  }
+
   window.Util = {
     escapeHtml: escapeHtml,
+    fechaConfirmacion: fechaConfirmacion,
+    confirmacionesDeSchedule: confirmacionesDeSchedule,
     safeHref: safeHref,
     PROVINCIAS: PROVINCIAS,
     LIMITROFES: LIMITROFES,

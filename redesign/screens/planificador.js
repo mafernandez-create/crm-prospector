@@ -4,7 +4,7 @@
  *
  * Datos:
  *   planificador.schedule[YYYY-MM-DD] = [
- *     { id, name, city, province, data: { hora, notas } }, …
+ *     { id, name, city, province, data: { hora, notas, confirmar_dias? } }, …  (confirmar_dias: 1|2 si el cliente pide llamada previa)
  *   ]
  *
  * UI:
@@ -265,6 +265,7 @@
         '</div>' +
         '<div class="planner-drop" data-day="' + d.iso + '" ' +
           'style="flex:1; padding:8px; display:flex; flex-direction:column; gap:6px;">' +
+          confirmacionesDia(d.iso).map(confirmacionCard).join('') +
           (visitas.length === 0
             ? '<div style="color:var(--fg-4); font-size:12px; text-align:center; padding:24px 4px;">Sin visitas</div>'
             : visitas.map(function (v, idx) { return visitaCard(d.iso, idx, v); }).join('')
@@ -277,6 +278,7 @@
   function visitaCard(iso, idx, v) {
     const hora = (v.data && v.data.hora) || '';
     const notas = (v.data && v.data.notas) || '';
+    const fechaConf = U.fechaConfirmacion(iso, v.data && v.data.confirmar_dias);
     return (
       '<div class="planner-card" draggable="true" data-day="' + iso + '" data-idx="' + idx + '" ' +
         'onclick="window.Screens.planificador.editVisita(\'' + iso + '\', ' + idx + ')" ' +
@@ -286,6 +288,29 @@
         '<div style="font-weight:600; line-height:1.2; margin-top:2px;">' + escape(v.name || v.id) + '</div>' +
         (v.city ? '<div style="color:var(--fg-3); font-size:11px; margin-top:2px;">' + escape(v.city) + (v.province ? ' · ' + escape(v.province) : '') + '</div>' : '') +
         (notas ? '<div style="color:var(--fg-3); font-size:11px; margin-top:4px; font-style:italic;">' + escape(notas.slice(0, 60)) + (notas.length > 60 ? '…' : '') + '</div>' : '') +
+        (fechaConf ? '<div style="margin-top:5px; font-size:11px; color:#92400e; background:#fef3c7; border-radius:4px; padding:2px 6px; display:inline-block;">📞 confirmar el ' + escape(U.formatDateES(fechaConf).replace(/ \d{4}$/, '')) + '</div>' : '') +
+      '</div>'
+    );
+  }
+
+  /* Recordatorios de llamada que caen en un día: visitas (de cualquier semana)
+     cuyo cliente pidió confirmación N días laborables antes. */
+  function confirmacionesDia(iso) {
+    const hoyISO = toISO(new Date());
+    return U.confirmacionesDeSchedule(Local.schedule, hoyISO).filter(function (c) { return c.fechaLlamada === iso; });
+  }
+  function confirmacionCard(c) {
+    const v = c.visita;
+    const s = (State.studiosById && State.studiosById[String(v.id)]) || null;
+    const tel = s && s.data && s.data.contact ? U.readField(s.data.contact.phone) : '';
+    const hora = (v.data && v.data.hora) ? ' · ' + v.data.hora : '';
+    return (
+      '<div title="El cliente pidió que le llames ' + c.dias + ' día' + (c.dias === 1 ? '' : 's') + ' antes para confirmar" ' +
+        (s ? 'onclick="showView(\'detail\', {studioId: \'' + escape(String(v.id)) + '\'})" ' : '') +
+        'style="background:#fef3c7; border:1px dashed #f59e0b; border-radius:6px; padding:6px 8px; font-size:11px; color:#92400e; cursor:' + (s ? 'pointer' : 'default') + ';">' +
+        '<div style="font-weight:600;">📞 Confirmar visita</div>' +
+        '<div>' + escape(v.name || v.id) + ' — ' + escape(U.formatDateES(c.fechaVisita).replace(/ \d{4}$/, '')) + escape(hora) + '</div>' +
+        (tel ? '<div style="font-family:var(--font-mono);">' + escape(tel) + '</div>' : '') +
       '</div>'
     );
   }
@@ -404,6 +429,15 @@
               '</label>' +
             '</div>' +
             '<label>' +
+              '<span style="font-size:11px; color:var(--fg-3); text-transform:uppercase; letter-spacing:.05em;">Confirmar por teléfono</span>' +
+              '<select id="pmod-confirmar" style="width:100%; margin-top:2px; padding:6px 8px; border:1px solid var(--border-1); border-radius:4px; font:inherit; background:var(--bg-card);">' +
+                [[0, 'No hace falta'], [1, 'El cliente pide que le llame 1 día antes'], [2, 'El cliente pide que le llame 2 días antes']].map(function (o) {
+                  return '<option value="' + o[0] + '"' + (parseInt((v.data && v.data.confirmar_dias) || 0, 10) === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+                }).join('') +
+              '</select>' +
+              '<span style="display:block; font-size:11px; color:var(--fg-3); margin-top:3px;">La llamada saldrá en «Hoy», en la columna del día y en Google Calendar (días laborables: 1 día antes de un lunes = viernes).</span>' +
+            '</label>' +
+            '<label>' +
               '<span style="font-size:11px; color:var(--fg-3); text-transform:uppercase; letter-spacing:.05em;">Notas</span>' +
               '<textarea id="pmod-notas" rows="3" ' +
                 'style="width:100%; margin-top:2px; padding:6px 8px; border:1px solid var(--border-1); border-radius:4px; font:inherit; resize:vertical;">' +
@@ -442,6 +476,7 @@
     const hora = (document.getElementById('pmod-hora') || {}).value || '';
     const city = (document.getElementById('pmod-city') || {}).value || '';
     const notas = (document.getElementById('pmod-notas') || {}).value || '';
+    const confirmarDias = parseInt((document.getElementById('pmod-confirmar') || {}).value || '0', 10) || 0;
     if (!name.trim()) {
       alert('Indica al menos el nombre de la empresa.');
       return;
@@ -464,8 +499,9 @@
       name: name.trim(),
       city: cityFinal,
       province: province,
-      data: { hora: hora, notas: notas },
+      data: Object.assign({}, opts.visita.data || {}, { hora: hora, notas: notas, confirmar_dias: confirmarDias || undefined }),
     };
+    if (!confirmarDias) delete out.data.confirmar_dias;
     opts.onSave(out);
     cerrarModal();
   }
@@ -1141,10 +1177,39 @@
     const total = days.reduce(function (n, d) {
       return n + (schedule[d] || []).filter(function (s) { return !s.reserva; }).length;
     }, 0);
+    // Llamadas de confirmación pedidas por el cliente: evento propio el día de la llamada.
+    const confirmaciones = U.confirmacionesDeSchedule(schedule, hoyISO).filter(function (c) { return c.fechaLlamada >= hoyISO; });
 
-    window.showNotification('📅 Exportando ' + total + ' visitas a Google Calendar…', 'info');
+    window.showNotification('📅 Exportando ' + total + ' visitas' + (confirmaciones.length ? ' y ' + confirmaciones.length + ' llamada' + (confirmaciones.length === 1 ? '' : 's') + ' de confirmación' : '') + ' a Google Calendar…', 'info');
 
     let created = 0; let errors = 0;
+    async function _crearEvento(event, etiqueta) {
+      try {
+        const resp = await fetch(
+          'https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(calendarId) + '/events',
+          { method: 'POST', headers: { 'Authorization': 'Bearer ' + calSettings.accessToken, 'Content-Type': 'application/json' }, body: JSON.stringify(event) }
+        );
+        if (resp.status === 401) {
+          calSettings.accessToken = null; calSettings.tokenExpiry = 0;
+          localStorage.setItem('ferroplast_test_calendar_settings', JSON.stringify(calSettings));
+          throw new Error('Token expirado. Vuelve a pulsar 📅 Calendario para reautenticar.');
+        }
+        if (!resp.ok) {
+          const err = await resp.json();
+          throw new Error((err.error && err.error.message) || resp.statusText);
+        }
+        created++;
+        return true;
+      } catch (e) {
+        console.error('[planificador] calendar error:', etiqueta, e.message);
+        errors++;
+        if (e.message && e.message.includes('Token expirado')) {
+          window.showNotification('⚠️ ' + e.message, 'warning');
+          return null;   // aborta la exportación
+        }
+        return false;
+      }
+    }
 
     for (const dateStr of days) {
       const visits = (schedule[dateStr] || []).filter(function (v) { return !v.reserva; });
@@ -1175,6 +1240,8 @@
         if (email)  desc += '\n📧 ' + email;
         if (web)    desc += '\n🌐 ' + web;
         if (notas)  desc += '\n\n📝 ' + notas;
+        const fechaConf = U.fechaConfirmacion(dateStr, v.data && v.data.confirmar_dias);
+        if (fechaConf) desc += '\n\n☎️ El cliente pidió confirmación por teléfono ' + v.data.confirmar_dias + ' día' + (v.data.confirmar_dias === 1 ? '' : 's') + ' antes (llamar el ' + U.formatDateES(fechaConf) + ').';
         desc += '\n\n🔗 Ver en CRM:\n' + crmLink;
         desc += '\n\n🎯 Ferroplast CRM – Ferroplast/GPF';
 
@@ -1193,44 +1260,38 @@
           },
         };
 
-        try {
-          const resp = await fetch(
-            'https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(calendarId) + '/events',
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': 'Bearer ' + calSettings.accessToken,
-                'Content-Type':  'application/json',
-              },
-              body: JSON.stringify(event),
-            }
-          );
-          if (resp.status === 401) {
-            // Token expirado durante la operación
-            calSettings.accessToken = null; calSettings.tokenExpiry = 0;
-            localStorage.setItem('ferroplast_test_calendar_settings', JSON.stringify(calSettings));
-            throw new Error('Token expirado. Vuelve a pulsar 📅 Calendario para reautenticar.');
-          }
-          if (!resp.ok) {
-            const err = await resp.json();
-            throw new Error((err.error && err.error.message) || resp.statusText);
-          }
-          created++;
-        } catch (e) {
-          console.error('[planificador] calendar error:', nombre, e.message);
-          errors++;
-          if (e.message && e.message.includes('Token expirado')) {
-            window.showNotification('⚠️ ' + e.message, 'warning');
-            return;
-          }
-        }
+        if (await _crearEvento(event, nombre) === null) return;
       }
+    }
+
+    // Eventos de llamada de confirmación (09:30, 15 min, aviso al empezar el día).
+    for (const c of confirmaciones) {
+      const v = c.visita;
+      const sid = String(v.id || '');
+      const s = byId[sid] || {};
+      const ctc = (s.data && s.data.contact) || {};
+      const phone = _rf(ctc.phone);
+      const nombre = v.name || s.name || sid;
+      const crmLink = 'https://mafernandez-create.github.io/crm-prospector/#detail/' + sid;
+      let desc = '☎️ El cliente pidió que le llames ' + c.dias + ' día' + (c.dias === 1 ? '' : 's') + ' antes para confirmar la visita.' +
+        '\n\n🏢 ' + nombre + '\n📅 Visita: ' + U.formatDateES(c.fechaVisita) + ((v.data && v.data.hora) ? ' · ' + v.data.hora : '');
+      if (phone) desc += '\n📞 ' + phone;
+      if (_rf(ctc.name)) desc += '\n👤 ' + _rf(ctc.name);
+      desc += '\n\n🔗 Ver en CRM:\n' + crmLink + '\n\n🎯 Ferroplast CRM – Ferroplast/GPF';
+      const event = {
+        summary: '📞 Confirmar visita · ' + nombre,
+        description: desc,
+        start: { dateTime: c.fechaLlamada + 'T09:30:00', timeZone: 'Europe/Madrid' },
+        end:   { dateTime: c.fechaLlamada + 'T09:45:00', timeZone: 'Europe/Madrid' },
+        reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 90 }, { method: 'popup', minutes: 0 }] },
+      };
+      if (await _crearEvento(event, 'confirmar ' + nombre) === null) return;
     }
 
     if (errors) {
       window.showNotification('⚠️ ' + created + ' eventos creados, ' + errors + ' con error. Revisa la consola.', 'warning');
     } else {
-      window.showNotification('✅ ' + created + ' visitas añadidas a Google Calendar', 'success');
+      window.showNotification('✅ ' + created + ' eventos añadidos a Google Calendar (' + total + ' visitas' + (confirmaciones.length ? ' + ' + confirmaciones.length + ' llamadas de confirmación' : '') + ')', 'success');
     }
   }
 

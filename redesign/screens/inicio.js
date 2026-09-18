@@ -119,14 +119,40 @@
     return null;
   }
 
+  /* Llamadas de confirmación que tocan hoy (o quedaron atrás y la visita aún
+     no ha pasado): el cliente pidió que le llamen 1-2 días antes. Van primero. */
+  function computeConfirmaciones() {
+    const sched = State.planificador && State.planificador.schedule;
+    if (!sched) return [];
+    const hoyISO = State.today.toISOString().slice(0, 10);
+    return U.confirmacionesDeSchedule(sched, hoyISO)
+      .filter(function (c) { return c.fechaLlamada <= hoyISO; })
+      .map(function (c) {
+        const v = c.visita;
+        const studio = State.studiosById[v.id];
+        const contact = (studio && studio.data && studio.data.contact) || {};
+        const hora = (v.data && v.data.hora) ? ' · ' + v.data.hora : '';
+        return {
+          studioId: v.id,
+          empresa: v.name || (studio && studio.name) || ('Estudio ' + v.id),
+          tarea: '📞 Confirmar la visita del ' + U.formatDateES(c.fechaVisita).replace(/ \d{4}$/, '') + hora + ' (lo pidió el cliente)',
+          atrasada: c.fechaLlamada < hoyISO,
+          hora: U.readField(contact.phone) || '',
+          confirmacion: true,
+        };
+      });
+  }
+
   function computeTareas() {
-    // Heurística: studios con priority alta o score ≥8 cuya última actividad
+    // Primero las llamadas de confirmación del día; después la heurística de
+    // reactivación: studios con priority alta o score ≥8 cuya última actividad
     // sea hace >7 días (pero <30, para no abrumar)
     const hace7 = new Date(State.today.getTime() - 7 * 24 * 3600 * 1000).toISOString().slice(0, 10);
     const hace30 = new Date(State.today.getTime() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
-    const out = [];
+    const out = computeConfirmaciones();
+    const tope = out.length + 5;
     for (const s of State.studios) {
-      if (out.length >= 5) break;
+      if (out.length >= tope) break;
       const last = U.lastInteraction(s);
       if (!last) continue;
       const esPrio = s.priority === 'alta' || (s.score || 0) >= 8;
@@ -428,7 +454,7 @@
       );
     }
     const cards = tareas.map(function (t) {
-      const borderColor = t.atrasada ? 'var(--mute-red)' : 'var(--line)';
+      const borderColor = t.atrasada ? 'var(--mute-red)' : t.confirmacion ? '#f59e0b' : 'var(--line)';
       return (
         '<div class="card" style="padding:14px; display:flex; align-items:center; gap:12px; min-height:64px; border-left:3px solid ' + borderColor + '; cursor:pointer;" ' +
         'data-action="open-detail" data-studio="' + escape(t.studioId) + '">' +
