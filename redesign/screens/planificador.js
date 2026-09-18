@@ -288,7 +288,9 @@
         '<div style="font-weight:600; line-height:1.2; margin-top:2px;">' + escape(v.name || v.id) + '</div>' +
         (v.city ? '<div style="color:var(--fg-3); font-size:11px; margin-top:2px;">' + escape(v.city) + (v.province ? ' · ' + escape(v.province) : '') + '</div>' : '') +
         (notas ? '<div style="color:var(--fg-3); font-size:11px; margin-top:4px; font-style:italic;">' + escape(notas.slice(0, 60)) + (notas.length > 60 ? '…' : '') + '</div>' : '') +
-        (fechaConf ? '<div style="margin-top:5px; font-size:11px; color:#92400e; background:#fef3c7; border-radius:4px; padding:2px 6px; display:inline-block;">📞 confirmar el ' + escape(U.formatDateES(fechaConf).replace(/ \d{4}$/, '')) + '</div>' : '') +
+        (fechaConf ? (v.data.confirmada_el
+          ? '<div style="margin-top:5px; font-size:11px; color:#166534; background:#dcfce7; border-radius:4px; padding:2px 6px; display:inline-block;">📞 confirmada el ' + escape(U.formatDateES(v.data.confirmada_el).replace(/ \d{4}$/, '')) + '</div>'
+          : '<div style="margin-top:5px; font-size:11px; color:#92400e; background:#fef3c7; border-radius:4px; padding:2px 6px; display:inline-block;">📞 confirmar el ' + escape(U.formatDateES(fechaConf).replace(/ \d{4}$/, '')) + '</div>') : '') +
       '</div>'
     );
   }
@@ -306,13 +308,29 @@
     const hora = (v.data && v.data.hora) ? ' · ' + v.data.hora : '';
     return (
       '<div title="El cliente pidió que le llames ' + c.dias + ' día' + (c.dias === 1 ? '' : 's') + ' antes para confirmar" ' +
-        (s ? 'onclick="showView(\'detail\', {studioId: \'' + escape(String(v.id)) + '\'})" ' : '') +
-        'style="background:#fef3c7; border:1px dashed #f59e0b; border-radius:6px; padding:6px 8px; font-size:11px; color:#92400e; cursor:' + (s ? 'pointer' : 'default') + ';">' +
+        'style="background:#fef3c7; border:1px dashed #f59e0b; border-radius:6px; padding:6px 8px; font-size:11px; color:#92400e;">' +
         '<div style="font-weight:600;">📞 Confirmar visita</div>' +
-        '<div>' + escape(v.name || v.id) + ' — ' + escape(U.formatDateES(c.fechaVisita).replace(/ \d{4}$/, '')) + escape(hora) + '</div>' +
+        '<div' + (s ? ' style="cursor:pointer;" onclick="showView(\'detail\', {studioId: \'' + escape(String(v.id)) + '\'})"' : '') + '>' + escape(v.name || v.id) + ' — ' + escape(U.formatDateES(c.fechaVisita).replace(/ \d{4}$/, '')) + escape(hora) + '</div>' +
         (tel ? '<div style="font-family:var(--font-mono);">' + escape(tel) + '</div>' : '') +
+        '<button class="btn btn-ghost" style="margin-top:4px; font-size:11px; padding:2px 8px; border-color:#f59e0b; color:#92400e;" ' +
+          'onclick="event.stopPropagation(); window.Screens.planificador.llamadaHecha(\'' + escape(c.fechaVisita) + '\', \'' + escape(String(v.id)) + '\', \'' + escape(v.name || '') + '\')">✓ Llamada hecha</button>' +
       '</div>'
     );
+  }
+  /* Marca la llamada de confirmación como hecha: en la copia local (por si hay
+     cambios sin guardar) y en el schedule guardado (Data.marcarLlamadaConfirmada). */
+  async function llamadaHecha(fechaVisita, visitaId, nombre) {
+    const hoy = U.toISOLocal(new Date());
+    (Local.schedule[fechaVisita] || []).forEach(function (v) {
+      if (v && String(v.id) === visitaId && (!nombre || v.name === nombre)) v.data = Object.assign({}, v.data || {}, { confirmada_el: hoy });
+    });
+    try {
+      await window.Data.marcarLlamadaConfirmada(fechaVisita, visitaId, nombre);
+      if (window.showNotification) window.showNotification('✓ Llamada de confirmación registrada', 'success');
+    } catch (e) {
+      if (window.showNotification) window.showNotification('No se pudo registrar la llamada: ' + (e.message || e), 'error');
+    }
+    render();
   }
 
   /* ============================================================
@@ -1127,7 +1145,7 @@
      ============================================================ */
   async function subirCalendario() {
     const schedule = Local.schedule || {};
-    const hoyISO = new Date().toISOString().slice(0, 10);
+    const hoyISO = U.toISOLocal(new Date());
     const days = Object.keys(schedule).filter(function (d) {
       return d >= hoyISO && (schedule[d] || []).some(function (s) { return !s.reserva; });
     }).sort();
@@ -1775,6 +1793,7 @@
 
   window.Screens.planificador = {
     render: render,
+    llamadaHecha: llamadaHecha,
     cambiarSemana: cambiarSemana,
     irHoy: irHoy,
     addVisita: addVisita,

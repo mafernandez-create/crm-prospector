@@ -40,10 +40,16 @@
     const motivos = window.Data.MOTIVOS_NO_REALIZADA;
     const filas = c.filas.map(function (f) {
       const ok = !!f.informe;
-      const sel = '<select data-vid="' + f.id + '" class="cs-motivo" style="font:inherit; padding:3px 6px; border:1px solid var(--border-1); border-radius:4px;">' +
+      const volver = window.Data.debeVolverAPlanificar(f.motivo, f.volver);
+      const sel = '<select data-vid="' + f.id + '" class="cs-motivo" onchange="window.Screens.cierreSemana.motivoCambiado(this)" style="font:inherit; padding:3px 6px; border:1px solid var(--border-1); border-radius:4px;">' +
         '<option value="">— motivo —</option>' +
         Object.keys(motivos).map(function (k) { return '<option value="' + k + '"' + (f.motivo === k ? ' selected' : '') + '>' + escape(motivos[k]) + '</option>'; }).join('') +
-        '</select> <input data-vid="' + f.id + '" class="cs-nota" placeholder="detalle (quién, cuándo…)" value="' + escape(f.nota || '') + '" style="font:inherit; padding:3px 6px; border:1px solid var(--border-1); border-radius:4px; width:220px;">';
+        '<option value="__anulada">anular: no formó parte de la ruta</option>' +
+        '</select> <input data-vid="' + f.id + '" class="cs-nota" placeholder="detalle (quién, cuándo…)" value="' + escape(f.nota || '') + '" style="font:inherit; padding:3px 6px; border:1px solid var(--border-1); border-radius:4px; width:220px;">' +
+        (f.studio_id
+          ? ' <label title="Crea en la ficha una tarea «pendiente de visitar» que sale en la bandeja y en «Pendiente en la zona» hasta que la vuelvas a planificar" style="font-size:12px; white-space:nowrap; cursor:pointer;">' +
+              '<input type="checkbox" data-vid="' + f.id + '" class="cs-volver"' + (volver ? ' checked' : '') + (f.motivo ? '' : ' disabled') + '> volver a planificar</label>'
+          : '');
       return '<tr>' +
         '<td style="white-space:nowrap;">' + escape(f.fecha) + '</td>' +
         '<td>' + (f.studio_id ? '<a href="#" onclick="event.preventDefault(); window.showView(\'detail\', {studioId: \'' + escape(f.studio_id) + '\'})">' + escape(f.empresa) + '</a>' : escape(f.empresa)) + '</td>' +
@@ -58,7 +64,7 @@
       '</div>';
     const faltan = cf.no_realizadas;
     const aviso = faltan
-      ? '<p style="margin:0 0 8px; font-size:13px; color:#922B21;">Faltan ' + faltan + ' informe' + (faltan === 1 ? '' : 's') + ': indica el motivo de cada visita no realizada (irá al resumen y al correo a Javier) o redáctalo si la visita se hizo. Con «reprogramada», «no pudieron recibirme» o «la canceló el cliente» la empresa queda como <strong>pendiente de visitar</strong> en su ficha y en «Pendiente en la zona» hasta que la vuelvas a planificar.</p>'
+      ? '<p style="margin:0 0 8px; font-size:13px; color:#922B21;">Faltan ' + faltan + ' informe' + (faltan === 1 ? '' : 's') + ': indica el motivo de cada visita no realizada (irá al resumen y al correo a Javier) o redáctalo si la visita se hizo. Marca <strong>volver a planificar</strong> si hay que repetirla (se propone sola con «reprogramada», «no pudieron recibirme» y «la canceló el cliente»): la empresa queda como pendiente de visitar en su ficha y en «Pendiente en la zona» hasta que la vuelvas a planificar. Si la visita nunca formó parte de la ruta, elige «anular».</p>'
       : '<p style="margin:0 0 8px; font-size:13px; color:#145A32;">Todas las visitas planificadas tienen informe.</p>';
     const res = Local.resultado ? _htmlResultado() : '';
     return (
@@ -113,22 +119,44 @@
   }
   function cerrar() { const h = document.getElementById('cierre-semana-host'); if (h) h.remove(); }
 
+  // Al cambiar el motivo, la casilla «volver a planificar» se propone según el motivo.
+  function motivoCambiado(sel) {
+    const cb = document.querySelector('#cierre-semana-host .cs-volver[data-vid="' + sel.getAttribute('data-vid') + '"]');
+    if (!cb) return;
+    const motivo = sel.value === '__anulada' ? null : sel.value;
+    cb.disabled = !motivo;
+    cb.checked = window.Data.debeVolverAPlanificar(motivo, null);
+  }
   async function guardarMotivos(silencioso) {
     const sels = document.querySelectorAll('#cierre-semana-host .cs-motivo');
-    let n = 0;
+    let n = 0, pendientes = 0, fallos = [];
     for (const sel of sels) {
       const vid = sel.getAttribute('data-vid');
       const nota = (document.querySelector('#cierre-semana-host .cs-nota[data-vid="' + vid + '"]') || {}).value || '';
+      const cb = document.querySelector('#cierre-semana-host .cs-volver[data-vid="' + vid + '"]');
       const fila = Local.conc.filas.find(function (f) { return String(f.id) === String(vid); });
       if (!fila) continue;
-      if ((fila.motivo || '') === (sel.value || '') && (fila.nota || '') === nota) continue;
-      await window.Data.guardarMotivoVisita(vid, sel.value || null, nota || null, sel.value ? 'planificada' : null);
-      fila.motivo = sel.value || null; fila.nota = nota || null; n++;
+      const anular = sel.value === '__anulada';
+      const motivo = anular ? null : (sel.value || null);
+      const volver = cb && motivo ? cb.checked : null;
+      const estado = anular ? 'anulada' : (motivo ? 'planificada' : null);
+      if (!anular && (fila.motivo || '') === (motivo || '') && (fila.nota || '') === nota && fila.volver === volver) continue;
+      const res = await window.Data.guardarMotivoVisita(vid, motivo, nota || null, estado, volver);
+      if (!res.row) { fallos.push(fila.empresa); continue; }
+      fila.motivo = motivo; fila.nota = nota || null; fila.volver = volver; fila.estado = estado || fila.estado; n++;
+      if (res.sync === 'creada' || res.sync === 'actualizada' || res.sync === 'ya-abierta') pendientes++;
     }
-    const pendientes = Local.conc.filas.filter(function (f) { return !f.informe && f.studio_id && window.Data.MOTIVOS_PENDIENTE_VISITA.indexOf(f.motivo) >= 0; }).length;
-    if (!silencioso && window.showNotification) window.showNotification(n
-      ? '✓ ' + n + ' motivo' + (n === 1 ? '' : 's') + ' guardado' + (n === 1 ? '' : 's') + (pendientes ? ' · ' + pendientes + ' pendiente' + (pendientes === 1 ? '' : 's') + ' de visitar en bandeja' : '')
-      : 'Sin cambios', n ? 'success' : 'info');
+    // Si alguna empresa ya está replanificada en el planificador, su deuda se cierra ahora (no en el próximo guardado).
+    try { await window.Data.cerrarPendientesVisitaPlanificadas((window.State.planificador || {}).schedule || {}); } catch (e) { console.warn('[cierre] ' + (e && e.message)); }
+    if (!silencioso && window.showNotification) {
+      if (fallos.length) window.showNotification('⚠️ No se pudo guardar el motivo de: ' + fallos.join(', '), 'warning');
+      else window.showNotification(n
+        ? '✓ ' + n + ' motivo' + (n === 1 ? '' : 's') + ' guardado' + (n === 1 ? '' : 's') + (pendientes ? ' · ' + pendientes + ' pendiente' + (pendientes === 1 ? '' : 's') + ' de visitar en bandeja' : '')
+        : 'Sin cambios', n ? 'success' : 'info');
+    }
+    // Reconciliar tras guardar: las anuladas salen de la lista y las cifras se recalculan.
+    if (n && !silencioso) { Local.conc = await window.Data.conciliarSemana(Local.semana); _renderModal(_htmlConciliacion()); }
+    else if (n) Local.conc.filas = Local.conc.filas.filter(function (f) { return f.estado !== 'anulada'; });
     return n;
   }
 
@@ -242,5 +270,5 @@
   }
 
   window.Screens = window.Screens || {};
-  window.Screens.cierreSemana = { abrir: abrir, cerrar: cerrar, guardarMotivos: guardarMotivos, generar: generar, copiarCorreo: copiarCorreo, descargarWord: descargarWord, _buildDocxBody: body };
+  window.Screens.cierreSemana = { abrir: abrir, cerrar: cerrar, guardarMotivos: guardarMotivos, motivoCambiado: motivoCambiado, generar: generar, copiarCorreo: copiarCorreo, descargarWord: descargarWord, _buildDocxBody: body };
 })();

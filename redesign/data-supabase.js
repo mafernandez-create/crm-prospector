@@ -312,6 +312,16 @@
       '&estado=neq.anulada&select=*&order=fecha.asc,id.asc');
     return r.json();
   }
+  /* Visitas no anuladas de unos estudios entre dos fechas (exclusiva la primera):
+     el cierre de semana las usa para no asignar a una visita el informe de la
+     siguiente del mismo estudio. */
+  async function listVisitasPosteriores(desdeExclusivoISO, hastaISO, studioIds) {
+    if (!studioIds || !studioIds.length) return [];
+    const inList = studioIds.map(function (id) { return '"' + String(id).replace(/"/g, '') + '"'; }).join(',');
+    const r = await sbFetch('/visitas?fecha=gt.' + desdeExclusivoISO + '&fecha=lte.' + hastaISO +
+      '&estado=neq.anulada&studio_id=in.(' + inList + ')&select=id,studio_id,fecha,estado&order=fecha.asc');
+    return r.json();
+  }
   async function updateVisita(id, patch) {
     const r = await sbFetch('/visitas?id=eq.' + encodeURIComponent(id), {
       method: 'PATCH',
@@ -496,6 +506,7 @@
     flagReportAudit: flagReportAudit,
     listVisitasSemana: listVisitasSemana,
     updateVisita: updateVisita,
+    listVisitasPosteriores: listVisitasPosteriores,
     getResumenSemanal: getResumenSemanal,
     saveResumenSemanal: saveResumenSemanal,
     // Helpers para tests / debugging

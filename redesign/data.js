@@ -1862,9 +1862,15 @@
   /* Busca el informe de una visita en la ficha: el primero fechado entre
      (fecha − 3 días) y (fecha + 21 días). Misma tolerancia que la vista SQL
      `visitas_sin_informe`. */
-  function _informeDeVisita(studio, fechaISO) {
+  function _informeDeVisita(studio, fechaISO, hastaMax) {
     const reports = (studio && studio.data && studio.data.reports) || [];
-    const desde = _addDaysISO(fechaISO, -3), hasta = _addDaysISO(fechaISO, 21);
+    const desde = _addDaysISO(fechaISO, -3);
+    let hasta = _addDaysISO(fechaISO, 21);
+    // Si hay otra visita del mismo estudio antes de +21 días, el informe de esa
+    // visita no puede contarse para esta (si no, una visita reprogramada
+    // contaría como realizada dos veces o nunca, según el día del cierre).
+    if (hastaMax && hastaMax < hasta) hasta = hastaMax;
+    if (hasta < fechaISO) return null;
     let best = null, bestIdx = -1;
     reports.forEach(function (r, idx) {
       const d = String(r.iso_date || r.date || '').slice(0, 10);
@@ -1895,16 +1901,37 @@
     if (r.proxima_accion) L.push('| ' + (r.fecha_proxima_visita || 'próximo paso') + ' | ' + String(r.proxima_accion).slice(0, 300) + ' | Manolo |');
     return L.join('\n');
   }
+  /* Fecha de la siguiente visita (no anulada) de cada estudio después de cada
+     fila: dentro de la propia semana o en las 3 semanas siguientes. */
+  async function _siguienteVisitaPorFila(visitas, domingoISO) {
+    const ids = Array.from(new Set(visitas.map(function (v) { return v.studio_id; }).filter(Boolean)));
+    let posteriores = [];
+    if (ids.length) {
+      try { posteriores = await window.DataSupabase.listVisitasPosteriores(domingoISO, _addDaysISO(domingoISO, 21), ids); }
+      catch (e) { console.warn('[cierre] no se pudieron leer las visitas posteriores:', e && e.message); }
+    }
+    const todas = visitas.concat(posteriores || []);
+    const out = {};
+    visitas.forEach(function (v) {
+      if (!v.studio_id) return;
+      const sig = todas.filter(function (w) { return w.studio_id === v.studio_id && w.fecha > v.fecha && w.estado !== 'anulada'; })
+        .map(function (w) { return w.fecha; }).sort()[0];
+      if (sig) out[v.id] = _addDaysISO(sig, -1);
+    });
+    return out;
+  }
   async function conciliarSemana(lunesISO) {
     const domingoISO = _addDaysISO(lunesISO, 6);
     const visitas = await window.DataSupabase.listVisitasSemana(lunesISO, domingoISO);
     const byId = (window.State && window.State.studiosById) || {};
+    const hastaPorFila = await _siguienteVisitaPorFila(visitas, domingoISO);
     const filas = visitas.map(function (v) {
       const studio = v.studio_id ? byId[v.studio_id] : null;
-      const inf = studio ? _informeDeVisita(studio, v.fecha) : null;
+      const inf = studio ? _informeDeVisita(studio, v.fecha, hastaPorFila[v.id]) : null;
       return {
         id: v.id, fecha: v.fecha, empresa: v.empresa, studio_id: v.studio_id || null,
         estado: v.estado, origen: v.origen, ruta: v.ruta || null, motivo: v.motivo_no_realizada || null, nota: v.nota || null,
+        volver: v.volver_a_planificar == null ? null : !!v.volver_a_planificar,
         informe: inf ? { idx: inf.idx, date: inf.date, tipo: inf.tipo } : null,
         _markdown: inf ? inf.markdown : null,
       };
@@ -1922,91 +1949,175 @@
     };
     return { semana: lunesISO, domingo: domingoISO, num_semana: _numSemana(lunesISO), fecha_limite: _addDaysISO(lunesISO, 8), filas: filas, cifras: cifras };
   }
-  async function guardarMotivoVisita(visitaId, motivo, nota, estado) {
-    const patch = { motivo_no_realizada: motivo || null, nota: nota || null };
+  /* Guarda el motivo de una visita no realizada y sincroniza la deuda de visita.
+     `volver` (true/false/null) es la casilla «volver a planificar» del cierre;
+     null = criterio por defecto según el motivo. Devuelve { row, sync }:
+     row = fila de `visitas` actualizada (null si RLS/red no devolvieron nada),
+     sync = resultado de sincronizarPendienteVisita. */
+  async function guardarMotivoVisita(visitaId, motivo, nota, estado, volver) {
+    const patch = { motivo_no_realizada: motivo || null, nota: nota || null, volver_a_planificar: volver == null ? null : !!volver };
     if (estado) patch.estado = estado;
     const row = await window.DataSupabase.updateVisita(visitaId, patch);
-    // La deuda de visita se refleja en la ficha (bandeja) sin bloquear el guardado del motivo.
-    try { await sincronizarPendienteVisita(row || { id: visitaId }, motivo || null, nota || null); }
-    catch (e) { console.warn('[visitas] no se pudo sincronizar la tarea «pendiente de visitar»:', e && e.message); }
-    return row;
+    let sync = null;
+    if (row) {
+      // La deuda de visita se refleja en la ficha (bandeja) sin bloquear el guardado del motivo.
+      try { sync = await sincronizarPendienteVisita(row, motivo || null, nota || null, volver); }
+      catch (e) { sync = 'error'; console.warn('[visitas] no se pudo sincronizar la tarea «pendiente de visitar»:', e && e.message); }
+    }
+    return { row: row, sync: sync };
   }
 
   /* ---- Pendiente de visitar: la visita no realizada vuelve a la bandeja ----
-     Con motivo reprogramada / no-recibieron / cancelada-cliente queda una deuda
-     de visita. Se crea en la ficha una actividad bandeja:true (tipo reunion,
-     marcada pendiente_visita) para que aparezca en «Pendiente en la zona» del
+     Cuando una visita no realizada debe repetirse (casilla «volver a planificar»
+     del cierre; por defecto con reprogramada / no-recibieron / cancelada-cliente)
+     se crea en la ficha una actividad bandeja:true (tipo reunion, marcada
+     pendiente_visita) para que aparezca en «Pendiente en la zona» del
      planificador, en la bandeja y en el briefing del agente pendientes-zona.
-     Se cierra sola al volver a planificar la empresa en una fecha posterior
-     (cerrarPendientesVisitaPlanificadas, desde savePlanificador) o al quitar
-     el motivo. `sustituida` y `otro` no generan deuda. Una sola abierta por ficha. */
+     Se cierra sola al volver a planificar la empresa en una fecha posterior y
+     no pasada (cerrarPendientesVisitaPlanificadas, desde savePlanificador y
+     desde el propio cierre) o al quitar el motivo / anular la visita.
+     Una sola abierta por ficha: una segunda visita fallida la reutiliza y
+     adelanta su fecha. No se crea deuda de visitas de hace más de 60 días
+     (justificar semanas viejas no debe inundar la bandeja) ni si el
+     planificador ya la tiene replanificada. */
   const MOTIVOS_PENDIENTE_VISITA = ['reprogramada', 'no-recibieron', 'cancelada-cliente'];
+  const PENDIENTE_VISITA_MAX_DIAS = 60;
+  function debeVolverAPlanificar(motivo, volver) {
+    if (!motivo) return false;
+    if (volver === true || volver === false) return volver;
+    return MOTIVOS_PENDIENTE_VISITA.indexOf(motivo) >= 0;
+  }
   function _esPendienteVisitaAbierta(a) { return !!(a && a.pendiente_visita && a.bandeja && !a.completada); }
-  async function _patchActividades(studioId, raw, acts) {
-    const curData = Object.assign({}, raw.data || {}, { activities: acts });
-    await _routePatchDoc('studios/' + studioId, { data: curData });
-    raw.data = curData;
-    if (window.State && window.State.studiosById) window.State.studiosById[studioId] = raw;
-    if (window.AccionesEngine && window.AccionesEngine.invalidarCache) window.AccionesEngine.invalidarCache();
-  }
-  async function sincronizarPendienteVisita(visita, motivo, nota) {
-    const studioId = visita && visita.studio_id ? String(visita.studio_id) : null;
-    const raw = studioId && window.State && window.State.studiosById ? window.State.studiosById[studioId] : null;
-    if (!raw) return null;
-    const acts = (raw.data && Array.isArray(raw.data.activities) ? raw.data.activities : []).slice();
-    const debe = MOTIVOS_PENDIENTE_VISITA.indexOf(motivo) >= 0;
-    if (debe) {
-      if (acts.some(_esPendienteVisitaAbierta)) return 'ya-abierta';
-      const fecha = String(visita.fecha || '').slice(0, 10);
-      acts.push({
-        type: 'tarea', date: new Date().toISOString().slice(0, 10),
-        title: '🔁 Pendiente de visitar — ' + MOTIVOS_NO_REALIZADA[motivo] + (fecha ? ' el ' + _fechaLarga(fecha) : ''),
-        notes: nota || '',
-        bandeja: true, completada: false, tipo_accion: 'reunion',
-        fecha_limite: null, plazo: 'próxima ruta por la zona',
-        bandeja_id: 'pv' + visita.id, studioId: studioId,
-        pendiente_visita: true, visita_id: visita.id, visita_fecha: fecha || null,
-      });
-      await _patchActividades(studioId, raw, acts);
-      return 'creada';
-    }
-    // Sin motivo (o sustituida/otro): se cierra solo la tarea que nació de ESTA visita.
-    let n = 0;
-    acts.forEach(function (a, i) {
-      if (_esPendienteVisitaAbierta(a) && String(a.visita_id) === String(visita.id)) { acts[i] = Object.assign({}, a, { completada: true }); n++; }
-    });
-    if (!n) return null;
-    await _patchActividades(studioId, raw, acts);
-    return 'cerrada';
-  }
-  /* Cierra las tareas «pendiente de visitar» de los estudios que el schedule
-     vuelve a planificar en una fecha posterior a la visita fallida. */
-  async function cerrarPendientesVisitaPlanificadas(schedule) {
-    if (!window.State || !window.State.studiosById) return 0;
-    const ultimaFecha = {};
+  function _hoyISO() { return (window.Util && window.Util.toISOLocal) ? window.Util.toISOLocal(new Date()) : new Date().toISOString().slice(0, 10); }
+  /* Última fecha en que el schedule planifica cada estudio (sin reservas). */
+  function _ultimaFechaPlanificada(schedule) {
+    const out = {};
     Object.keys(schedule || {}).forEach(function (fecha) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha) || !Array.isArray(schedule[fecha])) return;
       schedule[fecha].forEach(function (v) {
         if (!v || v.reserva === true || !v.id) return;
         const id = String(v.id);
-        if (!ultimaFecha[id] || fecha > ultimaFecha[id]) ultimaFecha[id] = fecha;
+        if (!out[id] || fecha > out[id]) out[id] = fecha;
       });
     });
+    return out;
+  }
+  /* Modifica las actividades de una ficha leyendo primero la copia FRESCA de
+     Supabase (no el State, que puede tener hasta 1 h): así un guardado del
+     planificador en el móvil no pisa un informe recién escrito en el Mac.
+     `mutar(acts)` devuelve el array nuevo o null si no hay nada que cambiar.
+     Invalida la caché local de cartera para que la recarga no resucite la
+     copia vieja (y una edición posterior de la ficha no borre la tarea). */
+  async function _patchActividades(studioId, mutar) {
+    let raw = null;
+    try { raw = await _routeGetDoc('studios/' + studioId); } catch (e) { console.warn('[visitas] no se pudo leer la ficha fresca ' + studioId + ':', e && e.message); }
+    if (!raw) raw = window.State && window.State.studiosById ? window.State.studiosById[studioId] : null;
+    if (!raw) return null;
+    const acts = mutar((raw.data && Array.isArray(raw.data.activities) ? raw.data.activities : []).slice());
+    if (!acts) return null;
+    const curData = Object.assign({}, raw.data || {}, { activities: acts });
+    await _routePatchDoc('studios/' + studioId, { data: curData });
+    raw.data = curData;
+    if (window.State && window.State.studiosById) window.State.studiosById[studioId] = raw;
+    try { localStorage.removeItem(CACHE_KEY); } catch (_) {}
+    if (window.AccionesEngine && window.AccionesEngine.invalidarCache) window.AccionesEngine.invalidarCache();
+    return acts;
+  }
+  async function sincronizarPendienteVisita(visita, motivo, nota, volver) {
+    const studioId = visita && visita.studio_id ? String(visita.studio_id) : null;
+    if (!studioId) return null;
+    const fecha = String(visita.fecha || '').slice(0, 10);
+    const debe = debeVolverAPlanificar(motivo, volver);
+    if (debe) {
+      const hoy = _hoyISO();
+      if (fecha && (new Date(hoy) - new Date(fecha)) / 86400000 > PENDIENTE_VISITA_MAX_DIAS) return 'antigua';
+      const sched = window.State && window.State.planificador && window.State.planificador.schedule;
+      const ultima = _ultimaFechaPlanificada(sched)[studioId];
+      if (ultima && fecha && ultima > fecha && ultima >= hoy) return 'ya-replanificada';
+      let resultado = null;
+      const acts = await _patchActividades(studioId, function (acts) {
+        const i = acts.findIndex(_esPendienteVisitaAbierta);
+        if (i >= 0) {
+          // Ya hay deuda: la segunda visita fallida la reutiliza, adelantando la
+          // fecha de referencia (si no, un guardado del planificador la cerraría
+          // por la visita fallida más reciente) y actualizando la nota.
+          const a = acts[i];
+          const masReciente = fecha && (!a.visita_fecha || fecha > a.visita_fecha);
+          const cambiaNota = String(a.visita_id) === String(visita.id) && (a.notes || '') !== (nota || '');
+          if (!masReciente && !cambiaNota) { resultado = 'ya-abierta'; return null; }
+          acts[i] = Object.assign({}, a, masReciente
+            ? { visita_id: visita.id, visita_fecha: fecha, notes: nota || '', title: _tituloPendienteVisita(motivo, fecha), motivo: motivo }
+            : { notes: nota || '' });
+          resultado = 'actualizada';
+          return acts;
+        }
+        acts.push({
+          type: 'tarea', date: hoy,
+          title: _tituloPendienteVisita(motivo, fecha),
+          notes: nota || '',
+          bandeja: true, completada: false, tipo_accion: 'reunion',
+          fecha_limite: null, plazo: 'próxima ruta por la zona',
+          bandeja_id: 'pv' + visita.id, studioId: studioId,
+          pendiente_visita: true, visita_id: visita.id, visita_fecha: fecha || null, motivo: motivo,
+        });
+        resultado = 'creada';
+        return acts;
+      });
+      return resultado;
+    }
+    // Sin deuda (motivo quitado, anulada, sustituida/otro o casilla desmarcada):
+    // se cierra solo la tarea que nació de ESTA visita.
+    let n = 0;
+    await _patchActividades(studioId, function (acts) {
+      acts.forEach(function (a, i) {
+        if (_esPendienteVisitaAbierta(a) && String(a.visita_id) === String(visita.id)) { acts[i] = Object.assign({}, a, { completada: true }); n++; }
+      });
+      return n ? acts : null;
+    });
+    return n ? 'cerrada' : null;
+  }
+  function _tituloPendienteVisita(motivo, fecha) {
+    return '🔁 Pendiente de visitar — ' + (MOTIVOS_NO_REALIZADA[motivo] || MOTIVOS_NO_REALIZADA.otro) + (fecha ? ' el ' + _fechaLarga(fecha) : '');
+  }
+  /* Cierra las tareas «pendiente de visitar» de los estudios que el schedule
+     vuelve a planificar en una fecha posterior a la visita fallida y no pasada
+     (una visita ya pasada no demuestra que se hiciera: si falló, el cierre de
+     semana creará su propia deuda). */
+  async function cerrarPendientesVisitaPlanificadas(schedule) {
+    if (!window.State || !window.State.studiosById) return 0;
+    const hoy = _hoyISO();
+    const ultimaFecha = _ultimaFechaPlanificada(schedule);
     let total = 0;
     for (const studioId of Object.keys(ultimaFecha)) {
+      if (ultimaFecha[studioId] < hoy) continue;
       const raw = window.State.studiosById[studioId];
-      const acts = raw && raw.data && Array.isArray(raw.data.activities) ? raw.data.activities.slice() : null;
-      if (!acts) continue;
+      const abiertas = raw && raw.data && Array.isArray(raw.data.activities) ? raw.data.activities.filter(_esPendienteVisitaAbierta) : [];
+      // Filtro barato sobre el State para no leer de Supabase fichas sin deuda.
+      if (!abiertas.some(function (a) { return !a.visita_fecha || ultimaFecha[studioId] > a.visita_fecha; })) continue;
       let n = 0;
-      acts.forEach(function (a, i) {
-        if (_esPendienteVisitaAbierta(a) && (!a.visita_fecha || ultimaFecha[studioId] > a.visita_fecha)) { acts[i] = Object.assign({}, a, { completada: true }); n++; }
+      await _patchActividades(studioId, function (acts) {
+        acts.forEach(function (a, i) {
+          if (_esPendienteVisitaAbierta(a) && (!a.visita_fecha || ultimaFecha[studioId] > a.visita_fecha)) { acts[i] = Object.assign({}, a, { completada: true }); n++; }
+        });
+        return n ? acts : null;
       });
-      if (!n) continue;
-      await _patchActividades(studioId, raw, acts);
       total += n;
     }
     if (total) console.info('[visitas] ' + total + ' tarea(s) «pendiente de visitar» cerradas al replanificar');
     return total;
+  }
+  /* ---- Llamada de confirmación hecha (K5) ----
+     Marca en el schedule guardado que la llamada previa a la visita ya se hizo
+     (data.confirmada_el) para que deje de salir en Hoy y en la columna del día. */
+  async function marcarLlamadaConfirmada(fechaVisita, visitaId, nombre) {
+    const plan = (window.State && window.State.planificador) || {};
+    const dia = plan.schedule && plan.schedule[fechaVisita];
+    if (!Array.isArray(dia)) return null;
+    const v = dia.find(function (x) { return x && String(x.id) === String(visitaId) && (!nombre || x.name === nombre); });
+    if (!v) return null;
+    v.data = Object.assign({}, v.data || {}, { confirmada_el: _hoyISO() });
+    await savePlanificador(plan.schedule);
+    return v;
   }
   function _motivoTexto(f) {
     const base = MOTIVOS_NO_REALIZADA[f.motivo] || MOTIVOS_NO_REALIZADA.otro;
@@ -2106,9 +2217,23 @@
 
   /* Guarda _meta/planificador con el schedule pasado. Reemplaza el documento
      entero porque planificador se trata como una unidad atómica. */
+  /* Mantiene el planificador de la caché local al día tras guardarlo: si no,
+     recargar dentro de la hora de caché mostraba el schedule anterior y el
+     siguiente «Guardar cambios» pisaba lo guardado (C9, revisión 18-sep-2026). */
+  function _updateCachePlanificador(planificador) {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return;
+      const obj = JSON.parse(raw);
+      if (!obj || !Array.isArray(obj.studios)) return;
+      obj.planificador = planificador || null;
+      localStorage.setItem(CACHE_KEY, JSON.stringify(obj));
+    } catch (_) {}
+  }
   async function savePlanificador(schedule) {
     const out = await _patchDocActive('_meta/planificador', { schedule: schedule || {} });
     if (window.State) window.State.planificador = out;
+    _updateCachePlanificador(out);
     // Segundo plano: si falla, el guardado del planificador no debe fallar con ello.
     cerrarPendientesVisitaPlanificadas(schedule || {}).catch(function (e) {
       console.warn('[visitas] no se pudieron cerrar las tareas «pendiente de visitar»:', e && e.message);
@@ -2280,6 +2405,8 @@
     guardarMotivoVisita: guardarMotivoVisita,
     sincronizarPendienteVisita: sincronizarPendienteVisita,
     cerrarPendientesVisitaPlanificadas: cerrarPendientesVisitaPlanificadas,
+    debeVolverAPlanificar: debeVolverAPlanificar,
+    marcarLlamadaConfirmada: marcarLlamadaConfirmada,
     MOTIVOS_PENDIENTE_VISITA: MOTIVOS_PENDIENTE_VISITA,
     generateWeeklySummary: generateWeeklySummary,
     redactarCorreoJavier: redactarCorreoJavier,

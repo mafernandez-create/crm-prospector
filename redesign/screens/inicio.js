@@ -40,7 +40,7 @@
   /* Todas las visitas programadas para HOY */
   function computeVisitasHoy() {
     if (!State.planificador || !State.planificador.schedule) return [];
-    const hoyISO = State.today.toISOString().slice(0, 10);
+    const hoyISO = U.toISOLocal(State.today);
     // Excluir pernoctas/alojamientos (reserva:true): no son visitas ni enlazan
     // a una ficha de estudio. Igual que hace el planificador con !s.reserva.
     const arr = (State.planificador.schedule[hoyISO] || []).filter(function (v) { return !v.reserva; });
@@ -69,7 +69,7 @@
   function computeProximaVisita() {
     if (!State.planificador || !State.planificador.schedule) return null;
     const sched = State.planificador.schedule || {};
-    const hoyISO = State.today.toISOString().slice(0, 10);
+    const hoyISO = U.toISOLocal(State.today);
     const ahora = State.today.getHours() * 60 + State.today.getMinutes();
 
     // 1. Buscar próxima visita de HOY que no haya pasado aún (sin pernoctas)
@@ -124,7 +124,7 @@
   function computeConfirmaciones() {
     const sched = State.planificador && State.planificador.schedule;
     if (!sched) return [];
-    const hoyISO = State.today.toISOString().slice(0, 10);
+    const hoyISO = U.toISOLocal(State.today);
     return U.confirmacionesDeSchedule(sched, hoyISO)
       .filter(function (c) { return c.fechaLlamada <= hoyISO; })
       .map(function (c) {
@@ -133,12 +133,12 @@
         const contact = (studio && studio.data && studio.data.contact) || {};
         const hora = (v.data && v.data.hora) ? ' · ' + v.data.hora : '';
         return {
-          studioId: v.id,
+          studioId: studio ? v.id : null,   // una visita manual (sin ficha) no abre una ficha vacía
           empresa: v.name || (studio && studio.name) || ('Estudio ' + v.id),
           tarea: '📞 Confirmar la visita del ' + U.formatDateES(c.fechaVisita).replace(/ \d{4}$/, '') + hora + ' (lo pidió el cliente)',
           atrasada: c.fechaLlamada < hoyISO,
           hora: U.readField(contact.phone) || '',
-          confirmacion: true,
+          confirmacion: { fechaVisita: c.fechaVisita, visitaId: String(v.id), nombre: v.name || '' },
         };
       });
   }
@@ -455,9 +455,14 @@
     }
     const cards = tareas.map(function (t) {
       const borderColor = t.atrasada ? 'var(--mute-red)' : t.confirmacion ? '#f59e0b' : 'var(--line)';
+      const c = t.confirmacion;
+      const btnHecha = c
+        ? '<button class="btn btn-ghost" style="font-size:12px; padding:4px 10px; border-color:#f59e0b; color:#92400e; white-space:nowrap;" ' +
+            'onclick="event.stopPropagation(); window.Screens.inicio.llamadaHecha(\'' + escape(c.fechaVisita) + '\', \'' + escape(c.visitaId) + '\', \'' + escape(c.nombre) + '\')">✓ Hecha</button>'
+        : '';
       return (
-        '<div class="card" style="padding:14px; display:flex; align-items:center; gap:12px; min-height:64px; border-left:3px solid ' + borderColor + '; cursor:pointer;" ' +
-        'data-action="open-detail" data-studio="' + escape(t.studioId) + '">' +
+        '<div class="card" style="padding:14px; display:flex; align-items:center; gap:12px; min-height:64px; border-left:3px solid ' + borderColor + '; cursor:' + (t.studioId ? 'pointer' : 'default') + ';" ' +
+        (t.studioId ? 'data-action="open-detail" data-studio="' + escape(t.studioId) + '"' : '') + '>' +
           '<div style="flex:1; min-width:0;">' +
             '<div style="font-weight:600; font-size:15px; color:var(--fg-1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' +
               escape(t.empresa) +
@@ -469,8 +474,9 @@
               '<span>' + escape(t.tarea) + '</span>' +
             '</div>' +
           '</div>' +
-          '<div style="font-size:12px; color:var(--fg-3); font-family:var(--font-mono);">' + escape(t.hora) + '</div>' +
-          '<span class="icon-sm" style="color:var(--fg-muted);">' + I.ChevronRight() + '</span>' +
+          '<div style="font-size:12px; color:var(--fg-3); font-family:var(--font-mono); max-width:34%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="' + escape(t.hora) + '">' + escape(t.hora) + '</div>' +
+          btnHecha +
+          (t.studioId ? '<span class="icon-sm" style="color:var(--fg-muted);">' + I.ChevronRight() + '</span>' : '') +
         '</div>'
       );
     }).join('');
@@ -566,5 +572,15 @@
      REGISTRO EN window.Screens
      ============================================================ */
   window.Screens = window.Screens || {};
-  window.Screens.inicio = { render: render };
+  /* Marca la llamada de confirmación como hecha y repinta (K5). */
+  async function llamadaHecha(fechaVisita, visitaId, nombre) {
+    try {
+      const v = await window.Data.marcarLlamadaConfirmada(fechaVisita, visitaId, nombre);
+      if (window.showNotification) window.showNotification(v ? '✓ Llamada de confirmación registrada' : 'No encontré esa visita en el planificador', v ? 'success' : 'warning');
+    } catch (e) {
+      if (window.showNotification) window.showNotification('No se pudo registrar la llamada: ' + (e.message || e), 'error');
+    }
+    render();
+  }
+  window.Screens.inicio = { render: render, llamadaHecha: llamadaHecha };
 })();

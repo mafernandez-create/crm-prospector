@@ -13,10 +13,10 @@ const A    = require('../_lib/assert');
 A.reset();
 
 const src = fs.readFileSync(path.resolve(__dirname, '..', '..', '..', 'redesign', 'app.js'), 'utf8');
-const ini = src.indexOf('function fechaConfirmacion(');
+const ini = src.indexOf('function toISOLocal(');
 const fin = src.indexOf('window.Util = {', ini);
 A.truthy(ini > 0 && fin > ini, 'app.js define fechaConfirmacion y confirmacionesDeSchedule antes de window.Util');
-const U = new Function(src.slice(ini, fin) + '\nreturn { fechaConfirmacion, confirmacionesDeSchedule };')();
+const U = new Function(src.slice(ini, fin) + '\nreturn { toISOLocal, fechaConfirmacion, confirmacionesDeSchedule };')();
 
 // ── Días laborables ───────────────────────────────────────────────────────
 // Referencia: 2026-09-24 es jueves; 2026-09-21 lunes; 2026-09-19 sábado.
@@ -47,9 +47,19 @@ const sched = {
 const out = U.confirmacionesDeSchedule(sched, '2026-09-18');
 A.eq(out.map(c => c.visita.name), ['CUPISA', 'González Soto S.A.'], 'solo las visitas futuras con confirmar_dias, sin reservas, ordenadas por fecha de llamada');
 A.eq(out[0].fechaLlamada, '2026-09-18', 'CUPISA (lunes 21, 1 día) se llama el viernes 18');
-A.eq(out[1], { fechaLlamada: '2026-09-22', fechaVisita: '2026-09-24', dias: 2, visita: sched['2026-09-24'][0] }, 'González Soto (jueves 24, 2 días) se llama el martes 22 y conserva la visita');
+A.eq(out[1], { fechaLlamada: '2026-09-22', fechaVisita: '2026-09-24', dias: 2, visita: sched['2026-09-24'][0], hecha: null }, 'González Soto (jueves 24, 2 días) se llama el martes 22 y conserva la visita');
 A.eq(U.confirmacionesDeSchedule(sched).length, 3, 'sin hoyISO no se filtra por fecha');
 A.eq(U.confirmacionesDeSchedule({}, '2026-09-18'), [], 'schedule vacío');
+
+// ── K5: la llamada hecha deja de recordarse ──────────────────────────────
+sched['2026-09-21'][0].data.confirmada_el = '2026-09-18';
+A.eq(U.confirmacionesDeSchedule(sched, '2026-09-18').map(c => c.visita.name), ['González Soto S.A.'], 'K5: una llamada marcada como hecha no vuelve a salir');
+A.eq(U.confirmacionesDeSchedule(sched, '2026-09-18', true).length, 2, 'salvo que se pidan también las hechas (llevan `hecha`)');
+A.eq(U.confirmacionesDeSchedule(sched, '2026-09-18', true)[0].hecha, '2026-09-18', 'con la fecha en que se hizo');
+
+// ── C6: fecha local, no UTC ─────────────────────────────────────────────
+A.eq(U.toISOLocal(new Date(2026, 8, 18, 0, 30)), '2026-09-18', 'C6: a las 00:30 locales sigue siendo el 18 (toISOString daría el 17 en Europe/Madrid)');
+A.eq(U.toISOLocal(new Date(2026, 0, 5, 23, 59)), '2026-01-05', 'cero a la izquierda en mes y día');
 
 const s = A.summary();
 console.log(JSON.stringify(s));
