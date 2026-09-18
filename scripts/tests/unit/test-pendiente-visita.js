@@ -18,7 +18,7 @@ const patches = [];
 const removed = [];
 global.localStorage = { getItem() { return null; }, setItem() {}, removeItem(k) { removed.push(k); } };
 global.window = {
-  State: { studiosById: {}, planificador: { schedule: {} } },
+  State: { studios: [], studiosById: {}, planificador: { schedule: {} } },
   DataSupabase: {
     getDoc: async function (p) { const id = p.split('/')[1]; return db[id] ? JSON.parse(JSON.stringify(db[id])) : null; },
     patchDoc: async function (p, obj) { const id = p.split('/')[1]; patches.push(id); db[id] = JSON.parse(JSON.stringify(Object.assign({}, db[id] || {}, obj))); return db[id]; },   // la BD no comparte objetos con el cliente
@@ -34,6 +34,8 @@ function ficha(id, activities) {
   const raw = { id: id, name: 'Estudio ' + id, data: { activities: activities || [] } };
   db[id] = JSON.parse(JSON.stringify(raw));
   global.window.State.studiosById[id] = raw;
+  const S = global.window.State.studios, i = S.findIndex(s => s.id === id);
+  if (i >= 0) S[i] = raw; else S.push(raw);   // array y mapa comparten objeto, como en loadAll
   return raw;
 }
 const abiertasDb = (id) => (db[id].data.activities || []).filter(a => a.pendiente_visita && !a.completada);
@@ -62,6 +64,9 @@ const abiertasState = (id) => (global.window.State.studiosById[id].data.activiti
   A.eq(t.date, '2026-09-18', 'la fecha de alta es la local de hoy (C6)');
   A.truthy(removed.includes('redesign:studios:cache:v1'), 'C1: invalida la caché local de cartera (si no, recargar la borraba de Supabase)');
   A.eq(abiertasState('3099').length, 1, 'el State queda alineado con la BD');
+  const enArray = global.window.State.studios.find(s => s.id === '3099');
+  A.truthy(enArray === global.window.State.studiosById['3099'], 'R1: State.studios y studiosById siguen compartiendo el mismo objeto');
+  A.eq((enArray.data.activities || []).filter(a => a.pendiente_visita && !a.completada).length, 1, 'R1: la bandeja y «Pendiente en la zona» (que leen State.studios) ven la tarea sin recargar');
 
   // ── C2: segunda visita fallida a la misma ficha reutiliza la tarea y adelanta la fecha ─
   const r2 = await D.sincronizarPendienteVisita({ id: 348, studio_id: '3099', fecha: '2026-09-02' }, 'reprogramada', 'segundo intento', null);
@@ -137,9 +142,25 @@ const abiertasState = (id) => (global.window.State.studiosById[id].data.activiti
   let res = await D.guardarMotivoVisita(500, 'no-recibieron', 'x', 'planificada', null);
   A.truthy(res.row && res.sync === 'creada', 'guardarMotivoVisita devuelve la fila y el resultado de la sincronía');
   A.eq(res.row.volver_a_planificar, null, 'la casilla en blanco se guarda como NULL (criterio por defecto)');
+  res = await D.guardarMotivoVisita(502, 'cancelada-cliente', 'x', 'planificada', false);
+  A.eq(res.row.volver_a_planificar, false, 'K3: la casilla desmarcada se persiste como false');
+  A.eq(res.sync, null, 'y con false no hay deuda aunque el motivo sea cancelada');
+  res = await D.guardarMotivoVisita(503, 'otro', 'x', 'planificada', true);
+  A.eq(res.row.volver_a_planificar, true, 'K3: la casilla marcada se persiste como true');
+  const antesC5 = patches.length;
   global.window.DataSupabase.updateVisita = async function () { return null; };   // RLS filtró: PATCH 200 con []
-  res = await D.guardarMotivoVisita(501, 'no-recibieron', 'x', 'planificada', null);
+  res = await D.guardarMotivoVisita(501, 'no-recibieron', 'x', 'planificada', true);
   A.eq(res, { row: null, sync: null }, 'C5: si Supabase no devuelve la fila, no se sincroniza nada y se sabe');
+  A.eq(patches.length, antesC5, 'C5: …y no se escribe en ninguna ficha');
+
+  // ── K5: marcar la llamada hecha escribe confirmada_el y guarda el planificador ─
+  global.window.DataSupabase.patchDoc = async function (p, obj) { patches.push(p); return obj; };
+  global.window.State.planificador = { schedule: { '2026-09-22': [{ id: '3122', name: 'Baza', data: { hora: '09:00', confirmar_dias: 2 } }, { id: '3122', name: 'Otra del mismo estudio', data: {} }] } };
+  const v = await D.marcarLlamadaConfirmada('2026-09-22', '3122', 'Baza');
+  A.eq(v && v.data.confirmada_el, '2026-09-18', 'K5: la visita queda con confirmada_el = hoy (local)');
+  A.eq(global.window.State.planificador.schedule['2026-09-22'][1].data.confirmada_el, undefined, 'K5: solo la visita indicada (mismo estudio, otro nombre, no)');
+  A.truthy(patches[patches.length - 1] === '_meta/planificador', 'K5: se guarda el planificador');
+  A.eq(await D.marcarLlamadaConfirmada('2026-09-23', '3122', 'Baza'), null, 'K5: visita inexistente → null sin escribir');
 
   // ── C9: guardar el planificador actualiza la caché local (si no, recargar mostraba el anterior) ─
   const cache = { savedAt: Date.now(), studios: [], planificador: { schedule: { '2026-09-01': [] } } };

@@ -61,6 +61,17 @@ A.eq(U.confirmacionesDeSchedule(sched, '2026-09-18', true)[0].hecha, '2026-09-18
 A.eq(U.toISOLocal(new Date(2026, 8, 18, 0, 30)), '2026-09-18', 'C6: a las 00:30 locales sigue siendo el 18 (toISOString daría el 17 en Europe/Madrid)');
 A.eq(U.toISOLocal(new Date(2026, 0, 5, 23, 59)), '2026-01-05', 'cero a la izquierda en mes y día');
 
+// ── C6 (gate de fuente): «hoy» nunca vuelve a calcularse en UTC en estos sitios ─
+const inicio = fs.readFileSync(path.resolve(__dirname, '..', '..', '..', 'redesign', 'screens', 'inicio.js'), 'utf8');
+const planif = fs.readFileSync(path.resolve(__dirname, '..', '..', '..', 'redesign', 'screens', 'planificador.js'), 'utf8');
+const data   = fs.readFileSync(path.resolve(__dirname, '..', '..', '..', 'redesign', 'data.js'), 'utf8');
+A.falsy(/State\.today\.toISOString\(\)\.slice\(0, 10\)/.test(inicio), 'C6: inicio.js no calcula «hoy» con toISOString (UTC)');
+A.truthy((inicio.match(/U\.toISOLocal\(State\.today\)/g) || []).length >= 3, 'C6: inicio.js usa U.toISOLocal(State.today) en visitas de hoy, próxima visita y confirmaciones');
+const subir = planif.slice(planif.indexOf('async function subirCalendario'), planif.indexOf('async function guardar()'));
+A.contains(subir, 'U.toISOLocal(new Date())', 'C6: subirCalendario define hoyISO en local');
+A.falsy(/new Date\(\)\.toISOString\(\)\.slice\(0, 10\)/.test(subir), 'C6: subirCalendario no usa toISOString para hoy');
+A.falsy(/function _addDaysISO[\s\S]{0,300}toISOString/.test(data), 'R2: _addDaysISO no pasa por UTC');
+
 const s = A.summary();
 console.log(JSON.stringify(s));
 process.exit(s.failed > 0 ? 1 : 0);

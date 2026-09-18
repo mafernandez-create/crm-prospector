@@ -147,8 +147,8 @@
     // Primero las llamadas de confirmación del día; después la heurística de
     // reactivación: studios con priority alta o score ≥8 cuya última actividad
     // sea hace >7 días (pero <30, para no abrumar)
-    const hace7 = new Date(State.today.getTime() - 7 * 24 * 3600 * 1000).toISOString().slice(0, 10);
-    const hace30 = new Date(State.today.getTime() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    const hace7 = U.toISOLocal(new Date(State.today.getTime() - 7 * 24 * 3600 * 1000));
+    const hace30 = U.toISOLocal(new Date(State.today.getTime() - 30 * 24 * 3600 * 1000));
     const out = computeConfirmaciones();
     const tope = out.length + 5;
     for (const s of State.studios) {
@@ -163,7 +163,7 @@
         studioId: s.id,
         empresa: s.name || s.id,
         tarea: 'Reactivar contacto',
-        atrasada: last < new Date(State.today.getTime() - 14 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+        atrasada: last < U.toISOLocal(new Date(State.today.getTime() - 14 * 24 * 3600 * 1000)),
         hora: U.formatDateES(last),
       });
     }
@@ -205,7 +205,7 @@
         tipo: 'Reunión',
         location: 'PI Cabeza Hermosa · Alcalá de Guadaíra',
         enMinutos: 47,
-        fecha: State.today.toISOString().slice(0, 10),
+        fecha: U.toISOLocal(State.today),
       },
       tareas: [
         { studioId: '2435', empresa: 'ARRAM Consultores',         tarea: 'Conexión LinkedIn',     atrasada: true,  hora: '12:00–14:00' },

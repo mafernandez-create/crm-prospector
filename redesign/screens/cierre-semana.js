@@ -130,6 +130,7 @@
   async function guardarMotivos(silencioso) {
     const sels = document.querySelectorAll('#cierre-semana-host .cs-motivo');
     let n = 0, pendientes = 0, fallos = [];
+    Local.fallosGuardado = fallos;
     for (const sel of sels) {
       const vid = sel.getAttribute('data-vid');
       const nota = (document.querySelector('#cierre-semana-host .cs-nota[data-vid="' + vid + '"]') || {}).value || '';
@@ -140,7 +141,8 @@
       const motivo = anular ? null : (sel.value || null);
       const volver = cb && motivo ? cb.checked : null;
       const estado = anular ? 'anulada' : (motivo ? 'planificada' : null);
-      if (!anular && (fila.motivo || '') === (motivo || '') && (fila.nota || '') === nota && fila.volver === volver) continue;
+      const volverEfectivoFila = motivo ? window.Data.debeVolverAPlanificar(fila.motivo, fila.volver) : null;
+      if (!anular && (fila.motivo || '') === (motivo || '') && (fila.nota || '') === nota && volverEfectivoFila === volver) continue;
       const res = await window.Data.guardarMotivoVisita(vid, motivo, nota || null, estado, volver);
       if (!res.row) { fallos.push(fila.empresa); continue; }
       fila.motivo = motivo; fila.nota = nota || null; fila.volver = volver; fila.estado = estado || fila.estado; n++;
@@ -163,6 +165,10 @@
   async function generar() {
     if (Local.generando) return;
     await guardarMotivos(true);
+    if (Local.fallosGuardado && Local.fallosGuardado.length) {
+      if (window.showNotification) window.showNotification('⚠️ No se pudo guardar el motivo de: ' + Local.fallosGuardado.join(', ') + '. Revísalo antes de generar.', 'warning');
+      return;
+    }
     const sinMotivo = Local.conc.filas.filter(function (f) { return !f.informe && !f.motivo; });
     if (sinMotivo.length && !window.confirm(sinMotivo.length + ' visita(s) sin informe no tienen motivo. ¿Generar igualmente? (irán como «no se pudo realizar»)')) return;
     Local.generando = true; _renderModal(_htmlConciliacion());

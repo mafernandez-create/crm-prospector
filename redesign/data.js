@@ -1845,9 +1845,13 @@
     'reprogramada': 'quedó reprogramada',
     'otro': 'no se pudo realizar',
   };
+  /* Suma días a una fecha ISO SIN pasar por UTC: new Date('…T00:00:00') es
+     medianoche local y toISOString() la convierte a UTC, así que en Europe/Madrid
+     devolvía siempre un día menos (el cierre decía «entrega el lunes» en vez del
+     martes y la ventana de informes iba desplazada). R2, revisión 18-sep-2026. */
   function _addDaysISO(iso, n) {
     const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n);
-    return d.toISOString().slice(0, 10);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
   function _fechaLarga(iso) {
     const d = new Date(iso + 'T00:00:00');
@@ -1862,15 +1866,16 @@
   /* Busca el informe de una visita en la ficha: el primero fechado entre
      (fecha − 3 días) y (fecha + 21 días). Misma tolerancia que la vista SQL
      `visitas_sin_informe`. */
-  function _informeDeVisita(studio, fechaISO, hastaMax) {
+  function _informeDeVisita(studio, fechaISO, cota) {
     const reports = (studio && studio.data && studio.data.reports) || [];
-    const desde = _addDaysISO(fechaISO, -3);
+    let desde = _addDaysISO(fechaISO, -3);
     let hasta = _addDaysISO(fechaISO, 21);
-    // Si hay otra visita del mismo estudio antes de +21 días, el informe de esa
-    // visita no puede contarse para esta (si no, una visita reprogramada
+    // Si hay otra visita del mismo estudio dentro de la ventana, el informe de
+    // esa visita no puede contarse para esta (si no, una visita reprogramada
     // contaría como realizada dos veces o nunca, según el día del cierre).
-    if (hastaMax && hastaMax < hasta) hasta = hastaMax;
-    if (hasta < fechaISO) return null;
+    if (cota && cota.hasta && cota.hasta < hasta) hasta = cota.hasta;
+    if (cota && cota.desde && cota.desde > desde) desde = cota.desde;
+    if (hasta < desde) return null;
     let best = null, bestIdx = -1;
     reports.forEach(function (r, idx) {
       const d = String(r.iso_date || r.date || '').slice(0, 10);
@@ -1901,9 +1906,10 @@
     if (r.proxima_accion) L.push('| ' + (r.fecha_proxima_visita || 'próximo paso') + ' | ' + String(r.proxima_accion).slice(0, 300) + ' | Manolo |');
     return L.join('\n');
   }
-  /* Fecha de la siguiente visita (no anulada) de cada estudio después de cada
-     fila: dentro de la propia semana o en las 3 semanas siguientes. */
-  async function _siguienteVisitaPorFila(visitas, domingoISO) {
+  /* Cotas de la ventana de informe de cada fila: la víspera de la siguiente
+     visita (no anulada) del mismo estudio —dentro de la semana o en las 3
+     siguientes— y el día después de la anterior dentro de la semana. */
+  async function _cotasInformePorFila(visitas, domingoISO) {
     const ids = Array.from(new Set(visitas.map(function (v) { return v.studio_id; }).filter(Boolean)));
     let posteriores = [];
     if (ids.length) {
@@ -1914,9 +1920,10 @@
     const out = {};
     visitas.forEach(function (v) {
       if (!v.studio_id) return;
-      const sig = todas.filter(function (w) { return w.studio_id === v.studio_id && w.fecha > v.fecha && w.estado !== 'anulada'; })
-        .map(function (w) { return w.fecha; }).sort()[0];
-      if (sig) out[v.id] = _addDaysISO(sig, -1);
+      const mismas = todas.filter(function (w) { return w.studio_id === v.studio_id && w.estado !== 'anulada' && w.id !== v.id; });
+      const sig = mismas.filter(function (w) { return w.fecha > v.fecha; }).map(function (w) { return w.fecha; }).sort()[0];
+      const ant = mismas.filter(function (w) { return w.fecha < v.fecha; }).map(function (w) { return w.fecha; }).sort().pop();
+      out[v.id] = { hasta: sig ? _addDaysISO(sig, -1) : null, desde: ant ? _addDaysISO(ant, 1) : null };
     });
     return out;
   }
@@ -1924,10 +1931,10 @@
     const domingoISO = _addDaysISO(lunesISO, 6);
     const visitas = await window.DataSupabase.listVisitasSemana(lunesISO, domingoISO);
     const byId = (window.State && window.State.studiosById) || {};
-    const hastaPorFila = await _siguienteVisitaPorFila(visitas, domingoISO);
+    const cotas = await _cotasInformePorFila(visitas, domingoISO);
     const filas = visitas.map(function (v) {
       const studio = v.studio_id ? byId[v.studio_id] : null;
-      const inf = studio ? _informeDeVisita(studio, v.fecha, hastaPorFila[v.id]) : null;
+      const inf = studio ? _informeDeVisita(studio, v.fecha, cotas[v.id]) : null;
       return {
         id: v.id, fecha: v.fecha, empresa: v.empresa, studio_id: v.studio_id || null,
         estado: v.estado, origen: v.origen, ruta: v.ruta || null, motivo: v.motivo_no_realizada || null, nota: v.nota || null,
@@ -2018,7 +2025,17 @@
     const curData = Object.assign({}, raw.data || {}, { activities: acts });
     await _routePatchDoc('studios/' + studioId, { data: curData });
     raw.data = curData;
-    if (window.State && window.State.studiosById) window.State.studiosById[studioId] = raw;
+    // State.studios (array) y studiosById comparten objeto: se muta el que ya
+    // está en el State para que bandeja, «Pendiente en la zona» y Hoy lo vean
+    // sin recargar (R1). Si no estaba, se añade a ambos.
+    if (window.State && window.State.studiosById) {
+      const enState = window.State.studiosById[studioId];
+      if (enState && enState !== raw) Object.assign(enState, raw);
+      else if (!enState) {
+        window.State.studiosById[studioId] = raw;
+        if (Array.isArray(window.State.studios)) window.State.studios.push(raw);
+      }
+    }
     try { localStorage.removeItem(CACHE_KEY); } catch (_) {}
     if (window.AccionesEngine && window.AccionesEngine.invalidarCache) window.AccionesEngine.invalidarCache();
     return acts;
