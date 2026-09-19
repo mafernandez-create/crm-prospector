@@ -71,7 +71,7 @@ const normal = (id) => ({ id, name: 'Estudio ' + id, province: 'Málaga', data: 
   // ── Lee la ficha fresca (otro dispositivo pudo escribir) ────────────────
   db['12'].data.activities = [{ title: 'escrita en otro sitio' }];
   await D.revisarCandidatoPlacsp('12', 'pendiente');
-  A.eq(db['12'].data.activities.length, 1, 'no pisa lo que otro dispositivo escribió en data');
+  A.eq(((db['12'].data && db['12'].data.activities) || []).length, 1, 'no pisa lo que otro dispositivo escribió en data (lee la ficha fresca)');
 
   let err = null; try { await D.revisarCandidatoPlacsp('12', 'borrada'); } catch (e) { err = e.message; }
   A.truthy(/no válido/.test(err || ''), 'estado desconocido → error');

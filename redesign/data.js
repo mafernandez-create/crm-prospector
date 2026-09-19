@@ -2377,7 +2377,6 @@
     // Reflejar en el State: mutar el objeto existente y recolocarlo.
     const obj = enState || raw;
     obj.data = data;
-    obj.revision_placsp = revision;
     if (patch.province) obj.province = patch.province;
     if (patch.city) obj.city = patch.city;
     if (patch.type) obj.type = patch.type;

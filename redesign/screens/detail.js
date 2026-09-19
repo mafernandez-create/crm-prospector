@@ -63,6 +63,7 @@
   const STATUS_LABELS = {
     nuevo: 'Nuevo', contactado: 'Contactado', reunion: 'Reunión',
     propuesta: 'Propuesta', ganado: 'Ganado', perdido: 'Perdido', dormido: 'Dormido',
+    descartado: 'Descartado (candidato PLACSP)',
   };
   const STATUS_COLORS = {
     nuevo: '#1f72c7', contactado: '#0ea5e9', reunion: '#7c3aed',
