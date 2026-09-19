@@ -87,6 +87,18 @@ Todos pasan por la regla de no-timestamps. Los `"—"` en campos de `reportJson`
 
 ---
 
+## Candidatos PLACSP (`screens/candidatos.js`, sep-2026)
+El cron diario `placsp-daily` (`scripts/placsp-fetch.js`) da de alta cada adjudicatario que no está en el
+CRM con `data.revision_placsp = { estado: 'pendiente', creada }`. **No son cartera** hasta que Manolo los
+revisa: `Data.indexarCartera` (usado por los tres caminos de `loadAll`) los separa en `State.candidatosPlacsp`
+(pendientes + descartadas) y deja en `State.studios` solo cartera y aceptadas; `studiosById` tiene todas.
+Decisiones con `Data.revisarCandidatoPlacsp(id, 'aceptada'|'descartada'|'pendiente', extra)`: aceptar pide
+provincia (sede, no obra; se sugiere si el lugar de la obra es una capital), ciudad y tipo opcionales y
+pone `status='nuevo'`; descartar pone `status='descartado'` y la ficha sigue existiendo para que el cruce
+por nombre del cron no la recree. Avisos: contador en la barra lateral y punto en la campana
+(`Shell.updateBadges`), tarjeta en Hoy (`inicio.js → candidatosCard`, «N nuevos esta semana»).
+Backfill del 19-sep-2026: 141 pendientes + 5 aceptadas (las que ya tenían provincia o actividad).
+
 ## Backends e integraciones
 - **Supabase** — backend del rediseño (datos + planificador + briefings). Anon key pública embebida en `data-supabase.js`.
 - **Firebase Firestore** — solo el **legacy** (`index-legacy.html`). No usar en desarrollo nuevo.

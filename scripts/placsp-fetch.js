@@ -414,6 +414,9 @@ async function crosscheckSupabase(adjudicaciones) {
               description: 'Detectado automáticamente desde PLACSP: ' + adjudicacionMeta.titulo,
               ultima_adjudicacion_placsp: adjudicacionMeta,
               tieneAlertaPlacsp: true,
+              // Candidato: no es cartera hasta que Manolo lo acepte en el
+              // apartado «Candidatos PLACSP» del CRM (o lo descarte).
+              revision_placsp: { estado: 'pendiente', creada: new Date().toISOString().slice(0, 10) },
             },
           });
           byName[key] = { id: newId, name: adjName };

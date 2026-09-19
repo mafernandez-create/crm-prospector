@@ -1789,6 +1789,7 @@
       if (State.studiosById) delete State.studiosById[studioId];
       if (State.studios) {
         State.studios = State.studios.filter(function (s) { return s.id !== studioId; });
+        if (Array.isArray(State.candidatosPlacsp)) State.candidatosPlacsp = State.candidatosPlacsp.filter(function (s) { return s.id !== studioId; });
       }
       window.closeSheet();
       notif('Empresa eliminada', 'info');

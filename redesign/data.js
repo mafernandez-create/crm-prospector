@@ -2033,7 +2033,8 @@
       if (enState && enState !== raw) Object.assign(enState, raw);
       else if (!enState) {
         window.State.studiosById[studioId] = raw;
-        if (Array.isArray(window.State.studios)) window.State.studios.push(raw);
+        const destino = esCandidatoPlacsp(raw) ? window.State.candidatosPlacsp : window.State.studios;
+        if (Array.isArray(destino)) destino.push(raw);
       }
     }
     try { localStorage.removeItem(CACHE_KEY); } catch (_) {}
@@ -2323,6 +2324,85 @@
     return window.DataSupabase;
   }
 
+  /* ---- Candidatos PLACSP ----
+     El cron diario de PLACSP da de alta cada adjudicatario que no está en el
+     CRM (scripts/placsp-fetch.js) con data.revision_placsp = {estado:'pendiente'}.
+     Hasta que Manolo los revise en el apartado «Candidatos PLACSP» NO son
+     cartera: viven en State.candidatosPlacsp (pendientes y descartadas) y no
+     entran en State.studios, así que Empresas, mapa, dashboard, bandeja y
+     scoring no los ven. Aceptar → estado 'aceptada' y pasa a State.studios;
+     descartar → 'descartada' (reversible; el cron no la recrea porque la
+     ficha sigue existiendo y el cruce por nombre la encuentra). */
+  function esCandidatoPlacsp(s) {
+    const r = s && s.data && s.data.revision_placsp;
+    return !!(r && (r.estado === 'pendiente' || r.estado === 'descartada'));
+  }
+  function indexarCartera(todos) {
+    const State = window.State;
+    State.studios = [];
+    State.candidatosPlacsp = [];
+    State.studiosById = {};
+    (todos || []).forEach(function (s) {
+      State.studiosById[s.id] = s;
+      (esCandidatoPlacsp(s) ? State.candidatosPlacsp : State.studios).push(s);
+    });
+  }
+  /* Decide sobre un candidato: 'aceptada' (con provincia/ciudad/tipo opcionales)
+     o 'descartada' o 'pendiente' (deshacer). Lee la ficha fresca, escribe solo
+     lo que cambia y recoloca el objeto entre cartera y candidatos. */
+  async function revisarCandidatoPlacsp(studioId, estado, extra) {
+    extra = extra || {};
+    if (['aceptada', 'descartada', 'pendiente'].indexOf(estado) < 0) throw new Error('Estado de revisión no válido: ' + estado);
+    let fresh = null;
+    try { fresh = await _routeGetDoc('studios/' + studioId); } catch (e) { console.warn('[candidatos] ficha fresca no disponible:', e && e.message); }
+    const enState = window.State.studiosById[studioId];
+    const raw = fresh || enState;
+    if (!raw) throw new Error('Ficha ' + studioId + ' no encontrada');
+    const previa = (raw.data && raw.data.revision_placsp) || {};
+    const revision = Object.assign({}, previa, { estado: estado, fecha: _hoyISO(), nota: extra.nota || previa.nota || '' });
+    if (estado === 'pendiente') delete revision.nota;
+    const data = Object.assign({}, raw.data || {}, { revision_placsp: revision });
+    const patch = { data: data };
+    if (estado === 'aceptada') {
+      if (extra.province) patch.province = extra.province;
+      if (extra.city) patch.city = extra.city;
+      if (extra.type) patch.type = extra.type;
+      patch.status = 'nuevo';
+    } else if (estado === 'descartada') {
+      patch.status = 'descartado';
+    } else {
+      patch.status = 'nuevo';
+    }
+    await _routePatchDoc('studios/' + studioId, patch);
+    // Reflejar en el State: mutar el objeto existente y recolocarlo.
+    const obj = enState || raw;
+    obj.data = data;
+    obj.revision_placsp = revision;
+    if (patch.province) obj.province = patch.province;
+    if (patch.city) obj.city = patch.city;
+    if (patch.type) obj.type = patch.type;
+    obj.status = patch.status;
+    const State = window.State;
+    State.studiosById[studioId] = obj;
+    State.studios = (State.studios || []).filter(function (s) { return s.id !== studioId; });
+    State.candidatosPlacsp = (State.candidatosPlacsp || []).filter(function (s) { return s.id !== studioId; });
+    (esCandidatoPlacsp(obj) ? State.candidatosPlacsp : State.studios).push(obj);
+    try { localStorage.removeItem(CACHE_KEY); } catch (_) {}
+    if (window.Shell && window.Shell.updateBadges) window.Shell.updateBadges();
+    return obj;
+  }
+  /* Candidatos pendientes, los más recientes primero; `desdeISO` acota a las altas nuevas. */
+  function candidatosPlacspPendientes(desdeISO) {
+    return (window.State.candidatosPlacsp || []).filter(function (s) {
+      const r = s.data && s.data.revision_placsp;
+      if (!r || r.estado !== 'pendiente') return false;
+      return !desdeISO || (r.creada || '') >= desdeISO;
+    }).sort(function (a, b) {
+      const fa = (a.data.revision_placsp.creada || ''), fb = (b.data.revision_placsp.creada || '');
+      return fa < fb ? 1 : fa > fb ? -1 : 0;
+    });
+  }
+
   async function loadAll() {
     const State = window.State;
     if (!State) {
@@ -2336,9 +2416,7 @@
     // ¿Tenemos cache fresco (<1h)? Servir sin tocar el backend.
     const fresh = _readCache(CACHE_TTL_FRESH_MS);
     if (fresh) {
-      State.studios = fresh.studios;
-      State.studiosById = {};
-      fresh.studios.forEach(function (s) { State.studiosById[s.id] = s; });
+      indexarCartera(fresh.studios);
       State.planificador = fresh.planificador || null;
       State.loading = false;
       console.info('[redesign/data] cartera servida desde cache local (' +
@@ -2351,11 +2429,9 @@
     if (_sb()) {
       try {
         const out = await _sb().loadAll();
-        State.studios = out.studios || [];
-        State.studiosById = {};
-        State.studios.forEach(function (s) { State.studiosById[s.id] = s; });
+        indexarCartera(out.studios || []);
         State.planificador = out.planificador || null;
-        _writeCache(State.studios, State.planificador);
+        _writeCache(State.studios.concat(State.candidatosPlacsp), State.planificador);
         State.loading = false;
         console.info('[redesign/data] backend=supabase · cartera: ' + State.studios.length);
         return;
@@ -2365,9 +2441,7 @@
         if (stale) {
           const ageMin = Math.round((Date.now() - stale.savedAt) / 60000);
           console.warn('[redesign/data] Supabase falló, cache stale ' + ageMin + ' min');
-          State.studios = stale.studios;
-          State.studiosById = {};
-          stale.studios.forEach(function (s) { State.studiosById[s.id] = s; });
+          indexarCartera(stale.studios);
           State.planificador = stale.planificador || null;
           State.error = 'Datos de hace ' + ageMin + ' min (Supabase no disponible)';
         } else {
@@ -2420,6 +2494,10 @@
     // Cierre de semana
     conciliarSemana: conciliarSemana,
     guardarMotivoVisita: guardarMotivoVisita,
+    esCandidatoPlacsp: esCandidatoPlacsp,
+    indexarCartera: indexarCartera,
+    revisarCandidatoPlacsp: revisarCandidatoPlacsp,
+    candidatosPlacspPendientes: candidatosPlacspPendientes,
     sincronizarPendienteVisita: sincronizarPendienteVisita,
     cerrarPendientesVisitaPlanificadas: cerrarPendientesVisitaPlanificadas,
     debeVolverAPlanificar: debeVolverAPlanificar,

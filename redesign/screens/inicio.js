@@ -255,8 +255,30 @@
         mobileHeader(data.visitasHoy) +
         contextualCard(data, modo) +
         visitasHoySection(data.visitasHoy, data.proximaVisita) +
+        candidatosCard() +
         tareasSection(data.tareas) +
         objetivosSection(data.objetivos) +
+      '</div>'
+    );
+  }
+
+  /* Aviso de candidatos PLACSP por revisar: cuántos hay y cuántos han llegado esta semana. */
+  function candidatosCard() {
+    const D = window.Data;
+    if (!D || !D.candidatosPlacspPendientes) return '';
+    const todos = D.candidatosPlacspPendientes();
+    if (!todos.length) return '';
+    const hace7 = U.toISOLocal(new Date(State.today.getTime() - 7 * 24 * 3600 * 1000));
+    const nuevos = D.candidatosPlacspPendientes(hace7).length;
+    return (
+      '<div class="card" style="padding:14px; border-left:3px solid #f59e0b; display:flex; align-items:center; gap:12px; cursor:pointer;" ' +
+        'onclick="showView(\'candidatos\')">' +
+        '<span style="font-size:22px;">🏆</span>' +
+        '<div style="flex:1; min-width:0;">' +
+          '<div style="font-weight:600; font-size:15px;">' + todos.length + ' candidato' + (todos.length === 1 ? '' : 's') + ' PLACSP por revisar</div>' +
+          '<div style="font-size:13px; color:var(--fg-3);">' + (nuevos ? nuevos + ' nuevo' + (nuevos === 1 ? '' : 's') + ' esta semana · ' : '') + 'adjudicatarios que no estaban en el CRM</div>' +
+        '</div>' +
+        '<span class="icon-sm" style="color:var(--fg-muted);">' + I.ChevronRight() + '</span>' +
       '</div>'
     );
   }
@@ -359,6 +381,7 @@
           '</div>' +
           '<div style="display:flex; flex-direction:column; gap:20px;">' +
             visitasHoySection(data.visitasHoy, data.proximaVisita) +
+            candidatosCard() +
             tareasSection(data.tareas) +
           '</div>' +
         '</div>' +

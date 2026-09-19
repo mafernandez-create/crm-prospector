@@ -22,6 +22,7 @@
   const State = {
     studios: [],
     studiosById: {},
+    candidatosPlacsp: [],   // fichas creadas por el cron de PLACSP pendientes de revisar o descartadas (no son cartera)
     planificador: null,
     currentView: 'inicio',
     currentStudioId: null,
@@ -881,6 +882,7 @@
         State.loading = false;
         hideLoader();
         navigateFromHash();
+        if (window.Shell && window.Shell.updateBadges) window.Shell.updateBadges();
         // Datos cargados PERO desde cache stale (Supabase no respondió):
         // avisar en vez de mostrar datos viejos en silencio.
         if (State.error && window.showNotification) {

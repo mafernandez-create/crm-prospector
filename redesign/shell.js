@@ -29,6 +29,7 @@
     const itemsTools = [
       { id: 'planificador', label: 'Planificador',     icon: I.Calendar() },
       { id: 'pipeline',     label: 'Pipeline pliegos', icon: I.Layers() },
+      { id: 'candidatos',   label: 'Candidatos PLACSP', icon: I.Target(), badge: true },
       { id: 'mapa',         label: 'Mapa caliente',    icon: I.MapPin() },
       { id: 'importar',     label: 'Importar / Exportar', icon: I.Save() },
       { id: 'asistente',    label: 'Asistente IA',     icon: I.Sparkles() },
@@ -69,9 +70,28 @@
       'onclick="event.preventDefault(); showView(\'' + it.id + '\')">' +
         it.icon +
         '<span class="nav-label">' + it.label + '</span>' +
+        (it.badge ? '<span class="nav-badge" data-badge="' + it.id + '" style="display:none; margin-left:auto;"></span>' : '') +
       '</a>'
     );
   }
+
+  /* Contadores de la barra lateral y punto de la campana. Se llama tras cargar
+     la cartera y tras cada decisión sobre un candidato. */
+  function updateBadges() {
+    const n = (window.Data && window.Data.candidatosPlacspPendientes) ? window.Data.candidatosPlacspPendientes().length : 0;
+    document.querySelectorAll('.nav-badge[data-badge="candidatos"]').forEach(function (b) {
+      b.textContent = n; b.style.display = n ? '' : 'none';
+    });
+    const dot = document.getElementById('topbar-bell-dot');
+    if (dot) dot.style.display = n ? '' : 'none';
+    const bell = document.getElementById('topbar-bell');
+    if (bell) bell.title = n ? n + ' candidato' + (n === 1 ? '' : 's') + ' PLACSP por revisar' : 'Sin notificaciones';
+  }
+  window.notificacionesClick = function () {
+    const n = (window.Data && window.Data.candidatosPlacspPendientes) ? window.Data.candidatosPlacspPendientes().length : 0;
+    if (n) { window.showView('candidatos'); return; }
+    if (window.showNotification) window.showNotification('Sin notificaciones pendientes', 'info');
+  };
 
   function mainShell() {
     return (
@@ -90,9 +110,10 @@
           '<div class="actions">' +
             '<button class="btn btn-ghost" onclick="window.open(\'https://calendar.google.com\', \'_blank\')">' + I.Calendar() + ' Calendario</button>' +
             '<button class="btn btn-primary" onclick="openNuevoAnalisis()">' + I.Plus() + ' Nueva empresa</button>' +
-            '<button class="icon-btn" aria-label="Notificaciones" ' +
-              'onclick="window.showNotification && window.showNotification(\'Sin notificaciones pendientes\', \'info\')">' +
+            '<button class="icon-btn" id="topbar-bell" aria-label="Notificaciones" style="position:relative;" ' +
+              'onclick="window.notificacionesClick()">' +
               I.Bell() +
+              '<span id="topbar-bell-dot" class="badge-dot" style="display:none;"></span>' +
             '</button>' +
           '</div>' +
         '</header>' +
@@ -107,6 +128,7 @@
           '<section class="view" id="view-dashboard"></section>' +
           '<section class="view" id="view-planificador"></section>' +
           '<section class="view" id="view-pipeline"></section>' +
+          '<section class="view" id="view-candidatos"></section>' +
           '<section class="view" id="view-mapa"></section>' +
           '<section class="view" id="view-importar"></section>' +
           '<section class="view" id="view-asistente"></section>' +
@@ -219,5 +241,5 @@
     );
   }
 
-  window.Shell = { render: render };
+  window.Shell = { render: render, updateBadges: updateBadges };
 })();
