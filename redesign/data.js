@@ -2157,7 +2157,9 @@
   function redactarCorreoJavier(conc, resumenMd) {
     const c = conc.cifras;
     const conInforme = conc.filas.filter(function (f) { return f.informe; });
-    const sinInforme = conc.filas.filter(function (f) { return !f.informe; });
+    // Se justifican las NO realizadas (una visita con motivo no cuenta como
+    // realizada aunque tenga informe, p. ej. el informe de un intento fallido).
+    const sinInforme = conc.filas.filter(function (f) { return !f.realizada; });
     const rango = _fechaLarga(conc.semana) + ' al ' + _fechaLarga(conc.domingo);
     const zonas = Array.from(new Set(conc.filas.map(function (f) { return (f.ruta || '').replace(/^Planificador · /, ''); }).filter(Boolean)));
     const L = [];

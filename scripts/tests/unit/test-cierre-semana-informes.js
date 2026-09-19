@@ -65,6 +65,24 @@ const D = global.window.Data;
   A.truthy(conc3.filas.find(f => f.id === 1).informe, 'sin acceso a visitas posteriores, vuelve a la ventana +21 (comportamiento anterior) en vez de fallar');
   A.eq(conc3.filas.find(f => f.id === 4).informe, null, 'pero dentro de la propia semana la cota sigue aplicándose (no necesita la consulta)');
 
+  // ── El correo a Javier justifica las NO realizadas, aunque tengan informe ──
+  // (AIMA, S38: el informe documenta el intento fallido; antes el correo la
+  // omitía de «las que no» y las cifras decían 5/7 sin explicar la séptima).
+  const concC = {
+    semana: '2026-09-14', domingo: '2026-09-20', num_semana: 38,
+    cifras: { planificadas: 3, realizadas: 1, informes: 2, no_realizadas: 2 },
+    filas: [
+      { empresa: 'Hidralia', fecha: '2026-09-18', informe: { date: '2026-09-18' }, realizada: true, motivo: null, ruta: 'Planificador · Almería' },
+      { empresa: 'AIMA', fecha: '2026-09-18', informe: { date: '2026-09-18' }, realizada: false, motivo: 'no-recibieron', nota: 'sin hora cerrada', ruta: 'Planificador · Almería' },
+      { empresa: 'Fomintax', fecha: '2026-09-18', informe: null, realizada: false, motivo: 'cancelada-cliente', nota: 'urgencia', ruta: 'Planificador · Almería' },
+    ],
+  };
+  const correo = D.redactarCorreoJavier(concC, '');
+  A.truthy(/AIMA \(18 de septiembre\): no pudieron recibirme \(sin hora cerrada\)/.test(correo.cuerpo), 'una visita con informe pero con motivo se justifica en el correo');
+  A.truthy(/Fomintax \(18 de septiembre\): la canceló el cliente \(urgencia\)/.test(correo.cuerpo), 'la cancelada también');
+  A.truthy(/se hicieron 1\. Las que no:/.test(correo.cuerpo), 'las cifras del correo son las de realizadas');
+  A.eq(correo.asunto, 'Informes semana 38 (14 de septiembre al 20 de septiembre) — 1/3 visitas', 'asunto con realizadas/planificadas');
+
   const s = A.summary();
   console.log(JSON.stringify(s));
   process.exit(s.failed > 0 ? 1 : 0);
