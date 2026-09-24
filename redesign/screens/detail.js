@@ -72,10 +72,12 @@
   const ACT_LABELS = {
     llamada: 'Llamada', email: 'Email', reunion: 'Reunión',
     nota: 'Nota', evento: 'Evento', registro_visita: 'Visita',
+    whatsapp: 'WhatsApp',
   };
   const ACT_COLORS = {
     llamada: '#1f72c7', email: '#0ea5e9', reunion: '#7c3aed',
     nota: '#f59e0b', evento: '#22c55e', registro_visita: '#c8102e',
+    whatsapp: '#25D366',
   };
   const PROYECTO_ESTADO = {
     en_preparacion: 'En preparación', convocado: 'Convocado',
@@ -874,6 +876,7 @@
       case 'reunion':         return '🤝';
       case 'evento':          return '📅';
       case 'registro_visita': return '🚗';
+      case 'whatsapp':        return '💬';
       default:                return '📝';
     }
   }
@@ -1185,7 +1188,7 @@
     const sel = v.type || 'llamada';
     return (
       field('Tipo', '<select id="m-act-type" style="' + SELECT_STYLE + '">' +
-        ['llamada','email','reunion','nota','evento'].map(function (t) {
+        ['llamada','email','reunion','nota','evento','whatsapp'].map(function (t) {
           return '<option value="' + t + '"' + (t === sel ? ' selected' : '') + '>' + (ACT_LABELS[t] || t) + '</option>';
         }).join('') +
       '</select>') +
