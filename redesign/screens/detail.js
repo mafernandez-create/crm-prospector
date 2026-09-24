@@ -788,11 +788,124 @@
   /* ============================================================
      PANEL: ACTIVIDADES
      ============================================================ */
+  /* ============================================================
+     PANEL: WHATSAPP — historial del canal + acceso al chat
+     ============================================================ */
+
+  /* Número utilizable por WhatsApp: solo dígitos y con prefijo de país.
+     Las fichas guardan cosas como "605 068 072" o
+     "+34 670 653 671 · fijo 95 492 05 78", así que nos quedamos con el
+     primer teléfono de la cadena y descartamos lo que no cuadre. */
+  function waPhone(raw) {
+    if (!raw) return '';
+    var primero = String(raw).split(/[·,;\/]|\bfijo\b|\bext\b/i)[0];
+    var d = primero.replace(/\D/g, '').replace(/^00/, '');
+    if (d.length === 9) d = '34' + d;            // nacional sin prefijo
+    return (d.length >= 11 && d.length <= 15) ? d : '';
+  }
+
+  /* WhatsApp no funciona en fijos. Dentro de España el móvil empieza por 6 o 7;
+     fuera no lo sabemos, así que no descartamos nada. */
+  function waEsMovil(d) {
+    if (!d) return false;
+    return d.indexOf('34') === 0 ? /^[67]/.test(d.slice(2)) : true;
+  }
+
+  /* A quién se le puede escribir: el equipo primero (WhatsApp es a una persona,
+     no a una empresa) y después el teléfono de la ficha. Sin repetir número. */
+  function waDestinatarios(s) {
+    var out = [], visto = {};
+    function add(nombre, raw, rol) {
+      var d = waPhone(raw);
+      if (!d || visto[d] || !waEsMovil(d)) return;
+      visto[d] = 1;
+      out.push({ nombre: nombre || 'Contacto', rol: rol || '', digits: d, label: raw });
+    }
+    arr(s.team).forEach(function (m) { add(m.name, m.phone, m.role); });
+    add(s.name, s.phone, 'Teléfono de la ficha');
+    return out;
+  }
+
+  function panelWhatsApp(s) {
+    var msgs = arr(s.activities)
+      .filter(function (a) { return (a.type || '') === 'whatsapp'; })
+      .sort(function (a, b) {
+        return new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0);
+      });
+    var dest = waDestinatarios(s);
+    if (!msgs.length && !dest.length) return '';
+
+    var histHtml = msgs.length === 0
+      ? '<p style="font-size:13px; color:var(--fg-3); margin:0; padding:6px 0;">' +
+          'Sin WhatsApps registrados en esta ficha.</p>'
+      : msgs.slice(0, 5).map(function (a) {
+          var fecha = (U.formatDateES(a.createdAt) || a.date || '—') + (a.hora ? ' · ' + a.hora : '');
+          return (
+            '<div style="display:flex; gap:10px; padding:9px 0; border-bottom:1px solid var(--line);">' +
+              '<span style="font-size:16px; flex:0 0 auto;">\uD83D\uDCAC</span>' +
+              '<div style="min-width:0; flex:1;">' +
+                '<div style="font-size:13px; color:var(--fg-1); line-height:1.5;">' +
+                  escape(a.title || a.text || a.notes || '(sin contenido)') +
+                '</div>' +
+                '<div style="font-size:12px; color:var(--fg-3); font-family:var(--font-mono); margin-top:2px;">' +
+                  escape(fecha) +
+                '</div>' +
+              '</div>' +
+            '</div>'
+          );
+        }).join('') +
+        (msgs.length > 5
+          ? '<div style="font-size:12px; color:var(--fg-3); padding-top:8px;">' +
+              'y ' + (msgs.length - 5) + ' más en el historial de abajo.</div>'
+          : '');
+
+    var destHtml = dest.length === 0
+      ? '<div style="font-size:12px; color:var(--fg-3); margin-top:10px;">' +
+          'Sin móvil en la ficha ni en el equipo: añade uno para poder abrir el chat.</div>'
+      : '<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;">' +
+          dest.map(function (d) {
+            var rol = d.rol.length > 48 ? d.rol.slice(0, 48) + '…' : d.rol;
+            return (
+              '<a href="https://web.whatsapp.com/send?phone=' + escape(d.digits) + '" ' +
+                'target="_blank" rel="noopener" ' +
+                'title="' + escape(d.nombre + (rol ? ' — ' + rol : '') + ' · ' + d.label) + '" ' +
+                'style="display:inline-flex; align-items:center; gap:6px; padding:6px 11px; border-radius:20px; ' +
+                'background:#25D36618; border:1.5px solid #25D366; color:#0f7a3d; font-size:12px; ' +
+                'font-weight:600; text-decoration:none; white-space:nowrap;">' +
+                '\uD83D\uDCAC ' + escape(d.nombre) +
+              '</a>'
+            );
+          }).join('') +
+        '</div>';
+
+    return (
+      '<section class="card" style="padding:14px; margin-bottom:18px; border-left:3px solid #25D366;">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px;">' +
+          '<span class="eyebrow">WhatsApp' + (msgs.length ? ' (' + msgs.length + ')' : '') + '</span>' +
+          '<button class="btn btn-ghost" style="height:30px; font-size:12px;" ' +
+            'onclick="window.Screens.detail.openAddActivity(\'' + escape(s.id) + '\',\'whatsapp\')">' +
+            '+ Registrar' +
+          '</button>' +
+        '</div>' +
+        histHtml +
+        destHtml +
+        '<div style="font-size:11px; color:var(--fg-3); margin-top:10px; line-height:1.5;">' +
+          'El chat se abre en web.whatsapp.com con la cuenta vinculada en este navegador ' +
+          '(la de Business). Registra aquí lo acordado, no el volcado del chat.' +
+        '</div>' +
+      '</section>'
+    );
+  }
+
+  /* ============================================================
+     PANEL: ACTIVIDADES
+     ============================================================ */
   function panelActividades(s) {
     const acts = s.activities.slice().sort(function (a, b) {
       return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
     });
     return (
+      panelWhatsApp(s) +
       '<section>' +
         '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">' +
           '<span class="eyebrow">Historial de actividades</span>' +
@@ -1207,9 +1320,9 @@
     );
   }
 
-  function openAddActivity(studioId) {
+  function openAddActivity(studioId, tipo) {
     showModal(modalWrap('Nueva actividad',
-      _actModalBody({}, { syncChecked: true }),
+      _actModalBody(tipo ? { type: tipo } : {}, { syncChecked: true }),
       '<button class="btn btn-primary btn-block" ' +
         'onclick="window.Screens.detail.saveActivity(\'' + escape(studioId) + '\')">Guardar actividad</button>'
     ));
