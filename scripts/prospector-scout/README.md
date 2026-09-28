@@ -53,6 +53,25 @@ mancomunidades de agua dos veces, en Zaragoza y en Teruel, y ninguna de las cuat
 banco lo arregló. Darle el registro hecho no le mejora el criterio — le quita el trabajo en el que
 falla, y le deja el presupuesto para lo único que solo él puede hacer.
 
+**Cobertura del censo.** Hay uno por comunidad, y solo se construye una vez:
+
+| Censo | Entes | Fuente | Constructor |
+|---|---|---|---|
+| `censo-aragon.json` | 31 mancomunidades + comarcas | Registro de Entidades Locales de Aragón | `censo/construir-censo-aragon.py` |
+| `censo-catalunya.json` | 566 entes + 43 comarcas, con teléfono **y correo** | MUNICAT (dataset abierto `6nei-4b44` de la Generalitat) | `censo/construir-censo-catalunya.py` |
+
+Para añadir otra comunidad, copiar el constructor más parecido y respetar el esquema: `dossier.py`
+lee cualquier fichero `censo-*.json` sin tocarlo. Tres avisos que costaron caros:
+
+- **Los nombres de tipo van con acento, exactamente como los escribe el registro.** En Cataluña
+  escribirlos sin acentos se comió 342 de los 358 «Ens de gestió», que es justo donde viven las
+  empresas municipales de aguas. Diagnóstico: `$select=nomtipus&$group=nomtipus`.
+- **`agua` tiene tres estados: `si` / `generica` / `no`.** Genérica quiere decir «el registro no lo
+  dice, hay que mirarlo», nunca «no». Colapsarla a `no` reproduce el error que el censo existe para
+  corregir. El dossier las imprime en un segundo tramo, en corto, pero las imprime.
+- **El censo cubre entidades locales, no comunidades de regantes ni concesionarias.** En Lleida y
+  Tarragona eso deja fuera lo más grande de la provincia: hay que pedírselo a la CHE o a la ACA.
+
 Tipos válidos: `arquitectura` · `ingenieria` · `regantes` · `aguas` · `aapp` · `constructora` ·
 `promotora` · `distribucion`.
 

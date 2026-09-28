@@ -156,9 +156,21 @@ def main():
     adj = []
     if os.path.exists(PLACSP):
         p = json.load(open(PLACSP, encoding='utf-8'))
+        # Contra que se compara. Con 'Barcelona provincia' el texto buscado era
+        # literalmente "barcelona provincia", que no aparece en ningun titulo ni
+        # en ningun campo de provincia: daba CERO adjudicaciones en las cuatro
+        # provincias catalanas habiendo 89. Un cero asi no se lee como un fallo,
+        # se lee como "aqui no hay obra publica de agua", que es falso.
+        # A escala de provincia se busca por el nombre resuelto, y con sus alias
+        # porque la Plataforma escribe unas veces Girona y otras Gerona.
+        claves = [z] if ambito == 'municipio' else [norm(provincia)]
+        for a, b in (('girona', 'gerona'), ('lleida', 'lerida'), ('alacant', 'alicante'),
+                     ('castello', 'castellon'), ('a coruna', 'la coruna')):
+            if a in claves or b in claves:
+                claves = list({*claves, a, b})
         for a in p['adjudicaciones']:
             campo = norm(a.get('provincia') or '') + ' ' + norm(a.get('titulo') or '')
-            if z and z in campo: adj.append(a)
+            if any(k and k in campo for k in claves): adj.append(a)
         vis = {}
         for a in adj:
             k = (norm(a['adjudicatario']), norm(a['titulo'])[:60], round(a.get('importe') or 0))
@@ -191,21 +203,37 @@ def main():
     L += [f"- [{c.get('id')}] {c['name']} · {c.get('type','?')}" for c in nunca[:60]]
     if len(nunca) > 60: L.append(f"- …y {len(nunca)-60} más")
 
-    L.append(f"\n## 2 · Entidades locales del censo oficial ({len(manc)} mancomunidades · {len(com)} comarcas)\n")
+    L.append(f"\n## 2 · Entidades locales del censo oficial ({len(manc)} entes supramunicipales o empresas publicas · {len(com)} comarcas)\n")
     if not region:
         L.append("⚠️ **No hay censo descargado para esta comunidad autónoma.** No concluyas que no hay "
                  "mancomunidades: dilo como pendiente, con la fuente que no pudiste consultar.\n")
     elif not manc and not com:
         L.append("El censo está disponible y **no recoge ninguna** para esta zona. Esto sí es un "
                  "negativo válido: el censo es un listado cerrado.\n")
-    for m in manc:
-        marca = '' if m['agua'] == 'si' else ' ⚠️ finalidad genérica: PREGUNTAR si gestionan agua, no descartarla'
-        L.append(f"- **{m['nombre'].title()}**{marca}\n"
-                 f"  - Finalidad registrada: {m['finalidad'] or '(no consta)'}\n"
-                 f"  - {len(m['municipios'])} municipios: {', '.join(x.title() for x in m['municipios'])}\n"
-                 f"  - {'Presidente: ' + m['presidente'].title() + ' · ' if m['presidente'] else ''}"
+    # Dos tramos a proposito. En Aragon el censo daba 31 mancomunidades y cabian
+    # todas con detalle; en Cataluna son 566 entes y la mayoria tienen finalidad
+    # generica, asi que volcarlas todas con ficha completa entierra las que si
+    # dicen agua. Se listan igualmente, en corto: generica sigue significando
+    # "hay que mirarlo", nunca "no".
+    ciertas = [m for m in manc if m['agua'] == 'si']
+    dudosas = [m for m in manc if m['agua'] != 'si']
+    for m in ciertas:
+        L.append(f"- **{m['nombre']}** ({m['finalidad'] or 'sin tipo'})\n"
+                 f"  - {'Sede: ' + ', '.join(m['municipios']) + ' · ' if m['municipios'] else ''}"
+                 f"{'Presidente/gerente: ' + m['presidente'] + ' · ' if m['presidente'] else ''}"
                  f"{'Tel. ' + m['telefono'] + ' · ' if m['telefono'] else ''}"
-                 f"{m['direccion'].title() if m['direccion'] else ''}")
+                 f"{m['email'] or ''}\n"
+                 f"  - {m['direccion'] or ''}")
+    if dudosas:
+        L.append(f"\n**Y {len(dudosas)} entes mas cuyo nombre NO dice a que se dedican.** "
+                 f"Finalidad generica **no** quiere decir que no gestionen agua: quiere decir "
+                 f"que el registro no lo dice y hay que mirarlo. Ahi es donde se escondieron "
+                 f"las mancomunidades que este censo viene a rescatar. Reviselos antes de "
+                 f"declarar que en esta zona no hay mas operadores:\n")
+        for m in dudosas:
+            tel = f" · {m['telefono']}" if m['telefono'] else ''
+            mail = f" · {m['email']}" if m['email'] else ''
+            L.append(f"- {m['nombre']} ({m['finalidad'] or '?'}){tel}{mail}")
     for k in com:
         L.append(f"- **Comarca de {k['nombre']}** — {len(k['municipios'])} municipios")
 
