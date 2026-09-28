@@ -457,12 +457,23 @@
   /* ============================================================
      PANEL: RESUMEN (info general + scoring + briefing)
      ============================================================ */
+  /* El campo guarda a veces varias direcciones con su coletilla; un mailto con
+     la cadena entera no abre nada. Una línea por dirección. */
+  function _linksEmailFicha(s) {
+    var ds = mailsDeTexto(s.email);
+    if (!ds.length) return '<span style="color:var(--fg-3);">—</span>';
+    return ds.map(function (d) {
+      return '<a href="mailto:' + escape(d.dir) + '" style="color:var(--gpf-blue-700);">' + escape(d.dir) + '</a>' +
+        (d.nota ? ' <span style="color:var(--fg-3); font-size:12px;">(' + escape(d.nota) + ')</span>' : '');
+    }).join('<br>');
+  }
+
   function panelResumen(s) {
     const rows = [
       ['Comercial', escape(s.comercial || '—')],
       ['Técnico',   escape(s.tecnico || '—')],
       ['Teléfono',  s.phone ? '<a href="tel:' + escape(s.phone.replace(/[^\d+]/g,'')) + '" style="color:var(--gpf-blue-700);">' + escape(s.phone) + '</a>' : '<span style="color:var(--fg-3);">—</span>'],
-      ['Email',     s.email ? '<a href="mailto:' + escape(s.email) + '" style="color:var(--gpf-blue-700);">' + escape(s.email) + '</a>' : '<span style="color:var(--fg-3);">—</span>'],
+      ['Email',     _linksEmailFicha(s)],
       ['Web',       s.web ? '<a href="https://' + escape(s.web.replace(/^https?:\/\//,'')) + '" target="_blank" ' +
         'style="color:var(--gpf-blue-700);">' + escape(s.web) + ' ↗</a>' : '<span style="color:var(--fg-3);">—</span>'],
       ['Fundación', escape(s.founded || '—')],
@@ -768,7 +779,12 @@
               (m.isDecisionMaker ? ' <span style="font-size:11px; padding:2px 7px; border-radius:8px; background:#fef3c7; color:#92400e;">⭐ Decisor</span>' : '') +
             '</div>' +
             '<div style="font-size:13px; color:var(--gpf-blue-700); margin-bottom:6px;">' + escape(m.role || '—') + '</div>' +
-            (m.email ? '<div style="font-size:13px; color:var(--fg-2);"><a href="mailto:' + escape(m.email) + '" style="color:var(--gpf-blue-700);">📧 ' + escape(m.email) + '</a></div>' : '') +
+            /* Un enlace por dirección: dos contactos tienen dos correos en el
+               mismo campo, y el mailto de la cadena entera no abría nada. */
+            mailsDeTexto(m.email).map(function (d) {
+              return '<div style="font-size:13px; color:var(--fg-2);"><a href="mailto:' + escape(d.dir) + '" style="color:var(--gpf-blue-700);">📧 ' + escape(d.dir) + '</a>' +
+                (d.nota ? ' <span style="color:var(--fg-3); font-size:12px;">(' + escape(d.nota) + ')</span>' : '') + '</div>';
+            }).join('') +
             (m.phone ? '<div style="font-size:13px; color:var(--fg-2);"><a href="tel:' + escape(m.phone.replace(/[^\d+]/g,'')) + '" style="color:var(--fg-2);">📞 ' + escape(m.phone) + '</a></div>' : '') +
             (m.linkedin ? '<div style="font-size:13px;"><a href="' + escape(U.safeHref(m.linkedin)) + '" target="_blank" rel="noopener" style="color:var(--gpf-blue-700);">💼 LinkedIn ↗</a></div>' : '') +
             (m.notes ? '<div style="margin-top:6px; font-size:12px; color:var(--fg-3); padding:6px; background:var(--gpf-blue-100); border-radius:6px;">' + escape(m.notes) + '</div>' : '') +
@@ -2001,6 +2017,76 @@
     return tieneHistorial ? 'seguimiento' : 'primera';
   }
 
+  /* ============================================================
+     A QUIÉN SE LE ESCRIBE — todas las direcciones del cliente
+     ============================================================
+     Un cliente no es una dirección. Sólo 89 de las 1.862 fichas tienen correo
+     de empresa, y 538 lo tienen ÚNICAMENTE en sus contactos: el panel, anclado
+     a studio.email, decía "Sin email registrado" en fichas donde la pestaña
+     Equipo enseña direcciones que funcionan.
+     Además el campo guarda lo que se copió de la tarjeta —
+     "sros@rofisa.com (directo) · info@rofisa.com (general)" —, así que la
+     cadena entera no es una dirección y el mailto que salía de ella no abría
+     nada. Se extraen una a una, con su coletilla, que es justo lo que dice a
+     cuál de las dos hay que escribir.
+     Mismo patrón que waDestinatarios() para WhatsApp. */
+
+  var _RE_MAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+
+  function mailsDeTexto(raw) {
+    var txt = U.readField(raw);
+    if (typeof txt !== 'string' || !txt) return [];
+    var out = [], m;
+    _RE_MAIL.lastIndex = 0;
+    while ((m = _RE_MAIL.exec(txt)) !== null) {
+      // El paréntesis pegado detrás describe ESA dirección, no la ficha.
+      var nota = (txt.slice(m.index + m[0].length).match(/^\s*\(([^)]{1,60})\)/) || [])[1] || '';
+      out.push({ dir: m[0].replace(/[.,;:]+$/, ''), nota: nota.trim() });
+    }
+    return out;
+  }
+
+  /* Orden: primero la(s) de la ficha —es la que se venía usando— y después las
+     del equipo. Sin repetir dirección. */
+  function emailDestinatarios(s) {
+    var out = [], visto = {};
+    function add(dir, quien, detalle, esPersona) {
+      var k = dir.toLowerCase();
+      if (visto[k]) {
+        // La misma dirección puede estar en la ficha y en un contacto. Si el
+        // contacto le pone nombre y apellidos, ese gana: el coach escribe a
+        // una persona, no a una empresa.
+        if (esPersona && !visto[k].persona) {
+          visto[k].persona = 1;
+          visto[k].quien   = quien;
+          visto[k].detalle = detalle || visto[k].detalle;
+        }
+        return;
+      }
+      var reg = { dir: dir, quien: quien || '', detalle: detalle || '', persona: esPersona ? 1 : 0 };
+      visto[k] = reg;
+      out.push(reg);
+    }
+    mailsDeTexto(s.email).forEach(function (e) {
+      add(e.dir, s.name || 'La ficha', e.nota || 'Correo de la ficha', false);
+    });
+    arr(s.team).forEach(function (m) {
+      var quien = m.name || m.nombre || 'Contacto';
+      var rol   = m.role || m.cargo || '';
+      mailsDeTexto(m.email).forEach(function (e) { add(e.dir, quien, e.nota || rol, true); });
+    });
+    return out;
+  }
+
+  /* La dirección activa: la que se eligió si sigue estando, y si no la primera. */
+  function _destActivo(dests) {
+    var elegido = String(window._emailPanelTo || '').toLowerCase();
+    for (var i = 0; i < dests.length; i++) {
+      if (dests[i].dir.toLowerCase() === elegido) return dests[i];
+    }
+    return dests[0] || null;
+  }
+
   /* Construye la URL mailto con from= para Apple Mail */
   function _mailtoUrl(toEmail, subject, body) {
     return 'mailto:' + encodeURIComponent(toEmail) +
@@ -2011,7 +2097,10 @@
 
   /* Renderiza el sheet completo y lo mete en #sheet-content */
   function _renderEmailSheet(studio, activeIdx, iaSubject, iaBody) {
-    var email     = studio.email || '';
+    var dests     = emailDestinatarios(studio);
+    var dest      = _destActivo(dests);
+    var email     = dest ? dest.dir : '';
+    window._emailPanelTo = email;
     var templates = _emailArquetipos();
     var tpl       = templates[activeIdx] || templates[0];
 
@@ -2036,7 +2125,10 @@
               '<span style="font-size:18px; flex:0 0 auto;">📧</span>' +
               '<div style="min-width:0;">' +
                 '<div style="font-size:13px; font-weight:600; color:var(--fg-1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + escape(a.text || '(sin asunto)') + '</div>' +
-                '<div style="font-size:12px; color:var(--fg-3);">' + escape(U.formatDateES(a.createdAt) || a.date || '—') + '</div>' +
+                '<div style="font-size:12px; color:var(--fg-3);">' +
+                  escape(U.formatDateES(a.createdAt) || a.date || '—') +
+                  (a.email || a.to ? escape(' · ' + (a.email || a.to)) : '') +
+                '</div>' +
               '</div>' +
             '</div>'
           );
@@ -2047,6 +2139,22 @@
         (active ? 'background:var(--gpf-blue-700);color:#fff;border-color:var(--gpf-blue-700);'
                 : 'background:transparent;color:var(--fg-2);border-color:var(--line);');
     };
+
+    /* Una sola dirección no necesita elegir; dos o más, sí. La coletilla de la
+       tarjeta va en el title porque es lo que distingue el directo del general. */
+    var destHtml = dests.length < 2 ? '' : (
+      '<div style="margin-bottom:16px;">' +
+        '<div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-3); margin-bottom:8px;">' +
+          '📮 Para &middot; ' + dests.length + ' direcciones en la ficha</div>' +
+        '<div style="display:flex; flex-wrap:wrap; gap:6px;">' +
+          dests.map(function (d, i) {
+            var pie = d.quien + (d.detalle ? ' — ' + d.detalle : '');
+            return '<button style="' + chip(dest && d.dir === dest.dir) + '" title="' + escape(pie) + '" ' +
+              'onclick="window.Screens.detail._emailDest(' + i + ')">' + escape(d.dir) + '</button>';
+          }).join('') +
+        '</div>' +
+      '</div>'
+    );
 
     /* Zona central. Un solo camino: o hay correo generado, o hay que generarlo.
        Antes había una rama distinta para las plantillas fijas; ya no existen. */
@@ -2133,14 +2241,18 @@
             '<div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-3);">Correo electrónico</div>' +
             '<div style="font-size:18px; font-weight:700; color:var(--fg-1); margin-top:2px;">' + escape(studio.name) + '</div>' +
             (email
-              ? '<div style="font-size:13px; color:var(--gpf-blue-700); margin-top:1px;">' + escape(email) + '</div>'
-              : '<div style="font-size:13px; color:var(--fg-3);">Sin email registrado</div>') +
+              ? '<div style="font-size:13px; color:var(--gpf-blue-700); margin-top:1px;">' + escape(email) +
+                  (dest && dest.quien ? ' <span style="color:var(--fg-3);">· ' + escape(dest.quien) + '</span>' : '') +
+                '</div>'
+              : '<div style="font-size:13px; color:var(--fg-3);">Sin email ni en la ficha ni en el equipo</div>') +
           '</div>' +
           '<button onclick="window.closeSheet()" style="background:none; border:none; cursor:pointer; font-size:22px; color:var(--fg-3); padding:4px; margin-top:-4px;">✕</button>' +
         '</div>' +
       '</div>' +
       // Cuerpo scrollable
       '<div style="flex:1; overflow-y:auto; padding:16px 20px; min-height:0;">' +
+        // Destinatarios (sólo si hay más de uno)
+        destHtml +
         // Historial
         '<div style="margin-bottom:16px;">' +
           '<div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-3); margin-bottom:6px;">📬 Historial</div>' +
@@ -2170,6 +2282,7 @@
     window._emailPanelIABody  = '';
     window._emailPanelIAAviso = '';
     window._emailPanelIAMeta  = '';
+    window._emailPanelTo      = '';   // la elige _renderEmailSheet (la primera de la lista)
     // Se abre siempre en 'libre' (índice 0): si llega una semilla desde la
     // Bandeja, el coach deduce el arquetipo de ese texto; y si no llega, lo
     // deduce del historial de la ficha. Elegir chip es opcional, no un paso.
@@ -4443,6 +4556,18 @@
       var body    = window._emailPanelBody || '';
       window.location.href = _mailtoUrl(to, subject, body);
     },
+    // Cambiar de destinatario NO invalida el texto: es el mismo correo a otra
+    // dirección. Si además quiere que lo reescriba para esa persona, está
+    // "Regenerar", que ya lee el destinatario elegido.
+    _emailDest: function (idx) {
+      var studio = window._emailPanelStudio;
+      if (!studio) return;
+      var d = emailDestinatarios(studio)[idx];
+      if (!d) return;
+      window._emailPanelTo = d.dir;
+      _renderEmailSheet(studio, window._emailPanelActive || 0,
+                        window._emailPanelIASub || '', window._emailPanelIABody || '');
+    },
     _emailChip: function (idx) {
       var studio = window._emailPanelStudio;
       if (!studio) return;
@@ -4477,7 +4602,14 @@
       var ciudad  = (typeof studio.city === 'object' ? (studio.city && studio.city.valor) : studio.city) || '';
       var prov    = (typeof studio.province === 'object' ? (studio.province && studio.province.valor) : studio.province) || '';
       var tipoOrg = studio.type || '';
-      var ctc     = (studio.team && studio.team[0]) ? (studio.team[0].name || '') + (studio.team[0].role ? ' (' + studio.team[0].role + ')' : '') : '';
+      /* A quién va dirigido: la persona de la dirección ELEGIDA. Antes siempre
+         era team[0], así que el correo podía saludar a uno y mandarse a otro.
+         Si la dirección es de la ficha (info@…, general), no hay persona
+         detrás: se cae al primero del equipo, que es lo que había. */
+      var destEl  = _destActivo(emailDestinatarios(studio));
+      var ctc     = (destEl && destEl.persona)
+        ? destEl.quien + (destEl.detalle ? ' (' + destEl.detalle + ')' : '')
+        : ((studio.team && studio.team[0]) ? (studio.team[0].name || '') + (studio.team[0].role ? ' (' + studio.team[0].role + ')' : '') : '');
       var lastAct = U.lastInteraction(studio);
       var diasSin = lastAct ? U.diasDesde(lastAct) + ' días sin contacto' : 'sin contacto registrado';
 
