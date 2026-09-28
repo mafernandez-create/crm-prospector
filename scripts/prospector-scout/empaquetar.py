@@ -89,15 +89,47 @@ def hoja_censo(wb, censo):
     return ws
 
 
+def hoja_regantes(wb, censo):
+    """Comunidades de regantes y usuarios de agua, de los censos de la CHE y la ACA.
+
+    Va en hoja aparte de "Censo entes" porque son OTRO registro: los regantes no
+    son entidades locales y no salen del mismo sitio ni traen los mismos campos.
+    Ninguno de los dos censos publica telefono ni correo: la columna de contacto
+    no existe a proposito, para que nadie la de por perdida buscandola.
+    """
+    ws = wb.create_sheet("Censo regantes (oficial)")
+    cols = ["Entidad", "Tipo", "Provincia", "Municipios", "Cuenca", "Organismo",
+            "Magnitud (ha o m3)", "Fuente"]
+    cabecera(ws, cols, {"Entidad": 52, "Municipios": 34, "Cuenca": 22, "Fuente": 30})
+    orden = {"comunidad general de regantes": 0, "comunidad de regantes": 1,
+             "comunidad de usuarios de agua": 2}
+    entes = sorted(censo.get("entidades", []),
+                   key=lambda e: (e.get("provincia") or "zz",
+                                  orden.get(e.get("tipo"), 5),
+                                  e.get("nombre") or ""))
+    for n, e in enumerate(entes, 2):
+        vals = [e.get("nombre"), e.get("tipo"), e.get("provincia"),
+                ", ".join(e.get("municipios") or []), e.get("cuenca"),
+                e.get("organismo"), e.get("magnitud"), e.get("fuente")]
+        for i, v in enumerate(vals, 1):
+            cell = ws.cell(row=n, column=i, value=v)
+            cell.border = BORDE; cell.font = Font(size=10)
+            cell.alignment = Alignment(vertical="top")
+        if orden.get(e.get("tipo"), 5) <= 1:
+            ws.cell(row=n, column=2).fill = PatternFill("solid", fgColor=VERDE)
+    return ws
+
+
 def hoja_adjudicaciones(wb, adjs):
     ws = wb.create_sheet("Adjudicaciones agua")
     cols = ["Fecha", "Provincia", "Organo que licita", "Objeto", "Adjudicatario",
-            "Importe", "Redaccion?"]
-    cabecera(ws, cols, {"Objeto": 60, "Adjudicatario": 34, "Organo que licita": 34})
+            "Importe", "Redaccion?", "Fuente"]
+    cabecera(ws, cols, {"Objeto": 60, "Adjudicatario": 34, "Organo que licita": 34,
+                        "Fuente": 34})
     for n, a in enumerate(adjs, 2):
         vals = [a.get("fecha"), a.get("provincia"), a.get("organo"), a.get("titulo"),
                 a.get("adjudicatario"), a.get("importe"),
-                "SI" if a.get("redaccion") else ""]
+                "SI" if a.get("redaccion") else "", a.get("fuente", "")]
         for i, v in enumerate(vals, 1):
             cell = ws.cell(row=n, column=i, value=v)
             cell.border = BORDE; cell.font = Font(size=10)
@@ -126,9 +158,10 @@ def hoja_leeme(wb, meta, resumen):
         ("es mas peligrosa que una que dice de que pie cojea cada fila.", False, 10),
         ("", False, 10),
         ("DE DONDE SALE CADA HOJA", True, 11),
-        ("  'Censo entes' y 'Adjudicaciones agua' salen de REGISTROS OFICIALES, no de", False, 10),
-        ("  busquedas: son las dos hojas fiables por construccion. Empieza por ahi.", False, 10),
-        ("  Las demas hojas las levanto un barrido automatico y estan revisadas una a una,", False, 10),
+        ("  Las hojas que llevan '(registro)' u '(oficial)' en el nombre salen de un", False, 10),
+        ("  REGISTRO PUBLICO descargado entero, no de una busqueda: son fiables por", False, 10),
+        ("  construccion y no hay que verificarlas. Empieza por ahi.", False, 10),
+        ("  Las demas las levanto un barrido automatico y estan revisadas una a una,", False, 10),
         ("  pero siguen siendo una pista, no un dato.", False, 10),
         ("", False, 10),
         ("EL OBJETIVO NO ES VENDER", True, 11),
@@ -136,6 +169,12 @@ def hoja_leeme(wb, meta, resumen):
         ("Por eso la hoja de ingenierias va la primera: quien redacta decide la tuberia.", False, 10),
         ("Quien construye ya solo compra lo que el pliego dice.", False, 10),
         ("", False, 10),
+    ]
+    if meta.get("notas"):
+        filas += [("LO QUE HAY QUE SABER ANTES DE LLAMAR", True, 11)]
+        filas += [("  " + n, False, 10) for n in meta["notas"]]
+        filas += [("", False, 10)]
+    filas += [
         ("RESUMEN", True, 11),
     ]
     for texto, negrita, tam in filas:
@@ -152,6 +191,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--datos", required=True, help="JSON con meta, hojas, adjudicaciones")
     ap.add_argument("--censo", help="censo-*.json a volcar tal cual")
+    ap.add_argument("--regantes", help="censo-regantes-*.json (otro registro)")
     ap.add_argument("--salida", default=os.path.expanduser("~/Downloads"))
     a = ap.parse_args()
 
@@ -170,6 +210,10 @@ def main():
         censo = json.load(io.open(a.censo, encoding="utf-8"))
         hoja_censo(wb, censo)
         resumen.append(f"Censo entes: {len(censo.get('mancomunidades', []))} entes oficiales")
+    if a.regantes:
+        reg = json.load(io.open(a.regantes, encoding="utf-8"))
+        hoja_regantes(wb, reg)
+        resumen.append(f"Censo regantes: {len(reg.get('entidades', []))} comunidades y usuarios de agua")
     hoja_leeme(wb, meta, resumen)
 
     os.makedirs(os.path.expanduser(a.salida), exist_ok=True)

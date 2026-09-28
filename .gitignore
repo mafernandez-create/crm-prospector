@@ -68,3 +68,7 @@ AUDITORIA.md
 # Este repo se autopublica en gh-pages, que es PUBLICO: si esto se sube, se ve.
 .env.local
 backups/
+
+# PDFs de los censos de la CHE descargados al construir censo-regantes (2,4 MB).
+# Se vuelven a bajar solos; lo que vale es el JSON resultante, que si se versiona.
+scripts/prospector-scout/censo/.pdf-cache/
