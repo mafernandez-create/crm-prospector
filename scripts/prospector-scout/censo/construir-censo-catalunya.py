@@ -34,16 +34,35 @@ TIPOS_ENTES = ["Mancomunitats", "Consorcis", "Ens de gesti\u00f3", "Entitats met
                "Soc. Merc. Capital \u00cdntegrament Local"]
 
 # Tres estados, no dos: generica significa "hay que mirarlo", nunca "no".
-AGUA = re.compile(r"aig[uü]|agua|aqua|sanejament|saneamiento|abastament|abastecim|"
-                  r"depurad|clavegueram|alcantarill|hidr[au]|residuals|residuales|"
-                  r"edar|potable|reg(?:ants|antes|adiu)|s[eè]quia|acequia|canal\b|"
-                  r"conca|cuenca|riu\b|ter\b|llobregat|segarra|urgell", re.I)
+#
+# La primera version metia los TOPONIMOS de los rios en la lista de agua
+# (llobregat, urgell, segarra, conca) y colaba como operadores de agua el
+# Consorci de Turisme del Baix Llobregat, el Museu de la Conca de Barbera y la
+# Radiodifusio de Cornella de Llobregat. Un nombre de rio dentro del nombre de
+# un ente no dice absolutamente nada de a que se dedica. Tampoco valia "ter\b",
+# que engancha cualquier palabra acabada en -ter ("Benester e Salut").
+# Se quedan fuera a proposito: caeran en generica, que es la respuesta honesta.
+#
+# Fuerte = no admite otra lectura.
+AGUA_FUERTE = re.compile(r"aig[uü]|\bagua|aqua|sanejament|saneamiento|"
+                         r"depurad|clavegueram|alcantarill|hidr[aà]ul|"
+                         r"residuals|residuales|edar|potable|"
+                         r"\bregants|\bregantes|regadiu|regad[ií]o|"
+                         r"s[eè]quia|acequia|abast\w* d\w* (?:aig|agua)", re.I)
+# Veto: si el nombre dice a que se dedica y no es agua, se cierra ahi.
 NO_AGUA = re.compile(r"esport|deport|cultur|m[uú]sic|teatre|bibliotec|museu|museo|"
                      r"turis|ense[nñ]|escola|educa|social|sanitari|salut|"
                      r"bomber|forestal|incendi|adf\b|ocupaci|treball|"
-                     r"comer[cç]|promoci[oó] econ|fira|mercat|"
+                     r"comer[cç]|promoci[oó] econ|fira|mercat|mercado|"
                      r"cementiri|funerari|taxi|transport escolar|"
-                     r"inform[aà]tic|telecomunicac|energ", re.I)
+                     r"inform[aà]tic|telecomunicac|energ|"
+                     r"escombrari|\bresidus\b|deixalleri|patrimoni|castell|"
+                     r"radiodif|persones|benestar|ben[eè]ster|agrari|"
+                     r"habitatge|vivienda|urbanisme", re.I)
+# Debil: canal o rio como OBJETO del ente, no como apellido geografico. Solo
+# cuenta si el veto no ha disparado antes.
+AGUA_DEBIL = re.compile(r"\bcanal\b|\bcanals\b|\briu\b|\bter\b|"
+                        r"conca hidrogr|\bcuenca\b|\bcicle de l.aigua", re.I)
 
 
 def norm(s):
@@ -65,11 +84,14 @@ def bajar(where, limite=2000):
 
 
 def clasificar(nombre, tipo):
+    """El orden importa: fuerte gana al veto, y el veto gana a la pista debil."""
     n = norm(nombre)
-    if AGUA.search(n):
+    if AGUA_FUERTE.search(n):
         return "si"
     if NO_AGUA.search(n):
         return "no"
+    if AGUA_DEBIL.search(n):
+        return "si"
     return "generica"
 
 
