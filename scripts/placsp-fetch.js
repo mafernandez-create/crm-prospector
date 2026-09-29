@@ -207,6 +207,59 @@ function extractFromAtomEntry(entryXml) {
   return { id, title, link, summary, updated, cpvCodes, importe, adjudicatarios, organismo, lugar };
 }
 
+// ──────────────────────────────────────────────────────────────────────
+// PLACSP Monitor — fuente unica de adjudicaciones (29-sep-2026)
+// GET {PLACSP_MONITOR_URL}/api/crm/adjudicaciones?desde=&hasta=&cpv=
+// con cabecera X-Cron-Secret. Devuelve cada adjudicacion con el mismo id ATOM
+// que usaba este script, asi que los upserts caen sobre las filas de siempre.
+// Ventana por defecto: ultimos 3 dias por fecha de actualizacion en el Monitor
+// (se solapa a proposito: el upsert por id no duplica y un dia sin red no deja
+// hueco). DESDE/HASTA (AAAA-MM-DD) la pisan para rellenar a mano.
+// ──────────────────────────────────────────────────────────────────────
+const MONITOR_URL = (process.env.PLACSP_MONITOR_URL || 'https://placsp-monitor.fly.dev').replace(/\/$/, '');
+const MONITOR_SECRET = process.env.PLACSP_MONITOR_SECRET || '';
+const VENTANA_DIAS = parseInt(process.env.VENTANA_DIAS || '3', 10);
+
+async function fetchDesdeMonitor() {
+  if (!MONITOR_SECRET) throw new Error('PLACSP_MONITOR_SECRET no configurado en .env.local');
+  const desde = DESDE || new Date(Date.now() - VENTANA_DIAS * 86400000).toISOString().slice(0, 10);
+  const qs = new URLSearchParams({ desde, cpv: CPV_RELEVANTES.join(','), limite: '5000' });
+  if (HASTA) qs.set('hasta', HASTA);
+  const url = `${MONITOR_URL}/api/crm/adjudicaciones?${qs}`;
+  log('Pidiendo adjudicaciones al Monitor:', url.replace(/cpv=[^&]*/, 'cpv=…'));
+  let res;
+  for (let intento = 1; intento <= 3; intento++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 120000);
+    try {
+      res = await fetch(url, { headers: { 'X-Cron-Secret': MONITOR_SECRET }, signal: ctrl.signal });
+      clearTimeout(timer);
+      if (res.status >= 500 && intento < 3) { await sleep(10000 * intento); continue; }
+      break;
+    } catch (e) {
+      clearTimeout(timer);
+      if (isTransientNetworkError(e) && intento < 3) { await sleep(10000 * intento); continue; }
+      if (isTransientNetworkError(e)) { e.transientNetwork = true; e.message = 'Monitor inalcanzable: ' + e.message; }
+      throw e;
+    }
+  }
+  if (!res.ok) throw new Error(`Monitor HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const body = await res.json();
+  const filtered = (body.adjudicaciones || []).map(a => ({
+    id: a.id,
+    title: a.titulo || '',
+    link: a.link || '',
+    summary: '',
+    updated: a.fecha || (a.updated_at || '').slice(0, 10),
+    cpvCodes: a.cpv || [],
+    importe: a.importe == null ? null : Number(a.importe),
+    adjudicatarios: (a.adjudicatarios || []).slice(0, 5),
+    organismo: a.organismo || '',
+    lugar: a.lugar || '',
+  }));
+  return { filtered, totalMonitor: body.total || filtered.length };
+}
+
 function filterByCPV(adjudicaciones) {
   return adjudicaciones.filter(a => a.cpvCodes.some(code => CPV_RELEVANTES.includes(code)));
 }
@@ -456,38 +509,16 @@ async function crosscheckSupabase(adjudicaciones) {
 async function main() {
 
   log('PLACSP Daily Crosscheck');
-  log(`Filtros: desde=${DESDE||'incremental_24h'} hasta=${HASTA||'now'} limite=${LIMITE}`);
+  log(`Filtros: desde=${DESDE||('ultimos_'+VENTANA_DIAS+'d')} hasta=${HASTA||'now'} limite=${LIMITE}`);
 
-  const xml = await fetchAtom(ATOM_URL);
-  const entries = parseAtomEntries(xml);
-  log(`Entradas en feed: ${entries.length}`);
-
-  const parsed = entries.map(extractFromAtomEntry);
-  log(`Adjudicaciones parseadas: ${parsed.length}`);
-
-  // Debug: log estructura de los primeros 2 entries para diagnosticar parser
-  if (parsed.length > 0) {
-    const withAdj = parsed.filter(p => p.adjudicatarios.length > 0);
-    log(`  Con adjudicatarios parseados: ${withAdj.length}/${parsed.length}`);
-    if (withAdj.length === 0 && entries.length > 0) {
-      // Mostrar tags relevantes del primer entry para ajustar regex
-      const sample = entries[0].slice(0, 3000);
-      const tags = [...new Set((sample.match(/<[a-z-]+:[A-Z][a-zA-Z]+/g) || []))].slice(0, 30);
-      log('  Sample namespaces del primer entry:', tags.join(', '));
-    } else if (withAdj.length > 0) {
-      log(`  Sample adjudicatario: "${withAdj[0].adjudicatarios[0]}"`);
-    }
-  }
-
-  // Filtro fecha si DESDE/HASTA presentes
-  let filtered = parsed;
-  if (DESDE) {
-    filtered = filtered.filter(a => (a.updated || '').slice(0, 10) >= DESDE);
-  }
-  if (HASTA) {
-    filtered = filtered.filter(a => (a.updated || '').slice(0, 10) <= HASTA);
-  }
-  log(`Tras filtro fechas: ${filtered.length}`);
+  // Fuente: PLACSP Monitor (29-sep-2026). Antes se bajaba aqui la primera
+  // pagina del feed ATOM y se perdia mas del 90 % (13 adjudicaciones en 30 dias
+  // frente a 246 del Monitor con estos mismos CPV). Ahora hay UNA sola descarga
+  // de la PLACSP, la del Monitor, y este script solo cruza con la cartera.
+  const { filtered, totalMonitor } = await fetchDesdeMonitor();
+  log(`Adjudicaciones recibidas del Monitor: ${filtered.length} (de ${totalMonitor})`);
+  const withAdj = filtered.filter(p => p.adjudicatarios.length > 0);
+  if (withAdj.length > 0) log(`  Sample adjudicatario: "${withAdj[0].adjudicatarios[0]}"`);
 
   // Filtro CPV
   const relevantes = filterByCPV(filtered).slice(0, LIMITE);
@@ -496,7 +527,7 @@ async function main() {
   if (relevantes.length === 0) {
     log('Sin adjudicaciones relevantes hoy.');
     // Feed descargado y procesado OK → run sano aunque no haya nada relevante.
-    await supaWriteHeartbeat({ sent: 0, matched: 0, created: 0, feed_entries: entries.length });
+    await supaWriteHeartbeat({ sent: 0, matched: 0, created: 0, feed_entries: totalMonitor });
     return;
   }
 
@@ -541,7 +572,7 @@ async function main() {
     sent: relevantes.length,
     matched: supaResult ? supaResult.matched : 0,
     created: supaResult ? supaResult.created : 0,
-    feed_entries: entries.length,
+    feed_entries: totalMonitor,
   });
 }
 
