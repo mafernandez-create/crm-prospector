@@ -19,13 +19,8 @@ const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const SUPABASE_ENABLED = !!(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 
-// CPV relevantes según §19.3 (ingeniería + obra hidráulica + saneamiento)
-const CPV_RELEVANTES = [
-  '71300000','71310000','71311000','71320000','71321000','71322000',
-  '45232000','45232100','45232120','45232150','45232300','45232400',
-  '45231100','45231110','45231300','45231400',
-  '45240000','45252100','45252200',
-];
+// CPV relevantes y filtro de relevancia: scripts/placsp-relevancia.js (29-sep-2026)
+const { CPV_RELEVANTES, filtrarRelevantes } = require('./placsp-relevancia');
 
 // URL del feed ATOM oficial de PLACSP
 const ATOM_URL = 'https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom';
@@ -521,8 +516,9 @@ async function main() {
   if (withAdj.length > 0) log(`  Sample adjudicatario: "${withAdj[0].adjudicatarios[0]}"`);
 
   // Filtro CPV
-  const relevantes = filterByCPV(filtered).slice(0, LIMITE);
-  log(`Tras filtro CPV: ${relevantes.length}`);
+  const { ok: filtradas, caidas } = filtrarRelevantes(filtered);
+  const relevantes = filtradas.slice(0, LIMITE);
+  log(`Tras filtro de relevancia: ${relevantes.length} (fuera por CPV ${caidas.cpv}, por ser otra cosa ${caidas.otra_cosa}, ingenieria sin agua ${caidas.ingenieria_sin_agua})`);
 
   if (relevantes.length === 0) {
     log('Sin adjudicaciones relevantes hoy.');
