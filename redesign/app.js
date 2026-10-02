@@ -747,6 +747,92 @@
       .toLowerCase().replace(/\s+/g, ' ').trim();
   }
 
+  // Municipios: cruzar studios.city (escrito a mano) con el nombre oficial del INE
+  // que usa el Atlas del Agua. Copia de scripts/atlas-agua/lib-muni.mjs — la
+  // canonica es esa; scripts/tests/unit/test-muni-claves.js comprueba que no divergen.
+  var MUNI_ARTS = "el|la|los|las|l'|els|es|sa|ses|a|o|as|os";
+  var RX_MUNI_COMA = new RegExp('^(.*), (' + MUNI_ARTS + ')$', 'i');
+  var RX_MUNI_PAREN = new RegExp('^(.*?)\\s*\\((' + MUNI_ARTS + ')\\)$', 'i');
+
+  function normMuni(s) {
+    return (s || '')
+      .replace(/[\u2019\u02bc\u00b4\u0060]/g, "'")
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  // «Ejido, El» → «El Ejido»; «Carlota (La)» → «La Carlota».
+  function desinvertirMuni(nombre) {
+    var n = (nombre || '').trim();
+    var m = n.match(RX_MUNI_COMA) || n.match(RX_MUNI_PAREN);
+    if (!m) return n;
+    var art = m[2].charAt(0).toUpperCase() + m[2].slice(1).toLowerCase();
+    var base = m[1].trim();
+    return art.charAt(art.length - 1) === "'" ? art + base : art + ' ' + base;
+  }
+
+  function _sinArticuloMuni(k) {
+    return k
+      .replace(/\b([dln])'\s*/g, function (_, l) { return l === 'd' ? 'de ' : l + 'a '; })
+      .replace(new RegExp('^(' + MUNI_ARTS + ') ', 'i'), '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  // Nombres castellanos que el INE retiro. El CRM los tiene como se dicen; el
+  // Atlas usa el nombre oficial, que es el unico. «Jalon» y «Xalo» no se parecen,
+  // asi que ninguna regla los puentea: hay que nombrarlos. Tabla gemela de
+  // EXONIMOS en scripts/atlas-agua/lib-muni.mjs — si se toca una, tocar la otra.
+  var MUNI_EXONIMOS = {
+    'adsubia':               "l'Atzúbia",
+    'alcocer de planes':     'Alcosser',
+    'alcolecha':             'Alcoleja',
+    'alqueria de aznar':     "l'Alqueria d'Asnar",
+    'benichembla':           'Benigembla',
+    'benimasot':             'Benimassot',
+    'callosa de ensarria':   "Callosa d'en Sarrià",
+    'calpe':                 'Calp',
+    'cuatretondeta':         'Quatretondeta',
+    'facheca':               'Fageca',
+    'gayanes':               'Gaianes',
+    'guadalest':             'el Castell de Guadalest',
+    'jalon':                 'Xaló',
+    'valle de alcala':       "la Vall d'Alcalà",
+    'vergel':                'el Verger',
+    'castellon de la plana': 'Castelló de la Plana'
+  };
+
+  // Todas las grafias normalizadas con las que un municipio puede aparecer.
+  function clavesMunicipio(nombre) {
+    var out = [];
+    function add(k) { if (k && out.indexOf(k) === -1) out.push(k); }
+    function anadir(n) {
+      var base = [n, desinvertirMuni(n)].filter(Boolean);
+      base.forEach(function (v) {
+        [v, v.replace(/-/g, ' ')].forEach(function (w) {
+          var k = normMuni(w);
+          if (k) { add(k); add(_sinArticuloMuni(k)); }
+        });
+        if (v.indexOf('/') !== -1) {
+          v.split('/').forEach(function (p) {
+            [p, desinvertirMuni(p)].forEach(function (w) {
+              var k = normMuni(w);
+              if (k) { add(k); add(_sinArticuloMuni(k)); }
+            });
+          });
+        }
+      });
+    }
+    anadir(nombre);
+    // Una sola pasada: ningun nombre oficial es a su vez clave de MUNI_EXONIMOS.
+    out.slice().forEach(function (k) {
+      if (MUNI_EXONIMOS[k]) anadir(MUNI_EXONIMOS[k]);
+    });
+    return out;
+  }
+
   // Normalizador para búsquedas de texto libre (listado, ⌘K): sin tildes,
   // minúsculas y con rayas/guiones/puntuación convertidos en espacio, para que
   // «ica ingenieria» encuentre «ICA — Ingeniería y Consultoría de Aguas S.L.».
@@ -833,6 +919,9 @@
     PROVINCIAS: PROVINCIAS,
     LIMITROFES: LIMITROFES,
     normProv: normProv,
+    normMuni: normMuni,
+    desinvertirMuni: desinvertirMuni,
+    clavesMunicipio: clavesMunicipio,
     normSearch: normSearch,
     provinciasCercanas: provinciasCercanas,
     formatDateES: formatDateES,

@@ -202,6 +202,18 @@
     v.innerHTML = renderFull(studio);
     wireCTAs(studio);
 
+    // Contexto de agua del municipio (Atlas). Si no está la tabla o el municipio
+    // no se reconoce, el hueco se queda vacío: más vale nada que un aviso inútil.
+    if (window.AtlasAgua) {
+      var _idAtlas = id;
+      window.AtlasAgua.deFicha(studio).then(function (r) {
+        if (State.currentStudioId !== _idAtlas) return;
+        if (!r || r.estado !== 'ok') return;
+        var hueco = document.getElementById('detail-atlas-agua');
+        if (hueco) hueco.innerHTML = atlasAguaBlock(r.fila);
+      }).catch(function () {});
+    }
+
     // Carga asíncrona del briefing más reciente para actualizar la preview
     if (window.Data && window.Data.getBriefingItems) {
       var _renderedId = id;
@@ -263,6 +275,8 @@
       '<div style="max-width:720px; margin:0 auto; padding-bottom:60px;">' +
         headerBlock(s) +
         _enrichBanner(s) +
+        /* Lo rellena render() al volver el Atlas; vacío no ocupa nada. */
+        '<div id="detail-atlas-agua"></div>' +
         tabBar(s) +
         '<div id="detail-panel" style="margin-top:16px;">' +
           renderPanel(s, _tab) +
@@ -1226,6 +1240,62 @@
             '</div>'
           );
         }).join('') +
+      '</div>'
+    );
+  }
+
+  /* ¿Quién gestiona el agua en este municipio? Datos del Atlas del Agua GPF
+     (tabla atlas_municipios, solo lectura). Importa en prescripción: con operador
+     el interlocutor del ciclo del agua es la empresa; en gestión directa es el
+     propio ayuntamiento. Y el organismo de cuenca es quien licita las redacciones. */
+  function atlasAguaBlock(f) {
+    const linea = function (etq, valor, extra) {
+      if (!valor) return '';
+      return (
+        '<div style="display:flex; gap:8px; padding:4px 0; font-size:13px;">' +
+          '<span style="color:var(--fg-3); min-width:104px; flex-shrink:0;">' + etq + '</span>' +
+          '<span style="min-width:0;">' + valor + (extra || '') + '</span>' +
+        '</div>'
+      );
+    };
+    const tel = function (t) {
+      if (!t) return '';
+      return ' \u00b7 <a href="tel:' + escape(String(t).replace(/\s+/g, '')) + '" ' +
+        'style="color:var(--gpf-blue-700); white-space:nowrap;">' + escape(t) + '</a>';
+    };
+    const web = function (u) {
+      if (!u) return '';
+      return ' <a href="' + escape(U.safeHref(u)) + '" target="_blank" rel="noopener" ' +
+        'style="font-size:11px; color:var(--gpf-blue-700);">\u2197</a>';
+    };
+
+    const directa = f.gestion === 'directa';
+    const gestor = directa
+      ? '<strong>Gesti\u00f3n directa del ayuntamiento</strong>' +
+        '<div style="font-size:11px; color:var(--fg-3);">Aqu\u00ed el cliente del ciclo del agua es el propio ayuntamiento.</div>'
+      : '<strong>' + escape(f.operador || '\u2014') + '</strong>' +
+        (f.grupo && f.grupo !== f.operador ? ' <span style="color:var(--fg-3);">(grupo ' + escape(f.grupo) + ')</span>' : '') +
+        (f.operador_tipo ? '<div style="font-size:11px; color:var(--fg-3);">' + escape(f.operador_tipo) + '</div>' : '');
+
+    const oficina = f.oficina_localidad
+      ? escape(f.oficina_localidad) +
+        (f.oficina_km != null && f.oficina_km !== '' ? ' <span style="color:var(--fg-3);">a ' + escape(String(f.oficina_km)) + ' km</span>' : '') +
+        tel(f.oficina_telefono) + web(f.oficina_web)
+      : '';
+
+    return (
+      '<span class="eyebrow" style="display:block; margin:16px 0 8px;">\ud83d\udca7 Qui\u00e9n gestiona el agua</span>' +
+      '<div class="card" style="padding:12px 14px; margin-bottom:16px;">' +
+        linea('Operador', gestor) +
+        linea('Demarcaci\u00f3n', escape(f.demarcacion || '')) +
+        linea('Organismo', escape(f.organismo || ''), tel(f.organismo_telefono) + web(f.organismo_web)) +
+        linea('Oficina', oficina) +
+        '<div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--line); ' +
+          'font-size:11px; color:var(--fg-3);">' +
+          'Atlas del Agua GPF \u00b7 ' + escape(f.municipio || '') +
+          (f.fecha_datos ? ' \u00b7 datos de ' + escape(String(f.fecha_datos).slice(0, 10)) : '') +
+          (f.fuente ? ' \u00b7 ' + escape(String(f.fuente).slice(0, 90)) : '') +
+        '</div>' +
       '</div>'
     );
   }

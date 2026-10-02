@@ -169,6 +169,13 @@
     return res;
   }
 
+  /* GET autenticado para tablas auxiliares de solo lectura (atlas_municipios).
+     Expone la sesión y los headers sin exponer sbFetch, que también escribe. */
+  async function sbGet(pathQ) {
+    const res = await sbFetch(pathQ, { method: 'GET' });
+    return res.json();
+  }
+
   /* Pagina todos los rows de una tabla con Range header.
      PostgREST limita por defecto a 1000 rows/req → iterar hasta vacío. */
   async function _fetchAllRows(pathQ, pageSize) {
@@ -496,6 +503,7 @@
   window.DataSupabase = {
     SUPABASE_URL: SUPABASE_URL,
     REST_BASE: REST_BASE,
+    sbGet: sbGet,
     loadAll: loadAll,
     getDoc: getDoc,
     listCollection: listCollection,

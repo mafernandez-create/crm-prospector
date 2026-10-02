@@ -1,0 +1,12 @@
+-- atlas_municipios es una tabla DERIVADA del Atlas del Agua: se regenera con
+-- atlas-del-agua-gpf/scripts/exportar_crm.py y se recarga con
+-- scripts/atlas-agua/cargar.mjs (service role). Ninguna pantalla del CRM escribe
+-- aquí, así que tampoco debe poder.
+--
+-- Hasta ahora eso lo sostenía SOLO la RLS: la única política es un SELECT para
+-- `authenticated`, pero a nivel SQL los roles anon y authenticated conservaban
+-- el GRANT de INSERT/UPDATE/DELETE/TRUNCATE que da el schema público. Es decir,
+-- una sola red: el día que alguien apague la RLS para depurar algo, la tabla
+-- queda escribible desde el navegador. Esto pone la segunda.
+-- Detectado por el verificador el 2-oct-2026.
+revoke insert, update, delete, truncate on public.atlas_municipios from anon, authenticated;
