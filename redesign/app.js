@@ -701,6 +701,21 @@
     return u;                                          // relativo sin esquema
   }
 
+  /* Igual que safeHref, pero para una web EXTERNA que viene sin esquema. Los
+     datos del Atlas del Agua traen el dominio pelado («chebro.es», 8.183 de las
+     8.213 filas), y safeHref lo trata —con razón, para enlaces internos— como
+     ruta relativa: en producción «chebro.es» resolvía a
+     …/crm-prospector/chebro.es (404) y en la PWA te sacaba del SPA perdiendo la
+     ficha. Aquí sabemos que es un dominio, así que se le pone el https. */
+  function webHref(url) {
+    var u = String(url == null ? '' : url).trim();
+    if (!u) return '';
+    if (/^[a-z][a-z0-9+.\-]*:/i.test(u) || u.charAt(0) === '/' || u.charAt(0) === '#') {
+      return safeHref(u);
+    }
+    return 'https://' + u.replace(/^\/+/, '');
+  }
+
   /* ============================================================
      PROVINCIAS — lista canónica, normalizador y mapa de limítrofes.
      Fuente única compartida por bandeja.js (referencias cruzadas) y
@@ -833,6 +848,24 @@
     return out;
   }
 
+  // Las mismas claves, cada una con su rango de especificidad: 0 = grafia propia
+  // del municipio (el nombre tal cual, y desinvertido), 1 = grafia derivada (sin
+  // articulo, mitad de una barra, sin guion, exonimo). Hace falta porque una
+  // clave derivada de un municipio puede ser la grafia PROPIA de otro: «Piñar»
+  // normaliza a `pinar`, que es tambien la clave sin articulo de «El Pinar», y
+  // son pueblos distintos en demarcaciones distintas. Gemela de
+  // clavesMunicipioRango en scripts/atlas-agua/lib-muni.mjs.
+  function clavesMunicipioRango(nombre) {
+    var propias = [];
+    [nombre, desinvertirMuni(nombre)].filter(Boolean).forEach(function (v) {
+      var k = normMuni(v);
+      if (k && propias.indexOf(k) === -1) propias.push(k);
+    });
+    return clavesMunicipio(nombre).map(function (c) {
+      return { clave: c, rango: propias.indexOf(c) === -1 ? 1 : 0 };
+    });
+  }
+
   // Normalizador para búsquedas de texto libre (listado, ⌘K): sin tildes,
   // minúsculas y con rayas/guiones/puntuación convertidos en espacio, para que
   // «ica ingenieria» encuentre «ICA — Ingeniería y Consultoría de Aguas S.L.».
@@ -916,12 +949,14 @@
     fechaConfirmacion: fechaConfirmacion,
     confirmacionesDeSchedule: confirmacionesDeSchedule,
     safeHref: safeHref,
+    webHref: webHref,
     PROVINCIAS: PROVINCIAS,
     LIMITROFES: LIMITROFES,
     normProv: normProv,
     normMuni: normMuni,
     desinvertirMuni: desinvertirMuni,
     clavesMunicipio: clavesMunicipio,
+    clavesMunicipioRango: clavesMunicipioRango,
     normSearch: normSearch,
     provinciasCercanas: provinciasCercanas,
     formatDateES: formatDateES,

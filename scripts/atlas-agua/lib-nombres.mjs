@@ -67,7 +67,15 @@ export function indexarNombres(todas, toponimos = new Set()) {
     const cumple = toks.length
       ? x => toks.every(t => palabra(t, x.nuc))
       : x => palabra(nuc, x.nuc);
-    return porNombre.filter(cumple).map(x => ({ ficha: x.s, exacta: x.nuc === nuc }));
+    /* `frase`: el núcleo del Atlas entero aparece dentro del de la ficha como
+       frase seguida, no solo sus palabras sueltas y dispersas. Es el escalón
+       entre «el nombre coincide» y «comparten una palabra», y sirve para la
+       regla de abajo. */
+    return porNombre.filter(cumple).map(x => ({
+      ficha: x.s,
+      exacta: x.nuc === nuc,
+      frase: x.nuc !== nuc && palabra(nuc, x.nuc),
+    }));
   }
 
   /** Hasta `limite` candidatas, las exactas primero. Vacío = no la encuentro. */
@@ -82,12 +90,26 @@ export function indexarNombres(todas, toponimos = new Set()) {
       for (const c of _unaVariante(nuc)) {
         const prev = vistas.get(c.ficha.id);
         if (!prev) vistas.set(c.ficha.id, c);
-        else if (c.exacta) prev.exacta = true;
+        else {
+          if (c.exacta) prev.exacta = true;
+          if (c.frase) prev.frase = true;
+        }
       }
     }
-    const res = soloExactas ? [...vistas.values()].filter(c => c.exacta) : [...vistas.values()];
+    /* Cuando lo único que distingue al nombre es un topónimo, la igualdad de
+       núcleo sola era demasiado estrecha: «Aguas de Jerez» no reconocía su
+       propia ficha, «Aguas de Jerez Empresa Municipal SA (AJEMSA)», porque la
+       ficha trae cola. Vale también que el nombre del Atlas esté entero y
+       seguido dentro del de la ficha. Lo que sigue fuera es justo el ruido que
+       la regla existe para parar: «Empresa Municipal … de Granada» no está
+       seguido dentro de «Ayuntamiento de Granada», así que no engancha los
+       ayuntamientos del mismo pueblo. */
+    const res = soloExactas
+      ? [...vistas.values()].filter(c => c.exacta || c.frase)
+      : [...vistas.values()];
     return res
-      .sort((a, b) => (b.exacta - a.exacta) || String(a.ficha.name).length - String(b.ficha.name).length)
+      .sort((a, b) => (b.exacta - a.exacta) || (b.frase - a.frase) ||
+                      String(a.ficha.name).length - String(b.ficha.name).length)
       .slice(0, limite);
   }
 

@@ -1265,7 +1265,7 @@
     };
     const web = function (u) {
       if (!u) return '';
-      return ' <a href="' + escape(U.safeHref(u)) + '" target="_blank" rel="noopener" ' +
+      return ' <a href="' + escape(U.webHref(u)) + '" target="_blank" rel="noopener" ' +
         'style="font-size:11px; color:var(--gpf-blue-700);">\u2197</a>';
     };
 

@@ -10,7 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { normMuni, clavesMunicipio } from './lib-muni.mjs';
+import { normMuni, clavesMunicipio, clavesMunicipioRango } from './lib-muni.mjs';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 export const RAIZ = path.resolve(AQUI, '..', '..');
@@ -108,25 +108,46 @@ export function toponimos(atlas) {
  */
 const clavesProvincia = clavesMunicipio;
 
+/**
+ * De todos los municipios que reclaman una clave, el que tiene derecho a ella.
+ * Gana el rango más específico (la grafía propia le gana a la derivada); si en
+ * ese rango siguen quedando municipios distintos, la clave es inservible y no
+ * se resuelve: antes un hueco que el organismo de cuenca de otro pueblo.
+ */
+function _dueno(reclamos) {
+  if (!reclamos || !reclamos.length) return null;
+  const mejor = Math.min(...reclamos.map(x => x.rango));
+  const top = reclamos.filter(x => x.rango === mejor);
+  return new Set(top.map(x => x.fila.ine)).size === 1 ? top[0].fila : null;
+}
+
 export function indexarAtlas(atlas) {
-  const porProv = new Map(), porMuni = new Map();
+  // Se acumulan TODOS los reclamos de cada clave y se decide al final. Quedarse
+  // con el primero que llega hacía que el orden de las filas eligiera por
+  // nosotros: con `order=municipio`, «El Pinar» le robaba `pinar` a «Píñar».
+  const reclProv = new Map(), reclMuni = new Map();
   for (const r of atlas) {
-    const cs = clavesMunicipio(r.municipio);
-    for (const c of cs) {
-      if (!porMuni.has(c)) porMuni.set(c, []);
-      porMuni.get(c).push(r);
+    for (const { clave, rango } of clavesMunicipioRango(r.municipio)) {
+      if (!reclMuni.has(clave)) reclMuni.set(clave, []);
+      reclMuni.get(clave).push({ fila: r, rango });
       for (const p of clavesProvincia(r.provincia)) {
-        const k = p + '|' + c;
-        if (!porProv.has(k)) porProv.set(k, r);
+        const k = p + '|' + clave;
+        if (!reclProv.has(k)) reclProv.set(k, []);
+        reclProv.get(k).push({ fila: r, rango });
       }
     }
   }
+  const porProv = new Map(), porMuni = new Map();
+  for (const [k, v] of reclProv) { const f = _dueno(v); if (f) porProv.set(k, f); }
+  for (const [k, v] of reclMuni) { const f = _dueno(v); if (f) porMuni.set(k, f); }
   return { porProv, porMuni };
 }
 
 export function resolver(idx, city, province) {
   if (!city) return null;
-  const cs = clavesMunicipio(city);
+  // Las claves de la ficha se prueban también por especificidad: la grafía
+  // propia antes que la derivada.
+  const cs = clavesMunicipioRango(city).sort((a, b) => a.rango - b.rango).map(x => x.clave);
   for (const p of clavesProvincia(province)) {
     for (const c of cs) {
       const r = idx.porProv.get(p + '|' + c);
@@ -136,10 +157,8 @@ export function resolver(idx, city, province) {
   // Respaldo: el municipio es único en toda España, así que da igual que la
   // provincia de la ficha no cuadre. Se avisa en la `via` porque es más frágil.
   for (const c of cs) {
-    const cand = idx.porMuni.get(c);
-    if (cand && new Set(cand.map(x => x.ine)).size === 1) {
-      return { fila: cand[0], via: 'solo municipio (la provincia de la ficha no cuadra)' };
-    }
+    const r = idx.porMuni.get(c);
+    if (r) return { fila: r, via: 'solo municipio (la provincia de la ficha no cuadra)' };
   }
   return null;
 }

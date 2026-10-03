@@ -103,7 +103,7 @@ async function main() {
       ];
     })));
   console.log();
-  console.log('> `=` el nombre coincide, `~` solo una palabra. **Sin verificar**: ábrela antes de dar nada por hecho.');
+  console.log('> `=` el nombre es el mismo; `~` la ficha lo contiene o comparten una palabra. **Sin verificar**: ábrela antes de dar nada por hecho.');
   console.log();
 
   // ── Lo que habría que hacer, sin hacerlo ───────────────────────────────────

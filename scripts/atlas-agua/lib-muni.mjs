@@ -107,3 +107,26 @@ export function clavesMunicipio(nombre) {
   }
   return [...out];
 }
+
+/**
+ * Las mismas claves, cada una con su rango de especificidad:
+ *   0 = grafía propia del municipio (el nombre tal cual, y desinvertido)
+ *   1 = grafía derivada (sin artículo, mitad de una barra, sin guión, exónimo)
+ *
+ * Hace falta porque una clave derivada de un municipio puede ser la grafía
+ * PROPIA de otro, y entonces el primero no tiene ningún derecho sobre ella.
+ * Caso real (Granada, 2-oct-2026): «Píñar» normaliza a `pinar`, que es también
+ * la clave sin artículo de «El Pinar». Son municipios distintos y en
+ * demarcaciones distintas —Guadalquivir frente a Cuencas Mediterráneas—, así
+ * que quien se quedaba la clave decidía qué organismo de cuenca se le enseñaba
+ * a Manolo en la ficha. Con el rango, `pinar` es de Píñar (rango 0) y El Pinar
+ * se queda con `el pinar`, que es suya y de nadie más.
+ */
+export function clavesMunicipioRango(nombre) {
+  const propias = new Set();
+  for (const v of [nombre, desinvertir(nombre)].filter(Boolean)) {
+    const k = normMuni(v);
+    if (k) propias.add(k);
+  }
+  return clavesMunicipio(nombre).map(c => ({ clave: c, rango: propias.has(c) ? 0 : 1 }));
+}

@@ -100,10 +100,24 @@ async function main() {
   const ops = new Map();
   for (const { s, fila } of cruzadas) {
     if (fila.gestion !== 'operador') continue;
-    const k = fila.operador_id;
+    // `operador_id` con respaldo al nombre: hay filas del Atlas con operador y
+    // sin id, y agrupar por `undefined` metía operadores distintos en el mismo
+    // cubo. Mismo criterio que puente-operadores.mjs.
+    const k = fila.operador_id || fila.operador;
     if (!ops.has(k)) ops.set(k, { fila, munis: new Set(), fichas: [] });
     ops.get(k).munis.add(fila.ine);
     ops.get(k).fichas.push(s);
+    /* La oficina se elige, no se hereda de la primera fila que entró. Cada
+       municipio del Atlas trae la oficina MÁS CERCANA EN KILÓMETROS a ese
+       municipio, no la delegación que lo atiende: la fila que abría el grupo
+       podía dejar una oficina a 1.347 km de la cartera. Se guarda la del
+       municipio donde hay ficha que la tiene más cerca, y el km va impreso al
+       lado para que se vea cuándo el dato no sirve. Un km vacío pierde contra
+       cualquier número. */
+    const km = fila.oficina_km === '' || fila.oficina_km == null
+      ? Infinity : Number(fila.oficina_km);
+    const o = ops.get(k);
+    if (o.ofiKm === undefined || km < o.ofiKm) { o.ofiKm = km; o.ofi = fila; }
   }
   const ordenados = [...ops.values()].sort((a, b) => b.munis.size - a.munis.size);
 
@@ -132,40 +146,53 @@ async function main() {
   const aqua = {
     volcado: null, pre: [], abiertas: [], adjudicadas: [],
   };
+  /* `sql()` devuelve `{ error }` cuando sqlite3 falla —base bloqueada, binario
+     ausente, consulta rota—, y `|| []` no lo filtra porque un objeto es
+     verdadero: la lista quedaba a `{error}` y el `.map()` de más abajo tumbaba
+     el briefing entero con un TypeError. Un apartado de aqua vacío es una
+     pérdida menor; perder también el contexto del Atlas, que ya estaba
+     calculado, no. Los fallos se acumulan y se declaran al final. */
+  const fallos = [];
+  const filas = r => {
+    if (Array.isArray(r)) return r;
+    if (r && r.error) fallos.push(r.error);
+    return [];
+  };
   const meta = sql(`select valor from meta where clave='volcado'`);
   if (meta && !meta.error && meta[0]) aqua.volcado = meta[0].valor;
+  else if (meta && meta.error) fallos.push(meta.error);
   if (provSql) {
-    aqua.pre = sql(`select e.expediente, e.objeto, e.importe, e.fecha_limite, e.provincia,
+    aqua.pre = filas(sql(`select e.expediente, e.objeto, e.importe, e.fecha_limite, e.provincia,
                            o.nombre organo, e.enlace_licitacion
                     from expedientes e join organos o on o.id=e.organo_id
                     where e.agua=1 and e.estado='PRE' and e.provincia in (${provSql})
-                    order by e.fecha_limite desc limit 20`) || [];
+                    order by e.fecha_limite desc limit 20`));
     // «Plazo abierto» es el plazo que todavía está abierto: hay que comparar con hoy.
     // Sin el filtro de fecha salían 1.085 de 1.412 expedientes con el plazo ya pasado
     // (GR(CO)-7337 aparecía como abierto con límite del 25-nov-2025 y ya adjudicado).
     // Primero el que vence antes: es el que corre prisa.
-    aqua.abiertas = sql(`select e.expediente, e.objeto, e.importe, e.fecha_limite, e.provincia,
+    aqua.abiertas = filas(sql(`select e.expediente, e.objeto, e.importe, e.fecha_limite, e.provincia,
                                 o.nombre organo, e.enlace_licitacion
                          from expedientes e join organos o on o.id=e.organo_id
                          where e.agua=1 and e.prescribible=1 and e.clase='R'
                            and e.estado in ('PUB','EV') and e.provincia in (${provSql})
                            and e.fecha_limite >= date('now')
-                         order by e.fecha_limite asc limit 20`) || [];
+                         order by e.fecha_limite asc limit 20`));
     // Plazo cerrado y aún sin adjudicatario: la adjudicación está a la vuelta de la
     // esquina. No es prescribible ya, pero avisa de a quién llamar dentro de poco.
-    aqua.evaluando = sql(`select e.expediente, e.objeto, e.importe, e.fecha_limite, e.provincia,
+    aqua.evaluando = filas(sql(`select e.expediente, e.objeto, e.importe, e.fecha_limite, e.provincia,
                                  o.nombre organo
                           from expedientes e join organos o on o.id=e.organo_id
                           where e.agua=1 and e.prescribible=1 and e.clase='R'
                             and e.estado in ('PUB','EV') and e.provincia in (${provSql})
                             and e.fecha_limite < date('now') and e.adjudicatario is null
-                          order by e.fecha_limite desc limit 10`) || [];
-    aqua.adjudicadas = sql(`select e.expediente, e.objeto, e.importe, e.provincia,
+                          order by e.fecha_limite desc limit 10`));
+    aqua.adjudicadas = filas(sql(`select e.expediente, e.objeto, e.importe, e.provincia,
                                    e.adjudicatario, e.empresa_id, o.nombre organo
                             from expedientes e join organos o on o.id=e.organo_id
                             where e.agua=1 and e.clase='R' and e.adjudicatario is not null
                               and e.provincia in (${provSql})
-                            order by e.anio desc, e.importe desc limit 25`) || [];
+                            order by e.anio desc, e.importe desc limit 25`));
   }
 
   if (json) {
@@ -189,13 +216,23 @@ async function main() {
 
   L.push('## Quién gestiona el agua donde tienes cartera');
   L.push('');
-  L.push(tabla(['Operador', 'Grupo', 'Munis', 'Fichas', 'Oficina', 'Teléfono', '¿Ficha en CRM?'],
+  const oficina = o => {
+    const f = o.ofi || o.fila;
+    if (!f.oficina_localidad) return '—';
+    const km = o.ofiKm;
+    return f.oficina_localidad +
+      (km != null && Number.isFinite(km) ? ` (a ${km} km)` : ' (km sin dato)');
+  };
+  L.push(tabla(['Operador', 'Grupo', 'Munis', 'Fichas', 'Oficina más cercana', 'Teléfono', '¿Ficha en CRM?'],
     ordenados.map(o => [
       o.fila.operador, o.fila.grupo || '—', o.munis.size, o.fichas.length,
-      o.fila.oficina_localidad || '—', tel(o.fila.oficina_telefono),
+      oficina(o), tel((o.ofi || o.fila).oficina_telefono),
       posibleFicha(o.fila.operador).join(' · ') || 'no la encuentro',
     ])));
-  L.push('> Última columna: coincidencia por nombre, **sin verificar**. `=` el nombre coincide, `~` solo una palabra.');
+  L.push('> «Oficina más cercana»: la que el Atlas da a menor distancia de un municipio donde tienes ficha. ' +
+         '**No es la delegación que lleva la zona** — mira el km antes de llamar.');
+  L.push('> Última columna: coincidencia por nombre, **sin verificar**. `=` el nombre es el mismo; ' +
+         '`~` la ficha lo contiene o comparten una palabra — ábrela antes de darla por buena.');
   L.push('');
 
   L.push('## Municipios de gestión directa (el agua la lleva el propio ayuntamiento)');
@@ -257,6 +294,15 @@ async function main() {
   }
   const conTel = ordenados.filter(o => (o.fila.oficina_telefono || '').trim()).length;
   L.push(`- Teléfono de oficina: lo tienen ${conTel} de ${ordenados.length} operadores. El resto, solo dirección o web.`);
+  if (fallos.length) {
+    L.push('- **aqua no respondió** a ' + fallos.length + ' de las consultas, así que sus apartados ' +
+           'salen vacíos aunque haya expedientes: `' + fallos[0] + '`. El contexto del Atlas de arriba ' +
+           'sí es bueno.');
+  }
+  // La oficina del Atlas es la más cercana en kilómetros al municipio, no la
+  // delegación que lleva la zona: Manolo llamó a una a 1.347 km creyendo que era «la suya».
+  L.push('- «Oficina más cercana» es distancia en kilómetros, **no un mapa de delegaciones**. ' +
+         'Que una oficina salga al lado de tu municipio no significa que sea la que lo atiende.');
   L.push('- El objeto de los expedientes de aqua viene cortado a 95 caracteres en origen.');
   L.push('- La provincia de un expediente es la del **órgano que licita**, no la del domicilio de la empresa.');
   L.push('');
