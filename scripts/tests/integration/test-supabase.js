@@ -2,6 +2,8 @@
 // Valida lecturas, paginación y roundtrip de writes contra el proyecto
 // ferroplast-crm en Supabase. No depende de credenciales locales: la
 // anon key es pública y va embebida en el adapter del rediseño.
+// OJO: escribe contra la base de PRODUCCIÓN (no hay staging). Toda escritura es
+// propia del test o se restituye en `finally`; ver los comentarios de 6 y 7.
 
 const A = require('../_lib/assert');
 
@@ -88,75 +90,122 @@ async function sb(path, opts) {
   A.eq(planArr[0].id, 1, 'la fila tiene id=1');
 
   // 6) Roundtrip studio: insertar TEST, leer, borrar
+  //    La fila es propia del test (id INTEGRATION_TEST_…), pero va a la base de
+  //    PRODUCCIÓN: no hay staging. Por eso el borrado va en `finally` — si una
+  //    aserción de en medio falla, la fila de prueba no se queda en la cartera.
   const testId = 'INTEGRATION_TEST_' + Date.now();
-  const ins = await sb('/studios?on_conflict=id', {
-    method: 'POST',
-    headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
-    body: JSON.stringify([{
-      id: testId,
-      name: 'Integration test studio',
-      province: 'TEST',
-      score: 5,
-      data: { test: true, ts: Date.now() },
-    }]),
-  });
-  // Guard: si la escritura está bloqueada por RLS/permisos, SKIP limpio (nunca crashear).
-  if (ins.status === 401 || ins.status === 403) {
-    const errTxt = await ins.text().catch(function () { return ''; });
-    console.warn('⚠️  Supabase: escritura rechazada (status ' + ins.status + '): ' + errTxt.slice(0, 120) +
-      '. SKIP roundtrip de writes (anon sin permiso de escritura por RLS).');
-    A.truthy(true, 'Supabase: skip writes (RLS, status ' + ins.status + ')');
-    const s = A.summary();
-    console.log(JSON.stringify(s));
-    process.exit(0);
+  let studioCreado = false;
+  try {
+    const ins = await sb('/studios?on_conflict=id', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+      body: JSON.stringify([{
+        id: testId,
+        name: 'Integration test studio',
+        province: 'TEST',
+        score: 5,
+        data: { test: true, ts: Date.now() },
+      }]),
+    });
+    // Guard: si la escritura está bloqueada por RLS/permisos, SKIP limpio (nunca crashear).
+    if (ins.status === 401 || ins.status === 403) {
+      const errTxt = await ins.text().catch(function () { return ''; });
+      console.warn('⚠️  Supabase: escritura rechazada (status ' + ins.status + '): ' + errTxt.slice(0, 120) +
+        '. SKIP roundtrip de writes (anon sin permiso de escritura por RLS).');
+      A.truthy(true, 'Supabase: skip writes (RLS, status ' + ins.status + ')');
+      const s = A.summary();
+      console.log(JSON.stringify(s));
+      process.exit(0);
+    }
+    const insArr = await ins.json();
+    if (!Array.isArray(insArr) || !insArr[0]) {
+      console.warn('⚠️  Supabase: INSERT no devolvió representación (status ' + ins.status + '). SKIP.');
+      A.truthy(true, 'Supabase: skip (insert sin fila devuelta, status ' + ins.status + ')');
+      const s = A.summary();
+      console.log(JSON.stringify(s));
+      process.exit(0);
+    }
+    studioCreado = true;
+    A.eq(ins.status, 201, 'INSERT test studio → 201');
+    A.eq(insArr[0].id, testId, 'Insert retorna id correcto');
+    A.eq(insArr[0].score, 5, 'score persistido');
+
+    // PATCH del mismo
+    const upd = await sb('/studios?id=eq.' + testId, {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=representation' },
+      body: JSON.stringify({ score: 7 }),
+    });
+    A.eq(upd.status, 200, 'PATCH → 200');
+    const updArr = await upd.json();
+    A.eq(updArr[0].score, 7, 'PATCH actualiza score');
+  } finally {
+    if (studioCreado) {
+      // DELETE limpio
+      const del = await sb('/studios?id=eq.' + testId, { method: 'DELETE' });
+      A.eq(del.status, 204, 'DELETE → 204');
+      const verify = await sb('/studios?id=eq.' + testId + '&select=id');
+      const verifyArr = await verify.json().catch(function () { return []; });
+      A.eq(verifyArr.length, 0, 'studio borrado, no aparece en query');
+    }
   }
-  const insArr = await ins.json();
-  if (!Array.isArray(insArr) || !insArr[0]) {
-    console.warn('⚠️  Supabase: INSERT no devolvió representación (status ' + ins.status + '). SKIP.');
-    A.truthy(true, 'Supabase: skip (insert sin fila devuelta, status ' + ins.status + ')');
-    const s = A.summary();
-    console.log(JSON.stringify(s));
-    process.exit(0);
+
+  // 7) Roundtrip planificador — SOBRE LA FILA REAL, LEER Y RESTITUIR
+  //
+  //    `meta_planificador` tiene UNA fila (id=1) y es la agenda de verdad: las
+  //    visitas que Manolo tiene planificadas esta semana. No hay fila de prueba
+  //    donde escribir ni base de staging donde fallar.
+  //
+  //    Hasta el 3-oct-2026 este test metía una clave de prueba y «limpiaba»
+  //    dejando `schedule = {}`: el cleanup BORRABA la agenda. Con la anon key sin
+  //    permisos no llegaba a pasar, pero era una bomba con la espoleta puesta —
+  //    bastaba abrir la RLS, o correr el test con la service role key, para
+  //    perder la planificación sin que ningún test se pusiera rojo.
+  //
+  //    Ahora: se lee el valor actual, se escribe el valor actual MÁS la clave de
+  //    prueba, y se restituye exactamente lo leído. El restituir va en `finally`,
+  //    así que una aserción fallida tampoco deja la agenda tocada.
+  const planAntes = await sb('/meta_planificador?id=eq.1&select=schedule');
+  const planAntesJ = await planAntes.json().catch(function () { return null; });
+  const original = planAntesJ && planAntesJ[0] ? planAntesJ[0].schedule : undefined;
+  if (planAntes.status !== 200 || original === undefined) {
+    console.warn('⚠️  Supabase: no se pudo leer el schedule actual (status ' + planAntes.status +
+      '). SKIP roundtrip del planificador: sin el valor original no hay forma de restituirlo.');
+    A.truthy(true, 'Supabase: skip planificador (schedule original no legible)');
+  } else {
+    const planTestKey = 'TEST_DAY_' + Date.now();
+    const conPrueba = Object.assign({}, original);
+    conPrueba[planTestKey] = [{ id: '999', name: 'test', city: '', province: '' }];
+    let tocado = false;
+    try {
+      const planUpd = await sb('/meta_planificador?id=eq.1', {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify({ schedule: conPrueba }),
+      });
+      tocado = planUpd.status === 200;
+      A.eq(planUpd.status, 200, 'PATCH planificador → 200');
+      const planRead = await sb('/meta_planificador?id=eq.1&select=schedule');
+      const planJ = await planRead.json();
+      A.truthy(planJ[0].schedule[planTestKey], 'schedule contiene la clave test');
+      // Y lo que ya había sigue ahí: el PATCH no es un reemplazo a ciegas.
+      A.eq(Object.keys(planJ[0].schedule).filter(k => k !== planTestKey).sort(),
+           Object.keys(original).sort(),
+           'el PATCH conserva los días que ya estaban planificados');
+    } finally {
+      if (tocado) {
+        const rest = await sb('/meta_planificador?id=eq.1', {
+          method: 'PATCH',
+          headers: { 'Prefer': 'return=representation' },
+          body: JSON.stringify({ schedule: original }),
+        });
+        const restJ = await rest.json().catch(function () { return null; });
+        A.eq(rest.status, 200, 'restitución del schedule → 200');
+        A.eq(restJ && restJ[0] ? restJ[0].schedule : null, original,
+             'el schedule queda EXACTAMENTE como estaba antes del test');
+      }
+    }
   }
-  A.eq(ins.status, 201, 'INSERT test studio → 201');
-  A.eq(insArr[0].id, testId, 'Insert retorna id correcto');
-  A.eq(insArr[0].score, 5, 'score persistido');
-
-  // PATCH del mismo
-  const upd = await sb('/studios?id=eq.' + testId, {
-    method: 'PATCH',
-    headers: { 'Prefer': 'return=representation' },
-    body: JSON.stringify({ score: 7 }),
-  });
-  A.eq(upd.status, 200, 'PATCH → 200');
-  const updArr = await upd.json();
-  A.eq(updArr[0].score, 7, 'PATCH actualiza score');
-
-  // DELETE limpio
-  const del = await sb('/studios?id=eq.' + testId, { method: 'DELETE' });
-  A.eq(del.status, 204, 'DELETE → 204');
-  const verify = await sb('/studios?id=eq.' + testId + '&select=id');
-  const verifyArr = await verify.json();
-  A.eq(verifyArr.length, 0, 'studio borrado, no aparece en query');
-
-  // 7) Roundtrip planificador
-  const planTestKey = 'TEST_DAY_' + Date.now();
-  const planSched = {};
-  planSched[planTestKey] = [{ id: '999', name: 'test', city: '', province: '' }];
-  const planUpd = await sb('/meta_planificador?id=eq.1', {
-    method: 'PATCH',
-    headers: { 'Prefer': 'return=representation' },
-    body: JSON.stringify({ schedule: planSched }),
-  });
-  A.eq(planUpd.status, 200, 'PATCH planificador → 200');
-  const planRead = await sb('/meta_planificador?id=eq.1&select=schedule');
-  const planJ = await planRead.json();
-  A.truthy(planJ[0].schedule[planTestKey], 'schedule contiene la clave test');
-  // Cleanup
-  await sb('/meta_planificador?id=eq.1', {
-    method: 'PATCH',
-    body: JSON.stringify({ schedule: {} }),
-  });
 
   const s = A.summary();
   console.log(JSON.stringify(s));

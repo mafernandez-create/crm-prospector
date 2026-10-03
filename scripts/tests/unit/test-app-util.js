@@ -40,12 +40,39 @@ const srcStrip = extraer(
 
 // new Function en vez de eval: el cuerpo se compila en su propio ámbito, así no
 // colisiona con las declaraciones de este módulo ni ensucia el scope global.
-const { extractClaudeText, stripTimestamps, stripTimestampsDeep } = new Function(
-  srcExtract + '\n' + srcStrip +
-  '\nreturn { extractClaudeText, stripTimestamps, stripTimestampsDeep };'
+const srcHref = extraer(
+  'function safeHref(url) {',
+  'function normProv(s) {',
+  'safeHref/webHref');
+
+const { extractClaudeText, stripTimestamps, stripTimestampsDeep, safeHref, webHref } = new Function(
+  srcExtract + '\n' + srcStrip + '\n' + srcHref +
+  '\nreturn { extractClaudeText, stripTimestamps, stripTimestampsDeep, safeHref, webHref };'
 )();
 A.isType(extractClaudeText, 'function', 'extractClaudeText se extrae de app.js');
 A.isType(stripTimestamps, 'function', 'stripTimestamps se extrae de app.js');
+A.isType(webHref, 'function', 'webHref se extrae de app.js');
+
+/* ============================================================================
+   webHref — la web del Atlas viene sin esquema
+   ==========================================================================
+   El Atlas del Agua trae el dominio pelado («chebro.es») en 8.183 de sus 8.213
+   filas, y safeHref lo trata —con razón, para enlaces internos— como ruta
+   relativa: en producción resolvía a …/crm-prospector/chebro.es (404) y en la
+   PWA sacaba a Manolo del SPA, perdiendo la ficha que estaba mirando. */
+A.eq(webHref('chebro.es'), 'https://chebro.es', 'dominio pelado: se le pone el esquema');
+A.eq(webHref('www.chguadalquivir.es/inicio'), 'https://www.chguadalquivir.es/inicio',
+     'dominio con ruta, igual');
+A.eq(webHref('  emasagra.es  '), 'https://emasagra.es', 'con espacios alrededor');
+A.eq(webHref('https://emasagra.es'), 'https://emasagra.es', 'lo que ya trae esquema no se toca');
+A.eq(webHref('http://emasagra.es'), 'http://emasagra.es', 'http tampoco se reescribe');
+A.eq(webHref(''), '', 'vacío no produce enlace');
+A.eq(webHref(null), '', 'nulo tampoco');
+A.eq(webHref(undefined), '', 'indefinido tampoco');
+// Un esquema raro sigue neutralizado: webHref delega en safeHref para todo lo
+// que ya viene con esquema, así que no abre una puerta nueva.
+A.eq(webHref('javascript:alert(1)'), '#', 'esquema peligroso: neutralizado, como en safeHref');
+A.eq(webHref('/informe'), '/informe', 'una ruta absoluta se respeta como interna');
 
 /* ============================================================================
    extractClaudeText — el bug que rompió el generador de correos

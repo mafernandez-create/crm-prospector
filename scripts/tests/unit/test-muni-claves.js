@@ -33,9 +33,10 @@ const src = extraer(
   'normMuni/clavesMunicipio');
 
 const nav = new Function(
-  src + '\nreturn { normMuni, desinvertirMuni, clavesMunicipio };')();
+  src + '\nreturn { normMuni, desinvertirMuni, clavesMunicipio, clavesMunicipioRango };')();
 
 A.isType(nav.clavesMunicipio, 'function', 'clavesMunicipio se extrae de app.js');
+A.isType(nav.clavesMunicipioRango, 'function', 'clavesMunicipioRango se extrae de app.js');
 
 (async () => {
   const lib = await import(
@@ -106,8 +107,31 @@ A.isType(nav.clavesMunicipio, 'function', 'clavesMunicipio se extrae de app.js')
     const l = lib.clavesMunicipio(c).slice().sort();
     if (JSON.stringify(n) !== JSON.stringify(l)) divergen.push({ c, nav: n, lib: l });
     if (nav.normMuni(c) !== lib.normMuni(c)) divergen.push({ c, normMuni: [nav.normMuni(c), lib.normMuni(c)] });
+    // Y el rango, no solo la clave: es lo que decide quién se queda una clave
+    // disputada, así que divergir aquí es divergir en el resultado.
+    const orden = x => x.slice().sort((p, q) => (p.rango - q.rango) || p.clave.localeCompare(q.clave))
+                        .map(y => y.rango + ':' + y.clave);
+    const nr = orden(nav.clavesMunicipioRango(c));
+    const lr = orden(lib.clavesMunicipioRango(c));
+    if (JSON.stringify(nr) !== JSON.stringify(lr)) divergen.push({ c, rango: [nr, lr] });
   }
   A.eq(divergen, [], 'las dos copias dan lo mismo en los ' + CASOS.length + ' casos');
+
+  // ── El rango: grafía propia frente a derivada ──────────────────────────────
+  // «El Pinar» reclama `pinar` solo como derivada (sin artículo), mientras que
+  // para «Píñar» esa misma clave es su grafía propia. De ahí sale el desempate
+  // que evita enseñar en la ficha el organismo de cuenca del pueblo de al lado.
+  const rango = (nombre, clave) => {
+    const r = lib.clavesMunicipioRango(nombre).find(x => x.clave === clave);
+    return r ? r.rango : null;
+  };
+  A.eq(rango('Píñar', 'pinar'), 0, 'para Píñar, `pinar` es su propia grafía');
+  A.eq(rango('El Pinar', 'pinar'), 1, 'para El Pinar, `pinar` es derivada');
+  A.eq(rango('El Pinar', 'el pinar'), 0, 'y su grafía propia es la completa');
+  A.eq(rango('Ejido, El', 'el ejido'), 0,
+       'el desinvertido cuenta como propio: el INE y el CRM escriben el mismo pueblo');
+  A.eq(rango('Calpe', 'calp'), 1, 'el exónimo es derivado, nunca propio');
+  A.eq(lib.clavesMunicipioRango('').length, 0, 'nombre vacío: ningún reclamo');
 
   const s = A.summary();
   console.log(JSON.stringify(s));

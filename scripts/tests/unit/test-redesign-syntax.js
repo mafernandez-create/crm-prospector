@@ -42,8 +42,19 @@ const A = require('../_lib/assert');
     A.truthy(fs.existsSync(abs), 'redesign/' + rel + ' existe');
   }
 
-  // 2. Sintaxis JS válida en todos los .js del rediseño
-  const jsFiles = archivos.filter(f => f.endsWith('.js'));
+  // 2. Sintaxis JS válida en TODOS los .js del rediseño.
+  //    La lista se recorre del disco, no de `archivos`: esa es a mano y se
+  //    queda atrás. atlas-agua.js entró el 2-oct-2026 sin que nadie la
+  //    actualizara, así que el módulo nuevo no pasaba ni por `node --check`
+  //    —y en un proyecto sin build step, un error de sintaxis se descubre en
+  //    producción. Lo que esté en redesign/ se comprueba, se haya apuntado o no.
+  const porDisco = (dir, pref = '') => fs.readdirSync(dir, { withFileTypes: true })
+    .flatMap(d => d.isDirectory() ? porDisco(path.join(dir, d.name), pref + d.name + '/')
+                                  : (d.name.endsWith('.js') ? [pref + d.name] : []))
+    .sort();
+  const jsFiles = porDisco(REDESIGN_DIR);
+  A.greaterThan(jsFiles.length, archivos.filter(f => f.endsWith('.js')).length - 1,
+                'se comprueban los ' + jsFiles.length + ' .js que hay en redesign/');
   for (const rel of jsFiles) {
     const abs = path.join(REDESIGN_DIR, rel);
     if (!fs.existsSync(abs)) continue;
@@ -75,6 +86,7 @@ const A = require('../_lib/assert');
     { file: 'screens/mapa.js',           globals: ['window.Screens'] },
     { file: 'screens/importar.js',       globals: ['window.Screens'] },
     { file: 'screens/cmdk.js',           globals: ['window.Screens'] },
+    { file: 'atlas-agua.js',             globals: ['window.AtlasAgua'] },
   ];
 
   for (const e of expectedExports) {
@@ -113,7 +125,21 @@ const A = require('../_lib/assert');
   A.contains(indexHtml, 'redesign/coach-doctrine.js', 'index.html carga coach-doctrine.js');
   A.contains(indexHtml, 'redesign/screens/inicio.js', 'index.html carga inicio.js');
   A.contains(indexHtml, 'redesign/screens/informe.js', 'index.html carga informe.js');
+  A.contains(indexHtml, 'redesign/atlas-agua.js', 'index.html carga atlas-agua.js');
   A.contains(indexHtml, "register(swUrl", 'index.html registra el SW (archivo externo)');
+
+  // 6a. El ORDEN importa: no hay bundler, cada módulo se apoya en los globales
+  //     que dejó el anterior. Comprobar que el script está no basta — detail.js
+  //     llama a AtlasAgua, que llama a Util y a DataSupabase.
+  const pos = rel => indexHtml.indexOf('redesign/' + rel);
+  const antes = (a, b) => {
+    A.truthy(pos(a) >= 0 && pos(b) >= 0 && pos(a) < pos(b),
+             'index.html carga ' + a + ' antes de ' + b);
+  };
+  antes('app.js', 'atlas-agua.js');            // AtlasAgua usa Util.clavesMunicipioRango
+  antes('data-supabase.js', 'atlas-agua.js');  // y DataSupabase.sbGet
+  antes('atlas-agua.js', 'screens/detail.js'); // la ficha es quien lo llama
+  antes('app.js', 'shell.js');
 
   // 6b. sw.js existe como archivo real y tiene la CACHE_NAME esperada
   const swPath = path.resolve(__dirname, '..', '..', '..', 'sw.js');

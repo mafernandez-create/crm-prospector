@@ -34,6 +34,15 @@ const RAIZ = path.resolve(__dirname, '..', '..', '..');
     // puede desempatar, así que la provincia tiene que hacer su trabajo.
     { ine: '11001', municipio: 'Alcalá del Valle',    provincia: 'Cádiz' },
     { ine: '41900', municipio: 'Alcalá del Valle',    provincia: 'Sevilla' },
+    // Colisión real del Atlas (Granada, comprobada el 2-oct-2026): «Píñar»
+    // normaliza a `pinar`, que es además la clave SIN ARTÍCULO de «El Pinar».
+    // Son dos pueblos y dos demarcaciones distintas —Guadalquivir frente a
+    // Cuencas Mediterráneas—, así que quien se quedaba la clave decidía qué
+    // organismo de cuenca se enseñaba en la ficha. Van en este orden a
+    // propósito: es el que da `order=municipio`, el que ponía a El Pinar
+    // primero y hacía que ganara.
+    { ine: '18910', municipio: 'El Pinar',            provincia: 'Granada' },
+    { ine: '18159', municipio: 'Píñar',               provincia: 'Granada' },
   ];
   const idx = indexarAtlas(ATLAS);
   const via = (city, prov) => { const r = resolver(idx, city, prov); return r ? r.via : null; };
@@ -64,6 +73,14 @@ const RAIZ = path.resolve(__dirname, '..', '..', '..');
   A.eq(ine('Alcalá del Valle', 'Sevilla'), '41900', 'homónimos: y al revés');
   A.eq(via('Alcalá del Valle', 'Lugo'), null,
        'homónimos con provincia que no cuadra: mejor no resolver que inventar');
+
+  // ── Clave derivada de uno que es la propia de otro ─────────────────────────
+  A.eq(ine('Píñar', 'Granada'), '18159',
+       'Píñar se queda su propia grafía; no la pierde contra «El Pinar»');
+  A.eq(ine('Pinar', 'Granada'), '18159',
+       'y escrito sin tilde en la ficha sigue siendo Píñar, no El Pinar');
+  A.eq(ine('El Pinar', 'Granada'), '18910',
+       'El Pinar se resuelve por su grafía completa, que es suya y de nadie más');
 
   // ── Bordes ─────────────────────────────────────────────────────────────────
   A.eq(resolver(idx, '', 'Alicante'), null, 'sin municipio no se resuelve nada');
