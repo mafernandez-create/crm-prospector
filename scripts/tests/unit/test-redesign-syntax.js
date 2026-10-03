@@ -141,6 +141,21 @@ const A = require('../_lib/assert');
   antes('atlas-agua.js', 'screens/detail.js'); // la ficha es quien lo llama
   antes('app.js', 'shell.js');
 
+  // 6c. BIYECCIÓN index.html ↔ disco. Sin bundler, el `<script>` y el fichero son
+  //      dos hechos independientes que pueden separarse — y se separaron: el
+  //      módulo atlas-agua.js entró en 143aa86 y su `<script>` en c81b21d (un
+  //      auto-guardado del cron), así que revertir el primero dejaba la etiqueta
+  //      apuntando a un fichero que ya no estaba. No rompe la ficha (detail.js
+  //      comprueba `window.AtlasAgua` antes de llamarlo), pero el bloque de agua
+  //      desaparece sin decir nada y en la consola queda un 404. Un desajuste de
+  //      este par se descubre en producción; aquí se descubre en rojo.
+  const refs = [...new Set((indexHtml.match(/redesign\/[A-Za-z0-9_.\/-]*\.(?:js|css)/g) || []))];
+  A.greaterThan(refs.length, 20, 'index.html referencia ' + refs.length + ' ficheros de redesign/');
+  const huerfanas = refs.filter(r => !fs.existsSync(path.resolve(REDESIGN_DIR, '..', r)));
+  A.eq(huerfanas, [], 'index.html no referencia ficheros que no existen');
+  const sinCargar = porDisco(REDESIGN_DIR).filter(f => !refs.includes('redesign/' + f));
+  A.eq(sinCargar, [], 'todo .js de redesign/ lo carga index.html (si sobra, bórralo)');
+
   // 6b. sw.js existe como archivo real y tiene la CACHE_NAME esperada
   const swPath = path.resolve(__dirname, '..', '..', '..', 'sw.js');
   A.truthy(fs.existsSync(swPath), 'sw.js existe en raíz (archivo real, no blob)');

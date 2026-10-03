@@ -9,7 +9,11 @@
  *   node scripts/atlas-agua/cargar.mjs              # ensayo: comprueba y no escribe
  *   node scripts/atlas-agua/cargar.mjs --confirmar   # carga de verdad
  *
- * Antes de la primera carga hay que aplicar supabase/migrations/20261002120000_atlas_municipios.sql.
+ * Antes de la primera carga hay que aplicar las migraciones de `atlas_municipios`
+ * (supabase/migrations/*_atlas_municipios*.sql). El nombre exacto NO se escribe aquí:
+ * se lee del disco. La versión anterior citaba `20261002120000_atlas_municipios.sql`, que
+ * nunca existió —los ficheros reales llevan la hora en que se generaron—, así que el
+ * mensaje de error mandaba a un sitio vacío justo cuando hacía falta acertar.
  */
 
 import fs from 'node:fs';
@@ -18,6 +22,18 @@ import { fileURLToPath } from 'node:url';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(AQUI, '..', '..');
+
+/** Las migraciones de esta tabla, tal y como se llamen hoy en el disco. */
+function migracionesAtlas() {
+  const dir = path.join(RAIZ, 'supabase', 'migrations');
+  let files = [];
+  try {
+    files = fs.readdirSync(dir).filter(f => /atlas_municipios.*\.sql$/.test(f)).sort();
+  } catch (_) { /* sin carpeta de migraciones: se avisa igual, sin nombres */ }
+  return files.length
+    ? files.map(f => '  supabase/migrations/' + f).join('\n')
+    : '  (no encuentro ninguna supabase/migrations/*_atlas_municipios*.sql)';
+}
 const LOTE = 500;
 
 const COLUMNAS = ['ine', 'municipio', 'provincia_ine', 'provincia', 'gestion',
@@ -106,7 +122,8 @@ async function main() {
     previas = Number((r.headers.get('content-range') || '/0').split('/')[1]);
   } catch (e) {
     console.error(`\nLa tabla no responde (${e.message.slice(0, 80)}…).`);
-    console.error('Aplica primero supabase/migrations/20261002120000_atlas_municipios.sql.');
+    console.error('Aplica primero estas migraciones:');
+    console.error(migracionesAtlas());
     process.exit(1);
   }
   console.log(`Tabla en Supabase: ${previas} filas ahora mismo.`);
