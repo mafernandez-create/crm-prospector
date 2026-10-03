@@ -187,7 +187,10 @@
     let s = 0;
     const N = window.Util.normSearch;
     const name = N(e.name), city = N(e.city), prov = N(e.province);
-    const all = name + ' ' + city + ' ' + prov;
+    /* El pajar lleva los alias («C.R.» ↔ «Comunidad de Regantes»); el orden de
+       los resultados se sigue puntuando con el nombre tal cual, sin alias. */
+    const all = window.Util.normSearchAlias(
+      (e.name || '') + ' ' + (e.city || '') + ' ' + (e.province || ''));
     const tokens = lo.split(' ').filter(Boolean);
     // Todas las palabras deben aparecer en nombre/ciudad/provincia
     for (let i = 0; i < tokens.length; i++) if (all.indexOf(tokens[i]) < 0) return 0;

@@ -917,6 +917,32 @@
       .toLowerCase().replace(/[^a-z0-9ñ]+/g, ' ').trim();
   }
 
+  /* Lo mismo escrito de dos maneras. La búsqueda es por palabras y no sabe que
+     «C.R.» y «Comunidad de Regantes» son el mismo ente: de las 158 comunidades
+     de regantes del CRM, 109 están abreviadas y 15 con el nombre entero, así
+     que buscar «comunidad de regantes» encontraba 15 de 158.
+
+     No se sustituye nada: quien escribe «comunidad» tiene que seguir
+     encontrando la ficha que se llama así. Al PAJAR se le añaden las otras
+     formas de decir lo mismo, y la consulta se compara como siempre. Por eso
+     esto no es normSearch con un parche: es otra función, y la de siempre
+     sigue sirviendo para lo que ya servía. */
+  var ALIAS_BUSQUEDA = [
+    { rx: /(^| )(ccrr|c r|cr)( |$)/, suma: 'ccrr comunidad de regantes' },
+    { rx: /comunidad(es)? (general(es)? )?(de )?regantes/, suma: 'ccrr cr' },
+  ];
+
+  /* normSearch del pajar + los alias que le correspondan. Para el lado del
+     pajar (nombre + ciudad + provincia de la ficha); la consulta del usuario va
+     por normSearch a secas. */
+  function normSearchAlias(s) {
+    var n = normSearch(s);
+    for (var i = 0; i < ALIAS_BUSQUEDA.length; i++) {
+      if (ALIAS_BUSQUEDA[i].rx.test(n)) n += ' ' + ALIAS_BUSQUEDA[i].suma;
+    }
+    return n;
+  }
+
   // Índice de adyacencia simétrico derivado de LIMITROFES: añade las aristas
   // inversas (si A lista a B como limítrofe, B queda limítrofe de A aunque no
   // tenga entrada propia). Así basta con declarar cada adyacencia una vez.
@@ -1004,6 +1030,7 @@
     grafiaAtlas: grafiaAtlas,
     clavesProvincia: clavesProvincia,
     normSearch: normSearch,
+    normSearchAlias: normSearchAlias,
     provinciasCercanas: provinciasCercanas,
     formatDateES: formatDateES,
     diasDesde: diasDesde,
