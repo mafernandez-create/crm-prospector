@@ -935,7 +935,7 @@ Solo incluye bloques ACTION si el usuario pide EXPLÍCITAMENTE registrar o guard
 <ACTION>{"op":"add_calendar","studio_id":N,"fecha":"YYYY-MM-DD","hora":"HH:MM","titulo":"Visita ..."}</ACTION>`;
 
 async function callClaude(msgs) {
-  const r = await fetch(await gasUrl('claudeProxy'), {
+  const r = await fetch((await gasUrl('claudeProxy')) + '&uso=chat', {
     method:'POST', headers:{'Content-Type':'text/plain'},
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
@@ -978,7 +978,7 @@ Reglas:
 
 async function callClaudeIntent(userText) {
   const hoy = new Date().toISOString().split('T')[0];
-  const r = await fetch(await gasUrl('claudeProxy'), {
+  const r = await fetch((await gasUrl('claudeProxy')) + '&uso=chat_intencion', {
     method:'POST', headers:{'Content-Type':'text/plain'},
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',

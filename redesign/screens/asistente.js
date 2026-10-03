@@ -176,7 +176,7 @@
         max_tokens: 2048,
         system: _buildSystemPrompt(),
         messages: messages,
-      });
+      }, 'asistente');
 
       // El texto NO está siempre en content[0]: con los modelos que razonan el
       // bloque 0 es de tipo "thinking". Util.extractClaudeText lo centraliza y

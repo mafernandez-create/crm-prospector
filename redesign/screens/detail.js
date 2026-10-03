@@ -4737,7 +4737,7 @@
           output_config: { effort: _IA_EFFORT },
           system: systemPayload,
           messages: [{ role: 'user', content: userMsg }],
-        });
+        }, 'correo');
         if (res && res.error) {
           throw new Error(typeof res.error === 'string' ? res.error : (res.error.message || 'Error IA'));
         }

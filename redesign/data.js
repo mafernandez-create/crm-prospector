@@ -44,7 +44,7 @@
   /* ============================================================
      GAS WEB APP PROXY (no-CORS via form-encoded)
      ============================================================ */
-  async function callGAS(action, params) {
+  async function callGAS(action, params, uso) {
     params = params || {};
     // Body = solo el payload (SIN 'action'): el GAS lee la acción de la query
     // (e.parameter.action) y el body como e.postData.contents. Meter 'action' en
@@ -65,7 +65,10 @@
     // claudeProxy). Antes iba solo en el body → el GAS respondía "Acción no
     // válida: undefined". Alineado con el patrón de chat.html.
     const url = GAS_URL + '?action=' + encodeURIComponent(action) +
-      (sbToken ? '&sbToken=' + encodeURIComponent(sbToken) : '');
+      (sbToken ? '&sbToken=' + encodeURIComponent(sbToken) : '') +
+      // Etiqueta de uso: qué función del CRM llama a Claude. Va en la QUERY (no en el
+      // body) por la misma razón que sbToken. El GAS la guarda en Supabase (ia_uso).
+      (uso ? '&uso=' + encodeURIComponent(uso) : '');
     const res = await fetch(url, {
       method: 'POST',
       // GAS Web App suele requerir text/plain para evitar preflight CORS
@@ -145,13 +148,13 @@
 
   /* Llama a claudeProxy a través de GAS. Devuelve el texto plano de Claude
      o lanza con el mensaje de error. */
-  async function _claudeCall(systemPrompt, userMsg, maxTokens) {
+  async function _claudeCall(systemPrompt, userMsg, maxTokens, uso) {
     const res = await callGAS('claudeProxy', {
       model: 'claude-sonnet-4-6',
       max_tokens: maxTokens || 4096,
       messages: [{ role: 'user', content: userMsg }],
       system: systemPrompt,
-    });
+    }, uso || 'sin_etiqueta');
     if (res && res.error) {
       const msg = typeof res.error === 'string' ? res.error : (res.error.message || JSON.stringify(res.error));
       throw new Error(msg);
@@ -1181,7 +1184,7 @@
       '## 13. Checklist post-visita (en el coche, los 10 minutos siguientes)\n' +
       '(Lista con - [ ] de preguntas que Manolo debe poder contestar nada más salir: pliego abierto o cerrado, quién decide marca, qué prometí y cuándo, siguiente acción con fecha, referencias cruzadas detectadas)';
 
-    const raw = await _claudeCall(systemPrompt, userMsg, 8192);
+    const raw = await _claudeCall(systemPrompt, userMsg, 8192, 'briefing');
 
     // El output es markdown directo. Lo limpiamos por si vino con fences.
     const markdown = String(raw)
@@ -1574,7 +1577,7 @@
     }
 
     const markdown = _stripTimestamps(
-      (await _claudeCall(_sysPrompt, _userMsg, 8192))
+      (await _claudeCall(_sysPrompt, _userMsg, 8192, 'informe'))
         .replace(/^\s*```(?:markdown)?\s*\n?/, '')
         .replace(/\s*```\s*$/, '')
         .trim()
@@ -1752,7 +1755,7 @@
       'Provincia actual: ' + (_val(studio.province) || '—') + '\n\n' +
       'Contexto web:\n' + webContext.slice(0, 8000);
 
-    const raw = await _claudeCall(systemPrompt, userMsg, 1500);
+    const raw = await _claudeCall(systemPrompt, userMsg, 1500, 'enriquecer');
 
     let parsed;
     try {
@@ -2224,7 +2227,7 @@
       '(todas las acciones con fecha de los planes de acción, ordenadas por fecha; responsable Manolo salvo que el informe diga otra cosa)\n\n' +
       '## 6. Nota estratégica\n\n' +
       '(un párrafo: qué dice esta semana sobre la zona y qué conviene decidir)';
-    const markdown = _stripTimestamps((await _claudeCall(sys, user, 6000)).replace(/^\s*```(?:markdown)?\s*\n?/, '').replace(/\s*```\s*$/, '').trim());
+    const markdown = _stripTimestamps((await _claudeCall(sys, user, 6000, 'resumen_semanal')).replace(/^\s*```(?:markdown)?\s*\n?/, '').replace(/\s*```\s*$/, '').trim());
     const correo = redactarCorreoJavier(conc, markdown);
     const row = await window.DataSupabase.saveResumenSemanal({
       semana: lunesISO,
