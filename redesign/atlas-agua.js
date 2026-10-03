@@ -18,8 +18,21 @@
 (function () {
   'use strict';
 
-  // provincia normalizada → Promise<{ porClave: Map, filas: [] }>
+  /* provincia normalizada → { t: cuándo se pidió, p: Promise<{ porClave, filas }> }
+     El Atlas se recarga a mano y cambia poco, pero la PWA se queda abierta días:
+     sin caducidad, una ficha seguía enseñando el operador viejo hasta cerrarla.
+     Diez minutos es bastante para que una ruta entera de fichas de la misma
+     provincia haga una sola consulta, y poco para que una recarga del Atlas se
+     vea el mismo rato. */
+  const _TTL_MS = 10 * 60 * 1000;
   const _cache = new Map();
+
+  function _vigente(clave) {
+    const e = _cache.get(clave);
+    if (!e) return null;
+    if (Date.now() - e.t > _TTL_MS) { _cache.delete(clave); return null; }
+    return e.p;
+  }
 
   function _U() { return window.Util || {}; }
 
@@ -41,13 +54,19 @@
   /* El nombre de provincia del CRM («Alicante») es un fragmento del que usa el
      INE en el Atlas («Alacant/Alicante»), así que se busca por ilike y no por
      igualdad. Sin esto, Alicante, Valencia, Castellón, Álava y A Coruña se
-     quedarían fuera en silencio. */
+     quedarían fuera en silencio. Y para las siete que no comparten ni una
+     palabra con la grafía oficial («Baleares» ↔ «Illes Balears») ni el ilike
+     vale: hay que preguntar por el nombre del INE, que es lo que da
+     Util.grafiaAtlas. */
   function _cargarProvincia(provincia) {
     const clave = _normProv(provincia);
-    if (_cache.has(clave)) return _cache.get(clave);
+    const cacheada = _vigente(clave);
+    if (cacheada) return cacheada;
 
+    const U0 = _U();
+    const busca = U0.grafiaAtlas ? U0.grafiaAtlas(provincia) : String(provincia).trim();
     const q = '/atlas_municipios?select=*&provincia=ilike.' +
-      encodeURIComponent('*' + String(provincia).trim() + '*') + '&order=municipio';
+      encodeURIComponent('*' + busca + '*') + '&order=municipio';
 
     const p = window.DataSupabase.sbGet(q).then(function (filas) {
       const U = _U();
@@ -81,7 +100,7 @@
       throw e;
     });
 
-    _cache.set(clave, p);
+    _cache.set(clave, { t: Date.now(), p: p });
     return p;
   }
 
@@ -115,7 +134,9 @@
 
   window.AtlasAgua = {
     deFicha: deFicha,
-    /* Para depurar: AtlasAgua.olvidar() fuerza a recargar del servidor. */
+    /* Lo normal es que caduque solo (_TTL_MS). Esto es para forzarlo a mano
+       justo después de recargar el Atlas, sin cerrar la PWA. */
     olvidar: function () { _cache.clear(); },
+    _ttlMs: _TTL_MS,
   };
 })();

@@ -3,8 +3,9 @@
  * Carga la tabla derivada `atlas_municipios` en Supabase desde el export del Atlas.
  *
  * Es la ÚNICA pieza de todo esto que escribe en la base de datos, y solo en esa tabla:
- * nunca toca `studios` ni ninguna otra. Reemplaza la tabla entera (el Atlas es la fuente
- * de verdad; aquí no hay nada que conservar).
+ * nunca toca `studios` ni ninguna otra. Deja la tabla igual al export (el Atlas es la
+ * fuente de verdad; aquí no hay nada que conservar), pero escribiendo encima y borrando
+ * al final lo que sobra, no vaciándola primero: ver el comentario del upsert.
  *
  *   node scripts/atlas-agua/cargar.mjs              # ensayo: comprueba y no escribe
  *   node scripts/atlas-agua/cargar.mjs --confirmar   # carga de verdad
@@ -129,7 +130,7 @@ async function main() {
   console.log(`Tabla en Supabase: ${previas} filas ahora mismo.`);
 
   if (!confirmar) {
-    console.log(`\nEnsayo. Todo cuadra. Para cargar de verdad (reemplaza las ${previas} filas):`);
+    console.log(`\nEnsayo. Todo cuadra. Para cargar de verdad (escribe encima de las ${previas} filas):`);
     console.log('  node scripts/atlas-agua/cargar.mjs --confirmar');
     return;
   }
@@ -144,15 +145,41 @@ async function main() {
     return o;
   };
 
-  await api('atlas_municipios?ine=neq.__ninguno__', { method: 'DELETE' });
-  console.log('Tabla vaciada. Subiendo…');
+  /* Primero se escribe encima y al final se borra lo que sobra. Antes era al
+     revés —DELETE de todo y luego subir por lotes—, y eso no es una operación,
+     son diecisiete: si el lote noveno fallaba (red, token caducado, un 503 de
+     Supabase), la tabla se quedaba con 4.000 municipios y el bloque de agua
+     decía «no reconozco el municipio» en la mitad de las fichas, sin que nadie
+     se enterara hasta abrir una. PostgREST no da transacciones por HTTP, pero sí
+     upsert: haciéndolo en este orden, un fallo a mitad deja el dato VIEJO en los
+     municipios que no le llegó el turno, que es un estado antiguo pero completo.
+     Y repetir el comando lo termina. */
+  const previos = new Set();
+  for (let off = 0; ; off += 1000) {
+    const r = await api(`atlas_municipios?select=ine&order=ine&offset=${off}&limit=1000`);
+    const p = await r.json();
+    p.forEach(x => previos.add(x.ine));
+    if (p.length < 1000) break;
+  }
+
+  console.log(`Subiendo (upsert sobre ${previos.size} filas ya presentes)…`);
   for (let i = 0; i < filas.length; i += LOTE) {
-    await api('atlas_municipios', {
+    await api('atlas_municipios?on_conflict=ine', {
       method: 'POST',
-      headers: { Prefer: 'return=minimal' },
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify(filas.slice(i, i + LOTE).map(limpia)),
     });
     process.stdout.write(`\r  ${Math.min(i + LOTE, filas.length)}/${filas.length}`);
+  }
+
+  // Lo que estaba y ya no está en el Atlas (fusiones de municipios, sobre todo).
+  const sobrantes = [...previos].filter(ine => !ines.has(ine));
+  if (sobrantes.length) {
+    console.log(`\nBorrando ${sobrantes.length} filas que ya no están en el Atlas…`);
+    for (let i = 0; i < sobrantes.length; i += LOTE) {
+      const trozo = sobrantes.slice(i, i + LOTE).map(x => `"${x}"`).join(',');
+      await api(`atlas_municipios?ine=in.(${encodeURIComponent(trozo)})`, { method: 'DELETE' });
+    }
   }
   const r = await api('atlas_municipios?select=ine&limit=1', { headers: { Prefer: 'count=exact' } });
   const ahora = Number((r.headers.get('content-range') || '/0').split('/')[1]);

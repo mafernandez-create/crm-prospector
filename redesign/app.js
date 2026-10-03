@@ -866,6 +866,49 @@
     });
   }
 
+  // Provincias cuyo nombre castellano NO aparece dentro del que usa el INE, que
+  // es el que trae el Atlas. Para «Alacant/Alicante» o «Araba/Álava» no hace
+  // falta tabla: el nombre del CRM esta dentro y la regla de la barra lo parte.
+  // Para estas siete no hay nada que compartir —«Baleares» y «Illes Balears» no
+  // tienen una palabra en comun—, asi que el bloque de agua de la ficha pedia
+  // `ilike.*Baleares*`, recibia cero filas y se quedaba en «provincia-vacia».
+  // Es la lista completa de las provincias espanolas con nombre oficial
+  // distinto: no es una tabla que haya que ir ampliando. Tabla gemela de
+  // PROV_EXONIMOS en scripts/atlas-agua/lib-muni.mjs — si se toca una, tocar la otra.
+  var PROV_EXONIMOS = {
+    'baleares':   'Illes Balears',
+    'vizcaya':    'Bizkaia',
+    'guipuzcoa':  'Gipuzkoa',
+    'lerida':     'Lleida',
+    'gerona':     'Girona',
+    'la coruna':  'A Coruña',
+    'orense':     'Ourense',
+  };
+
+  // Grafías de una provincia: la escrita y, si la hay, la oficial del INE.
+  function grafiasProvincia(nombre) {
+    var n = String(nombre || '').trim();
+    if (!n) return [];
+    var oficial = PROV_EXONIMOS[normMuni(n)];
+    return (oficial && normMuni(oficial) !== normMuni(n)) ? [n, oficial] : [n];
+  }
+
+  // La grafía con la que buscar la provincia en el Atlas: el `ilike` del
+  // servidor solo admite un patrón, y tiene que ser el del INE.
+  function grafiaAtlas(nombre) {
+    var g = grafiasProvincia(nombre);
+    return g.length ? g[g.length - 1] : '';
+  }
+
+  // Claves de una provincia: las del municipio más los exónimos de arriba.
+  function clavesProvincia(nombre) {
+    var out = [];
+    grafiasProvincia(nombre).forEach(function (g) {
+      clavesMunicipio(g).forEach(function (c) { if (out.indexOf(c) === -1) out.push(c); });
+    });
+    return out;
+  }
+
   // Normalizador para búsquedas de texto libre (listado, ⌘K): sin tildes,
   // minúsculas y con rayas/guiones/puntuación convertidos en espacio, para que
   // «ica ingenieria» encuentre «ICA — Ingeniería y Consultoría de Aguas S.L.».
@@ -957,6 +1000,9 @@
     desinvertirMuni: desinvertirMuni,
     clavesMunicipio: clavesMunicipio,
     clavesMunicipioRango: clavesMunicipioRango,
+    grafiasProvincia: grafiasProvincia,
+    grafiaAtlas: grafiaAtlas,
+    clavesProvincia: clavesProvincia,
     normSearch: normSearch,
     provinciasCercanas: provinciasCercanas,
     formatDateES: formatDateES,
