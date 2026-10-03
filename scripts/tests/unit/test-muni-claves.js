@@ -33,10 +33,13 @@ const src = extraer(
   'normMuni/clavesMunicipio');
 
 const nav = new Function(
-  src + '\nreturn { normMuni, desinvertirMuni, clavesMunicipio, clavesMunicipioRango };')();
+  src + '\nreturn { normMuni, desinvertirMuni, clavesMunicipio, clavesMunicipioRango, ' +
+        'grafiasProvincia, grafiaAtlas, clavesProvincia };')();
 
 A.isType(nav.clavesMunicipio, 'function', 'clavesMunicipio se extrae de app.js');
 A.isType(nav.clavesMunicipioRango, 'function', 'clavesMunicipioRango se extrae de app.js');
+A.isType(nav.clavesProvincia, 'function', 'clavesProvincia se extrae de app.js');
+A.isType(nav.grafiaAtlas, 'function', 'grafiaAtlas se extrae de app.js');
 
 (async () => {
   const lib = await import(
@@ -132,6 +135,49 @@ A.isType(nav.clavesMunicipioRango, 'function', 'clavesMunicipioRango se extrae d
        'el desinvertido cuenta como propio: el INE y el CRM escriben el mismo pueblo');
   A.eq(rango('Calpe', 'calp'), 1, 'el exónimo es derivado, nunca propio');
   A.eq(lib.clavesMunicipioRango('').length, 0, 'nombre vacío: ningún reclamo');
+
+  // ── Provincias: los exónimos que ninguna regla puentea ─────────────────────
+  // Con los nombres dobles del INE no hace falta tabla: «Alicante» está dentro
+  // de «Alacant/Alicante» y la regla de la barra ya comparte clave. Las siete de
+  // PROV_EXONIMOS no comparten NI UNA palabra con su nombre oficial, así que sin
+  // tabla el cruce por provincia falla y se cae al respaldo silencioso.
+  const cruzan = (a, b) => lib.clavesProvincia(a).some(k => lib.clavesProvincia(b).includes(k));
+  A.truthy(cruzan('Baleares', 'Illes Balears'), 'Baleares ↔ Illes Balears cruzan');
+  A.truthy(cruzan('Vizcaya', 'Bizkaia'),        'Vizcaya ↔ Bizkaia cruzan');
+  A.truthy(cruzan('Gerona', 'Girona'),          'Gerona ↔ Girona cruzan');
+  A.truthy(cruzan('La Coruña', 'A Coruña'),     'La Coruña ↔ A Coruña cruzan');
+  A.truthy(cruzan('Alicante', 'Alacant/Alicante'),
+           'los nombres dobles del INE siguen cruzando por la regla de la barra');
+  A.truthy(cruzan('Álava', 'Araba/Álava'),
+           'Álava no necesita tabla: está dentro del nombre oficial');
+  // Y no abre la puerta a cruces falsos entre provincias distintas.
+  A.falsy(cruzan('Baleares', 'Bizkaia'), 'dos provincias distintas no cruzan');
+  A.falsy(cruzan('Gerona', 'Granada'),   'ni dos que empiezan igual');
+
+  // El navegador no cruza claves: pregunta al servidor con UN patrón ilike, y
+  // ahí tiene que ir el nombre del INE o vuelven cero filas.
+  A.eq(lib.grafiaAtlas('Baleares'), 'Illes Balears', 'grafiaAtlas: la del INE');
+  A.eq(lib.grafiaAtlas('Granada'), 'Granada', 'grafiaAtlas: sin exónimo, la escrita');
+  A.eq(lib.grafiaAtlas('Alicante'), 'Alicante',
+       'grafiaAtlas: «Alicante» ya sirve de fragmento, no se toca');
+  A.eq(lib.grafiaAtlas(''), '', 'grafiaAtlas: vacío no busca nada');
+  A.eq(lib.clavesProvincia(''), [], 'provincia vacía: ninguna clave');
+
+  // Las dos copias, también aquí.
+  const PROVS = ['Baleares', 'Illes Balears', 'Vizcaya', 'Bizkaia', 'Guipúzcoa', 'Gipuzkoa',
+    'Lérida', 'Lleida', 'Gerona', 'Girona', 'La Coruña', 'A Coruña', 'Coruña, A',
+    'Orense', 'Ourense', 'Alicante', 'Alacant/Alicante', 'Álava', 'Araba/Álava',
+    'Granada', 'Almería', 'Castellón', 'Castelló/Castellón', '', null, '  '];
+  let divProv = [];
+  for (const c of PROVS) {
+    const n = nav.clavesProvincia(c).slice().sort();
+    const l = lib.clavesProvincia(c).slice().sort();
+    if (JSON.stringify(n) !== JSON.stringify(l)) divProv.push({ c, nav: n, lib: l });
+    if (nav.grafiaAtlas(c) !== lib.grafiaAtlas(c)) {
+      divProv.push({ c, grafiaAtlas: [nav.grafiaAtlas(c), lib.grafiaAtlas(c)] });
+    }
+  }
+  A.eq(divProv, [], 'las dos copias dan lo mismo en las ' + PROVS.length + ' provincias');
 
   const s = A.summary();
   console.log(JSON.stringify(s));
