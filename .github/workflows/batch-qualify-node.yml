@@ -21,10 +21,19 @@ name: Batch Qualify Studios (Node)
 
 on:
   schedule:
-    # Diario 02:30 UTC — recálculo COMPLETO (v2.1): re-evalúa TODA la cartera
+    # Diario 22:00 UTC — recálculo COMPLETO (v2.1): re-evalúa TODA la cartera
     # (nuevos + enriquecidos). Es idempotente y barato (solo escribe los que
     # cambian de cuadrante). Antes del backup semanal de los domingos (04:00).
-    - cron: '30 2 * * *'
+    #
+    # Por qué 22:00 y no la hora en que quiero el resultado: GitHub NO respeta la
+    # hora del cron, lo encola. Medido sobre 14 días (21-sep → 4-oct-2026) con el
+    # cron a las 02:30 UTC, arrancaba de hecho entre las 07:44 y las 09:16 UTC:
+    # un retraso de 5h14 a 6h46. Con el cron a las 22:00 UTC del día anterior,
+    # ese mismo retraso lo deja aterrizando entre las 03:14 y las 04:46 UTC,
+    # o sea 05:14-06:46 en España (verano) y una hora antes en invierno: ya
+    # recalificado cuando Manolo se sienta. Complementa, no sustituye, al
+    # disparo local al arrancar el Mac (run-qualify-catchup.sh).
+    - cron: '0 22 * * *'
   workflow_dispatch:
     inputs:
       filtro:
