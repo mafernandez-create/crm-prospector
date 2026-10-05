@@ -152,6 +152,11 @@ muestra el existente y deja regenerarlo por API.
     `index.html#asistente`, no borrado: la URL está guardada en la pantalla de
     inicio de su iPhone y borrarla daría un 404 en el móvil. El chat completo
     sigue en el historial de git.
-  - `claude.yml`: borrado el job `claude-review` y su disparador `push`.
-    ⚠️ **Pendiente de Manolo:** `claude-mention` (@claude en issues/PRs) sigue vivo
-    y gasta API; se puede retirar y hacer esas revisiones desde la pestaña Code.
+  - `claude.yml`: **borrado entero.** Primero cayó el job `claude-review` (abría una
+    issue con una revisión automática de cada push a `main`: 55 ejecuciones, todo
+    API). Después, con el historial del workflow delante, también `claude-mention`
+    (@claude en issues y PRs): **una sola ejecución con éxito en 147 runs**, y era
+    un workflow con la clave de API y permisos de escritura sobre el repo esperando
+    un disparador que Manolo no usa. Esas revisiones se hacen desde la pestaña Code.
+    ⚠️ El secreto `ANTHROPIC_API_KEY` del repo ya no lo usa ningún workflow: Manolo
+    puede borrarlo en Settings → Secrets and variables → Actions.
