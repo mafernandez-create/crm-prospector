@@ -128,5 +128,30 @@ muestra el existente y deja regenerarlo por API.
 
 ## Estado
 
-- [ ] Fase 1 · [ ] Fase 2 · [ ] Fase 3 · [ ] Fase 4 · [ ] Fase 5 · [ ] Fase 6
+- [x] Fase 1 · [ ] Fase 2 · [ ] Fase 3 · [ ] Fase 4 · [ ] Fase 5 · [ ] Fase 6
 - Notas:
+  - **Fase 1 hecha el 5-oct-2026** en la rama `suscripcion-claude-p`. Tests 844/844.
+    `CACHE_NAME` subido a `crm-prospector-v72`. SIN merge a `main`: falta el OK.
+  - Dos desvíos conscientes respecto a lo escrito en el plan:
+    1. El plan decía `claude-sonnet-4-6`. Se ha puesto **`claude-sonnet-5-5`** en
+       `detail.js` y en `asistente.js`: el 4-6 es generación anterior y cuesta MÁS
+       ($3/$15 por MTok frente a $2/$10), así que usarlo habría ido contra el propio
+       objetivo de la fase. `output_config.effort` SÍ sigue siendo válido en Sonnet
+       5.5, así que no se ha quitado — pero sus niveles están recalibrados y los
+       tiempos medidos en Opus ya no lo calibran (queda anotado en el código).
+    2. El plan decía poner el `cache_control` en el PRIMER bloque del system de
+       `asistente.js`. Se ha puesto en el **último**: un punto de caché cachea el
+       prefijo hasta ese bloque incluido, así que marcar solo el núcleo habría
+       dejado la cartera (la parte grande) pagándose entera en cada turno, que es
+       justo lo que la fase quería evitar.
+  - `chat.html`: **no se ha retirado.** La tabla `ia_uso` está vacía porque el
+    etiquetado `?uso=` vive en esta rama y nunca se ha desplegado, así que no hay
+    dato que diga si Manolo lo usa. Se ha hecho lo conservador: quitar el
+    clasificador de intenciones por IA (una llamada a la API por mensaje) y dejar
+    que lo resuelva `detectIntent` con reglas. Se le añadieron las reglas de
+    `agenda`, `historial` y charla pura que solo tenía el clasificador.
+    ⚠️ **Pendiente de Manolo:** ¿usa el chat viejo? Si no, retirarlo y redirigir al
+    asistente (eso ahorra también la llamada de conversación, `?uso=chat`).
+  - `claude.yml`: borrado el job `claude-review` y su disparador `push`.
+    ⚠️ **Pendiente de Manolo:** `claude-mention` (@claude en issues/PRs) sigue vivo
+    y gasta API; se puede retirar y hacer esas revisiones desde la pestaña Code.

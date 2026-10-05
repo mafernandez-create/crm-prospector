@@ -2058,15 +2058,22 @@
   }
   /* Modelo para la redacción con IA. Aislado aquí para poder cambiarlo de un
      tirón (el proxy GAS es passthrough, así que acepta cualquier id válido). */
-  var _IA_MODEL = 'claude-opus-5';
+  var _IA_MODEL = 'claude-sonnet-5-5';
 
-  /* Esfuerzo de razonamiento. En Opus 5 el pensamiento va ACTIVADO por defecto,
-     y con el esfuerzo por defecto (high) se comía el presupuesto de tokens antes
-     de escribir el correo (stop_reason: max_tokens).
-     Medido en vivo sobre el mismo caso (KR Arquitectura, arquetipo reunion):
-       medium → 38,3 s · low → 30,8 s (1.100 tokens de pensamiento, 231 palabras)
-     Se deja en 'medium': son correos a cliente real y 7 segundos no compensan
-     arriesgar calidad. Bájalo a 'low' si prefieres velocidad. */
+  /* El modelo anterior era 'claude-opus-5'. Cambiado a Sonnet 5.5 el 5-oct-2026
+     (fase 1 de MIGRACION-SUSCRIPCION.md): el correo es trabajo de redacción con
+     la doctrina ya en el prompt, no de razonamiento, y Sonnet cuesta la mitad
+     por token. Si la calidad de los correos baja, vuelve a 'claude-opus-5'.
+
+     Esfuerzo de razonamiento. `output_config.effort` sigue siendo válido en
+     Sonnet 5.5 (low…max, por defecto high), así que se mantiene el parámetro.
+     El motivo original de bajarlo era de Opus 5: con el esfuerzo por defecto se
+     comía el presupuesto de tokens antes de escribir el correo (stop_reason:
+     max_tokens). Medido entonces sobre el mismo caso (KR Arquitectura, arquetipo
+     reunion): medium → 38,3 s · low → 30,8 s.
+     ⚠️ Esos tiempos son de Opus: en Sonnet 5.5 los niveles están recalibrados y
+     no se han vuelto a medir. Se deja en 'medium' por prudencia (son correos a
+     cliente real); medir low cuando haya un caso a mano. */
   var _IA_EFFORT = 'medium';
 
   /* Deduce el arquetipo de correo (claves de CoachDoctrine.TIPOS) a partir de lo

@@ -229,8 +229,12 @@ run_with_hard_timeout() {
     return $exit_code
 }
 
+# `env -u ANTHROPIC_API_KEY`: si la clave está en el entorno, Claude Code la usa y
+# el scout se cobra a la API en lugar de ir contra la suscripción. Quitarla aquí es
+# lo que decide quién paga (fase 1 de MIGRACION-SUSCRIPCION.md, 5-oct-2026). Si
+# alguna vez vuelve a cobrarse a la API, lo primero que hay que mirar es esta línea.
 run_with_hard_timeout "$TIMEOUT_SECONDS" \
-    claude -p "$PROMPT" \
+    env -u ANTHROPIC_API_KEY claude -p "$PROMPT" \
         --model "$MODEL" \
         --output-format json \
         --max-budget-usd "$MAX_BUDGET_USD" \

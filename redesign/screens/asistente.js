@@ -121,7 +121,10 @@
     );
   }
 
-  function _buildSystemPrompt() {
+  /* El system prompt va partido en dos trozos para poder cachear el primero:
+     NUCLEO son las instrucciones fijas (idénticas en cada llamada) y
+     _buildDatos() es la parte volátil (fecha del día + cartera). */
+  function _nucleoSystem() {
     return (
       'Eres el asistente de ventas IA de Manuel Fernández, comercial de Ferroplast (Grupo GPF).\n' +
       'Ferroplast vende tubos, accesorios de polietileno, PVC, fundición y sistemas de presión para ' +
@@ -143,10 +146,32 @@
         '"Hombre de piedra" puede ser "Hombre de Piedra Arquitectos". ' +
         'Si encuentras un parecido razonable, úsalo y menciona al usuario qué nombre exact tienes en el CRM. ' +
         'Solo di "no encontrado" si no hay ningún parecido razonable.\n' +
-      '- Sé conciso y práctico. Evita preambles largos.\n\n' +
+      '- Sé conciso y práctico. Evita preambles largos.'
+    );
+  }
+
+  function _buildDatos() {
+    return (
       'DATOS ACTUALIZADOS A ' + new Date().toISOString().slice(0, 10) + ':\n\n' +
       _buildContext()
     );
+  }
+
+  /* `system` como ARRAY de bloques, con el punto de caché en el ÚLTIMO: así se
+     cachea TODO el prefijo (núcleo + cartera), que es lo que hace que una
+     conversación pague la cartera una sola vez en lugar de en cada turno.
+     La cartera se reconstruye igual en cada llamada, así que mientras no cambie
+     el State ni el día, los bytes son los mismos y el prefijo acierta. */
+  function _buildSystemBloques() {
+    return [
+      { type: 'text', text: _nucleoSystem() },
+      { type: 'text', text: _buildDatos(), cache_control: { type: 'ephemeral' } },
+    ];
+  }
+
+  /* Versión plana, para reintentar si el proxy GAS no digiere el array. */
+  function _buildSystemPrompt() {
+    return _nucleoSystem() + '\n\n' + _buildDatos();
   }
 
   /* ============================================================
@@ -171,12 +196,29 @@
       var Data = window.Data;
       if (!Data || !Data.callGAS) throw new Error('Data.callGAS no disponible');
 
-      var res = await Data.callGAS('claudeProxy', {
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2048,
-        system: _buildSystemPrompt(),
-        messages: messages,
-      }, 'asistente');
+      /* El modelo anterior era 'claude-sonnet-4-6'; Sonnet 5.5 es la generación
+         vigente y cuesta la mitad por token ($2/$10 frente a $3/$15). */
+      async function _pedir(systemPayload) {
+        var r = await Data.callGAS('claudeProxy', {
+          model: 'claude-sonnet-5-5',
+          max_tokens: 2048,
+          system: systemPayload,
+          messages: messages,
+        }, 'asistente');
+        if (r && r.error) {
+          throw new Error(typeof r.error === 'string' ? r.error : (r.error.message || 'Error IA'));
+        }
+        return r;
+      }
+
+      var res;
+      try {
+        res = await _pedir(_buildSystemBloques());
+      } catch (eArray) {
+        // El proxy no ha digerido el array → reintento plano, sin caché.
+        if (window.debugLog) window.debugLog('[asistente] system-array rechazado (' + eArray.message + '); reintento en plano');
+        res = await _pedir(_buildSystemPrompt());
+      }
 
       // El texto NO está siempre en content[0]: con los modelos que razonan el
       // bloque 0 es de tipo "thinking". Util.extractClaudeText lo centraliza y
