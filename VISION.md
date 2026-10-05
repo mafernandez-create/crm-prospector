@@ -35,8 +35,9 @@ aparece en cliente, subir `CACHE_NAME` en `sw.js`. Nada de "se ve bien".
 
 ## Restricciones permanentes
 - Supabase es la fuente de verdad del CRM (web rediseño + batch + PLACSP). Firebase
-  retirado de esos caminos en 2026-06. EXCEPCIÓN viva: `chat.html` aún lee/escribe
-  Firestore. No reactivar Firestore en lo migrado ni tocar el legacy sin permiso.
+  retirado de esos caminos en 2026-06. Ya no hay excepciones: `chat.html`, la única
+  que quedaba, se retiró el 5-oct-2026 y ahora solo redirige al asistente del
+  rediseño. No reactivar Firestore en lo migrado ni tocar el legacy sin permiso.
 - No exponer datos sensibles de clientes (sin auth, URL pública).
 - `google_credentials.json` y claves: nunca a git ni a capturas.
 - Cambios al routing/estado global con cuidado: usar `window.showView()`, no

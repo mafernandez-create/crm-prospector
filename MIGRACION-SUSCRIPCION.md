@@ -144,14 +144,14 @@ muestra el existente y deja regenerarlo por API.
        prefijo hasta ese bloque incluido, así que marcar solo el núcleo habría
        dejado la cartera (la parte grande) pagándose entera en cada turno, que es
        justo lo que la fase quería evitar.
-  - `chat.html`: **no se ha retirado.** La tabla `ia_uso` está vacía porque el
-    etiquetado `?uso=` vive en esta rama y nunca se ha desplegado, así que no hay
-    dato que diga si Manolo lo usa. Se ha hecho lo conservador: quitar el
-    clasificador de intenciones por IA (una llamada a la API por mensaje) y dejar
-    que lo resuelva `detectIntent` con reglas. Se le añadieron las reglas de
-    `agenda`, `historial` y charla pura que solo tenía el clasificador.
-    ⚠️ **Pendiente de Manolo:** ¿usa el chat viejo? Si no, retirarlo y redirigir al
-    asistente (eso ahorra también la llamada de conversación, `?uso=chat`).
+  - `chat.html`: **retirado.** La tabla `ia_uso` estaba vacía (el etiquetado
+    `?uso=` vive en esta rama y nunca se desplegó), así que primero se hizo lo
+    conservador —quitar el clasificador de intenciones por IA y dejárselo a
+    `detectIntent` con reglas—; luego Manolo confirmó que no lo usa y la pantalla
+    se ha retirado del todo. El archivo se queda como **redirección** a
+    `index.html#asistente`, no borrado: la URL está guardada en la pantalla de
+    inicio de su iPhone y borrarla daría un 404 en el móvil. El chat completo
+    sigue en el historial de git.
   - `claude.yml`: borrado el job `claude-review` y su disparador `push`.
     ⚠️ **Pendiente de Manolo:** `claude-mention` (@claude en issues/PRs) sigue vivo
     y gasta API; se puede retirar y hacer esas revisiones desde la pestaña Code.

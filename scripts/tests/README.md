@@ -55,7 +55,8 @@ El orquestador devuelve `exit 1` si algún test falla, `exit 0` si todos pasan.
 
 - **firestore-read** — cartera > 1000 docs, `_meta/batch_checkpoint`,
   `_meta/search_metrics`, formato timestamps. Solo lectura REST pública.
-  (Legado: chat.html aún lee de Firestore; pendiente de migrar a Supabase.)
+  (Legado puro: lo único que leía de Firestore era `chat.html`, retirado el
+  5-oct-2026. Este test cubre datos que ya nadie consulta en caliente.)
 - **placsp-feed** — descarga ATOM oficial, parseo de >50 entries.
 
 ### `e2e/` — workflows GitHub Actions
