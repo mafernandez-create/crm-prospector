@@ -48,7 +48,7 @@ async function main() {
   const atlas = leerCsv(rutaCsv);
   const idx = indexarAtlas(atlas);
   const crm = await fichas();
-  const { posibleFicha, candidatas } = indexarNombres(crm, toponimos(atlas));
+  const { posibleFicha, fichaDe } = indexarNombres(crm, toponimos(atlas));
 
   const zona = new Set(ZONA_SUR.map(normMuni));
   const enZona = s => todas || zona.has(normMuni(s.province));
@@ -91,31 +91,34 @@ async function main() {
   console.log(tabla(
     ['Operador', 'Grupo', 'Munis', 'Fichas', '¿Ficha en CRM?', 'Puente ya marcado'],
     puente.map(o => {
-      const c = candidatas(o.op, 2);
-      const exacta = c.find(x => x.exacta);
+      const f = fichaDe(o.op);
       return [
         o.op.slice(0, 34),
         (o.grupo || '—').slice(0, 30),
         o.munis.size,
         o.fichas.length,
         posibleFicha(o.op, 2).join(' · ').slice(0, 58) || 'no la encuentro',
-        exacta ? (exacta.ficha.es_cliente_puente ? 'sí' : 'NO') : '—',
+        f ? (f.ficha.es_cliente_puente ? 'sí' : 'NO') + (f.via === '~' ? ' (~)' : '') : '—',
       ];
     })));
   console.log();
   console.log('> `=` el nombre es el mismo; `~` la ficha lo contiene o comparten una palabra. **Sin verificar**: ábrela antes de dar nada por hecho.');
+  console.log('> En la última columna, `(~)` marca que la ficha se ha reconocido por la razón social larga, no letra a letra.');
   console.log();
 
   // ── Lo que habría que hacer, sin hacerlo ───────────────────────────────────
-  const conFicha = puente.map(o => ({ o, c: candidatas(o.op, 1).find(x => x.exacta) })).filter(x => x.c);
-  const marcar = conFicha.filter(x => !x.c.ficha.es_cliente_puente);
   // Tres cajones, no dos. «No coincide el nombre exacto» no es «no tiene ficha»:
   // GIAHSA está en el CRM como «GIAHSA - Gestión Integral del Agua Costa de Huelva
   // S.A.» y EMASESA como «EMPRESA METROPOLITANA DE ABASTECIMIENTO…». Meterlos en la
-  // lista de altas es exactamente cómo se fabrica un duplicado.
-  const resto = puente.filter(o => !candidatas(o.op, 1).some(x => x.exacta));
-  const revisar = resto.filter(o => candidatas(o.op, 3).length);
-  const sinNada = resto.filter(o => !candidatas(o.op, 3).length);
+  // lista de altas es exactamente cómo se fabrica un duplicado. Quién va a cada
+  // cajón lo decide fichaDe, que admite la razón social larga cuando solo hay una
+  // ficha que la contenga; antes exigía el nombre idéntico y esos tres se quedaban
+  // en «revisar» para siempre, sin llegar nunca al SQL.
+  const conFicha = puente.map(o => ({ o, f: fichaDe(o.op) })).filter(x => x.f);
+  const marcar = conFicha.filter(x => !x.f.ficha.es_cliente_puente);
+  const resto = puente.filter(o => !fichaDe(o.op));
+  const revisar = resto.filter(o => posibleFicha(o.op, 3).length);
+  const sinNada = resto.filter(o => !posibleFicha(o.op, 3).length);
 
   console.log('## Para marcar como cliente puente (NO lo hago yo)');
   console.log();
@@ -131,8 +134,9 @@ async function main() {
     console.log('```sql');
     console.log('-- revisa la lista ficha a ficha antes de ejecutar');
     marcar.forEach(x => console.log(
-      `update studios set es_cliente_puente = true where id = '${x.c.ficha.id}'; ` +
-      `-- ${x.c.ficha.name} (${x.o.munis.size} munis)`));
+      `update studios set es_cliente_puente = true where id = '${x.f.ficha.id}'; ` +
+      `-- ${x.f.ficha.name} (${x.o.munis.size} munis)` +
+      (x.f.via === '~' ? ` [~ el Atlas la llama «${x.o.op}»: compruébala]` : '')));
     console.log('```');
   }
   console.log();

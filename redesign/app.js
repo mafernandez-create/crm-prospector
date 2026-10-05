@@ -866,12 +866,81 @@
     });
   }
 
+  // Provincias cuyo nombre castellano NO aparece dentro del que usa el INE, que
+  // es el que trae el Atlas. Para «Alacant/Alicante» o «Araba/Álava» no hace
+  // falta tabla: el nombre del CRM esta dentro y la regla de la barra lo parte.
+  // Para estas siete no hay nada que compartir —«Baleares» y «Illes Balears» no
+  // tienen una palabra en comun—, asi que el bloque de agua de la ficha pedia
+  // `ilike.*Baleares*`, recibia cero filas y se quedaba en «provincia-vacia».
+  // Es la lista completa de las provincias espanolas con nombre oficial
+  // distinto: no es una tabla que haya que ir ampliando. Tabla gemela de
+  // PROV_EXONIMOS en scripts/atlas-agua/lib-muni.mjs — si se toca una, tocar la otra.
+  var PROV_EXONIMOS = {
+    'baleares':   'Illes Balears',
+    'vizcaya':    'Bizkaia',
+    'guipuzcoa':  'Gipuzkoa',
+    'lerida':     'Lleida',
+    'gerona':     'Girona',
+    'la coruna':  'A Coruña',
+    'orense':     'Ourense',
+  };
+
+  // Grafías de una provincia: la escrita y, si la hay, la oficial del INE.
+  function grafiasProvincia(nombre) {
+    var n = String(nombre || '').trim();
+    if (!n) return [];
+    var oficial = PROV_EXONIMOS[normMuni(n)];
+    return (oficial && normMuni(oficial) !== normMuni(n)) ? [n, oficial] : [n];
+  }
+
+  // La grafía con la que buscar la provincia en el Atlas: el `ilike` del
+  // servidor solo admite un patrón, y tiene que ser el del INE.
+  function grafiaAtlas(nombre) {
+    var g = grafiasProvincia(nombre);
+    return g.length ? g[g.length - 1] : '';
+  }
+
+  // Claves de una provincia: las del municipio más los exónimos de arriba.
+  function clavesProvincia(nombre) {
+    var out = [];
+    grafiasProvincia(nombre).forEach(function (g) {
+      clavesMunicipio(g).forEach(function (c) { if (out.indexOf(c) === -1) out.push(c); });
+    });
+    return out;
+  }
+
   // Normalizador para búsquedas de texto libre (listado, ⌘K): sin tildes,
   // minúsculas y con rayas/guiones/puntuación convertidos en espacio, para que
   // «ica ingenieria» encuentre «ICA — Ingeniería y Consultoría de Aguas S.L.».
   function normSearch(s) {
     return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
       .toLowerCase().replace(/[^a-z0-9ñ]+/g, ' ').trim();
+  }
+
+  /* Lo mismo escrito de dos maneras. La búsqueda es por palabras y no sabe que
+     «C.R.» y «Comunidad de Regantes» son el mismo ente: de las 158 comunidades
+     de regantes del CRM, 109 están abreviadas y 15 con el nombre entero, así
+     que buscar «comunidad de regantes» encontraba 15 de 158.
+
+     No se sustituye nada: quien escribe «comunidad» tiene que seguir
+     encontrando la ficha que se llama así. Al PAJAR se le añaden las otras
+     formas de decir lo mismo, y la consulta se compara como siempre. Por eso
+     esto no es normSearch con un parche: es otra función, y la de siempre
+     sigue sirviendo para lo que ya servía. */
+  var ALIAS_BUSQUEDA = [
+    { rx: /(^| )(ccrr|c r|cr)( |$)/, suma: 'ccrr comunidad de regantes' },
+    { rx: /comunidad(es)? (general(es)? )?(de )?regantes/, suma: 'ccrr cr' },
+  ];
+
+  /* normSearch del pajar + los alias que le correspondan. Para el lado del
+     pajar (nombre + ciudad + provincia de la ficha); la consulta del usuario va
+     por normSearch a secas. */
+  function normSearchAlias(s) {
+    var n = normSearch(s);
+    for (var i = 0; i < ALIAS_BUSQUEDA.length; i++) {
+      if (ALIAS_BUSQUEDA[i].rx.test(n)) n += ' ' + ALIAS_BUSQUEDA[i].suma;
+    }
+    return n;
   }
 
   // Índice de adyacencia simétrico derivado de LIMITROFES: añade las aristas
@@ -957,7 +1026,11 @@
     desinvertirMuni: desinvertirMuni,
     clavesMunicipio: clavesMunicipio,
     clavesMunicipioRango: clavesMunicipioRango,
+    grafiasProvincia: grafiasProvincia,
+    grafiaAtlas: grafiaAtlas,
+    clavesProvincia: clavesProvincia,
     normSearch: normSearch,
+    normSearchAlias: normSearchAlias,
     provinciasCercanas: provinciasCercanas,
     formatDateES: formatDateES,
     diasDesde: diasDesde,

@@ -10,7 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { normMuni, clavesMunicipio, clavesMunicipioRango } from './lib-muni.mjs';
+import { normMuni, clavesMunicipio, clavesMunicipioRango, clavesProvincia } from './lib-muni.mjs';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 export const RAIZ = path.resolve(AQUI, '..', '..');
@@ -104,9 +104,10 @@ export function toponimos(atlas) {
  * respaldo (municipio único en toda España), que es silenciosa y se rompe el día
  * que dos provincias tengan un municipio con el mismo nombre.
  * Las mismas reglas que para municipios sirven aquí (la barra, el artículo de
- * «A Coruña»), así que se reutilizan en vez de escribir otras.
+ * «A Coruña»), así que se reutilizan en vez de escribir otras; a eso
+ * clavesProvincia le suma los exónimos de provincia («Baleares» ↔ «Illes
+ * Balears»), que no comparten ninguna palabra y por tanto ninguna regla.
  */
-const clavesProvincia = clavesMunicipio;
 
 /**
  * De todos los municipios que reclaman una clave, el que tiene derecho a ella.

@@ -21,6 +21,29 @@
 # Restauración manual (el artifact viene cifrado .sql.gz.gpg):
 #   gpg --batch --passphrase "$BACKUP_PASSPHRASE" -d supabase-backup-YYYYMMDD.sql.gz.gpg \
 #     | gunzip | psql "<SUPABASE_DB_URL>"
+#
+# ------------------------------------------------------------
+# Por qué este workflow existe si ya hay un backup local
+# (reactivado el 4-oct-2026, tras dos meses desactivado a mano)
+#
+# En julio de 2026 se instaló `run-supabase-backup.sh`, que hace el pg_dump
+# en el Mac (lunes 06:00, vía com.gpf.crm-supabase-backup), y este workflow
+# se desactivó para no duplicar el trabajo. El efecto colateral: desde el
+# 26-jul-2026 las ocho copias cifradas vivían TODAS en `backups/`, es decir
+# en el mismo disco que la máquina que las genera, y no había ninguna copia
+# fuera del Mac.
+#
+# Este workflow vuelve por eso y sólo por eso: es la copia off-site. No
+# sustituye a la local ni la local a él. Duplicar el pg_dump no da problemas
+# porque es de SOLO LECTURA — al contrario que los tests diarios, que
+# escriben en producción y por eso siguen desactivados aquí.
+#
+# El domingo 04:00 UTC se mantiene a propósito: `batch-qualify-node.yml`
+# recalifica con cron a las 22:00 UTC del día anterior y, con el retraso de
+# encolado que GitHub viene aplicando (5-7 h), aterriza entre las 03:14 y
+# las 04:46 UTC. Este backup, encolado a las 04:00, arranca de hecho pasadas
+# las 09:00: siempre después del recálculo, nunca a medias.
+# ------------------------------------------------------------
 # ============================================================
 
 name: Supabase Backup Weekly

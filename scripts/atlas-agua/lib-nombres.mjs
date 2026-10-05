@@ -119,5 +119,29 @@ export function indexarNombres(todas, toponimos = new Set()) {
       .map(c => `${c.exacta ? '=' : '~'}${c.ficha.id} ${c.ficha.name}`);
   }
 
-  return { candidatas, posibleFicha };
+  /**
+   * La ficha de este nombre, cuando se puede señalar UNA sin dudar. Devuelve
+   * `{ ficha, via }` con via '=' o '~', o null.
+   *
+   * Exigir el nombre idéntico dejaba fuera a las que el CRM tiene con la razón
+   * social entera: GIAHSA está como «GIAHSA - Gestión Integral del Agua Costa
+   * de Huelva S.A.» y EMASESA como «EMPRESA METROPOLITANA … - EMASESA-». Son
+   * las mismas empresas, y quedaban en el cajón de «revisar» para siempre.
+   * Vale por tanto la coincidencia por frase —el nombre del Atlas entero y
+   * seguido dentro del de la ficha— pero solo si hay UNA: con tres fichas que
+   * contienen «Hidrogea», o con «Acciona» y «Acciona Construcción», no hay una
+   * ficha, hay tres cosas que mirar. Compartir una palabra suelta nunca basta.
+   */
+  function fichaDe(nombre) {
+    const c = candidatas(nombre, 5);
+    // Entre exactas no se desempata aquí: un nombre con barra («Global Omnium /
+    // Aguas de Valencia») tiene dos fichas igual de válidas, y es el mismo
+    // operador. Gana la primera, que es la que ya venía usándose.
+    const ex = c.find(x => x.exacta);
+    if (ex) return { ficha: ex.ficha, via: '=' };
+    const fr = c.filter(x => x.frase);
+    return fr.length === 1 ? { ficha: fr[0].ficha, via: '~' } : null;
+  }
+
+  return { candidatas, posibleFicha, fichaDe };
 }

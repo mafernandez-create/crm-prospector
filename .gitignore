@@ -61,6 +61,11 @@ dunsSegmentacion_fix.js
 planning_*.html
 agentes/output/
 AUDITORIA.md
+# Planes de ruta y prospecciones: llevan nombres de empresa, scores comerciales,
+# telefonos y correos de terceros. Se quedan en el Mac (5-oct-2026).
+docs/PLAN-*.md
+docs/PROSPECCION-*.md
+docs/ZONAS-*.md
 
 # ── Robots de launchd (movidos aqui desde crm-prospector/ el 11-sep-2026) ──
 # .env.local lleva la URL de la base de datos y la passphrase del cifrado de las

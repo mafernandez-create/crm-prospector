@@ -325,7 +325,7 @@
     const qTokens = U.normSearch(FILTERS.q).split(' ').filter(Boolean);
     const out = rows.filter(function (s) {
       if (qTokens.length) {
-        const hay = U.normSearch((s.name || '') + ' ' + (s.city || '') + ' ' + (s.province || ''));
+        const hay = U.normSearchAlias((s.name || '') + ' ' + (s.city || '') + ' ' + (s.province || ''));
         for (let i = 0; i < qTokens.length; i++) if (hay.indexOf(qTokens[i]) < 0) return false;
       }
       if (FILTERS.provincia && s.province !== FILTERS.provincia) return false;

@@ -43,6 +43,11 @@ const RAIZ = path.resolve(__dirname, '..', '..', '..');
     // primero y hacía que ganara.
     { ine: '18910', municipio: 'El Pinar',            provincia: 'Granada' },
     { ine: '18159', municipio: 'Píñar',               provincia: 'Granada' },
+    // Provincia cuyo nombre oficial no comparte NI UNA palabra con el castellano.
+    // Y un homónimo en otra provincia para que el respaldo no pueda tapar el
+    // fallo: si el cruce por provincia no funciona, aquí no se resuelve nada.
+    { ine: '07011', municipio: 'Calvià',               provincia: 'Illes Balears' },
+    { ine: '48020', municipio: 'Calvià',               provincia: 'Bizkaia' },
   ];
   const idx = indexarAtlas(ATLAS);
   const via = (city, prov) => { const r = resolver(idx, city, prov); return r ? r.via : null; };
@@ -56,6 +61,15 @@ const RAIZ = path.resolve(__dirname, '..', '..', '..');
        'exónimo y provincia bilingüe a la vez');
   A.eq(via('Castellón de la Plana', 'Castellón'), 'provincia+municipio',
        'mismo caso en Castellón');
+
+  // ── La provincia que no comparte una palabra con su nombre oficial ─────────
+  // «Baleares» e «Illes Balears» no se parecen en nada, así que ninguna regla
+  // los puentea: hace falta la tabla de exónimos. Hoy no hay fichas en Baleares,
+  // de modo que esto es la red para el día que se cree la primera.
+  A.eq(via('Calvià', 'Baleares'), 'provincia+municipio',
+       '«Baleares» de la ficha cruza con «Illes Balears» del Atlas');
+  A.eq(ine('Calvià', 'Baleares'), '07011', 'y trae la fila de Baleares, no la de Bizkaia');
+  A.eq(ine('Calvià', 'Vizcaya'), '48020', 'y al revés con Vizcaya ↔ Bizkaia');
 
   // ── Lo que ya funcionaba, que siga ─────────────────────────────────────────
   A.eq(via('Granada', 'Granada'), 'provincia+municipio', 'provincia de una sola grafía');

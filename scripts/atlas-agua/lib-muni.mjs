@@ -130,3 +130,58 @@ export function clavesMunicipioRango(nombre) {
   }
   return clavesMunicipio(nombre).map(c => ({ clave: c, rango: propias.has(c) ? 0 : 1 }));
 }
+
+/**
+ * Provincias cuyo nombre castellano NO aparece dentro del que usa el INE, que
+ * es el que trae el Atlas. Para «Alacant/Alicante» o «Araba/Álava» no hace
+ * falta tabla: el nombre del CRM está dentro y la regla de la barra lo parte.
+ * Para estas siete no hay nada que compartir —«Baleares» y «Illes Balears» no
+ * tienen una palabra en común—, así que el cruce por provincia falla y se cae
+ * al respaldo de «municipio único en toda España», que es silencioso.
+ * Hoy no hay ninguna ficha en estas provincias; el día que se cree la primera
+ * no se nota, porque el respaldo acierta casi siempre.
+ * Es la lista completa de las provincias españolas con nombre oficial distinto:
+ * no es una tabla que haya que ir ampliando.
+ * Tabla gemela de PROV_EXONIMOS en redesign/app.js — si se toca una, tocar la otra.
+ */
+const PROV_EXONIMOS = {
+  'baleares':   'Illes Balears',
+  'vizcaya':    'Bizkaia',
+  'guipuzcoa':  'Gipuzkoa',
+  'lerida':     'Lleida',
+  'gerona':     'Girona',
+  'la coruna':  'A Coruña',
+  'orense':     'Ourense',
+};
+
+/** Grafías de una provincia: la escrita y, si la hay, la oficial del INE. */
+export function grafiasProvincia(nombre) {
+  const n = String(nombre || '').trim();
+  if (!n) return [];
+  const oficial = PROV_EXONIMOS[normMuni(n)];
+  return oficial && normMuni(oficial) !== normMuni(n) ? [n, oficial] : [n];
+}
+
+/**
+ * La grafía con la que buscar esta provincia en el Atlas. El cruce del
+ * navegador no es por clave sino un `ilike` contra el servidor, y ahí solo
+ * cabe un patrón: con «Baleares» devuelve cero filas y la ficha dice
+ * «provincia-vacia» sin más explicación.
+ */
+export function grafiaAtlas(nombre) {
+  const g = grafiasProvincia(nombre);
+  return g.length ? g[g.length - 1] : '';
+}
+
+/**
+ * Claves de una provincia, para cruzar el campo del CRM con el del Atlas.
+ * Mismas reglas que los municipios (la barra, el artículo de «A Coruña»), más
+ * los exónimos de arriba.
+ */
+export function clavesProvincia(nombre) {
+  const out = new Set();
+  for (const g of grafiasProvincia(nombre)) {
+    for (const c of clavesMunicipio(g)) out.add(c);
+  }
+  return [...out];
+}
