@@ -66,6 +66,10 @@ AUDITORIA.md
 docs/PLAN-*.md
 docs/PROSPECCION-*.md
 docs/ZONAS-*.md
+# Misma razon: las planificaciones semanales que se mandan al jefe son rutas con
+# nombres de empresa. S42 estaba sin cubrir y el cron de auto-guardado podia
+# haberla subido a gh-pages (6-oct-2026).
+docs/S*-planificacion-*.md
 
 # ── Robots de launchd (movidos aqui desde crm-prospector/ el 11-sep-2026) ──
 # .env.local lleva la URL de la base de datos y la passphrase del cifrado de las
