@@ -1867,7 +1867,8 @@
     return 1 + Math.round(((d - w1) / 86400000 - 3 + ((w1.getDay() + 6) % 7)) / 7);
   }
   /* Busca el informe de una visita en la ficha: el primero fechado entre
-     (fecha − 3 días) y (fecha + 21 días). Misma tolerancia que la vista SQL
+     (fecha − 3 días) y (fecha + 21 días), por su campo `date` (la fecha de la
+     visita). Misma tolerancia y mismo campo que la vista SQL
      `visitas_sin_informe`. */
   function _informeDeVisita(studio, fechaISO, cota) {
     const reports = (studio && studio.data && studio.data.reports) || [];
@@ -1881,7 +1882,11 @@
     if (hasta < desde) return null;
     let best = null, bestIdx = -1;
     reports.forEach(function (r, idx) {
-      const d = String(r.iso_date || r.date || '').slice(0, 10);
+      // La fecha de la visita de un informe es `date`. `iso_date` es el instante
+      // de redacción (= generated_at en 107 de los 325 informes, medido el
+      // 6-oct-2026) y sigue siendo la clave de identidad del informe, no su
+      // fecha: usarlo aquí atribuía al informe el día en que se escribió.
+      const d = String(r.date || r.iso_date || '').slice(0, 10);
       if (!d || d < desde || d > hasta) return;
       if (!best || Math.abs(new Date(d) - new Date(fechaISO)) < Math.abs(new Date(best.date) - new Date(fechaISO))) { best = Object.assign({}, r, { date: d }); bestIdx = idx; }
     });
