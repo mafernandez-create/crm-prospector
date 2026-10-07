@@ -1701,8 +1701,12 @@
     const raw = State.studiosById && State.studiosById[studioId];
     if (!raw) { alert('Studio no encontrado.'); return; }
     const currentData = Object.assign({}, raw.data || {});
-    currentData.contact = Object.assign({}, currentData.contact || {}, {
-      address: addr, phone: phone, email: email, web: web,
+    const ctcPrev = currentData.contact || {};
+    currentData.contact = Object.assign({}, ctcPrev, {
+      address: U.writeField(addr,  ctcPrev.address),
+      phone:   U.writeField(phone, ctcPrev.phone),
+      email:   U.writeField(email, ctcPrev.email),
+      web:     U.writeField(web,   ctcPrev.web),
     });
     currentData.studio = Object.assign({}, currentData.studio || {}, { founded: founded });
 
@@ -1916,10 +1920,12 @@
     var s = State.studiosById && State.studiosById[studioId];
     var currentData = Object.assign({}, (s && s.data) || {});
     var ctc = Object.assign({}, currentData.contact || {});
-    if (tel)     ctc.phone   = tel;
-    if (email)   ctc.email   = email;
-    if (web)     ctc.web     = web;
-    if (address) ctc.address = address;
+    /* U.writeField conserva el objeto de procedencia cuando el valor no ha
+       cambiado; solo aplana a texto si el usuario editó el campo. */
+    if (tel)     ctc.phone   = U.writeField(tel,     ctc.phone);
+    if (email)   ctc.email   = U.writeField(email,   ctc.email);
+    if (web)     ctc.web     = U.writeField(web,     ctc.web);
+    if (address) ctc.address = U.writeField(address, ctc.address);
     currentData.contact = ctc;
 
     var patch = {

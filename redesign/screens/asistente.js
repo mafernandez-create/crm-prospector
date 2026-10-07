@@ -201,14 +201,15 @@
       async function _pedir(systemPayload) {
         var r = await Data.callGAS('claudeProxy', {
           model: 'claude-sonnet-5-5',
-          max_tokens: 2048,
-          /* Esfuerzo bajo (7-oct-2026): sin este parámetro Sonnet 5.5 usa 'high'
-             y razona antes de contestar; ese tiempo no se ve porque el proxy GAS
-             no transmite la respuesta por partes. Las preguntas del asistente son
-             de consulta sobre la cartera, no de razonamiento largo. Si las
-             respuestas pierden calidad, probar 'medium'. Mismo parámetro que ya
-             usa el redactor de correos (detail.js → _IA_EFFORT). */
-          output_config: { effort: 'low' },
+          /* 4096, no 2048 (7-oct-2026): con 2048 el razonamiento del modelo se
+             comía el presupuesto y la respuesta llegaba truncada — el error de
+             presupuesto de tokens que sale por app.js → extractClaudeText.
+             Nota: aquí NO se pone output_config.effort. Se probó 'low' pensando
+             que acortaría la espera y no cambia nada percibido: el proxy GAS
+             devuelve la respuesta de una pieza, así que el tiempo que el modelo
+             se ahorra pensando no se ve. Si algún día el proxy transmite por
+             partes, volver a plantearlo. */
+          max_tokens: 4096,
           system: systemPayload,
           messages: messages,
         }, 'asistente');

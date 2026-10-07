@@ -624,6 +624,24 @@
     return String(v);
   }
 
+  /* Contrapunto de readField: decide QUÉ se escribe de vuelta.
+     Un campo contact puede ser texto plano o un objeto con procedencia
+     ({valor, fuente_url, fuente_tipo, fecha_captura, nivel_confianza}).
+     Guardar el texto del formulario a secas aplanaba el objeto y perdía
+     de dónde salió el dato — le pasó a la ficha 293. Regla:
+       · el usuario no lo tocó  -> se devuelve el objeto intacto
+       · el usuario lo cambió   -> texto plano (la procedencia ya no describe
+                                   ese valor; el dato ahora es manual)
+       · el objeto no tiene 'valor' -> se respeta igualmente (forma desconocida) */
+  function writeField(nuevoTexto, anterior) {
+    var txt = (nuevoTexto == null ? '' : String(nuevoTexto)).trim();
+    if (anterior && typeof anterior === 'object') {
+      if (!('valor' in anterior)) return anterior;
+      if (txt === String(anterior.valor == null ? '' : anterior.valor).trim()) return anterior;
+    }
+    return txt;
+  }
+
   /* ------------------------------------------------------------
      REGLA GLOBAL: el texto de una respuesta de Claude NO está siempre
      en content[0]. Los modelos que razonan (Opus 5 y la familia 4.6+
@@ -1039,6 +1057,7 @@
     activities: activities,
     lastInteraction: lastInteraction,
     readField: readField,
+    writeField: writeField,
     stripTimestamps: stripTimestamps,
     stripTimestampsDeep: stripTimestampsDeep,
     productosEnInforme: productosEnInforme,
