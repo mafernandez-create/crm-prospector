@@ -91,3 +91,11 @@ scripts/prospector-scout/censo/.pdf-cache/
 retomar.md
 issue-body.md
 scratchpad/
+
+# Los correos redactados para la ruta: mismos datos de terceros (6-oct-2026).
+docs/S*-correos-*.md
+
+# Notas de prescripcion por entidad: llevan nombres de empresa, NIF, telefonos y
+# correos de terceros, y expedientes concretos. Misma razon que las rutas: este
+# repo se autopublica en gh-pages PUBLICO (7-oct-2026).
+docs/EPSAR-*.md
