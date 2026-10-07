@@ -177,22 +177,120 @@
   }
 
   /* Pagina todos los rows de una tabla con Range header.
-     PostgREST limita por defecto a 1000 rows/req → iterar hasta vacío. */
+     PostgREST limita por defecto a 1000 rows/req → iterar hasta vacío.
+     Las páginas se piden de 3 en 3 EN PARALELO (antes iban una detrás de otra:
+     con ~2.200 studios eran 3 viajes seguidos por la red del móvil). Si la
+     última página de una tanda viene llena, se pide la siguiente tanda. */
   async function _fetchAllRows(pathQ, pageSize) {
     pageSize = pageSize || 1000;
+    const PARALELO = 3;
     const out = [];
     let from = 0;
     while (true) {
-      const to = from + pageSize - 1;
-      const res = await sbFetch(pathQ, {
-        headers: { 'Range-Unit': 'items', 'Range': from + '-' + to },
-      });
-      const batch = await res.json();
-      if (!Array.isArray(batch) || batch.length === 0) break;
-      out.push.apply(out, batch);
-      if (batch.length < pageSize) break;
-      from += pageSize;
+      const tanda = [];
+      for (let k = 0; k < PARALELO; k++) {
+        const ini = from + k * pageSize;
+        tanda.push(sbFetch(pathQ, {
+          headers: { 'Range-Unit': 'items', 'Range': ini + '-' + (ini + pageSize - 1) },
+        }).then(function (res) { return res.json(); }));
+      }
+      const lotes = await Promise.all(tanda);
+      let fin = false;
+      for (const batch of lotes) {
+        if (!Array.isArray(batch) || batch.length === 0) { fin = true; break; }
+        out.push.apply(out, batch);
+        if (batch.length < pageSize) { fin = true; break; }
+      }
+      if (fin) break;
+      from += PARALELO * pageSize;
       if (from > 50000) break;  // sanity guard
+    }
+    return out;
+  }
+
+  /* ============================================================
+     Versión ligera de la cartera (vista studios_ligero)
+     ============================================================
+     La vista devuelve studios sin los .docx en base64 de data.reports[]
+     (claves fileData/file/data) y deja en cada informe afectado "_bin": índice
+     original. Era ~4,9 MB de binario que no se comprime al viajar y que la
+     carga inicial no usa (solo acciones.js, que lo pide con getReportsCompletos).
+     Migración: supabase/migrations/20261007160000_studios_ligero.sql.
+     Si la vista no existe todavía, se cae a la tabla completa como antes. */
+  const BIN_KEYS = ['fileData', 'file', 'data'];
+  const ID_KEYS = ['iso_date', 'date', 'fileName', 'title', 'tipo_informe'];
+
+  function _tieneBin(r) {
+    return !!r && typeof r === 'object' && r._bin != null;
+  }
+  function _mismoInforme(a, b) {
+    if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return false;
+    for (const k of ID_KEYS) {
+      if ((a[k] == null ? null : String(a[k])) !== (b[k] == null ? null : String(b[k]))) return false;
+    }
+    return true;
+  }
+  function _binDe(r) {
+    const o = {};
+    if (!r || typeof r !== 'object') return o;
+    for (const k of BIN_KEYS) if (typeof r[k] === 'string') o[k] = r[k];
+    return o;
+  }
+
+  /* Antes de escribir data de un studio cargado en versión ligera, vuelve a
+     poner los binarios que la vista quitó. Sin esto, guardar cualquier cosa
+     de la ficha (una actividad, un contacto…) mandaría data.reports SIN los
+     Word y los borraría de la base de datos. Si no puede casar un informe
+     con su original, NO guarda: lanza un error (mejor no guardar que perder
+     el adjunto). Devuelve una copia; no toca el objeto del State. */
+  async function _restaurarBinarios(studioId, data) {
+    const reps = data && Array.isArray(data.reports) ? data.reports : null;
+    if (!reps || !reps.some(_tieneBin)) return data;
+    const r = await sbFetch('/studios?id=eq.' + encodeURIComponent(studioId) + '&select=reports:data->reports');
+    const arr = await r.json();
+    const dbReps = (arr[0] && Array.isArray(arr[0].reports)) ? arr[0].reports : [];
+    const usados = new Set();
+    const nuevos = reps.map(function (rep) {
+      if (!_tieneBin(rep)) return rep;
+      const copia = Object.assign({}, rep);
+      delete copia._bin;
+      let idx = -1;
+      const i = parseInt(rep._bin, 10);
+      // Mismo número de informes que en la BD → no se ha añadido ni quitado
+      // ninguno y la posición manda (así se puede editar el título o la fecha
+      // de un informe sin perder su Word). Si el número cambia, hay que casar
+      // por identidad.
+      const mismaLongitud = dbReps.length === reps.length;
+      if (i >= 0 && i < dbReps.length && (mismaLongitud || _mismoInforme(dbReps[i], rep))) idx = i;
+      if (idx < 0) {
+        idx = dbReps.findIndex(function (d, j) {
+          return !usados.has(j) && _mismoInforme(d, rep) && Object.keys(_binDe(d)).length > 0;
+        });
+      }
+      if (idx < 0) {
+        // ¿Hay algún informe en la BD con binario que no esté ya en la lista?
+        // Si no lo hay, no hay nada que perder y se guarda sin más.
+        const quedanBins = dbReps.some(function (d, j) { return !usados.has(j) && Object.keys(_binDe(d)).length > 0; });
+        if (!quedanBins) return copia;
+        throw new Error('No se ha guardado: no se pudo conservar el Word adjunto de un informe (' +
+          (rep.date || rep.iso_date || rep.title || '?') + '). Recarga la página y vuelve a intentarlo.');
+      }
+      usados.add(idx);
+      return Object.assign(copia, _binDe(dbReps[idx]));
+    });
+    return Object.assign({}, data, { reports: nuevos });
+  }
+
+  /* Informes completos (con binarios) de varios studios, para acciones.js.
+     Devuelve { [studioId]: reports[] }. Pide de 50 en 50 ids. */
+  async function getReportsCompletos(ids) {
+    const out = {};
+    const lista = Array.from(new Set((ids || []).map(String)));
+    for (let i = 0; i < lista.length; i += 50) {
+      const trozo = lista.slice(i, i + 50).map(function (id) { return '"' + id.replace(/"/g, '') + '"'; }).join(',');
+      const r = await sbFetch('/studios?id=in.(' + encodeURIComponent(trozo) + ')&select=id,reports:data->reports');
+      const arr = await r.json();
+      (arr || []).forEach(function (row) { out[String(row.id)] = Array.isArray(row.reports) ? row.reports : []; });
     }
     return out;
   }
@@ -203,7 +301,11 @@
   async function loadAll() {
     const t0 = Date.now();
     const [rows, planRes] = await Promise.all([
-      _fetchAllRows('/studios?select=*'),
+      _fetchAllRows('/studios_ligero?select=*').catch(function (e) {
+        // Vista aún no creada (migración sin aplicar) → tabla completa, como antes.
+        console.warn('[redesign/data-supabase] studios_ligero no disponible, cargo studios completo: ' + e.message);
+        return _fetchAllRows('/studios?select=*');
+      }),
       sbFetch('/meta_planificador?id=eq.1&select=schedule,updated_at').catch(function () { return null; }),
     ]);
     const studios = rows.map(rowToInternal);
@@ -362,6 +464,7 @@
     // studios/{id}
     if (parts[0] === 'studios' && parts[1] && parts.length === 2) {
       const row = internalToRow(Object.assign({ id: parts[1] }, obj));
+      if (row.data) row.data = await _restaurarBinarios(parts[1], row.data);
       const r = await sbFetch('/studios?on_conflict=id', {
         method: 'POST',
         headers: {
@@ -512,6 +615,8 @@
     getBriefingItems: getBriefingItems,
     savePlanificador: savePlanificador,
     flagReportAudit: flagReportAudit,
+    getReportsCompletos: getReportsCompletos,
+    _restaurarBinarios: _restaurarBinarios,
     listVisitasSemana: listVisitasSemana,
     updateVisita: updateVisita,
     listVisitasPosteriores: listVisitasPosteriores,
