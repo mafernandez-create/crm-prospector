@@ -89,9 +89,25 @@
   /* Procesa todos los studios y devuelve array de acciones detectadas */
   async function procesarTodos(studios) {
     var items = [];
+    // La cartera se carga en versión ligera (vista studios_ligero): los Word en
+    // base64 de los informes NO vienen ("_bin" marca dónde estaban). Aquí sí
+    // hacen falta, así que se piden aparte solo para los studios que los tienen.
+    var completos = {};
+    try {
+      var idsBin = studios.filter(function (st) {
+        var reps = st && st.data && Array.isArray(st.data.reports) ? st.data.reports : [];
+        return reps.some(function (r) { return r && r._bin != null && !r.fileData && !r.data; });
+      }).map(function (st) { return st.id; });
+      if (idsBin.length && window.DataSupabase && window.DataSupabase.getReportsCompletos) {
+        completos = await window.DataSupabase.getReportsCompletos(idsBin);
+      }
+    } catch (e) {
+      if (window.debugLog) window.debugLog('[acciones] no se pudieron pedir los Word: ' + e.message);
+    }
     for (var si = 0; si < studios.length; si++) {
       var studio = studios[si];
-      var reports = studio.data && Array.isArray(studio.data.reports) ? studio.data.reports : [];
+      var reports = completos[String(studio.id)] ||
+        (studio.data && Array.isArray(studio.data.reports) ? studio.data.reports : []);
       for (var ri = 0; ri < reports.length; ri++) {
         var rep = reports[ri];
         var bin = rep.fileData || rep.data;

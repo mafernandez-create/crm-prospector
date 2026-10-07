@@ -202,6 +202,13 @@
         var r = await Data.callGAS('claudeProxy', {
           model: 'claude-sonnet-5-5',
           max_tokens: 2048,
+          /* Esfuerzo bajo (7-oct-2026): sin este parámetro Sonnet 5.5 usa 'high'
+             y razona antes de contestar; ese tiempo no se ve porque el proxy GAS
+             no transmite la respuesta por partes. Las preguntas del asistente son
+             de consulta sobre la cartera, no de razonamiento largo. Si las
+             respuestas pierden calidad, probar 'medium'. Mismo parámetro que ya
+             usa el redactor de correos (detail.js → _IA_EFFORT). */
+          output_config: { effort: 'low' },
           system: systemPayload,
           messages: messages,
         }, 'asistente');
