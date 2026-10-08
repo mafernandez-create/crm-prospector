@@ -103,3 +103,8 @@ docs/S*-correos-*.md
 # correos de terceros, y expedientes concretos. Misma razon que las rutas: este
 # repo se autopublica en gh-pages PUBLICO (7-oct-2026).
 docs/EPSAR-*.md
+
+# Hoteles verificados para dormir en ruta. No llevan datos de clientes, pero
+# dejan por escrito donde duerme Manolo cada semana y este repo se autopublica
+# en gh-pages PUBLICO. Decision suya el 8-oct-2026: se queda en el Mac.
+docs/hoteles-por-zona.md
