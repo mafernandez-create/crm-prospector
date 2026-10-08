@@ -358,6 +358,7 @@
         header(d) +
         (d.sinCuadrante > 0 ? bannerSinCuadrante(d.sinCuadrante) : '') +
         (d.placspAlerts && d.placspAlerts.length ? placspSection(d.placspAlerts) : '') +
+        '<div id="bandeja-interesantes-wrap"></div>' +
         matrizCuadrantes(d.cuadrantes) +
         twoColumnGrid(d) +
         accionesPendientesSection() +
@@ -365,6 +366,111 @@
     );
     // Cargar acciones pendientes de forma asíncrona
     _loadAcciones();
+    _loadInteresantes();
+  }
+
+  /* ============================================================
+     LICITACIONES INTERESANTES — lo marcado en el PLACSP Monitor
+     (tabla placsp_interesantes, la llena scripts/placsp-interesantes.js
+     en el placsp-daily). Antes lo consumía CRM3, retirado el 8-oct-2026.
+     Si la tabla no responde, la tarjeta no aparece.
+     ============================================================ */
+  var INT_ABIERTAS = ['EN PLAZO', 'PRE', 'PUB', 'ANUNCIO PREVIO'];
+  var INT_MAX = 12;
+  var _intTodas = false;
+
+  // Abierta = estado de licitación viva Y plazo sin vencer. El Monitor deja
+  // «EN PLAZO» cuando ya ha pasado la fecha de presentación si no ha vuelto a
+  // leer el expediente: eso no se presenta como abierto.
+  function esAbierta(r, hoyISO) {
+    if (INT_ABIERTAS.indexOf(String(r.estado || '').toUpperCase()) < 0) return false;
+    var f = String(r.fecha_presentacion || '').slice(0, 10);
+    return !f || f >= (hoyISO || new Date().toISOString().slice(0, 10));
+  }
+
+  function ordenarInteresantes(rows, hoyISO) {
+    return rows.slice().sort(function (a, b) {
+      var aa = esAbierta(a, hoyISO) ? 0 : 1;
+      var ab = esAbierta(b, hoyISO) ? 0 : 1;
+      if (aa !== ab) return aa - ab;
+      return String(b.marcada_at || b.primera_vez || '') > String(a.marcada_at || a.primera_vez || '') ? 1 : -1;
+    });
+  }
+
+  function _loadInteresantes() {
+    var DS = window.DataSupabase;
+    if (!DS || typeof DS.sbGet !== 'function') return;
+    DS.sbGet('/placsp_interesantes?vigente=eq.true&select=monitor_id,titulo,organo,entidad,estado,presupuesto,fecha_presentacion,lugar,link,veredicto,studio_id,marcada_at,primera_vez&limit=500')
+      .then(function (rows) {
+        var el = document.getElementById('bandeja-interesantes-wrap');
+        if (!el || !Array.isArray(rows) || !rows.length) return;
+        el.innerHTML = interesantesSection(ordenarInteresantes(rows));
+      })
+      .catch(function (e) { console.warn('[bandeja] interesantes PLACSP:', e.message); });
+  }
+
+  function interesantesSection(rows) {
+    var abiertas = rows.filter(function (r) { return esAbierta(r); }).length;
+    var vis = _intTodas ? rows : rows.slice(0, INT_MAX);
+    return (
+      '<div style="background:#eff6ff; border:1px solid #93c5fd; border-left:4px solid #2563eb; ' +
+        'border-radius:8px; padding:14px 16px; margin-bottom:20px;">' +
+        '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; gap:8px;">' +
+          '<div style="display:flex; align-items:center; gap:8px;">' +
+            '<span style="font-size:18px;">📌</span>' +
+            '<div>' +
+              '<div style="font-size:14px; font-weight:700; color:#1e3a8a;">Licitaciones interesantes</div>' +
+              '<div style="font-size:12px; color:#1e40af;">Las que has marcado en el PLACSP Monitor</div>' +
+            '</div>' +
+          '</div>' +
+          '<span style="background:#dbeafe; color:#1e40af; font-size:12px; font-weight:700; ' +
+            'padding:3px 10px; border-radius:12px; font-family:var(--font-mono); white-space:nowrap;">' +
+            rows.length + (abiertas ? ' · ' + abiertas + ' en plazo' : '') + '</span>' +
+        '</div>' +
+        '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:8px;">' +
+          vis.map(interesanteCard).join('') +
+        '</div>' +
+        (rows.length > INT_MAX
+          ? '<button class="btn btn-ghost" style="font-size:12px; margin-top:8px;" ' +
+              'onclick="window.Screens.bandeja._verTodasInteresantes()">' +
+              (_intTodas ? 'Ver menos' : 'Ver las ' + rows.length) + '</button>'
+          : '') +
+      '</div>'
+    );
+  }
+
+  function interesanteCard(r) {
+    var abierta = esAbierta(r);
+    var vencida = !abierta && INT_ABIERTAS.indexOf(String(r.estado || '').toUpperCase()) >= 0;
+    var titulo = String(r.titulo || '');
+    var tituloCorto = titulo.length > 90 ? titulo.slice(0, 90) + '…' : titulo;
+    var importe = r.presupuesto ? Math.round(Number(r.presupuesto) / 1000).toLocaleString('es-ES') + 'k€' : '';
+    var plazo = abierta && r.fecha_presentacion ? 'Hasta ' + String(r.fecha_presentacion).slice(0, 10) : '';
+    var ficha = r.studio_id
+      ? '<a href="#" style="font-size:11px; font-weight:600; color:var(--gpf-blue-700);" ' +
+          'onclick="event.preventDefault(); showView(\'detail\', { studioId: \'' + escape(String(r.studio_id)) + '\' })">Ficha →</a>'
+      : '';
+    var enlace = r.link
+      ? '<a href="' + escape(r.link) + '" target="_blank" rel="noopener" style="font-size:11px; color:var(--fg-3);">PLACSP ↗</a>'
+      : '';
+    return (
+      '<div style="background:#fff; border:1px solid #bfdbfe; border-radius:6px; padding:10px 12px;">' +
+        '<div style="display:flex; justify-content:space-between; gap:6px; margin-bottom:3px;">' +
+          '<div style="font-size:13px; font-weight:600; color:var(--fg-1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" ' +
+            'title="' + escape(r.organo || '') + '">' + escape(r.entidad || r.organo || '—') + '</div>' +
+          '<span style="font-size:10px; font-weight:700; padding:1px 6px; border-radius:8px; white-space:nowrap; ' +
+            (abierta ? 'background:#dcfce7; color:#166534;' : 'background:var(--bg-2, #f1f5f9); color:var(--fg-3);') + '">' +
+            escape(vencida ? 'PLAZO VENCIDO' : (r.estado || '—')) + '</span>' +
+        '</div>' +
+        '<div style="font-size:12px; color:var(--fg-2, var(--fg-3));" title="' + escape(titulo) + '">' + escape(tituloCorto) + '</div>' +
+        '<div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:6px; font-size:11px; font-family:var(--font-mono);">' +
+          (plazo ? '<span style="color:#b45309; font-weight:600;">' + escape(plazo) + '</span>' : '') +
+          (importe ? '<span style="color:#1d4ed8; font-weight:600;">' + escape(importe) + '</span>' : '') +
+          (r.lugar ? '<span style="color:var(--fg-3);">' + escape(r.lugar) + '</span>' : '') +
+          '<span style="margin-left:auto; display:flex; gap:10px;">' + ficha + enlace + '</span>' +
+        '</div>' +
+      '</div>'
+    );
   }
 
   /* ============================================================
@@ -830,6 +936,9 @@
     _descartar: _descartarAccion,
     _completar: _completarAccion,
     _refrescarAcciones: _refrescarAcciones,
+    _verTodasInteresantes: function () { _intTodas = !_intTodas; _loadInteresantes(); },
+    _ordenarInteresantes: ordenarInteresantes,
+    _esAbierta: esAbierta,
     _resolver: function (id) {
       var it = _accionesById[id];
       if (!it) return;

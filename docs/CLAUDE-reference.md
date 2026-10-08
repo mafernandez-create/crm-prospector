@@ -99,6 +99,16 @@ por nombre del cron no la recree. Avisos: contador en la barra lateral y punto e
 (`Shell.updateBadges`), tarjeta en Hoy (`inicio.js → candidatosCard`, «N nuevos esta semana»).
 Backfill del 19-sep-2026: 141 pendientes + 5 aceptadas (las que ya tenían provincia o actividad).
 
+## Licitaciones interesantes del Monitor (`placsp_interesantes`, oct-2026)
+Lo que Manolo marca como «interesante» en el PLACSP Monitor llega a la tabla `placsp_interesantes`
+(PK `monitor_id`). La llena `scripts/placsp-interesantes.js` (paso del `run-placsp-daily.sh`) desde
+`GET /api/crm/interesantes` del Monitor (contrato v1 en `placsp-monitor/crm_bridge.py`, cabecera
+`X-Cron-Secret` = `PLACSP_MONITOR_SECRET`). El órgano de contratación se cruza con la cartera por
+nombre exacto tras quitar el cargo («Alcaldía del…», «Junta de Gobierno Local del…»):
+`scripts/placsp-interesantes-lib.js`, test `test-placsp-interesantes.js`. Las desmarcadas pasan a
+`vigente=false` (no se borran). No escribe en `studios.data`. La Bandeja las enseña en la tarjeta
+«Licitaciones interesantes» (en plazo primero). Antes las consumía CRM3, retirado el 8-oct-2026.
+
 ## Backends e integraciones
 - **Supabase** — backend del rediseño (datos + planificador + briefings). Anon key pública embebida en `data-supabase.js`.
 - **Firebase Firestore** — solo el **legacy** (`index-legacy.html`). No usar en desarrollo nuevo.
