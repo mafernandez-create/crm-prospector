@@ -34,6 +34,11 @@ fallos_init crm-placsp-daily "$LOG"
 # `paso_critico`, y por eso el dia se marca abajo pase lo que pase.
 paso "fetch PLACSP" node scripts/placsp-fetch.js
 
+# Licitaciones marcadas como interesantes en el Monitor → tabla
+# placsp_interesantes (la lee la Bandeja). Independiente del fetch: si uno
+# falla, el otro sigue.
+paso "interesantes del Monitor" node scripts/placsp-interesantes.js
+
 # El freshness va SIEMPRE, aunque el fetch acabe de fallar: es justo entonces
 # cuando tiene que abrir el issue. Y si el que falla es el freshness, se queda
 # sin vigilante: antes eso era un `|| true` invisible.
