@@ -29,6 +29,10 @@ google_credentials.json
 !scripts/municipios/construir-censo-jucar.py
 !scripts/municipios/construir-censo-andalucia.py
 !scripts/municipios/construir-censo-segura.py
+# Generador de la hoja de ruta editable (PDF con AcroForm) de una semana de
+# visitas. El generador de la S42 anterior vivia solo en el scratchpad de una
+# sesion y se perdio al cerrarla: el 8-oct-2026 hubo que reescribirlo entero.
+!scripts/generar-pdf-ruta-s42.py
 *.js
 !index.js
 !cors-proxy.js
