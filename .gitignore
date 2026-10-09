@@ -108,3 +108,9 @@ docs/EPSAR-*.md
 # dejan por escrito donde duerme Manolo cada semana y este repo se autopublica
 # en gh-pages PUBLICO. Decision suya el 8-oct-2026: se queda en el Mac.
 docs/hoteles-por-zona.md
+
+# Listas de llamadas y guiones de ruta. Llevan nombres de personas, telefonos
+# directos, numeros de ficha del CRM y notas internas que no deben leerse fuera
+# ("no saben que vamos", "visita prescindible"). El repositorio es PUBLICO y se
+# autopublica en gh-pages. Se quedan en el Mac (9-oct-2026).
+docs/llamadas/
