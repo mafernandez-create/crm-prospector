@@ -451,7 +451,7 @@
           'onclick="event.preventDefault(); showView(\'detail\', { studioId: \'' + escape(String(r.studio_id)) + '\' })">Ficha →</a>'
       : '';
     var enlace = r.link
-      ? '<a href="' + escape(r.link) + '" target="_blank" rel="noopener" style="font-size:11px; color:var(--fg-3);">PLACSP ↗</a>'
+      ? '<a href="' + escape(U.safeHref(r.link)) + '" target="_blank" rel="noopener" style="font-size:11px; color:var(--fg-3);">PLACSP ↗</a>'
       : '';
     return (
       '<div style="background:#fff; border:1px solid #bfdbfe; border-radius:6px; padding:10px 12px;">' +

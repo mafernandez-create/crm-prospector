@@ -244,7 +244,7 @@
         'color:var(--fg-1); text-transform:none; letter-spacing:-0.01em; margin:0 0 8px;">' +
         escape(opts.title || 'Hecho') +
       '</h2>' +
-      (opts.body ? '<p style="font-size:15px; color:var(--fg-3); line-height:1.5; max-width:320px; margin:0 auto 28px;">' + opts.body + '</p>' : '') +
+      (opts.body ? '<p style="font-size:15px; color:var(--fg-3); line-height:1.5; max-width:320px; margin:0 auto 28px;">' + escape(opts.body) + '</p>' : '') +
 
       // Progress (opcional)
       (opts.progress ? (

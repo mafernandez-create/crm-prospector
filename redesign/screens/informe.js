@@ -780,6 +780,7 @@
   // (cierre de <script>) y saltos de línea.
   function escapeJs(s) {
     return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
       .replace(/\\/g, '\\\\')
       .replace(/'/g, "\\'")
       .replace(/"/g, '&quot;')

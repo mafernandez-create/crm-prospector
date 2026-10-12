@@ -229,7 +229,7 @@
           var previewText = latest.markdown
             ? latest.markdown.replace(/^#+\s*/mg, '').replace(/\*\*/g, '').replace(/\n+/g, ' ').slice(0, 220).trim() + '…'
             : 'Briefing disponible';
-          previewEl.innerHTML = '<span style="color:var(--fg-2);">' + previewText + '</span>';
+          previewEl.innerHTML = '<span style="color:var(--fg-2);">' + escape(previewText) + '</span>';
         }
         if (fechaEl && (latest.generated_at || latest.fecha_visita)) {
           var d = latest.generated_at || latest.fecha_visita;
@@ -2383,6 +2383,8 @@
     if (typeof jsyaml !== 'undefined') { cb(); return; }
     var s = document.createElement('script');
     s.src = 'https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js';
+    s.integrity = 'sha384-+pxiN6T7yvpryuJmE1gM9PX7yQit15auDb+ZwwvJOd/4be2Cie5/IuVXgQb/S9du';
+    s.crossOrigin = 'anonymous';
     s.onload = cb;
     s.onerror = function () {
       alert('No se pudo cargar el parser YAML. Comprueba la conexión e inténtalo de nuevo.');
