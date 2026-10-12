@@ -110,3 +110,11 @@ docs/hoteles-por-zona.md
 # ("no saben que vamos", "visita prescindible"). El repositorio es PUBLICO y se
 # autopublica en gh-pages. Se quedan en el Mac (9-oct-2026).
 docs/llamadas/
+
+# Hojas de ruta, auditorias de ruta y censos de redactoras: llevan nombres de
+# contactos, correos, telefonos y citas de correos de terceros. El generador
+# del PDF de la S42 y su auditoria se colaron en la rama rendimiento-carga el
+# 8-oct-2026 y se excluyeron al pasar a main (12-oct-2026). Se quedan en el Mac.
+scripts/generar-pdf-ruta-*.py
+docs/S*-auditoria-*.md
+docs/censos/censo-redactoras-*.md
