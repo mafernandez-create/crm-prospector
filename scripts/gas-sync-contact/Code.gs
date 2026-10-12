@@ -75,11 +75,17 @@ function _validarSbToken(token) {
       },
       muteHttpExceptions: true,
     });
-    return res.getResponseCode() === 200;
+    if (res.getResponseCode() !== 200) return false;
+    // Segunda barrera (12-oct-2026): un token valido no basta, tiene que ser de
+    // un correo permitido. Mismo criterio que private.usuarios_permitidos.
+    var email = String(JSON.parse(res.getContentText()).email || '').toLowerCase();
+    return CORREOS_PERMITIDOS.indexOf(email) !== -1;
   } catch (e) {
     return false;
   }
 }
+
+var CORREOS_PERMITIDOS = ['ma.fernandez@grupogpf.com'];
 
 /* ============================ People API ============================ */
 
