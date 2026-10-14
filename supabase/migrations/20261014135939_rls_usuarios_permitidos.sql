@@ -1,0 +1,12 @@
+-- RLS en la lista blanca (aviso critico del asesor de Supabase, 14-oct-2026).
+--
+-- private.usuarios_permitidos no tenia RLS. Nadie salvo postgres tiene permisos
+-- sobre ella, pero el asesor la marcaba como tabla sin RLS. Se activa sin
+-- politicas a proposito: ningun cliente debe leerla.
+-- private.es_usuario_permitido() es SECURITY DEFINER y pertenece a postgres,
+-- dueño de la tabla y con BYPASSRLS, asi que la sigue leyendo (sin FORCE).
+--
+-- Comprobado con transaccion de solo lectura y rollback: el correo permitido ve
+-- studios y visitas; un correo ajeno ve 0 filas.
+-- Version en Supabase: 20261014135939 (aplicada por MCP).
+alter table private.usuarios_permitidos enable row level security;
